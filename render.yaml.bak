@@ -20,7 +20,7 @@ services:
       - key: CRYPTO_PAY_API_TOKEN
         sync: false
 
-  # Main Telegram Bot service
+  # Telegram Bot service
   - type: web
     name: greenlight-bot
     env: node
@@ -39,25 +39,8 @@ services:
       - key: CRYPTO_PAY_API_TOKEN
         sync: false
 
-  # Admin Bot service (NEW)
-  - type: web
-    name: greenlight-admin
-    env: node
-    plan: starter
-    buildCommand: cd admin && npm install
-    startCommand: cd admin && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: ADMIN_BOT_TOKEN
-        sync: false
-      - key: API_URL
-        sync: false
-      - key: ADMIN_IDS
-        sync: false
-
   # Frontend static site
-  - type: web
+  - type: static
     name: greenlight-frontend
     env: static
     buildCommand: cd frontend && npm install && npm run build

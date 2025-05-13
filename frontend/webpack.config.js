@@ -1,5 +1,9 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
+
+// Загружаем переменные окружения, если имеется файл .env
+require('dotenv').config();
 
 module.exports = {
   entry: './src/index.js',
@@ -45,11 +49,20 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './public/index.html',
       filename: 'index.html'
+    }),
+    // Определяем переменные окружения для браузера
+    new webpack.DefinePlugin({
+      'process.env': {
+        // Предоставляем API URL или используем значение по умолчанию
+        REACT_APP_API_URL: JSON.stringify(process.env.REACT_APP_API_URL || 'http://localhost:3001/api'),
+        REACT_APP_WS_URL: JSON.stringify(process.env.REACT_APP_WS_URL || 'ws://localhost:3001'),
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'development')
+      }
     })
   ],
   devServer: {
     historyApiFallback: true,
-    port: 3000,
+    port: 3001,
     hot: true,
     open: true
   }

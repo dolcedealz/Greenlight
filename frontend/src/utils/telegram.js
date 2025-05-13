@@ -14,9 +14,15 @@ export const initTelegram = () => {
   // Расширяем окно приложения
   window.Telegram.WebApp.expand();
 
-  // Настраиваем цвет темы
-  window.Telegram.WebApp.setHeaderColor('#121212');
-  window.Telegram.WebApp.setBackgroundColor('#121212');
+  // В версии 6.0+ не используем эти методы, так как они устарели
+  // window.Telegram.WebApp.setHeaderColor('#121212');
+  // window.Telegram.WebApp.setBackgroundColor('#121212');
+  
+  // Вместо этого используем mainButton для управления внешним видом
+  window.Telegram.WebApp.MainButton.setParams({
+    color: '#0ba84a',
+    text_color: '#ffffff'
+  });
 
   return window.Telegram.WebApp;
 };

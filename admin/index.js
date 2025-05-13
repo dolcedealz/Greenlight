@@ -1,7 +1,14 @@
-// index.js
+// index.js - обновленная версия с HTTP-сервером для Render
 require('dotenv').config();
 const { Telegraf } = require('telegraf');
 const { commands, middleware, handlers } = require('./src');
+const http = require('http');
+
+// Проверяем наличие токена
+if (!process.env.ADMIN_BOT_TOKEN) {
+  console.error('❌ Ошибка: ADMIN_BOT_TOKEN не указан в переменных окружения');
+  process.exit(1);
+}
 
 // Инициализация бота с токеном из переменных окружения
 const bot = new Telegraf(process.env.ADMIN_BOT_TOKEN);
@@ -29,31 +36,32 @@ bot.catch((err, ctx) => {
     .catch(e => console.error('Ошибка при отправке сообщения об ошибке:', e));
 });
 
-// Запуск бота
-if (process.env.NODE_ENV === 'production') {
-  // Для продакшена используем webhook
-  const PORT = process.env.PORT || 3000;
-  const WEBHOOK_URL = process.env.WEBHOOK_URL;
-  
-  if (WEBHOOK_URL) {
-    bot.telegram.setWebhook(WEBHOOK_URL)
-      .then(() => console.log('Webhook установлен:', WEBHOOK_URL))
-      .catch(err => console.error('Ошибка установки webhook:', err));
-    
-    bot.startWebhook('/', null, PORT);
-    console.log(`Админ-бот запущен в режиме webhook на порту ${PORT}`);
-  } else {
-    bot.launch()
-      .then(() => console.log('Админ-бот запущен в режиме polling'))
-      .catch(err => console.error('Ошибка запуска бота:', err));
-  }
-} else {
-  // Для разработки используем long polling
-  bot.launch()
-    .then(() => console.log('Админ-бот запущен в режиме polling'))
-    .catch(err => console.error('Ошибка запуска бота:', err));
-}
+// Создаем простой HTTP-сервер для Render
+// Это необходимо, чтобы Render определил открытый порт
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end('<h1>Greenlight Admin Bot</h1><p>Бот активен и работает в режиме polling</p>');
+});
+
+// Получаем порт из переменных окружения (важно для Render)
+const PORT = process.env.PORT || 3000;
+
+// Запускаем HTTP-сервер
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`HTTP-сервер запущен на порту ${PORT}`);
+});
+
+// Запуск бота в режиме long polling
+bot.launch()
+  .then(() => console.log('✅ Админ-бот запущен в режиме polling'))
+  .catch(err => console.error('❌ Ошибка запуска бота:', err));
 
 // Правильное завершение работы
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => {
+  bot.stop('SIGINT');
+  server.close();
+});
+process.once('SIGTERM', () => {
+  bot.stop('SIGTERM');
+  server.close();
+});

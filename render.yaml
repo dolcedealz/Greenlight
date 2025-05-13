@@ -39,8 +39,8 @@ services:
       - key: CRYPTO_PAY_API_TOKEN
         sync: false
 
-  # Frontend static site
-  - type: static
+  # Frontend static site (исправлено)
+  - type: web
     name: greenlight-frontend
     env: static
     buildCommand: cd frontend && npm install && npm run build

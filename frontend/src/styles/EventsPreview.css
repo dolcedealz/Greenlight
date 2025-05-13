@@ -1,0 +1,66 @@
+/* EventsPreview.css */
+.events-preview {
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  padding: 15px;
+  margin: 15px 0;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.events-preview:hover {
+  transform: translateY(-2px);
+  background-color: #242424;
+}
+
+.events-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.events-header h3 {
+  font-size: 18px;
+  margin: 0;
+  color: var(--primary-color);
+}
+
+.events-total {
+  background-color: rgba(11, 168, 74, 0.1);
+  color: var(--primary-color);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.event-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.event-outcomes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outcome {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.outcome-name {
+  font-size: 14px;
+}
+
+.outcome-odds {
+  font-weight: bold;
+  color: var(--primary-color);
+}

@@ -1,0 +1,20 @@
+/* MainScreen.css */
+.main-screen {
+  padding: 0 15px 80px 15px;
+}
+
+.games-container {
+  margin-top: 20px;
+}
+
+.games-title {
+  font-size: 18px;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}

@@ -1,0 +1,147 @@
+/* CoinControls.css */
+.coin-controls {
+  padding: 20px;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  margin-top: 20px;
+}
+
+.side-selection {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.side-option {
+  width: 48%;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.side-option.selected {
+  background-color: rgba(11, 168, 74, 0.2);
+  border: 1px solid var(--primary-color);
+}
+
+.side-icon {
+  font-size: 30px;
+  margin-bottom: 8px;
+}
+
+.side-name {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.bet-control {
+  margin-bottom: 15px;
+}
+
+.bet-control label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.bet-control input {
+  width: 100%;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-size: 18px;
+  text-align: center;
+}
+
+.quick-bets {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.quick-bets button {
+  width: 23%;
+  padding: 8px 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.quick-bets button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.flip-button {
+  width: 100%;
+  padding: 14px;
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.flip-button:hover {
+  background-color: #0c9740;
+}
+
+.flip-button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+.last-results {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.last-results h4 {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.results-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+
+.result-indicator {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.result-indicator.heads {
+  background-color: #ffd700;
+  color: #000;
+}
+
+.result-indicator.tails {
+  background-color: #c0c0c0;
+  color: #000;
+}

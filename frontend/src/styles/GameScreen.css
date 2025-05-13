@@ -1,0 +1,96 @@
+/* GameScreen.css */
+.game-screen {
+  padding: 0 15px 60px 15px;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  margin: 15px 0;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 5px 10px;
+  margin-right: 10px;
+}
+
+.game-title {
+  font-size: 24px;
+  margin: 0;
+  flex-grow: 1;
+  text-align: center;
+  margin-right: 40px; /* Компенсация для кнопки назад, чтобы центрировать заголовок */
+}
+
+.game-container {
+  margin-top: 20px;
+}
+
+.game-result {
+  margin: 15px 0;
+  padding: 15px;
+  border-radius: var(--border-radius);
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+.game-result.win {
+  background-color: rgba(11, 168, 74, 0.2);
+  border: 1px solid var(--primary-color);
+}
+
+.game-result.lose {
+  background-color: rgba(255, 59, 48, 0.2);
+  border: 1px solid #ff3b30;
+}
+
+.result-text {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.result-amount {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.game-not-available {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  text-align: center;
+}
+
+.game-not-available p {
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+.game-not-available button {
+  padding: 10px 20px;
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

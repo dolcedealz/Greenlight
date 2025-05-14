@@ -67,6 +67,17 @@ const userSchema = new Schema({
   lastActivity: {
     type: Date,
     default: Date.now
+  },
+  // Новое поле для настроек игр и модификаторов шансов
+  gameSettings: {
+    coin: {
+      winChanceModifier: {
+        type: Number,
+        default: 0, // модификатор в процентных пунктах (+/- от базового шанса)
+        min: -47.5, // не может быть ниже 0% шанса (47.5 базовый)
+        max: 52.5,  // не может быть выше 100% шанса
+      }
+    }
   }
 }, {
   timestamps: true

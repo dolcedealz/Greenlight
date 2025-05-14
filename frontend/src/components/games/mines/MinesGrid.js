@@ -1,8 +1,7 @@
-// MinesGrid.js
 import React from 'react';
 import '../../../styles/MinesGrid.css';
 
-const MinesGrid = ({ grid, revealed, clickedCells = [], onCellClick, gameActive, gameOver, loading }) => {
+const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver, loading }) => {
   // Обработчик клика по ячейке
   const handleCellClick = (rowIndex, colIndex) => {
     // Блокируем клики если:
@@ -39,7 +38,7 @@ const MinesGrid = ({ grid, revealed, clickedCells = [], onCellClick, gameActive,
             const cellClass = `mines-cell 
               ${isRevealed ? 'revealed' : ''} 
               ${isRevealed && cell === 'mine' ? 'mine' : ''} 
-              ${isRevealed && cell !== 'mine' ? 'gem' : ''}
+              ${isRevealed && cell === 'gem' ? 'gem' : ''}
               ${!gameActive && !isRevealed ? 'disabled' : ''}
             `;
             
@@ -50,7 +49,7 @@ const MinesGrid = ({ grid, revealed, clickedCells = [], onCellClick, gameActive,
                 onClick={() => handleCellClick(rowIndex, colIndex)}
               >
                 {isRevealed && cell === 'mine' && <span className="mine-icon">💣</span>}
-                {isRevealed && cell !== 'mine' && <span className="gem-icon">💎</span>}
+                {isRevealed && cell === 'gem' && <span className="gem-icon">💎</span>}
               </div>
             );
           })}

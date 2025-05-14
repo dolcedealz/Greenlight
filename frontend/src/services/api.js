@@ -143,14 +143,13 @@ const userApi = {
 
 // API для игр
 const gameApi = {
-  // Игра "Монетка"
-  playCoinFlip: (betAmount, selectedSide, clientSeed = null) => {
-    console.log('Игра "Монетка":', { betAmount, selectedSide, clientSeed });
+  // Игра "Монетка" - ОБНОВЛЕННАЯ ВЕРСИЯ
+  playCoinFlip: (betAmount, selectedSide) => {
+    console.log('Игра "Монетка":', { betAmount, selectedSide });
     
     return api.post('/games/coin/play', { 
       betAmount, 
-      selectedSide, 
-      clientSeed 
+      selectedSide
     });
   },
   

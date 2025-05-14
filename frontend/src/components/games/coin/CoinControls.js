@@ -1,17 +1,10 @@
 // frontend/src/components/games/coin/CoinControls.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import '../../../styles/CoinControls.css';
 
 const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
   const [betAmount, setBetAmount] = useState(1);
   const [selectedSide, setSelectedSide] = useState('heads'); // 'heads' или 'tails'
-  const [clientSeed, setClientSeed] = useState(''); // Добавляем клиентский seed для честной игры
-  const [showSeedInput, setShowSeedInput] = useState(false);
-  
-  // Генерируем случайный seed при первой загрузке
-  useEffect(() => {
-    setClientSeed(Math.random().toString(36).substring(2, 15));
-  }, []);
   
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
@@ -41,16 +34,12 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
     
     onFlip({
       betAmount,
-      selectedSide,
-      clientSeed
+      selectedSide
     });
-    
-    // Генерируем новый seed для следующей игры
-    setClientSeed(Math.random().toString(36).substring(2, 15));
   };
 
   // Вычисляем потенциальный выигрыш
-  const potentialWin = (betAmount * 1.95).toFixed(2);
+  const potentialWin = (betAmount * 2.0).toFixed(2);
 
   return (
     <div className="coin-controls">
@@ -104,31 +93,6 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
       >
         {isFlipping ? 'Подбрасываем...' : 'Подбросить монету'}
       </button>
-      
-      <div className="advanced-options">
-        <button 
-          className="seed-toggle" 
-          onClick={() => setShowSeedInput(!showSeedInput)}
-          disabled={isFlipping}
-        >
-          {showSeedInput ? 'Скрыть дополнительно' : 'Показать дополнительно'}
-        </button>
-        
-        {showSeedInput && (
-          <div className="seed-input">
-            <label>Клиентский seed (для проверки честности):</label>
-            <input
-              type="text"
-              value={clientSeed}
-              onChange={(e) => setClientSeed(e.target.value)}
-              disabled={isFlipping}
-            />
-            <span className="seed-info">
-              Seed используется для генерации результата игры. Вы можете изменить его для проверки честности игры.
-            </span>
-          </div>
-        )}
-      </div>
       
       {lastResults && lastResults.length > 0 && (
         <div className="last-results">

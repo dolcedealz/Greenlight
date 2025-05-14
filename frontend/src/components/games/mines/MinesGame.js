@@ -7,7 +7,7 @@ import { gameApi } from '../../../services';
 const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) => {
   // Состояние игры
   const [grid, setGrid] = useState(Array(5).fill().map(() => Array(5).fill('gem')));
-  const [revealed, setRevealed] = useState(Array(25).fill(false));
+  const [clickedCells, setClickedCells] = useState([]);
   const [gameActive, setGameActive] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [gameId, setGameId] = useState(null);
@@ -17,7 +17,6 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
   const [possibleWin, setPossibleWin] = useState(0.95);
   const [loading, setLoading] = useState(false);
   const [autoplay, setAutoplay] = useState(false);
-  const [clickedCells, setClickedCells] = useState([]);
   
   // Обновление возможного выигрыша при изменении ставки или множителя
   useEffect(() => {
@@ -32,7 +31,6 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       
       // Сбрасываем состояние игры
       setGameOver(false);
-      setRevealed(Array(25).fill(false));
       setClickedCells([]);
       setCurrentMultiplier(0.95);
       setPossibleWin(betAmount * 0.95);
@@ -82,8 +80,11 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
     }
     
     // Проверка, не открыта ли уже ячейка
-    const index = row * 5 + col;
-    if (revealed[index]) {
+    const cellAlreadyClicked = clickedCells.some(cell => 
+      cell[0] === row && cell[1] === col
+    );
+    
+    if (cellAlreadyClicked) {
       return;
     }
     
@@ -101,18 +102,10 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       
       const data = response.data.data;
       
-      // Обновляем открытые ячейки
-      if (data.clickedCells && data.clickedCells.length > 0) {
-        // Получаем последнюю открытую ячейку из ответа
-        const [lastRow, lastCol] = data.clickedCells[0];
-        
-        // Обновляем отображение открытых ячеек
-        const newRevealed = [...revealed];
-        newRevealed[lastRow * 5 + lastCol] = true;
-        setRevealed(newRevealed);
-        
-        // Добавляем в список открытых ячеек
-        setClickedCells(prev => [...prev, [lastRow, lastCol]]);
+      // Получаем новые нажатые ячейки
+      if (data.clickedCells) {
+        // Сохраняем все открытые ячейки
+        setClickedCells(data.clickedCells);
       }
       
       if (data.win === false) {
@@ -121,17 +114,6 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         // Обновляем сетку с позициями мин
         if (data.grid) {
           setGrid(data.grid);
-          
-          // Показываем все мины
-          const allRevealed = [...revealed];
-          data.grid.forEach((rowData, rowIndex) => {
-            rowData.forEach((cell, colIndex) => {
-              if (cell === 'mine') {
-                allRevealed[rowIndex * 5 + colIndex] = true;
-              }
-            });
-          });
-          setRevealed(allRevealed);
         }
         
         // Завершаем игру
@@ -166,10 +148,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         setGameResult({
           win: true,
           amount: data.profit,
-          newBalance: data.balanceAfter,
-          serverSeedHashed: data.serverSeedHashed,
-          clientSeed: data.clientSeed,
-          nonce: data.nonce
+          newBalance: data.balanceAfter
         });
         
         // Обновляем баланс
@@ -204,7 +183,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       setLoading(false);
     }
   }, [
-    gameActive, gameOver, loading, revealed, betAmount, minesCount, gameId, 
+    gameActive, gameOver, loading, clickedCells, betAmount, minesCount, gameId, 
     autoplay, setBalance, setError, setGameResult
   ]);
   
@@ -247,10 +226,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       setGameResult({
         win: true,
         amount: data.profit,
-        newBalance: data.balanceAfter,
-        serverSeedHashed: data.serverSeedHashed,
-        clientSeed: data.clientSeed,
-        nonce: data.nonce
+        newBalance: data.balanceAfter
       });
       
       setLoading(false);
@@ -270,7 +246,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
     <>
       <MinesGrid 
         grid={grid}
-        revealed={revealed}
+        clickedCells={clickedCells}
         onCellClick={handleCellClick}
         gameActive={gameActive}
         gameOver={gameOver}

@@ -57,43 +57,39 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     fetchData();
   }, [gameType]);
   
-  // Coin game handler
+  // Coin game handler - ОБНОВЛЕННАЯ ВЕРСИЯ
   const handleFlip = async (betData) => {
     try {
       setIsFlipping(true);
       setGameResult(null);
       
-      // API request for the game
+      // API запрос для игры (упрощенный объект)
       const response = await gameApi.playCoinFlip(
         betData.betAmount,
-        betData.selectedSide,
-        betData.clientSeed
+        betData.selectedSide
       );
       
       const gameData = response.data.data;
       
-      // Set result
+      // Установить результат
       setResult(gameData.result);
       
-      // Store result in history
+      // Сохранить результат в истории
       setLastResults(prev => [gameData.result, ...prev].slice(0, 10));
       
-      // Set game result for display
+      // Установить результат игры для отображения
       setGameResult({
         win: gameData.win,
         amount: Math.abs(gameData.profit),
-        newBalance: gameData.balanceAfter,
-        serverSeedHashed: gameData.serverSeedHashed,
-        clientSeed: gameData.clientSeed,
-        nonce: gameData.nonce
+        newBalance: gameData.balanceAfter
       });
       
-      // Update balance
+      // Обновить баланс
       if (gameData.balanceAfter !== undefined) {
         setBalance(gameData.balanceAfter);
       }
-        
-      // Update stats
+      
+      // Обновить статистику
       if (gameStats) {
         const updatedStats = { ...gameStats };
         updatedStats.totalGames += 1;
@@ -252,7 +248,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </h1>
       </div>
       
-      {/* Game result */}
+      {/* Game result - ОБНОВЛЕННАЯ ВЕРСИЯ БЕЗ ИНФОРМАЦИИ О SEED */}
       {gameResult && (
         <div className={`game-result ${gameResult.win ? 'win' : 'lose'}`}>
           <div className="result-text">
@@ -261,22 +257,6 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
           <div className="result-amount">
             {gameResult.win ? '+' : '-'}{gameResult.amount.toFixed(2)} USDT
           </div>
-          {gameResult.serverSeedHashed && (
-            <div className="result-verification">
-              <div className="verification-item">
-                <span>Server Seed Hash:</span> 
-                <span className="hash">{gameResult.serverSeedHashed.slice(0, 10)}...{gameResult.serverSeedHashed.slice(-10)}</span>
-              </div>
-              <div className="verification-item">
-                <span>Client Seed:</span> 
-                <span className="hash">{gameResult.clientSeed}</span>
-              </div>
-              <div className="verification-item">
-                <span>Nonce:</span> 
-                <span className="hash">{gameResult.nonce}</span>
-              </div>
-            </div>
-          )}
         </div>
       )}
       

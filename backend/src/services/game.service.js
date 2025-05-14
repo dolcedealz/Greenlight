@@ -1,6 +1,8 @@
 // backend/src/services/game.service.js
 const { User, Game, Transaction } = require('../models');
 const randomService = require('./random.service');
+// Импортируем новый сервис для управления шансами
+const oddsService = require('./odds.service');
 const mongoose = require('mongoose');
 
 // Предварительно рассчитанные таблицы коэффициентов для каждого количества мин
@@ -46,7 +48,7 @@ const payoutTables = {
  */
 class GameService {
   /**
-   * Играть в монетку
+   * Играть в монетку - ПОЛНОСТЬЮ ИЗМЕНЕННЫЙ МЕТОД
    * @param {Object} userData - Данные пользователя
    * @param {Object} gameData - Данные игры
    * @returns {Object} - Результат игры
@@ -57,7 +59,7 @@ class GameService {
     
     try {
       const { userId, telegramId } = userData;
-      const { betAmount, selectedSide, clientSeed = null } = gameData;
+      const { betAmount, selectedSide } = gameData;
       
       // Найдем пользователя
       const user = await User.findOne(
@@ -86,17 +88,21 @@ class GameService {
         throw new Error('Выбрана неверная сторона монеты');
       }
       
-      // Генерируем серверный сид и хешируем его для проверки честности
-      const serverSeed = randomService.generateServerSeed();
-      const serverSeedHashed = randomService.hashServerSeed(serverSeed);
-      const nonce = randomService.generateNonce();
+      // Получаем шанс выигрыша для пользователя
+      const winChance = await oddsService.getUserWinChance(user, 'coin');
+      
+      // Генерируем случайное число от 0 до 1
+      const randomValue = Math.random();
       
       // Определяем результат игры
-      const result = randomService.flipCoin(serverSeed, clientSeed || 'default', nonce);
+      const win = randomValue < winChance;
       
-      // Определяем выигрыш/проигрыш
-      const win = result === selectedSide;
-      const multiplier = 1.95; // Коэффициент 1.95x (95% RTP)
+      // Если игрок выиграл, результат совпадает с его выбором
+      // Если проиграл - результат противоположный выбору
+      const result = win ? selectedSide : (selectedSide === 'heads' ? 'tails' : 'heads');
+      
+      // Определяем выигрыш/проигрыш с множителем x2
+      const multiplier = 2.0;
       const profit = win ? betAmount * multiplier - betAmount : -betAmount;
       
       // Баланс до и после
@@ -112,7 +118,7 @@ class GameService {
       user.lastActivity = new Date();
       await user.save({ session });
       
-      // Создаем запись об игре
+      // Создаем запись об игре (без seed и прочего)
       const game = new Game({
         user: user._id,
         gameType: 'coin',
@@ -127,10 +133,6 @@ class GameService {
         profit,
         balanceBefore,
         balanceAfter,
-        clientSeed: clientSeed || 'default',
-        serverSeed,
-        serverSeedHashed,
-        nonce,
         gameData: {
           selectedSide,
           result
@@ -171,16 +173,13 @@ class GameService {
       
       await session.commitTransaction();
       
-      // Возвращаем данные для клиента
+      // Возвращаем данные для клиента (без seed и прочего)
       return {
         result,
         win,
         profit,
         multiplier,
-        balanceAfter,
-        serverSeedHashed, // Хеш для проверки
-        clientSeed: clientSeed || 'default',
-        nonce
+        balanceAfter
       };
     } catch (error) {
       await session.abortTransaction();
@@ -500,6 +499,7 @@ class GameService {
           profit,
           balanceAfter: user.balance,
           clickedCells,
+          grid: game.result.grid, // Добавляем сетку в результаты кешаута
           serverSeedHashed: game.serverSeedHashed,
           clientSeed: game.clientSeed,
           nonce: game.nonce
@@ -633,6 +633,7 @@ class GameService {
               profit,
               balanceAfter: user.balance,
               clickedCells,
+              grid, // Добавляем сетку
               maxWin: true,
               serverSeedHashed: game.serverSeedHashed,
               clientSeed: game.clientSeed,
@@ -665,6 +666,7 @@ class GameService {
             return {
               win: null, // null означает, что игра продолжается
               clickedCells, // Возвращаем ВСЕ открытые ячейки
+              grid, // Добавляем сетку - САМОЕ ВАЖНОЕ ИЗМЕНЕНИЕ
               currentMultiplier: multiplier,
               possibleWin: game.bet * multiplier,
               balanceAfter: user.balance

@@ -439,130 +439,139 @@ async completeMinesGame(userData, gameData) {
       };
     } else {
       // Игрок кликнул по ячейке
-      if (row === null || col === null || row === undefined || col === undefined) {
-        throw new Error('Не указаны координаты ячейки');
-      }
-      
-      // Проверяем, что координаты в допустимых пределах
-      if (row < 0 || row > 4 || col < 0 || col > 4) {
-        throw new Error('Некорректные координаты ячейки');
-      }
-      
-      // Проверяем, что ячейка еще не была открыта
-      const cellAlreadyClicked = clickedCells.some(
-        cell => cell[0] === row && cell[1] === col
-      );
-      
-      if (cellAlreadyClicked) {
-        throw new Error('Эта ячейка уже открыта');
-      }
-      
-      // Добавляем ячейку в список открытых
-      clickedCells.push([row, col]);
-      game.result.clickedCells = clickedCells;
-      
-      // Получаем игровое поле и позиции мин
-      const grid = game.result.grid;
-      
-      // Проверяем, попал ли игрок на мину
-      if (grid[row][col] === 'mine') {
-        // Игрок проиграл
-        game.result.win = false;
-        game.win = false;
-        game.status = 'completed';
-        
-        await game.save({ session });
-        
-        await session.commitTransaction();
-        
-        // Возвращаем данные для клиента
-        return {
-          win: false,
-          clickedCells, // Возвращаем все открытые ячейки
-          grid, // Показываем всё поле с минами
-          balanceAfter: user.balance
-        };
-      } else {
-        // Игрок открыл безопасную ячейку
-        const revealedCount = clickedCells.length;
-        const remainingSafe = safeTotal - revealedCount;
-        
-        // Проверка на открытие всех безопасных ячеек
-        const allSafeCellsRevealed = revealedCount === safeTotal;
-        
-        if (allSafeCellsRevealed) {
-          // Максимальный выигрыш - открыты все безопасные ячейки
-          const maxMultiplier = safeTotal * 0.95;
-          const winAmount = game.bet * maxMultiplier;
-          const profit = winAmount - game.bet;
-          
-          // Обновляем игру
-          game.multiplier = maxMultiplier;
-          game.result.win = true;
-          game.result.cashout = true;
-          game.win = true;
-          game.profit = profit;
-          game.balanceAfter = game.balanceBefore + profit;
-          game.status = 'completed';
-          
-          await game.save({ session });
-          
-          // Обновляем баланс пользователя
-          user.balance += winAmount;
-          user.totalWon += winAmount;
-          user.lastActivity = new Date();
-          await user.save({ session });
-          
-          // Создаем транзакцию для выигрыша
-          const winTransaction = new Transaction({
-            user: user._id,
-            type: 'win',
-            amount: winAmount,
-            game: game._id,
-            description: `Максимальный выигрыш в игре "Мины" (x${maxMultiplier.toFixed(2)})`,
-            balanceBefore: user.balance - winAmount,
-            balanceAfter: user.balance,
-            status: 'completed'
-          });
-          
-          await winTransaction.save({ session });
-          
-          await session.commitTransaction();
-          
-          // Возвращаем данные для клиента
-          return {
-            win: true,
-            multiplier: maxMultiplier,
-            profit,
-            balanceAfter: user.balance,
-            clickedCells, // Возвращаем все открытые ячейки
-            maxWin: true,
-            serverSeedHashed: game.serverSeedHashed,
-            clientSeed: game.clientSeed,
-            nonce: game.nonce
-          };
-        } else {
-          // Игра продолжается
-          // Корректный расчет множителя с округлением, чтобы избежать проблем с плавающей точкой
-          const multiplier = Math.round((safeTotal / remainingSafe) * 0.95 * 10000) / 10000;
-          
-          // Обновляем множитель в игре
-          game.multiplier = multiplier;
-          
-          await game.save({ session });
-          
-          await session.commitTransaction();
-          
-          // Возвращаем данные для клиента
-          return {
-            win: null, // null означает, что игра продолжается
-            clickedCells, // Возвращаем все открытые ячейки, а не только последнюю
-            currentMultiplier: multiplier,
-            possibleWin: game.bet * multiplier,
-            balanceAfter: user.balance
-          };
-        }
-      }
+if (row === null || col === null || row === undefined || col === undefined) {
+  throw new Error('Не указаны координаты ячейки');
+}
+
+// Проверяем, что координаты в допустимых пределах
+if (row < 0 || row > 4 || col < 0 || col > 4) {
+  throw new Error('Некорректные координаты ячейки');
+}
+
+// ВАЖНОЕ ИСПРАВЛЕНИЕ: получаем существующие клики из игры
+const clickedCells = game.result.clickedCells || [];
+
+// Проверяем, что ячейка еще не была открыта
+const cellAlreadyClicked = clickedCells.some(
+  cell => cell[0] === row && cell[1] === col
+);
+
+if (cellAlreadyClicked) {
+  throw new Error('Эта ячейка уже открыта');
+}
+
+// Добавляем ячейку в список открытых
+clickedCells.push([row, col]);
+
+// ВАЖНОЕ ИСПРАВЛЕНИЕ: обновляем список в объекте результата
+game.result.clickedCells = clickedCells;
+
+// Получаем игровое поле и позиции мин
+const grid = game.result.grid;
+
+// Проверяем, попал ли игрок на мину
+if (grid[row][col] === 'mine') {
+  // Игрок проиграл
+  game.result.win = false;
+  game.win = false;
+  game.status = 'completed';
+  
+  await game.save({ session });
+  
+  await session.commitTransaction();
+  
+  // Возвращаем данные для клиента
+  return {
+    win: false,
+    clickedCells, // Возвращаем все открытые ячейки
+    grid, // Показываем всё поле с минами
+    balanceAfter: user.balance
+  };
+} else {
+  // Игрок открыл безопасную ячейку
+  const revealedCount = clickedCells.length;
+  const remainingSafe = safeTotal - revealedCount;
+  
+  // Проверка на открытие всех безопасных ячеек
+  const allSafeCellsRevealed = revealedCount === safeTotal;
+  
+  if (allSafeCellsRevealed) {
+    // Максимальный выигрыш - открыты все безопасные ячейки
+    const maxMultiplier = safeTotal * 0.95;
+    const winAmount = game.bet * maxMultiplier;
+    const profit = winAmount - game.bet;
+    
+    // Обновляем игру
+    game.multiplier = maxMultiplier;
+    game.result.win = true;
+    game.result.cashout = true;
+    game.win = true;
+    game.profit = profit;
+    game.balanceAfter = game.balanceBefore + profit;
+    game.status = 'completed';
+    
+    await game.save({ session });
+    
+    // Обновляем баланс пользователя
+    user.balance += winAmount;
+    user.totalWon += winAmount;
+    user.lastActivity = new Date();
+    await user.save({ session });
+    
+    // Создаем транзакцию для выигрыша
+    const winTransaction = new Transaction({
+      user: user._id,
+      type: 'win',
+      amount: winAmount,
+      game: game._id,
+      description: `Максимальный выигрыш в игре "Мины" (x${maxMultiplier.toFixed(2)})`,
+      balanceBefore: user.balance - winAmount,
+      balanceAfter: user.balance,
+      status: 'completed'
+    });
+    
+    await winTransaction.save({ session });
+    
+    await session.commitTransaction();
+    
+    // Возвращаем данные для клиента
+    return {
+      win: true,
+      multiplier: maxMultiplier,
+      profit,
+      balanceAfter: user.balance,
+      clickedCells, // Возвращаем все открытые ячейки
+      maxWin: true,
+      serverSeedHashed: game.serverSeedHashed,
+      clientSeed: game.clientSeed,
+      nonce: game.nonce
+    };
+  } else {
+    // Игра продолжается
+    
+    // ВАЖНОЕ ИСПРАВЛЕНИЕ: правильно рассчитываем множитель
+    const multiplier = parseFloat(((safeTotal / remainingSafe) * 0.95).toFixed(4));
+    
+    console.log(`ОТЛАДКА МНОЖИТЕЛЯ: safeTotal=${safeTotal}, revealed=${revealedCount}, remaining=${remainingSafe}, multiplier=${multiplier}`);
+    
+    // Обновляем множитель в игре
+    game.multiplier = multiplier;
+    
+    // СОХРАНЯЕМ ИЗМЕНЕНИЯ В ИГРЕ
+    await game.save({ session });
+    
+    await session.commitTransaction();
+    
+    // Возвращаем данные для клиента с ПОЛНЫМ списком открытых ячеек
+    return {
+      win: null, // null означает, что игра продолжается
+      clickedCells, // Возвращаем ВСЕ открытые ячейки
+      currentMultiplier: multiplier,
+      possibleWin: game.bet * multiplier,
+      balanceAfter: user.balance
+    };
+  }
+}
     }
   } catch (error) {
     await session.abortTransaction();

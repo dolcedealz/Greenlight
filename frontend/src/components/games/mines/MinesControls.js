@@ -17,9 +17,13 @@ const MinesControls = ({
   onAutoplayChange,
   autoplay
 }) => {
-  const [isAutoplay, setIsAutoplay] = useState(false);
+  // Debug log when important props change
+  useEffect(() => {
+    console.log("MinesControls: multiplier updated to", currentMultiplier);
+    console.log("MinesControls: possibleWin updated to", possibleWin);
+  }, [currentMultiplier, possibleWin]);
   
-  // Обработчик изменения суммы ставки
+  // Handler for bet amount change
   const handleBetAmountChange = (e) => {
     const value = parseFloat(e.target.value);
     if (!isNaN(value) && value > 0 && value <= balance) {
@@ -27,13 +31,13 @@ const MinesControls = ({
     }
   };
   
-  // Быстрые кнопки для ставки
+  // Quick buttons for bet
   const handleQuickBet = (multiplier) => {
     const quickBet = Math.min(balance, Math.max(1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
   
-  // Обработчик изменения количества мин
+  // Handler for mines count change
   const handleMinesCountChange = (e) => {
     const value = parseInt(e.target.value, 10);
     if (!isNaN(value) && value >= 1 && value <= 24) {
@@ -41,15 +45,14 @@ const MinesControls = ({
     }
   };
   
-  // Быстрые кнопки для количества мин
+  // Quick buttons for mines count
   const handleQuickMines = (count) => {
     setMinesCount(count);
   };
   
-  // Обработчик переключения автоигры
+  // Handler for autoplay toggle
   const toggleAutoplay = () => {
-    setIsAutoplay(!isAutoplay);
-    onAutoplayChange && onAutoplayChange(!isAutoplay);
+    onAutoplayChange && onAutoplayChange(!autoplay);
   };
   
   return (
@@ -143,7 +146,7 @@ const MinesControls = ({
         <label className="autoplay-toggle">
           <input 
             type="checkbox" 
-            checked={isAutoplay} 
+            checked={autoplay} 
             onChange={toggleAutoplay}
             disabled={gameActive}
           />
@@ -155,4 +158,4 @@ const MinesControls = ({
   );
 };
 
-export default MinesControls;
+export default React.memo(MinesControls); // Use React.memo to prevent unnecessary re-renders

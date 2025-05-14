@@ -25,22 +25,23 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
     console.log("MINES COMPONENT: gameActive changed to:", gameActive);
   }, [gameActive]);
 
-  // Update possible win when bet amount changes
+  // Update possible win when bet amount or multiplier changes
   useEffect(() => {
-    setPossibleWin(betAmount);
-  }, [betAmount]);
+    // Calculate the potential win based on bet amount and current multiplier
+    setPossibleWin(betAmount * currentMultiplier);
+  }, [betAmount, currentMultiplier]);
   
   // Start new game - using useCallback to prevent unnecessary recreations
   const startGame = useCallback(async () => {
     try {
       console.log("MINES COMPONENT: Starting new game...");
       
-      // Reset all game state
+      // Reset game state
       setGameOver(false);
       setRevealed(Array(25).fill(false));
       setRevealedCount(0);
-      setCurrentMultiplier(1);
-      setPossibleWin(betAmount);
+      setCurrentMultiplier(0.95); // Start with base multiplier (95% RTP)
+      setPossibleWin(betAmount * 0.95); // Initial possible win
       setGameActive(false); // Make sure game is inactive during setup
       setGameResult(null);
       setError(null);
@@ -69,6 +70,11 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       // Reset grid
       setGrid(Array(5).fill().map(() => Array(5).fill('gem')));
       
+      // Debug the multiplier and win
+      console.log("MINES COMPONENT: Initial multiplier set to 0.95");
+      console.log("MINES COMPONENT: Initial possible win:", betAmount * 0.95);
+      
+      
       // CRITICAL: Activate game AFTER all other state is set
       console.log("MINES COMPONENT: Activating game now");
       setTimeout(() => {
@@ -82,7 +88,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
     }
   }, [betAmount, minesCount, setBalance, setError, setGameResult]);
   
-  // Handle cell click
+      // Handle cell click
   const handleCellClick = useCallback(async (row, col) => {
     console.log(`MINES COMPONENT: Cell click [${row},${col}], gameActive=${gameActive}, gameOver=${gameOver}`);
     
@@ -120,13 +126,17 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         false
       );
       
+      console.log("MINES COMPONENT: API response:", response.data);
       const data = response.data.data;
       
       // Update revealed cells
       const newRevealed = [...revealed];
       newRevealed[index] = true;
       setRevealed(newRevealed);
-      setRevealedCount(prevCount => prevCount + 1);
+      
+      // Increment revealed count
+      const newRevealedCount = revealedCount + 1;
+      setRevealedCount(newRevealedCount);
       
       if (data.win === false) {
         // Hit a mine - game over

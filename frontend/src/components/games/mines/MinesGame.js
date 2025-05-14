@@ -14,41 +14,30 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
   const [minesCount, setMinesCount] = useState(5);
   const [currentMultiplier, setCurrentMultiplier] = useState(0.95);
   const [possibleWin, setPossibleWin] = useState(0.95);
-  const [revealedCount, setRevealedCount] = useState(0);
-  const [autoplay, setAutoplay] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [autoplay, setAutoplay] = useState(false);
   
-  // Референс для данных текущей игры
+  // Референсы для хранения данных между рендерами
   const gameDataRef = useRef(null);
+  const clickedCellsRef = useRef([]); // Храним открытые ячейки локально
+  
+  // Получаем количество открытых ячеек
+  const revealedCount = clickedCellsRef.current.length;
   
   // Обновление возможного выигрыша при изменении ставки или множителя
   useEffect(() => {
     setPossibleWin(betAmount * currentMultiplier);
   }, [betAmount, currentMultiplier]);
   
-  // Дебаг-логирование изменений gameActive
-  useEffect(() => {
-    console.log("MINES COMPONENT: gameActive изменено на:", gameActive);
-  }, [gameActive]);
-
-  // Обновление состояния раскрытия ячеек на основе полного массива открытых ячеек
-  const updateRevealedState = useCallback((clickedCells) => {
-    if (!clickedCells || !Array.isArray(clickedCells)) return;
+  // Обновление множителя на основе количества открытых ячеек
+  const calculateMultiplier = useCallback((openedCells) => {
+    const safeTotal = 25 - minesCount;
+    const remaining = safeTotal - openedCells.length;
+    if (remaining <= 0) return 0;
     
-    // Создаем новый массив revealed на основе полного списка открытых ячеек
-    const newRevealed = Array(25).fill(false);
-    
-    // Отмечаем все открытые ячейки
-    clickedCells.forEach(([r, c]) => {
-      if (r >= 0 && r < 5 && c >= 0 && c < 5) {
-        const index = r * 5 + c;
-        newRevealed[index] = true;
-      }
-    });
-    
-    setRevealed(newRevealed);
-    setRevealedCount(clickedCells.length);
-  }, []);
+    // Формула расчета множителя: (безопасных_всего / оставшихся_безопасных) * 0.95
+    return (safeTotal / remaining) * 0.95;
+  }, [minesCount]);
   
   // Запуск новой игры
   const startGame = useCallback(async () => {
@@ -59,7 +48,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       // Сбрасываем состояние игры
       setGameOver(false);
       setRevealed(Array(25).fill(false));
-      setRevealedCount(0);
+      clickedCellsRef.current = []; // Сбрасываем локальный список открытых ячеек
       setCurrentMultiplier(0.95);
       setPossibleWin(betAmount * 0.95);
       setGameActive(false);
@@ -144,16 +133,25 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       console.log("Получен ответ:", response.data);
       const data = response.data.data;
       
-      // Обновляем состояние раскрытых ячеек
-      if (data.clickedCells && Array.isArray(data.clickedCells)) {
-        // Важно! Используем полный массив clickedCells из ответа
-        updateRevealedState(data.clickedCells);
-      } else {
-        // Если сервер не вернул массив ячеек, добавляем только текущую ячейку (запасной вариант)
+      // Важно! Сервер возвращает только последнюю открытую ячейку,
+      // поэтому мы должны сами отслеживать все открытые ячейки
+      if (data.clickedCells && data.clickedCells.length > 0) {
+        // Получаем последнюю открытую ячейку из ответа
+        const [lastRow, lastCol] = data.clickedCells[0];
+        
+        // Добавляем её в наш локальный список, если её там еще нет
+        const alreadyExists = clickedCellsRef.current.some(
+          ([r, c]) => r === lastRow && c === lastCol
+        );
+        
+        if (!alreadyExists) {
+          clickedCellsRef.current.push([lastRow, lastCol]);
+        }
+        
+        // Обновляем отображение открытых ячеек
         const newRevealed = [...revealed];
-        newRevealed[index] = true;
+        newRevealed[lastRow * 5 + lastCol] = true;
         setRevealed(newRevealed);
-        setRevealedCount(prevCount => prevCount + 1);
       }
       
       if (data.win === false) {
@@ -196,7 +194,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         // Все безопасные ячейки открыты - максимальный выигрыш
         console.log("Все безопасные ячейки открыты - максимальный выигрыш");
         
-        // Обновляем множитель до максимального
+        // Получаем множитель либо из ответа, либо рассчитываем сами
         const finalMultiplier = data.multiplier || (0.95 * (25 - minesCount));
         setCurrentMultiplier(finalMultiplier);
         setPossibleWin(betAmount * finalMultiplier);
@@ -224,18 +222,18 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         // Открыта безопасная ячейка - игра продолжается
         console.log("Открыта безопасная ячейка - продолжаем игру");
         
-        // Обновляем множитель и возможный выигрыш
-        if (data.currentMultiplier !== undefined) {
-          setCurrentMultiplier(data.currentMultiplier);
-          setPossibleWin(betAmount * data.currentMultiplier);
-          console.log(`Новый множитель: ${data.currentMultiplier}`);
-        }
+        // Обновляем множитель - либо используем значение от сервера,
+        // либо рассчитываем самостоятельно на основе открытых ячеек
+        const newMultiplier = data.currentMultiplier || calculateMultiplier(clickedCellsRef.current);
+        setCurrentMultiplier(newMultiplier);
+        setPossibleWin(betAmount * newMultiplier);
+        console.log(`Новый множитель: ${newMultiplier}`);
         
         // Разблокируем интерфейс для продолжения игры
         setGameActive(true);
         
         // Проверяем условие автоигры
-        if (autoplay && data.currentMultiplier >= 2) {
+        if (autoplay && newMultiplier >= 2) {
           console.log("Сработало условие автоигры - выполняем кешаут");
           setTimeout(() => handleCashout(), 500);
         }
@@ -250,7 +248,10 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       setGameActive(true);
       setLoading(false);
     }
-  }, [gameActive, gameOver, loading, revealed, betAmount, minesCount, autoplay, updateRevealedState, setBalance, setError, setGameResult]);
+  }, [
+    gameActive, gameOver, loading, revealed, betAmount, minesCount, 
+    autoplay, calculateMultiplier, setBalance, setError, setGameResult
+  ]);
   
   // Функция кешаута (забрать выигрыш)
   const handleCashout = useCallback(async () => {

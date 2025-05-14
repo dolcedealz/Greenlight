@@ -6,8 +6,7 @@ import { Header } from '../components/layout';
 import { userApi, gameApi } from '../services';
 import '../styles/GameScreen.css';
 
-const GameScreen = ({ gameType, userData, onBack }) => {
-  const [balance, setBalance] = useState(0);
+const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setBalance }) => {
   const [isFlipping, setIsFlipping] = useState(false);
   const [result, setResult] = useState(null);
   const [lastResults, setLastResults] = useState([]);
@@ -16,15 +15,11 @@ const GameScreen = ({ gameType, userData, onBack }) => {
   const [error, setError] = useState(null);
   const [gameStats, setGameStats] = useState(null);
   
-  // Загрузка баланса, истории игр и статистики при монтировании
+  // Загрузка истории игр и статистики при монтировании
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Загрузка баланса
-        const balanceResponse = await userApi.getBalance();
-        setBalance(balanceResponse.data.data.balance);
         
         // Загрузка истории игр для текущего типа игры
         const historyResponse = await gameApi.getGameHistory({
@@ -92,7 +87,9 @@ const GameScreen = ({ gameType, userData, onBack }) => {
       
       // Обновляем баланс после показа результата
       setTimeout(() => {
-        setBalance(gameData.balanceAfter);
+        if (gameData.balanceAfter !== undefined) {
+          setBalance(gameData.balanceAfter);
+        }
         
         // Обновляем статистику
         if (gameStats) {
@@ -128,17 +125,17 @@ const GameScreen = ({ gameType, userData, onBack }) => {
   
   // Компонент для игры "Мины"
   const MinesGame = () => {
-    const [grid, setGrid] = useState(Array(5).fill().map(() => Array(5).fill('gem'))); // Игровое поле
-    const [revealed, setRevealed] = useState(Array(25).fill(false)); // Массив открытых ячеек
-    const [gameActive, setGameActive] = useState(false); // Активна ли игра
-    const [gameOver, setGameOver] = useState(false); // Закончена ли игра
-    const [betAmount, setBetAmount] = useState(1); // Сумма ставки
-    const [minesCount, setMinesCount] = useState(5); // Количество мин
-    const [currentMultiplier, setCurrentMultiplier] = useState(1); // Текущий множитель
-    const [possibleWin, setPossibleWin] = useState(0); // Возможный выигрыш
-    const [revealedCount, setRevealedCount] = useState(0); // Количество открытых ячеек
-    const [gameData, setGameData] = useState(null); // Данные игры с сервера
-    const [autoplay, setAutoplay] = useState(false); // Включена ли автоигра
+    const [grid, setGrid] = useState(Array(5).fill().map(() => Array(5).fill('gem')));
+    const [revealed, setRevealed] = useState(Array(25).fill(false));
+    const [gameActive, setGameActive] = useState(false);
+    const [gameOver, setGameOver] = useState(false);
+    const [betAmount, setBetAmount] = useState(1);
+    const [minesCount, setMinesCount] = useState(5);
+    const [currentMultiplier, setCurrentMultiplier] = useState(1);
+    const [possibleWin, setPossibleWin] = useState(0);
+    const [revealedCount, setRevealedCount] = useState(0);
+    const [gameData, setGameData] = useState(null);
+    const [autoplay, setAutoplay] = useState(false);
     
     // Инициализация игры и расчет коэффициентов
     useEffect(() => {
@@ -146,39 +143,12 @@ const GameScreen = ({ gameType, userData, onBack }) => {
       setPossibleWin(betAmount);
     }, [betAmount]);
     
-    // Создание нового игрового поля
-    const createNewGrid = (mines) => {
-      // Создаем пустое поле 5x5
-      const newGrid = Array(5).fill().map(() => Array(5).fill('gem'));
-      const positions = [];
-      
-      // Заполняем массив всеми возможными позициями
-      for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 5; j++) {
-          positions.push([i, j]);
-        }
-      }
-      
-      // Случайным образом выбираем позиции для мин
-      for (let i = 0; i < mines; i++) {
-        if (positions.length === 0) break;
-        
-        const randomIndex = Math.floor(Math.random() * positions.length);
-        const [row, col] = positions[randomIndex];
-        
-        // Устанавливаем мину
-        newGrid[row][col] = 'mine';
-        
-        // Удаляем эту позицию из массива
-        positions.splice(randomIndex, 1);
-      }
-      
-      return newGrid;
-    };
-    
     // Начало новой игры
     const startGame = async () => {
       try {
+        setError(null); // Очищаем предыдущие ошибки
+        setGameResult(null); // Очищаем предыдущий результат
+
         // Создаем новую игру на сервере
         const response = await gameApi.playMines(betAmount, minesCount);
         const data = response.data.data;
@@ -186,9 +156,8 @@ const GameScreen = ({ gameType, userData, onBack }) => {
         // Сохраняем данные игры
         setGameData(data);
         
-        // Создаем новое игровое поле
-        // В реальной игре сетка будет получена с сервера для предотвращения мошенничества
-        const newGrid = createNewGrid(minesCount);
+        // Создаем новое игровое поле (в реальной игре сетка будет на сервере)
+        const newGrid = Array(5).fill().map(() => Array(5).fill('gem'));
         
         // Инициализируем массив открытых ячеек
         const newRevealed = Array(25).fill(false);
@@ -201,8 +170,10 @@ const GameScreen = ({ gameType, userData, onBack }) => {
         setCurrentMultiplier(1);
         setPossibleWin(betAmount);
         
-        // Скрываем предыдущий результат игры, если он был
-        setGameResult(null);
+        // Обновляем баланс из ответа сервера
+        if (data.balanceAfter !== undefined) {
+          setBalance(data.balanceAfter);
+        }
       } catch (err) {
         console.error('Ошибка при начале игры:', err);
         setError(err.response?.data?.message || 'Произошла ошибка при начале игры');
@@ -214,7 +185,6 @@ const GameScreen = ({ gameType, userData, onBack }) => {
       if (!gameActive) return;
       
       const index = row * 5 + col;
-      const cell = grid[row][col];
       
       try {
         // Отправляем запрос на сервер о клике
@@ -233,19 +203,25 @@ const GameScreen = ({ gameType, userData, onBack }) => {
         setRevealed(newRevealed);
         
         // Увеличиваем счетчик открытых ячеек
-        setRevealedCount(revealedCount + 1);
+        setRevealedCount(prevCount => prevCount + 1);
         
-        if (cell === 'mine' || data.win === false) {
+        if (data.win === false) {
           // Игрок попал на мину
-          // Открываем все мины
-          const allRevealed = [...newRevealed];
-          grid.forEach((row, rowIndex) => {
-            row.forEach((cell, colIndex) => {
-              if (cell === 'mine') {
-                allRevealed[rowIndex * 5 + colIndex] = true;
-              }
+          // Получаем игровое поле с сервера и открываем все мины
+          const serverGrid = data.grid;
+          let allRevealed = [...newRevealed];
+          
+          // Если сервер прислал поле, используем его
+          if (serverGrid) {
+            serverGrid.forEach((row, rowIndex) => {
+              row.forEach((cell, colIndex) => {
+                if (cell === 'mine') {
+                  allRevealed[rowIndex * 5 + colIndex] = true;
+                }
+              });
             });
-          });
+            setGrid(serverGrid);
+          }
           
           setRevealed(allRevealed);
           setGameActive(false);
@@ -255,11 +231,13 @@ const GameScreen = ({ gameType, userData, onBack }) => {
           setGameResult({
             win: false,
             amount: betAmount,
-            newBalance: balance - betAmount
+            newBalance: data.balanceAfter
           });
           
-          // Обновляем баланс
-          setBalance(prev => prev - betAmount);
+          // Обновляем баланс из ответа сервера
+          if (data.balanceAfter !== undefined) {
+            setBalance(data.balanceAfter);
+          }
           
           // Обновляем статистику
           if (gameStats) {
@@ -272,11 +250,14 @@ const GameScreen = ({ gameType, userData, onBack }) => {
           }
         } else if (data.maxWin) {
           // Игрок открыл все безопасные ячейки - максимальный выигрыш
-          setCurrentMultiplier(data.multiplier);
-          setPossibleWin(betAmount * data.multiplier);
+          const finalMultiplier = data.multiplier || data.currentMultiplier;
+          setCurrentMultiplier(finalMultiplier);
+          setPossibleWin(betAmount * finalMultiplier);
           
-          // Обновляем баланс
-          setBalance(data.balanceAfter);
+          // Обновляем баланс из ответа сервера
+          if (data.balanceAfter !== undefined) {
+            setBalance(data.balanceAfter);
+          }
           
           // Уведомляем пользователя о выигрыше
           setGameResult({
@@ -300,9 +281,11 @@ const GameScreen = ({ gameType, userData, onBack }) => {
           }
         } else {
           // Игрок нашел сокровище
-          // Обновляем множитель и возможный выигрыш
-          setCurrentMultiplier(data.currentMultiplier);
-          setPossibleWin(data.possibleWin);
+          // Обновляем множитель и возможный выигрыш из данных сервера
+          if (data.currentMultiplier !== undefined) {
+            setCurrentMultiplier(data.currentMultiplier);
+            setPossibleWin(betAmount * data.currentMultiplier);
+          }
           
           // Проверяем условие автоигры
           if (autoplay && data.currentMultiplier >= 2) {
@@ -331,14 +314,19 @@ const GameScreen = ({ gameType, userData, onBack }) => {
         
         const data = response.data.data;
         
-        // Обновляем баланс
-        setBalance(data.balanceAfter);
+        // Обновляем баланс из ответа сервера
+        if (data.balanceAfter !== undefined) {
+          setBalance(data.balanceAfter);
+        }
         
         // Уведомляем пользователя о выигрыше
         setGameResult({
           win: true,
           amount: data.profit,
-          newBalance: data.balanceAfter
+          newBalance: data.balanceAfter,
+          serverSeedHashed: data.serverSeedHashed,
+          clientSeed: data.clientSeed,
+          nonce: data.nonce
         });
         
         // Завершаем игру

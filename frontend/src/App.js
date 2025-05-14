@@ -13,6 +13,7 @@ const App = () => {
   const [telegramWebApp, setTelegramWebApp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [balance, setBalance] = useState(0);
 
   useEffect(() => {
     const init = async () => {
@@ -47,6 +48,7 @@ const App = () => {
         try {
           const authResponse = await userApi.authWithTelegram(telegramUser);
           setUserData(authResponse.data.data.user);
+          setBalance(authResponse.data.data.user.balance);
         } catch (authError) {
           console.error('Ошибка аутентификации:', authError);
           setError('Ошибка аутентификации. Пожалуйста, попробуйте еще раз.');
@@ -80,8 +82,24 @@ const App = () => {
     init();
   }, []);
 
+  // Функция для обновления баланса из API
+  const updateBalanceFromServer = async () => {
+    try {
+      const balanceResponse = await userApi.getBalance();
+      setBalance(balanceResponse.data.data.balance);
+      return balanceResponse.data.data.balance;
+    } catch (err) {
+      console.error('Ошибка при обновлении баланса:', err);
+      return balance; // Возвращаем текущий баланс в случае ошибки
+    }
+  };
+
   // Обработчик изменения экрана
   const handleScreenChange = (screen) => {
+    // Обновляем баланс при смене экрана
+    if (currentScreen === 'game' && screen !== 'game') {
+      updateBalanceFromServer();
+    }
     setCurrentScreen(screen);
   };
   
@@ -93,6 +111,7 @@ const App = () => {
   
   // Обработчик возврата из игры
   const handleBackFromGame = () => {
+    updateBalanceFromServer();
     setCurrentScreen('main');
   };
 
@@ -125,6 +144,7 @@ const App = () => {
           userData={userData} 
           telegramWebApp={telegramWebApp}
           onGameSelect={handleGameSelect}
+          balance={balance}
         />
       )}
       
@@ -134,6 +154,9 @@ const App = () => {
           userData={userData}
           telegramWebApp={telegramWebApp}
           onBack={handleBackFromGame}
+          onBalanceUpdate={updateBalanceFromServer}
+          balance={balance}
+          setBalance={setBalance}
         />
       )}
       
@@ -141,6 +164,8 @@ const App = () => {
         <ProfileScreen 
           userData={userData}
           telegramWebApp={telegramWebApp}
+          balance={balance}
+          onBalanceUpdate={updateBalanceFromServer}
         />
       )}
       
@@ -148,6 +173,7 @@ const App = () => {
         <HistoryScreen 
           userData={userData}
           telegramWebApp={telegramWebApp}
+          balance={balance}
         />
       )}
       

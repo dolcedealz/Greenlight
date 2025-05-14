@@ -96,7 +96,8 @@ class GameService {
         gameData: {
           selectedSide,
           result
-        }
+        },
+        status: 'completed'
       });
       
       await game.save({ session });
@@ -235,6 +236,12 @@ class GameService {
       // Баланс до игры
       const balanceBefore = user.balance;
       
+      // Обновляем баланс пользователя (списываем ставку)
+      user.balance -= betAmount;
+      user.totalWagered += betAmount;
+      user.lastActivity = new Date();
+      await user.save({ session });
+      
       // Создаем запись об игре
       const game = new Game({
         user: user._id,
@@ -251,7 +258,7 @@ class GameService {
         win: false, // Пока игра не закончена
         profit: -betAmount, // Предполагаем проигрыш
         balanceBefore,
-        balanceAfter: balanceBefore - betAmount, // Предполагаем проигрыш
+        balanceAfter: user.balance, // Уже списали ставку
         clientSeed: realClientSeed,
         serverSeed,
         serverSeedHashed,
@@ -265,7 +272,7 @@ class GameService {
       
       await game.save({ session });
       
-      // Создаем транзакцию для ставки (блокируем средства)
+      // Создаем транзакцию для ставки
       const betTransaction = new Transaction({
         user: user._id,
         type: 'bet',
@@ -273,16 +280,11 @@ class GameService {
         game: game._id,
         description: 'Ставка в игре "Мины"',
         balanceBefore,
-        balanceAfter: balanceBefore - betAmount,
-        status: 'pending' // Транзакция в ожидании
+        balanceAfter: user.balance,
+        status: 'completed' // Ставка уже списана
       });
       
       await betTransaction.save({ session });
-      
-      // Обновляем статистику пользователя
-      user.totalWagered += betAmount;
-      user.lastActivity = new Date();
-      await user.save({ session });
       
       await session.commitTransaction();
       
@@ -293,7 +295,8 @@ class GameService {
         minesCount,
         serverSeedHashed, // Хеш для проверки
         clientSeed: realClientSeed,
-        nonce
+        nonce,
+        balanceAfter: user.balance // Возвращаем обновленный баланс
       };
     } catch (error) {
       await session.abortTransaction();
@@ -388,8 +391,11 @@ class GameService {
           win: true,
           multiplier,
           profit,
-          balanceAfter: user.balance,
-          clickedCells
+          balanceAfter: user.balance, // Добавить текущий баланс
+          clickedCells,
+          serverSeedHashed: game.serverSeedHashed,
+          clientSeed: game.clientSeed,
+          nonce: game.nonce
         };
       } else {
         // Игрок кликнул по ячейке
@@ -419,25 +425,14 @@ class GameService {
           
           await game.save({ session });
           
-          // Обновляем транзакцию ставки
-          const betTransaction = await Transaction.findOne({
-            game: game._id,
-            type: 'bet',
-            status: 'pending'
-          }).session(session);
-          
-          if (betTransaction) {
-            betTransaction.status = 'completed';
-            await betTransaction.save({ session });
-          }
-          
           await session.commitTransaction();
           
           // Возвращаем данные для клиента
           return {
             win: false,
             clickedCells,
-            grid // Показываем все мины
+            grid, // Показываем все мины
+            balanceAfter: user.balance // Добавляем текущий баланс
           };
         } else {
           // Игрок не попал на мину
@@ -489,24 +484,29 @@ class GameService {
               win: true,
               multiplier,
               profit,
-              balanceAfter: user.balance,
+              balanceAfter: user.balance, // Добавляем текущий баланс
               clickedCells,
-              maxWin: true
+              maxWin: true,
+              serverSeedHashed: game.serverSeedHashed,
+              clientSeed: game.clientSeed,
+              nonce: game.nonce
             };
           }
           
-          await session.commitTransaction();
-          
-          // Рассчитываем текущий множитель
+          // Рассчитываем текущий множитель для продолжающейся игры
           const revealedCount = clickedCells.length;
           const currentMultiplier = ((25 - minesCount) / (25 - minesCount - revealedCount)) * 0.95;
+          const possibleWin = game.bet * currentMultiplier;
           
-          // Возвращаем данные для клиента
+          await session.commitTransaction();
+          
+          // Возвращаем данные для клиента с текущим множителем и возможным выигрышем
           return {
             win: null, // Игра продолжается
             clickedCells,
             currentMultiplier,
-            possibleWin: game.bet * currentMultiplier
+            possibleWin,
+            balanceAfter: user.balance // Добавляем текущий баланс
           };
         }
       }

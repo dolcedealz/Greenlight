@@ -1,14 +1,13 @@
-// MainScreen.js (обновленный с API)
+// MainScreen.js
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
 import { GameBlock, EventsPreview } from '../components/main';
 import { userApi } from '../services';
 import '../styles/MainScreen.css';
 
-const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect }) => {
-  const [balance, setBalance] = useState(0);
+const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, balance }) => {
   const [featuredEvent, setFeaturedEvent] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
   // Загрузка данных при монтировании
@@ -16,10 +15,6 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect }) 
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Загрузка баланса
-        const balanceResponse = await userApi.getBalance();
-        setBalance(balanceResponse.data.data.balance);
         
         // Загрузка события (пока мок, так как API для событий еще нет)
         setFeaturedEvent({

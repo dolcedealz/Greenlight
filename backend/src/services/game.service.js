@@ -184,6 +184,15 @@ async playMines(userData, gameData) {
       throw new Error('Пользователь не найден');
     }
     
+    if (user.isBlocked) {
+      throw new Error('Ваш аккаунт заблокирован');
+    }
+    
+    // Проверяем достаточно ли средств
+    if (user.balance < betAmount) {
+      throw new Error('Недостаточно средств');
+    }
+    
     // Завершаем все предыдущие активные игры пользователя в мины
     await Game.updateMany(
       { 
@@ -200,81 +209,72 @@ async playMines(userData, gameData) {
       }
     ).session(session);
     
-    // Проверяем достаточно ли средств
-    if (user.balance < betAmount) {
-      throw new Error('Недостаточно средств');
-    }
-    
     // Генерируем серверный сид и хешируем его для проверки честности
     const serverSeed = randomService.generateServerSeed();
     const serverSeedHashed = randomService.hashServerSeed(serverSeed);
     const realClientSeed = clientSeed || 'default';
     const nonce = randomService.generateNonce();
     
-    // Создаем игровое поле (5x5)
+    // Создаем игровое поле 5x5
     const grid = Array(5).fill().map(() => Array(5).fill('gem'));
-    const positions = [];
+    
+    // Генерируем позиции мин
+    const minePositions = [];
+    const allPositions = [];
     
     // Заполняем массив всеми возможными позициями
     for (let i = 0; i < 5; i++) {
       for (let j = 0; j < 5; j++) {
-        positions.push([i, j]);
+        allPositions.push([i, j]);
       }
     }
     
-    // Используем криптографическую функцию для выбора позиций мин
-    const minePositions = [];
-    for (let i = 0; i < minesCount; i++) {
-      if (positions.length === 0) break;
-      
-      // Генерируем случайное число
+    // Перемешиваем позиции с использованием криптографически надежного рандома
+    for (let i = allPositions.length - 1; i > 0; i--) {
       const randomValue = randomService.generateRandomNumber(
         serverSeed, 
         realClientSeed, 
         nonce + i
       );
-      
-      const randomIndex = Math.floor(randomValue * positions.length);
-      const [row, col] = positions[randomIndex];
-      
-      // Устанавливаем мину
-      grid[row][col] = 'mine';
-      minePositions.push([row, col]);
-      
-      // Удаляем эту позицию из массива
-      positions.splice(randomIndex, 1);
+      const j = Math.floor(randomValue * (i + 1));
+      [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]];
     }
     
-    // Баланс до игры
+    // Выбираем первые N позиций для мин
+    for (let i = 0; i < minesCount; i++) {
+      const [row, col] = allPositions[i];
+      grid[row][col] = 'mine';
+      minePositions.push([row, col]);
+    }
+    
+    // Баланс до игры и после списания ставки
     const balanceBefore = user.balance;
+    const balanceAfter = balanceBefore - betAmount;
     
     // Обновляем баланс пользователя (списываем ставку)
-    user.balance -= betAmount;
+    user.balance = balanceAfter;
     user.totalWagered += betAmount;
     user.lastActivity = new Date();
     await user.save({ session });
-    
-    // Базовый множитель - 95% RTP
-    const initialMultiplier = 0.95;
     
     // Создаем запись об игре
     const game = new Game({
       user: user._id,
       gameType: 'mines',
       bet: betAmount,
-      multiplier: initialMultiplier,
+      multiplier: 0.95, // Начальный множитель (95% RTP)
       result: {
         grid,
         minesCount,
-        clickedCells: [],
         minePositions,
-        win: false,
+        clickedCells: [],
+        win: null,  // null = игра в процессе
         cashout: false
       },
-      win: false,
-      profit: -betAmount,
+      win: null,
+      profit: -betAmount, // Изначально списываем ставку
       balanceBefore,
-      balanceAfter: user.balance,
+      balanceAfter,
       clientSeed: realClientSeed,
       serverSeed,
       serverSeedHashed,
@@ -296,7 +296,7 @@ async playMines(userData, gameData) {
       game: game._id,
       description: 'Ставка в игре "Мины"',
       balanceBefore,
-      balanceAfter: user.balance,
+      balanceAfter,
       status: 'completed'
     });
     
@@ -304,7 +304,7 @@ async playMines(userData, gameData) {
     
     await session.commitTransaction();
     
-    // Возвращаем данные для клиента
+    // Возвращаем данные для клиента (без раскрытия позиций мин)
     return {
       gameId: game._id,
       betAmount,
@@ -312,7 +312,7 @@ async playMines(userData, gameData) {
       serverSeedHashed,
       clientSeed: realClientSeed,
       nonce,
-      balanceAfter: user.balance
+      balanceAfter
     };
   } catch (error) {
     await session.abortTransaction();
@@ -356,31 +356,24 @@ async completeMinesGame(userData, gameData) {
       throw new Error('Игра не найдена или уже завершена');
     }
     
-    // КРИТИЧЕСКИ ВАЖНО: получаем актуальные данные из базы
-    const { minesCount } = game.result;
-    // Инициализируем массив открытых ячеек, если он пустой или не существует
-    if (!game.result.clickedCells) {
-      game.result.clickedCells = [];
-    }
-    
-    // Копируем текущий массив открытых ячеек, чтобы не изменять его напрямую
-    const clickedCells = [...game.result.clickedCells];
-    
-    // Константы для расчетов
+    // Важные константы для расчетов
+    const minesCount = game.result.minesCount;
     const safeTotal = 25 - minesCount;
-    const revealedCount = clickedCells.length;
+    const clickedCells = Array.isArray(game.result.clickedCells) ? 
+      [...game.result.clickedCells] : [];
     
     // Если игрок хочет забрать выигрыш
     if (cashout) {
-      console.log('Игрок забирает выигрыш, открытых ячеек:', revealedCount);
+      // Рассчитываем множитель
+      const revealedCount = clickedCells.length;
+      const remainingSafe = safeTotal - revealedCount;
       
-      // Рассчитываем множитель на основе открытых ячеек
-      const remainingCount = safeTotal - revealedCount;
-      const multiplier = remainingCount > 0 
-          ? (safeTotal / remainingCount) * 0.95 
-          : safeTotal * 0.95;
+      if (remainingSafe <= 0) {
+        throw new Error('Все безопасные ячейки уже открыты');
+      }
       
-      console.log(`ОТЛАДКА МНОЖИТЕЛЯ ПРИ КЕШАУТЕ: SafeTotal=${safeTotal}, Revealed=${revealedCount}, Remaining=${remainingCount}, Multiplier=${multiplier}`);
+      // Формула множителя: (всего_безопасных / оставшиеся_безопасные) * 0.95
+      const multiplier = (safeTotal / remainingSafe) * 0.95;
       
       // Рассчитываем выигрыш
       const winAmount = game.bet * multiplier;
@@ -392,14 +385,15 @@ async completeMinesGame(userData, gameData) {
       game.result.cashout = true;
       game.win = true;
       game.profit = profit;
-      game.balanceAfter = game.balanceBefore + profit;
+      game.balanceAfter = game.balanceBefore + profit; // Полный выигрыш (с учетом ставки)
       game.status = 'completed';
       
       await game.save({ session });
       
       // Обновляем баланс пользователя
-      user.balance += winAmount;
+      user.balance += winAmount; // Возвращаем ставку + выигрыш
       user.totalWon += winAmount;
+      user.lastActivity = new Date();
       await user.save({ session });
       
       // Создаем транзакцию для выигрыша
@@ -431,31 +425,34 @@ async completeMinesGame(userData, gameData) {
       };
     } else {
       // Игрок кликнул по ячейке
-      if (row === null || col === null) {
+      if (row === null || col === null || row === undefined || col === undefined) {
         throw new Error('Не указаны координаты ячейки');
       }
       
+      // Проверяем, что координаты в допустимых пределах
+      if (row < 0 || row > 4 || col < 0 || col > 4) {
+        throw new Error('Некорректные координаты ячейки');
+      }
+      
       // Проверяем, что ячейка еще не была открыта
-      const cellIndex = clickedCells.findIndex(
+      const cellAlreadyClicked = clickedCells.some(
         cell => cell[0] === row && cell[1] === col
       );
       
-      if (cellIndex !== -1) {
+      if (cellAlreadyClicked) {
         throw new Error('Эта ячейка уже открыта');
       }
       
       // Добавляем ячейку в список открытых
       clickedCells.push([row, col]);
-      
-      // КРИТИЧНО ВАЖНО: сохраняем обновленный список ячеек в игру
       game.result.clickedCells = clickedCells;
       
-      // Проверяем, попал ли игрок на мину
+      // Получаем игровое поле и позиции мин
       const grid = game.result.grid;
+      
+      // Проверяем, попал ли игрок на мину
       if (grid[row][col] === 'mine') {
         // Игрок проиграл
-        console.log('Игрок попал на мину, игра окончена');
-        
         game.result.win = false;
         game.win = false;
         game.status = 'completed';
@@ -467,38 +464,20 @@ async completeMinesGame(userData, gameData) {
         // Возвращаем данные для клиента
         return {
           win: false,
-          clickedCells,
-          grid, // Показываем все мины
+          clickedCells: [[row, col]], // Возвращаем только последнюю ячейку
+          grid, // Показываем всё поле с минами
           balanceAfter: user.balance
         };
       } else {
-        // Игрок не попал на мину
-        console.log('Игрок открыл безопасную ячейку, продолжает игру');
+        // Игрок открыл безопасную ячейку
+        const revealedCount = clickedCells.length;
+        const remainingSafe = safeTotal - revealedCount;
         
-        // Обновленное количество открытых ячеек
-        const newRevealedCount = clickedCells.length;
-        const newRemainingCount = safeTotal - newRevealedCount;
+        // Проверка на открытие всех безопасных ячеек
+        const allSafeCellsRevealed = revealedCount === safeTotal;
         
-        // Рассчитываем новый множитель
-        const multiplier = newRemainingCount > 0 
-            ? (safeTotal / newRemainingCount) * 0.95 
-            : safeTotal * 0.95;
-        
-        console.log(`ОТЛАДКА МНОЖИТЕЛЯ: SafeTotal=${safeTotal}, Revealed=${newRevealedCount}, Remaining=${newRemainingCount}, Multiplier=${multiplier}`);
-        
-        // Обновляем множитель в игре
-        game.multiplier = multiplier;
-        
-        await game.save({ session });
-        
-        // Проверяем, открыты ли все безопасные ячейки
-        if (newRevealedCount === safeTotal) {
-          // Все безопасные ячейки открыты, автоматически забираем выигрыш
-          console.log('Все безопасные ячейки открыты, автоматический кешаут');
-          
-          // Автоматический кешаут логика...
-          
-          // Рассчитываем выигрыш по максимальному множителю
+        if (allSafeCellsRevealed) {
+          // Максимальный выигрыш - открыты все безопасные ячейки
           const maxMultiplier = safeTotal * 0.95;
           const winAmount = game.bet * maxMultiplier;
           const profit = winAmount - game.bet;
@@ -517,6 +496,7 @@ async completeMinesGame(userData, gameData) {
           // Обновляем баланс пользователя
           user.balance += winAmount;
           user.totalWon += winAmount;
+          user.lastActivity = new Date();
           await user.save({ session });
           
           // Создаем транзакцию для выигрыша
@@ -541,27 +521,33 @@ async completeMinesGame(userData, gameData) {
             multiplier: maxMultiplier,
             profit,
             balanceAfter: user.balance,
-            clickedCells,
+            clickedCells: [[row, col]], // Возвращаем только последнюю ячейку
             maxWin: true,
             serverSeedHashed: game.serverSeedHashed,
             clientSeed: game.clientSeed,
             nonce: game.nonce
           };
+        } else {
+          // Игра продолжается
+          // Рассчитываем новый множитель: (всего_безопасных / оставшиеся_безопасные) * 0.95
+          const multiplier = (safeTotal / remainingSafe) * 0.95;
+          
+          // Обновляем множитель в игре
+          game.multiplier = multiplier;
+          
+          await game.save({ session });
+          
+          await session.commitTransaction();
+          
+          // Возвращаем данные для клиента
+          return {
+            win: null, // null означает, что игра продолжается
+            clickedCells: [[row, col]], // Возвращаем только последнюю ячейку
+            currentMultiplier: multiplier,
+            possibleWin: game.bet * multiplier,
+            balanceAfter: user.balance
+          };
         }
-        
-        // Рассчитываем текущий возможный выигрыш
-        const possibleWin = game.bet * multiplier;
-        
-        await session.commitTransaction();
-        
-        // Возвращаем данные для клиента с полным массивом открытых ячеек
-        return {
-          win: null, // null означает, что игра продолжается
-          clickedCells,
-          currentMultiplier: multiplier,
-          possibleWin,
-          balanceAfter: user.balance
-        };
       }
     }
   } catch (error) {

@@ -140,27 +140,34 @@ const gameApi = {
     });
   },
   
-  // Игра "Мины"
+  // Игра "Мины" - ОБНОВЛЕННАЯ ВЕРСИЯ
   playMines: (betAmount, minesCount, clientSeed = null) => {
     console.log('Запуск игры "Мины":', { betAmount, minesCount, clientSeed });
+    
+    // Создаем уникальный seed если не предоставлен
+    const finalClientSeed = clientSeed || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     
     return api.post('/games/mines/play', {
       betAmount,
       minesCount,
-      clientSeed
+      clientSeed: finalClientSeed
     }).then(response => {
       console.log('ОТЛАДКА МИНЫ - Ответ на начало игры:', JSON.stringify(response.data, null, 2));
+      
+      // Проверка валидности ответа
+      if (!response.data?.data?.gameId) {
+        console.error('ОШИБКА: API не вернул ID игры');
+      }
+      
       return response;
     });
   },
 
-  // Завершение игры в мины (клик по ячейке или кешаут)
+  // Завершение игры в мины - ОБНОВЛЕННАЯ ВЕРСИЯ
   completeMinesGame: (gameId, row, col, cashout) => {
-    console.log('Действие в игре "Мины":', {
-      gameId,
-      действие: cashout ? 'кешаут' : `клик по ячейке [${row},${col}]`,
-      параметры: { gameId, row, col, cashout }
-    });
+    // Логируем действие для отладки
+    const actionType = cashout ? 'кешаут' : `клик по ячейке [${row},${col}]`;
+    console.log(`Действие в игре "Мины": ${actionType}, gameId=${gameId}`);
     
     // Создаем объект с параметрами запроса
     const requestData = { gameId, cashout };
@@ -178,21 +185,29 @@ const gameApi = {
         console.log('ОТЛАДКА МИНЫ - Ответ на действие:', JSON.stringify(response.data, null, 2));
         
         // Проверка данных ответа
-        if (response.data && response.data.data) {
-          // Проверка на наличие множителя
+        if (response.data?.data) {
+          // Проверка множителя для продолжающейся игры
           if (!cashout && response.data.data.win === null) {
             if (response.data.data.currentMultiplier) {
-              // Расчет проверочного множителя
-              const minesCount = requestData.minesCount || 5; // Если не знаем, предполагаем 5
-              const revealed = response.data.data.clickedCells ? response.data.data.clickedCells.length : 0;
-              const safeTotal = 25 - minesCount;
-              const expectedMultiplier = (safeTotal / (safeTotal - revealed)) * 0.95;
+              // Получаем открытые ячейки для расчета ожидаемого множителя
+              const clickedCells = response.data.data.clickedCells || [];
+              const revealedCount = clickedCells.length;
+              
+              // Примерно оцениваем количество мин (если не знаем точно)
+              const safeTotal = 25 - (requestData.minesCount || 5);
+              const remainingSafe = safeTotal - revealedCount;
+              
+              // Расчетный множитель
+              const expectedMultiplier = remainingSafe > 0 ? 
+                (safeTotal / remainingSafe) * 0.95 : 
+                safeTotal * 0.95;
               
               console.log('ОТЛАДКА МНОЖИТЕЛЯ:');
               console.log(`- Множитель от сервера: ${response.data.data.currentMultiplier}`);
-              console.log(`- Ожидаемый множитель: ${expectedMultiplier}`);
-              console.log(`- Расчет: (${safeTotal}/${safeTotal-revealed})*0.95`);
+              console.log(`- Ожидаемый множитель: ${expectedMultiplier.toFixed(4)}`);
+              console.log(`- Формула: (${safeTotal}/${remainingSafe})*0.95`);
               
+              // Проверка соответствия с погрешностью
               if (Math.abs(response.data.data.currentMultiplier - expectedMultiplier) > 0.01) {
                 console.warn('ПРЕДУПРЕЖДЕНИЕ: Множитель от сервера не соответствует ожидаемому');
               }
@@ -201,7 +216,7 @@ const gameApi = {
             }
           }
           
-          // Проверка на кешаут
+          // Проверка корректности данных при кешауте
           if (cashout && response.data.data.win === true) {
             if (response.data.data.profit <= 0) {
               console.error('ОШИБКА: Выигрыш имеет отрицательное значение при win=true!');
@@ -223,7 +238,7 @@ const gameApi = {
     return api.get('/games/stats');
   },
   
-  // Тестовый эндпоинт для проверки множителя (если вы добавите его на бэкенде)
+  // Тестовый эндпоинт для проверки множителя
   testMinesMultiplier: (minesCount, revealed) => {
     return api.get('/games/debug/mines/multiplier', { 
       params: { minesCount, revealed } 

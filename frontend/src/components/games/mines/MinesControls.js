@@ -45,11 +45,6 @@ const MinesControls = ({
     setMinesCount(count);
   };
   
-  // Переключение автоигры
-  const toggleAutoplay = () => {
-    onAutoplayChange && onAutoplayChange(!autoplay);
-  };
-  
   // Для отображения в интерфейсе
   const safeTotal = 25 - minesCount;
   
@@ -160,7 +155,7 @@ const MinesControls = ({
           <span className="info-value">{currentMultiplier.toFixed(2)}x</span>
         </div>
         <div className="info-item">
-          <span className="info-label">Выигрыш:</span>
+          <span className="info-label">Возможный выигрыш:</span>
           <span className="info-value">{possibleWin.toFixed(2)} USDT</span>
         </div>
         <div className="info-item">
@@ -194,7 +189,7 @@ const MinesControls = ({
           <input 
             type="checkbox" 
             checked={autoplay} 
-            onChange={toggleAutoplay}
+            onChange={(e) => onAutoplayChange(e.target.checked)}
             disabled={gameActive || loading}
           />
           <span className="toggle-slider"></span>

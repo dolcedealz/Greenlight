@@ -20,7 +20,7 @@ const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver, loading 
   };
 
   return (
-    <div className={`mines-grid ${gameOver ? 'game-over' : ''} ${loading ? 'loading' : ''}`}>
+    <div className={`mines-grid ${gameOver ? 'game-over' : ''}`}>
       {loading && <div className="mines-overlay"><div className="mines-spinner"></div></div>}
       
       {grid.map((row, rowIndex) => (

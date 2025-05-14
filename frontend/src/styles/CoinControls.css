@@ -1,9 +1,10 @@
-/* CoinControls.css */
+/* frontend/src/styles/CoinControls.css */
 .coin-controls {
   padding: 20px;
   background-color: var(--card-background);
   border-radius: var(--border-radius);
   margin-top: 20px;
+  box-shadow: var(--shadow);
 }
 
 .side-selection {
@@ -22,11 +23,27 @@
   align-items: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.side-option:hover {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .side-option.selected {
   background-color: rgba(11, 168, 74, 0.2);
   border: 1px solid var(--primary-color);
+}
+
+.side-option.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  color: var(--primary-color);
+  font-size: 14px;
+  font-weight: bold;
 }
 
 .side-icon {
@@ -50,6 +67,10 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
+.bet-input-container {
+  position: relative;
+}
+
 .bet-control input {
   width: 100%;
   padding: 12px;
@@ -59,6 +80,24 @@
   color: white;
   font-size: 18px;
   text-align: center;
+  transition: border-color 0.2s ease;
+}
+
+.bet-control input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.potential-win {
+  display: block;
+  text-align: right;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 5px;
+}
+
+.potential-win strong {
+  color: var(--primary-color);
 }
 
 .quick-bets {
@@ -93,16 +132,70 @@
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .flip-button:hover {
   background-color: #0c9740;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(11, 168, 74, 0.3);
 }
 
 .flip-button:disabled {
   background-color: #666;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.advanced-options {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.seed-toggle {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.seed-toggle:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.seed-input {
+  margin-top: 10px;
+}
+
+.seed-input label {
+  display: block;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 5px;
+}
+
+.seed-input input {
+  width: 100%;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+}
+
+.seed-info {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 5px;
 }
 
 .last-results {

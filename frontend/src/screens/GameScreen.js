@@ -1,4 +1,4 @@
-// GameScreen.js (обновленный с API)
+// frontend/src/screens/GameScreen.js (обновленный)
 import React, { useState, useEffect } from 'react';
 import { CoinFlip, CoinControls } from '../components/games/coin';
 import { Header } from '../components/layout';
@@ -13,8 +13,9 @@ const GameScreen = ({ gameType, userData, onBack }) => {
   const [gameResult, setGameResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [gameStats, setGameStats] = useState(null);
   
-  // Загрузка баланса и истории игр при монтировании
+  // Загрузка баланса, истории игр и статистики при монтировании
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -38,6 +39,12 @@ const GameScreen = ({ gameType, userData, onBack }) => {
           setLastResults(results);
         }
         
+        // Загружаем статистику игр
+        const statsResponse = await gameApi.getGameStats();
+        if (statsResponse.data.data.byGameType && statsResponse.data.data.byGameType.coin) {
+          setGameStats(statsResponse.data.data.byGameType.coin);
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error('Ошибка загрузки данных:', err);
@@ -58,7 +65,8 @@ const GameScreen = ({ gameType, userData, onBack }) => {
       // Запрос к API для игры
       const response = await gameApi.playCoinFlip(
         betData.betAmount,
-        betData.selectedSide
+        betData.selectedSide,
+        betData.clientSeed
       );
       
       const gameData = response.data.data;
@@ -73,12 +81,32 @@ const GameScreen = ({ gameType, userData, onBack }) => {
       setGameResult({
         win: gameData.win,
         amount: Math.abs(gameData.profit),
-        newBalance: gameData.balanceAfter
+        newBalance: gameData.balanceAfter,
+        serverSeedHashed: gameData.serverSeedHashed,
+        clientSeed: gameData.clientSeed,
+        nonce: gameData.nonce
       });
       
       // Обновляем баланс после показа результата
       setTimeout(() => {
         setBalance(gameData.balanceAfter);
+        
+        // Обновляем статистику
+        if (gameStats) {
+          const updatedStats = { ...gameStats };
+          updatedStats.totalGames += 1;
+          updatedStats.totalBet += betData.betAmount;
+          
+          if (gameData.win) {
+            updatedStats.winCount += 1;
+            updatedStats.totalWin += gameData.profit;
+          } else {
+            updatedStats.totalLoss += betData.betAmount;
+          }
+          
+          updatedStats.winRate = updatedStats.winCount / updatedStats.totalGames;
+          setGameStats(updatedStats);
+        }
       }, 2000);
     } catch (err) {
       console.error('Ошибка игры:', err);
@@ -118,6 +146,36 @@ const GameScreen = ({ gameType, userData, onBack }) => {
                 <p>{error}</p>
               </div>
             )}
+            
+            {gameStats && (
+              <div className="game-stats">
+                <h3>Ваша статистика</h3>
+                <div className="stats-container">
+                  <div className="stat-item">
+                    <span className="stat-label">Всего игр:</span>
+                    <span className="stat-value">{gameStats.totalGames}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Победы:</span>
+                    <span className="stat-value">{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Ставки:</span>
+                    <span className="stat-value">{gameStats.totalBet.toFixed(2)} USDT</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Выигрыши:</span>
+                    <span className="stat-value">{gameStats.totalWin.toFixed(2)} USDT</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Профит:</span>
+                    <span className={`stat-value ${gameStats.totalWin - gameStats.totalLoss >= 0 ? 'positive' : 'negative'}`}>
+                      {(gameStats.totalWin - gameStats.totalLoss).toFixed(2)} USDT
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       default:
@@ -154,6 +212,22 @@ const GameScreen = ({ gameType, userData, onBack }) => {
           <div className="result-amount">
             {gameResult.win ? '+' : '-'}{gameResult.amount.toFixed(2)} USDT
           </div>
+          {gameResult.serverSeedHashed && (
+            <div className="result-verification">
+              <div className="verification-item">
+                <span>Server Seed Hash:</span> 
+                <span className="hash">{gameResult.serverSeedHashed.slice(0, 10)}...{gameResult.serverSeedHashed.slice(-10)}</span>
+              </div>
+              <div className="verification-item">
+                <span>Client Seed:</span> 
+                <span className="hash">{gameResult.clientSeed}</span>
+              </div>
+              <div className="verification-item">
+                <span>Nonce:</span> 
+                <span className="hash">{gameResult.nonce}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
       

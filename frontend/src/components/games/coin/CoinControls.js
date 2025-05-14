@@ -1,11 +1,17 @@
-// CoinControls.js
-import React, { useState } from 'react';
+// frontend/src/components/games/coin/CoinControls.js
+import React, { useState, useEffect } from 'react';
 import '../../../styles/CoinControls.css';
 
-// Компонент для управления ставкой и запуском игры
 const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
   const [betAmount, setBetAmount] = useState(1);
   const [selectedSide, setSelectedSide] = useState('heads'); // 'heads' или 'tails'
+  const [clientSeed, setClientSeed] = useState(''); // Добавляем клиентский seed для честной игры
+  const [showSeedInput, setShowSeedInput] = useState(false);
+  
+  // Генерируем случайный seed при первой загрузке
+  useEffect(() => {
+    setClientSeed(Math.random().toString(36).substring(2, 15));
+  }, []);
   
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
@@ -17,7 +23,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
   
   // Быстрые кнопки для ставки
   const handleQuickBet = (multiplier) => {
-    const quickBet = Math.min(balance, Math.max(1, Math.floor(balance * multiplier)));
+    const quickBet = Math.min(balance, Math.max(1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
   
@@ -27,16 +33,23 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
     
     onFlip({
       betAmount,
-      selectedSide
+      selectedSide,
+      clientSeed
     });
+    
+    // Генерируем новый seed для следующей игры
+    setClientSeed(Math.random().toString(36).substring(2, 15));
   };
+
+  // Вычисляем потенциальный выигрыш
+  const potentialWin = (betAmount * 1.95).toFixed(2);
 
   return (
     <div className="coin-controls">
       <div className="side-selection">
         <div 
           className={`side-option ${selectedSide === 'heads' ? 'selected' : ''}`}
-          onClick={() => setSelectedSide('heads')}
+          onClick={() => !isFlipping && setSelectedSide('heads')}
         >
           <div className="side-icon">O</div>
           <div className="side-name">Орёл</div>
@@ -44,7 +57,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
         
         <div 
           className={`side-option ${selectedSide === 'tails' ? 'selected' : ''}`}
-          onClick={() => setSelectedSide('tails')}
+          onClick={() => !isFlipping && setSelectedSide('tails')}
         >
           <div className="side-icon">P</div>
           <div className="side-name">Решка</div>
@@ -53,15 +66,20 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
       
       <div className="bet-control">
         <label>Ставка (USDT):</label>
-        <input
-          type="number"
-          min="1"
-          max={balance}
-          step="1"
-          value={betAmount}
-          onChange={handleBetAmountChange}
-          disabled={isFlipping}
-        />
+        <div className="bet-input-container">
+          <input
+            type="number"
+            min="1"
+            max={balance}
+            step="0.1"
+            value={betAmount}
+            onChange={handleBetAmountChange}
+            disabled={isFlipping}
+          />
+          <span className="potential-win">
+            Возможный выигрыш: <strong>{potentialWin} USDT</strong>
+          </span>
+        </div>
       </div>
       
       <div className="quick-bets">
@@ -78,6 +96,31 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
       >
         {isFlipping ? 'Подбрасываем...' : 'Подбросить монету'}
       </button>
+      
+      <div className="advanced-options">
+        <button 
+          className="seed-toggle" 
+          onClick={() => setShowSeedInput(!showSeedInput)}
+          disabled={isFlipping}
+        >
+          {showSeedInput ? 'Скрыть дополнительно' : 'Показать дополнительно'}
+        </button>
+        
+        {showSeedInput && (
+          <div className="seed-input">
+            <label>Клиентский seed (для проверки честности):</label>
+            <input
+              type="text"
+              value={clientSeed}
+              onChange={(e) => setClientSeed(e.target.value)}
+              disabled={isFlipping}
+            />
+            <span className="seed-info">
+              Seed используется для генерации результата игры. Вы можете изменить его для проверки честности игры.
+            </span>
+          </div>
+        )}
+      </div>
       
       {lastResults && lastResults.length > 0 && (
         <div className="last-results">

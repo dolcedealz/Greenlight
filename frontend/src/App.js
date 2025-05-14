@@ -1,6 +1,6 @@
-// App.js (обновленный с API)
+// frontend/src/App.js
 import React, { useEffect, useState } from 'react';
-import { MainScreen, GameScreen } from './screens';
+import { MainScreen, GameScreen, ProfileScreen, HistoryScreen } from './screens';
 import { Navigation } from './components/layout';
 import { initTelegram } from './utils/telegram';
 import { userApi } from './services';
@@ -134,6 +134,20 @@ const App = () => {
           userData={userData}
           telegramWebApp={telegramWebApp}
           onBack={handleBackFromGame}
+        />
+      )}
+      
+      {currentScreen === 'profile' && (
+        <ProfileScreen 
+          userData={userData}
+          telegramWebApp={telegramWebApp}
+        />
+      )}
+      
+      {currentScreen === 'history' && (
+        <HistoryScreen 
+          userData={userData}
+          telegramWebApp={telegramWebApp}
         />
       )}
       

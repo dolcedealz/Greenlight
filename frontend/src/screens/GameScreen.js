@@ -149,72 +149,68 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       setPossibleWin(betAmount);
     }, [betAmount]);
     
-    // Начало новой игры - полностью переработанная функция
-    const startGame = async () => {
-      try {
-        console.log("Начинаем новую игру...");
-        setError(null);
-        setGameResult(null);
-        
-        // Сначала деактивируем игру (защита от двойных кликов)
-        setGameActive(false);
-        setGameOver(false);
-        
-        // Создаем уникальный seed для надежности различения игр
-        const uniqueSeed = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        console.log("Уникальный seed для игры:", uniqueSeed);
-  
-        // Создаем новую игру на сервере
-        console.log("Отправляем запрос на создание игры...");
-        const response = await gameApi.playMines(betAmount, minesCount, uniqueSeed);
-        console.log("Ответ сервера:", response.data);
-        
-        const data = response.data.data;
-        if (!data || !data.gameId) {
-          console.error("Ошибка: API не вернул gameId", data);
-          setError("Ошибка: Не получен ID игры от сервера");
-          return;
-        }
-        
-        // Сохраняем данные игры в ref для надежного доступа
-        gameDataRef.current = data;
-        console.log("ID новой игры:", data.gameId);
-        
-        // Сбрасываем игровое поле
-        const newGrid = Array(5).fill().map(() => Array(5).fill('gem'));
-        const newRevealed = Array(25).fill(false);
-        
-        // Обновляем все состояния игры
-        setGrid(newGrid);
-        setRevealed(newRevealed);
-        setRevealedCount(0);
-        setCurrentMultiplier(1);
-        setPossibleWin(betAmount);
-        
-        // Обновляем баланс
-        if (data.balanceAfter !== undefined) {
-          setBalance(data.balanceAfter);
-        }
-        
-        // Активируем игру в последнюю очередь после всех обновлений
-        console.log("Активируем игру");
-        setGameActive(true);
-        
-      } catch (err) {
-        console.error("Ошибка при начале игры:", err);
-        setError(err.response?.data?.message || "Произошла ошибка при начале игры");
-      }
-    };
-    
-    // Обработчик клика по ячейке - полностью переработан
-    const handleCellClick = async (row, col) => {
-      console.log(`Клик по ячейке [${row}, ${col}], gameActive: ${gameActive}`);
+    // Начало новой игры
+  const startGame = async () => {
+    try {
+      console.log("Начинаем новую игру...");
+      setError(null);
+      setGameResult(null);
+      setGameOver(false);
       
-      // Проверяем, активна ли игра
-      if (!gameActive) {
-        console.log("Игра не активна, клик игнорируется");
+      // Создаем уникальный seed
+      const uniqueSeed = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      console.log("Уникальный seed для игры:", uniqueSeed);
+
+      // Создаем новую игру на сервере
+      console.log("Отправляем запрос на создание игры...");
+      const response = await gameApi.playMines(betAmount, minesCount, uniqueSeed);
+      console.log("Ответ сервера:", response.data);
+      
+      const data = response.data.data;
+      if (!data || !data.gameId) {
+        console.error("Ошибка: API не вернул gameId", data);
+        setError("Ошибка: Не получен ID игры от сервера");
         return;
       }
+      
+      // Сохраняем данные игры в ref
+      gameDataRef.current = data;
+      console.log("ID новой игры:", data.gameId);
+      
+      // Сбрасываем игровое поле
+      setGrid(Array(5).fill().map(() => Array(5).fill('gem')));
+      setRevealed(Array(25).fill(false));
+      setRevealedCount(0);
+      setCurrentMultiplier(1);
+      setPossibleWin(betAmount);
+      
+      // Обновляем баланс
+      if (data.balanceAfter !== undefined) {
+        setBalance(data.balanceAfter);
+      }
+      
+      // ИЗМЕНЕНИЕ: Используем таймаут для активации игры 
+      // чтобы убедиться, что все обновления состояния завершены
+      console.log("Планируем активацию игры...");
+      setTimeout(() => {
+        console.log("Активируем игру через setTimeout");
+        setGameActive(true);
+      }, 100);
+      
+    } catch (err) {
+      console.error("Ошибка при начале игры:", err);
+      setError(err.response?.data?.message || "Произошла ошибка при начале игры");
+    }
+  };
+  
+  // Модифицируем обработчик клика, добавляя больше логирования
+  const handleCellClick = async (row, col) => {
+    console.log(`Клик по ячейке [${row}, ${col}], gameActive: ${gameActive}, gameData: ${gameDataRef.current?.gameId}`);
+    
+    if (!gameActive) {
+      console.log("Игра не активна, клик игнорируется");
+      return;
+    }
       
       // Проверяем наличие данных игры
       if (!gameDataRef.current || !gameDataRef.current.gameId) {

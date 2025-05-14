@@ -1,4 +1,4 @@
-// Updated game.model.js
+// backend/src/models/game.model.js
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -29,7 +29,7 @@ const gameSchema = new Schema({
   },
   win: {
     type: Boolean,
-    required: true
+    default: null  // Изменено с required: true на default: null
   },
   profit: {
     type: Number,
@@ -73,7 +73,7 @@ const gameSchema = new Schema({
 gameSchema.index({ user: 1, createdAt: -1 });
 gameSchema.index({ gameType: 1, createdAt: -1 });
 gameSchema.index({ win: 1 });
-gameSchema.index({ status: 1 }); // Add index for status field for faster queries
+gameSchema.index({ status: 1 }); // Индекс для поля status для более быстрых запросов
 
 const Game = mongoose.model('Game', gameSchema);
 

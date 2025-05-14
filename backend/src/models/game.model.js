@@ -1,4 +1,4 @@
-// game.model.js
+// Updated game.model.js
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -58,6 +58,12 @@ const gameSchema = new Schema({
   gameData: {
     type: Object,
     default: {}
+  },
+  status: {
+    type: String,
+    enum: ['active', 'completed'],
+    default: 'active',
+    required: true
   }
 }, {
   timestamps: true
@@ -67,6 +73,7 @@ const gameSchema = new Schema({
 gameSchema.index({ user: 1, createdAt: -1 });
 gameSchema.index({ gameType: 1, createdAt: -1 });
 gameSchema.index({ win: 1 });
+gameSchema.index({ status: 1 }); // Add index for status field for faster queries
 
 const Game = mongoose.model('Game', gameSchema);
 

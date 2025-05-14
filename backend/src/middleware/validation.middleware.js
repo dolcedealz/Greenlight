@@ -49,11 +49,14 @@ function validateMinesPlay(req, res, next) {
     });
   }
   
+  // Допустимые значения для количества мин
+  const allowedMinesCounts = [3, 5, 7, 9, 12, 15, 18, 21, 23];
+  
   // Проверяем количество мин
-  if (!minesCount || isNaN(minesCount) || parseInt(minesCount, 10) < 1 || parseInt(minesCount, 10) > 24) {
+  if (!minesCount || isNaN(minesCount) || !allowedMinesCounts.includes(parseInt(minesCount, 10))) {
     return res.status(400).json({
       success: false,
-      message: 'Укажите корректное количество мин (от 1 до 24)'
+      message: 'Укажите корректное количество мин (3, 5, 7, 9, 12, 15, 18, 21, 23)'
     });
   }
   

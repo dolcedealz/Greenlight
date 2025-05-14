@@ -20,8 +20,16 @@ const MinesControls = ({
 }) => {
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value) && value > 0 && value <= balance) {
+    const inputValue = e.target.value;
+    
+    // Разрешаем пустое значение или 0 для ввода
+    if (inputValue === '' || inputValue === '0') {
+      setBetAmount(inputValue);
+      return;
+    }
+    
+    const value = parseFloat(inputValue);
+    if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
     }
   };
@@ -35,7 +43,10 @@ const MinesControls = ({
   // Обработчик изменения количества мин
   const handleMinesCountChange = (e) => {
     const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value >= 1 && value <= 24) {
+    // Список допустимых значений для количества мин
+    const allowedValues = [3, 5, 7, 9, 12, 15, 18, 21, 23];
+    
+    if (!isNaN(value) && allowedValues.includes(value)) {
       setMinesCount(value);
     }
   };
@@ -56,7 +67,7 @@ const MinesControls = ({
           <div className="bet-input-container">
             <input
               type="number"
-              min="1"
+              min="0"
               max={balance}
               step="0.1"
               value={betAmount}
@@ -104,15 +115,12 @@ const MinesControls = ({
           <div className="mines-input-container">
             <input
               type="number"
-              min="1"
-              max="24"
-              step="1"
               value={minesCount}
               onChange={handleMinesCountChange}
               disabled={gameActive || loading}
             />
             <span className="mines-info">
-              (1-24)
+              (3-23)
             </span>
           </div>
         </div>
@@ -133,18 +141,57 @@ const MinesControls = ({
             5
           </button>
           <button 
-            onClick={() => handleQuickMines(10)} 
+            onClick={() => handleQuickMines(7)} 
             disabled={gameActive || loading}
             className="quick-mines-button"
           >
-            10
+            7
+          </button>
+        </div>
+        <div className="quick-mines" style={{marginTop: '5px'}}>
+          <button 
+            onClick={() => handleQuickMines(9)} 
+            disabled={gameActive || loading}
+            className="quick-mines-button"
+          >
+            9
           </button>
           <button 
-            onClick={() => handleQuickMines(24)} 
+            onClick={() => handleQuickMines(12)} 
             disabled={gameActive || loading}
             className="quick-mines-button"
           >
-            24
+            12
+          </button>
+          <button 
+            onClick={() => handleQuickMines(15)} 
+            disabled={gameActive || loading}
+            className="quick-mines-button"
+          >
+            15
+          </button>
+        </div>
+        <div className="quick-mines" style={{marginTop: '5px'}}>
+          <button 
+            onClick={() => handleQuickMines(18)} 
+            disabled={gameActive || loading}
+            className="quick-mines-button"
+          >
+            18
+          </button>
+          <button 
+            onClick={() => handleQuickMines(21)} 
+            disabled={gameActive || loading}
+            className="quick-mines-button"
+          >
+            21
+          </button>
+          <button 
+            onClick={() => handleQuickMines(23)} 
+            disabled={gameActive || loading}
+            className="quick-mines-button"
+          >
+            23
           </button>
         </div>
       </div>

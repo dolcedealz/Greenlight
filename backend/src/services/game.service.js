@@ -3,6 +3,44 @@ const { User, Game, Transaction } = require('../models');
 const randomService = require('./random.service');
 const mongoose = require('mongoose');
 
+// Предварительно рассчитанные таблицы коэффициентов для каждого количества мин
+const payoutTables = {
+  3: {
+    1: 1.13, 2: 1.29, 3: 1.48, 4: 1.71, 5: 2.00, 6: 2.35, 7: 2.79, 8: 3.35, 9: 4.07, 10: 5.00,
+    11: 6.26, 12: 7.96, 13: 10.35, 14: 13.80, 15: 18.98, 16: 27.11, 17: 40.66, 18: 65.06,
+    19: 113.85, 20: 227.70, 21: 569.25, 22: 2277.00
+  },
+  5: {
+    1: 1.24, 2: 1.56, 3: 2.00, 4: 2.58, 5: 3.39, 6: 4.52, 7: 6.14, 8: 8.50, 9: 12.04, 10: 17.52,
+    11: 26.27, 12: 40.87, 13: 66.41, 14: 113.85, 15: 208.73, 16: 417.45, 17: 939.26, 18: 2504.70,
+    19: 8766.45, 20: 52598.70
+  },
+  7: {
+    1: 1.38, 2: 1.94, 3: 2.79, 4: 4.09, 5: 6.14, 6: 9.44, 7: 14.95, 8: 24.47, 9: 41.60, 10: 73.95,
+    11: 138.66, 12: 277.33, 13: 600.88, 14: 1442.10, 15: 3965.78, 16: 13219.25, 17: 59486.63, 18: 475893.00
+  },
+  9: {
+    1: 1.55, 2: 2.48, 3: 4.07, 4: 6.88, 5: 12.04, 6: 21.89, 7: 41.60, 8: 83.20, 9: 176.80, 10: 404.10,
+    11: 1010.26, 12: 2828.73, 13: 9193.39, 14: 36773.55, 15: 202254.53, 16: 2022545.25
+  },
+  12: {
+    1: 1.90, 2: 3.81, 3: 7.96, 4: 17.52, 5: 40.87, 6: 102.17, 7: 277.33, 8: 831.98, 9: 2828.73, 10: 11314.94,
+    11: 56574.69, 12: 396022.85, 13: 5148297.00
+  },
+  15: {
+    1: 2.48, 2: 6.60, 3: 18.98, 4: 59.64, 5: 208.73, 6: 834.90, 7: 3965.78, 8: 23794.65, 9: 202254.53, 10: 3236072.40
+  },
+  18: {
+    1: 3.54, 2: 14.14, 3: 65.06, 4: 357.81, 5: 2504.70, 6: 25047.00, 7: 475893.00
+  },
+  21: {
+    1: 6.19, 2: 49.50, 3: 569.25, 4: 12523.50
+  },
+  23: {
+    1: 12.38, 2: 297.00
+  }
+};
+
 /**
  * Сервис для управления игровыми процессами
  */
@@ -171,8 +209,10 @@ class GameService {
         throw new Error('Сумма ставки должна быть положительной');
       }
       
-      if (minesCount < 1 || minesCount > 24) {
-        throw new Error('Неверное количество мин (от 1 до 24)');
+      // Проверяем, что количество мин из разрешенного списка
+      const allowedMinesCount = [3, 5, 7, 9, 12, 15, 18, 21, 23];
+      if (!allowedMinesCount.includes(Number(minesCount))) {
+        throw new Error('Неверное количество мин. Разрешенные значения: 3, 5, 7, 9, 12, 15, 18, 21, 23');
       }
       
       // Найдем пользователя
@@ -257,12 +297,15 @@ class GameService {
       user.lastActivity = new Date();
       await user.save({ session });
       
+      // Получаем начальный множитель из таблицы
+      const initialMultiplier = payoutTables[minesCount][1] || 0.95;
+      
       // Создаем запись об игре
       const game = new Game({
         user: user._id,
         gameType: 'mines',
         bet: betAmount,
-        multiplier: 0.95, // Начальный множитель (95% RTP)
+        multiplier: initialMultiplier, // Используем значение из таблицы
         result: {
           grid,
           minesCount,
@@ -390,8 +433,12 @@ class GameService {
           throw new Error('Все безопасные ячейки уже открыты');
         }
         
-        // Формула множителя: (всего_безопасных / оставшиеся_безопасные) * 0.95
-        const multiplier = Math.round((safeTotal / remainingSafe) * 0.95 * 10000) / 10000;
+        // Получаем множитель из предрассчитанной таблицы
+        const multiplier = payoutTables[minesCount][revealedCount];
+        
+        if (!multiplier) {
+          throw new Error('Ошибка расчета множителя');
+        }
         
         // Рассчитываем выигрыш
         const winAmount = game.bet * multiplier;
@@ -521,7 +568,13 @@ class GameService {
           
           if (allSafeCellsRevealed) {
             // Максимальный выигрыш - все безопасные ячейки открыты
-            const maxMultiplier = safeTotal * 0.95;
+            // Получаем максимальный множитель из таблицы
+            const maxMultiplier = payoutTables[minesCount][safeTotal - 1];
+            
+            if (!maxMultiplier) {
+              throw new Error('Ошибка расчета максимального множителя');
+            }
+            
             const winAmount = game.bet * maxMultiplier;
             const profit = winAmount - game.bet;
             
@@ -588,10 +641,14 @@ class GameService {
           } else {
             // Игра продолжается
             
-            // Правильно рассчитываем множитель
-            const multiplier = parseFloat(((safeTotal / remainingSafe) * 0.95).toFixed(4));
+            // Получаем множитель из таблицы для текущего количества открытых ячеек
+            const multiplier = payoutTables[minesCount][revealedCount];
             
-            console.log(`ОТЛАДКА МНОЖИТЕЛЯ: safeTotal=${safeTotal}, revealed=${revealedCount}, remaining=${remainingSafe}, multiplier=${multiplier}`);
+            if (!multiplier) {
+              throw new Error('Ошибка расчета множителя');
+            }
+            
+            console.log(`ОТЛАДКА МНОЖИТЕЛЯ: minesCount=${minesCount}, revealedCount=${revealedCount}, multiplier=${multiplier}`);
             
             // НОВЫЙ ПОДХОД: Используем $push для добавления в массив и $set для обновления множителя
             await Game.updateOne(

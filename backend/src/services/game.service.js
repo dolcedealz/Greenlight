@@ -356,36 +356,35 @@ async completeMinesGame(userData, gameData) {
       throw new Error('Игра не найдена или уже завершена');
     }
     
-    // Получаем данные игры
-    const { grid, minesCount, clickedCells } = game.result;
+    // КРИТИЧЕСКИ ВАЖНО: получаем актуальные данные из базы
+    const { minesCount } = game.result;
+    // Инициализируем массив открытых ячеек, если он пустой или не существует
+    if (!game.result.clickedCells) {
+      game.result.clickedCells = [];
+    }
+    
+    // Копируем текущий массив открытых ячеек, чтобы не изменять его напрямую
+    const clickedCells = [...game.result.clickedCells];
     
     // Константы для расчетов
     const safeTotal = 25 - minesCount;
     const revealedCount = clickedCells.length;
-    const remainingCount = safeTotal - revealedCount;
     
     // Если игрок хочет забрать выигрыш
     if (cashout) {
       console.log('Игрок забирает выигрыш, открытых ячеек:', revealedCount);
       
-      // Рассчитываем множитель
+      // Рассчитываем множитель на основе открытых ячеек
+      const remainingCount = safeTotal - revealedCount;
       const multiplier = remainingCount > 0 
           ? (safeTotal / remainingCount) * 0.95 
           : safeTotal * 0.95;
       
-      // Защита от некорректного множителя
-      if (!isFinite(multiplier) || isNaN(multiplier)) {
-        console.error('Ошибка расчета множителя:', { safeTotal, revealedCount, remainingCount });
-        throw new Error('Ошибка расчета множителя');
-      }
-      
-      console.log(`ОТЛАДКА МНОЖИТЕЛЯ: SafeTotal=${safeTotal}, Revealed=${revealedCount}, Formula=${safeTotal}/${remainingCount}*0.95, Multiplier=${multiplier}`);
+      console.log(`ОТЛАДКА МНОЖИТЕЛЯ ПРИ КЕШАУТЕ: SafeTotal=${safeTotal}, Revealed=${revealedCount}, Remaining=${remainingCount}, Multiplier=${multiplier}`);
       
       // Рассчитываем выигрыш
       const winAmount = game.bet * multiplier;
       const profit = winAmount - game.bet;
-      
-      console.log(`ОТЛАДКА ВЫИГРЫША: Bet=${game.bet}, Multiplier=${multiplier}, WinAmount=${winAmount}, Profit=${profit}`);
       
       // Обновляем игру
       game.multiplier = multiplier;
@@ -399,7 +398,7 @@ async completeMinesGame(userData, gameData) {
       await game.save({ session });
       
       // Обновляем баланс пользователя
-      user.balance += winAmount; // Возвращаем ставку + выигрыш
+      user.balance += winAmount;
       user.totalWon += winAmount;
       await user.save({ session });
       
@@ -447,9 +446,12 @@ async completeMinesGame(userData, gameData) {
       
       // Добавляем ячейку в список открытых
       clickedCells.push([row, col]);
+      
+      // КРИТИЧНО ВАЖНО: сохраняем обновленный список ячеек в игру
       game.result.clickedCells = clickedCells;
       
       // Проверяем, попал ли игрок на мину
+      const grid = game.result.grid;
       if (grid[row][col] === 'mine') {
         // Игрок проиграл
         console.log('Игрок попал на мину, игра окончена');
@@ -457,7 +459,6 @@ async completeMinesGame(userData, gameData) {
         game.result.win = false;
         game.win = false;
         game.status = 'completed';
-        // profit остается -game.bet, так как игрок проиграл ставку
         
         await game.save({ session });
         
@@ -475,7 +476,7 @@ async completeMinesGame(userData, gameData) {
         console.log('Игрок открыл безопасную ячейку, продолжает игру');
         
         // Обновленное количество открытых ячеек
-        const newRevealedCount = revealedCount + 1;
+        const newRevealedCount = clickedCells.length;
         const newRemainingCount = safeTotal - newRevealedCount;
         
         // Рассчитываем новый множитель
@@ -483,7 +484,7 @@ async completeMinesGame(userData, gameData) {
             ? (safeTotal / newRemainingCount) * 0.95 
             : safeTotal * 0.95;
         
-        console.log(`ОТЛАДКА МНОЖИТЕЛЯ: SafeTotal=${safeTotal}, Revealed=${newRevealedCount}, Formula=${safeTotal}/${newRemainingCount}*0.95, Multiplier=${multiplier}`);
+        console.log(`ОТЛАДКА МНОЖИТЕЛЯ: SafeTotal=${safeTotal}, Revealed=${newRevealedCount}, Remaining=${newRemainingCount}, Multiplier=${multiplier}`);
         
         // Обновляем множитель в игре
         game.multiplier = multiplier;
@@ -494,6 +495,8 @@ async completeMinesGame(userData, gameData) {
         if (newRevealedCount === safeTotal) {
           // Все безопасные ячейки открыты, автоматически забираем выигрыш
           console.log('Все безопасные ячейки открыты, автоматический кешаут');
+          
+          // Автоматический кешаут логика...
           
           // Рассчитываем выигрыш по максимальному множителю
           const maxMultiplier = safeTotal * 0.95;
@@ -551,7 +554,7 @@ async completeMinesGame(userData, gameData) {
         
         await session.commitTransaction();
         
-        // Возвращаем данные для клиента
+        // Возвращаем данные для клиента с полным массивом открытых ячеек
         return {
           win: null, // null означает, что игра продолжается
           clickedCells,

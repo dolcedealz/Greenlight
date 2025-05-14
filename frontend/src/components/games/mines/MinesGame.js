@@ -18,18 +18,42 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
   const [autoplay, setAutoplay] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Референс для данных игры
+  // Референс для данных текущей игры
   const gameDataRef = useRef(null);
   
-  // Обновление возможного выигрыша
+  // Обновление возможного выигрыша при изменении ставки или множителя
   useEffect(() => {
     setPossibleWin(betAmount * currentMultiplier);
   }, [betAmount, currentMultiplier]);
   
-  // Старт новой игры
+  // Дебаг-логирование изменений gameActive
+  useEffect(() => {
+    console.log("MINES COMPONENT: gameActive изменено на:", gameActive);
+  }, [gameActive]);
+
+  // Обновление состояния раскрытия ячеек на основе полного массива открытых ячеек
+  const updateRevealedState = useCallback((clickedCells) => {
+    if (!clickedCells || !Array.isArray(clickedCells)) return;
+    
+    // Создаем новый массив revealed на основе полного списка открытых ячеек
+    const newRevealed = Array(25).fill(false);
+    
+    // Отмечаем все открытые ячейки
+    clickedCells.forEach(([r, c]) => {
+      if (r >= 0 && r < 5 && c >= 0 && c < 5) {
+        const index = r * 5 + c;
+        newRevealed[index] = true;
+      }
+    });
+    
+    setRevealed(newRevealed);
+    setRevealedCount(clickedCells.length);
+  }, []);
+  
+  // Запуск новой игры
   const startGame = useCallback(async () => {
     try {
-      console.log("Начинаем новую игру в Мины");
+      console.log("MINES COMPONENT: Начинаем новую игру...");
       setLoading(true);
       
       // Сбрасываем состояние игры
@@ -42,19 +66,20 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       setGameResult(null);
       setError(null);
       
-      // Генерируем уникальный seed
+      // Создаем уникальный seed для игры
       const uniqueSeed = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      console.log(`Запуск игры "Мины": {betAmount: ${betAmount}, minesCount: ${minesCount}, clientSeed: '${uniqueSeed}'}`);
       
-      // Запрашиваем создание игры на сервере
-      console.log(`Отправка запроса на создание игры: {betAmount: ${betAmount}, minesCount: ${minesCount}}`);
+      // Отправляем запрос на создание игры
       const response = await gameApi.playMines(betAmount, minesCount, uniqueSeed);
       
+      // Проверяем ответ от сервера
       const data = response.data.data;
       if (!data || !data.gameId) {
-        throw new Error("Сервер не вернул ID игры");
+        throw new Error("API не вернул ID игры");
       }
       
-      // Сохраняем данные игры
+      // Сохраняем данные игры в референс
       gameDataRef.current = data;
       console.log(`Игра создана с ID: ${data.gameId}`);
       
@@ -63,15 +88,17 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         setBalance(data.balanceAfter);
       }
       
-      // Сбрасываем игровое поле
+      // Сбрасываем игровую сетку
       setGrid(Array(5).fill().map(() => Array(5).fill('gem')));
       
-      // Активируем игру
-      setGameActive(true);
-      setLoading(false);
+      // Активируем игру после небольшой задержки для завершения обновлений состояния
+      setTimeout(() => {
+        setGameActive(true);
+        setLoading(false);
+      }, 100);
       
     } catch (err) {
-      console.error("Ошибка при создании игры:", err);
+      console.error("MINES COMPONENT: Ошибка при создании игры:", err);
       setError(err.response?.data?.message || "Не удалось создать игру");
       setLoading(false);
     }
@@ -79,30 +106,30 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
   
   // Обработка клика по ячейке
   const handleCellClick = useCallback(async (row, col) => {
-    // Проверяем, активна ли игра
+    // Проверка возможности хода
     if (!gameActive || gameOver || loading) {
-      console.log("Игра неактивна или завершена, клик игнорируется");
+      console.log("MINES COMPONENT: Клик игнорирован - игра не активна");
       return;
     }
     
-    // Проверяем, есть ли данные игры
+    // Проверка наличия игровых данных
     if (!gameDataRef.current?.gameId) {
-      console.error("Отсутствуют данные игры");
-      setError("Данные игры не найдены. Начните новую игру.");
+      console.error("MINES COMPONENT: Нет данных игры");
+      setError("Данные игры не найдены. Пожалуйста, начните новую игру.");
       return;
     }
     
     const index = row * 5 + col;
     
-    // Проверяем, не открыта ли уже ячейка
+    // Проверка, не открыта ли уже ячейка
     if (revealed[index]) {
-      console.log("Ячейка уже открыта");
+      console.log("MINES COMPONENT: Ячейка уже открыта");
       return;
     }
     
     try {
+      // Блокируем интерфейс на время запроса
       setLoading(true);
-      // Временно блокируем дальнейшие действия
       setGameActive(false);
       
       // Отправляем запрос на сервер
@@ -117,24 +144,28 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       console.log("Получен ответ:", response.data);
       const data = response.data.data;
       
-      // Обновляем отображение открытых ячеек
-      const newRevealed = [...revealed];
-      newRevealed[index] = true;
-      setRevealed(newRevealed);
-      
-      // Увеличиваем счётчик открытых ячеек
-      setRevealedCount(prevCount => prevCount + 1);
+      // Обновляем состояние раскрытых ячеек
+      if (data.clickedCells && Array.isArray(data.clickedCells)) {
+        // Важно! Используем полный массив clickedCells из ответа
+        updateRevealedState(data.clickedCells);
+      } else {
+        // Если сервер не вернул массив ячеек, добавляем только текущую ячейку (запасной вариант)
+        const newRevealed = [...revealed];
+        newRevealed[index] = true;
+        setRevealed(newRevealed);
+        setRevealedCount(prevCount => prevCount + 1);
+      }
       
       if (data.win === false) {
-        // Игрок попал на мину - игра окончена
+        // Попадание на мину - игра окончена
         console.log("Игрок попал на мину - игра окончена");
         
-        // Обновляем сетку, если сервер предоставил полное расположение мин
+        // Обновляем сетку с позициями мин, если сервер прислал их
         if (data.grid) {
           setGrid(data.grid);
           
           // Показываем все мины
-          const allRevealed = [...newRevealed];
+          const allRevealed = [...revealed];
           data.grid.forEach((rowData, rowIndex) => {
             rowData.forEach((cell, colIndex) => {
               if (cell === 'mine') {
@@ -149,7 +180,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         setGameActive(false);
         setGameOver(true);
         
-        // Показываем результат
+        // Отображаем результат
         setGameResult({
           win: false,
           amount: betAmount,
@@ -165,7 +196,8 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         // Все безопасные ячейки открыты - максимальный выигрыш
         console.log("Все безопасные ячейки открыты - максимальный выигрыш");
         
-        const finalMultiplier = data.multiplier || 0.95 * (25 - minesCount);
+        // Обновляем множитель до максимального
+        const finalMultiplier = data.multiplier || (0.95 * (25 - minesCount));
         setCurrentMultiplier(finalMultiplier);
         setPossibleWin(betAmount * finalMultiplier);
         
@@ -173,7 +205,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         setGameActive(false);
         setGameOver(true);
         
-        // Показываем результат
+        // Отображаем результат
         setGameResult({
           win: true,
           amount: data.profit,
@@ -189,7 +221,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         }
         
       } else {
-        // Открыта безопасная ячейка - продолжаем игру
+        // Открыта безопасная ячейка - игра продолжается
         console.log("Открыта безопасная ячейка - продолжаем игру");
         
         // Обновляем множитель и возможный выигрыш
@@ -199,13 +231,12 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
           console.log(`Новый множитель: ${data.currentMultiplier}`);
         }
         
-        // Разблокируем игру
+        // Разблокируем интерфейс для продолжения игры
         setGameActive(true);
         
         // Проверяем условие автоигры
         if (autoplay && data.currentMultiplier >= 2) {
           console.log("Сработало условие автоигры - выполняем кешаут");
-          // Небольшая задержка для анимации
           setTimeout(() => handleCashout(), 500);
         }
       }
@@ -213,38 +244,38 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       setLoading(false);
       
     } catch (err) {
-      console.error("Ошибка при открытии ячейки:", err);
+      console.error("MINES COMPONENT: Ошибка при открытии ячейки:", err);
       setError(err.response?.data?.message || "Ошибка при открытии ячейки");
-      // Разблокируем игру при ошибке
+      // Возвращаем игру в активное состояние при ошибке
       setGameActive(true);
       setLoading(false);
     }
-  }, [gameActive, gameOver, loading, revealed, betAmount, autoplay, minesCount, setBalance, setError, setGameResult]);
+  }, [gameActive, gameOver, loading, revealed, betAmount, minesCount, autoplay, updateRevealedState, setBalance, setError, setGameResult]);
   
   // Функция кешаута (забрать выигрыш)
   const handleCashout = useCallback(async () => {
-    console.log("Запрос на кешаут, gameActive =", gameActive);
+    console.log("MINES COMPONENT: Cashout requested, gameActive=", gameActive);
     
-    // Проверка состояния игры
+    // Проверка возможности выполнить кешаут
     if (!gameActive || gameOver || loading) {
-      console.log("Кешаут невозможен - игра неактивна или завершена");
+      console.log("MINES COMPONENT: Cannot cashout - game not active");
       return;
     }
     
     // Проверка наличия данных игры
     if (!gameDataRef.current?.gameId) {
-      console.error("Отсутствуют данные игры для кешаута");
-      setError("Данные игры не найдены. Начните новую игру.");
+      console.error("MINES COMPONENT: No game data for cashout");
+      setError("Данные игры не найдены. Пожалуйста, начните новую игру.");
       return;
     }
     
     try {
-      setLoading(true);
       // Блокируем интерфейс
+      setLoading(true);
       setGameActive(false);
       
       // Отправляем запрос на кешаут
-      console.log("Отправка запроса на кешаут");
+      console.log("MINES COMPONENT: Sending cashout request");
       const response = await gameApi.completeMinesGame(
         gameDataRef.current.gameId, 
         null, 
@@ -257,12 +288,17 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       // Завершаем игру
       setGameOver(true);
       
+      // Обновляем множитель, если сервер его вернул
+      if (data.multiplier) {
+        setCurrentMultiplier(data.multiplier);
+      }
+      
       // Обновляем баланс
       if (data.balanceAfter !== undefined) {
         setBalance(data.balanceAfter);
       }
       
-      // Показываем результат
+      // Отображаем результат
       setGameResult({
         win: true,
         amount: data.profit,
@@ -275,17 +311,17 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       setLoading(false);
       
     } catch (err) {
-      console.error("Ошибка при кешауте:", err);
-      setError(err.response?.data?.message || "Ошибка при выполнении кешаута");
-      // Разблокируем игру при ошибке
+      console.error("MINES COMPONENT: Error during cashout:", err);
+      setError(err.response?.data?.message || "Ошибка при кешауте");
+      // Возвращаем игру в активное состояние при ошибке
       setGameActive(true);
       setLoading(false);
     }
   }, [gameActive, gameOver, loading, setBalance, setError, setGameResult]);
   
-  // Переключение режима автоигры
+  // Управление режимом автоигры
   const handleAutoplayChange = useCallback((value) => {
-    console.log("Автоигра переключена на:", value);
+    console.log("MINES COMPONENT: Autoplay changed to:", value);
     setAutoplay(value);
   }, []);
   

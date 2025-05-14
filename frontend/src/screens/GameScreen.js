@@ -148,6 +148,29 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       try {
         setError(null); // Очищаем предыдущие ошибки
         setGameResult(null); // Очищаем предыдущий результат
+    
+        // ДОБАВИТЬ БЛОК ДИАГНОСТИКИ:
+        console.log("Запускаем диагностику перед стартом игры...");
+        try {
+          // Проверяем, нет ли активных игр
+          const historyResponse = await gameApi.getGameHistory({
+            gameType: 'mines',
+            limit: 10
+          });
+          
+          if (historyResponse.data && historyResponse.data.data && historyResponse.data.data.games) {
+            const activeGames = historyResponse.data.data.games.filter(game => 
+              game.status === 'active');
+            
+            console.log(`Найдено ${activeGames.length} активных игр.`);
+            if (activeGames.length > 0) {
+              console.warn("Активные игры могут вызывать конфликты:", activeGames);
+            }
+          }
+        } catch (diagError) {
+          console.error("Ошибка диагностики:", diagError);
+        }
+
 
         // Создаем новую игру на сервере
         const response = await gameApi.playMines(betAmount, minesCount);

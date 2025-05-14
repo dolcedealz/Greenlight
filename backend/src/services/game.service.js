@@ -174,10 +174,23 @@ class GameService {
       if (!user) {
         throw new Error('Пользователь не найден');
       }
+  
+      // ДОБАВИТЬ ЭТОТ БЛОК: Завершаем все предыдущие активные игры пользователя в мины
+      await Game.updateMany(
+        { 
+          user: user._id, 
+          gameType: 'mines', 
+          status: 'active' 
+        },
+        { 
+          $set: { 
+            status: 'completed',
+            'result.win': false
+          } 
+        }
+      ).session(session);
       
-      if (user.isBlocked) {
-        throw new Error('Ваш аккаунт заблокирован');
-      }
+      // Далее оставить существующий код без изменений...
       
       // Проверяем достаточно ли средств
       if (user.balance < betAmount) {

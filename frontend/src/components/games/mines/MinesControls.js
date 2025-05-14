@@ -1,5 +1,5 @@
-// frontend/src/components/games/mines/MinesControls.js
-import React, { useState, useEffect } from 'react';
+// MinesControls.js
+import React from 'react';
 import '../../../styles/MinesControls.css';
 
 const MinesControls = ({ 
@@ -15,23 +15,10 @@ const MinesControls = ({
   setMinesCount,
   revealedCount,
   onAutoplayChange,
-  autoplay
+  autoplay,
+  loading
 }) => {
-  // Debug log when important props change
-  useEffect(() => {
-    console.log("MinesControls: множитель обновлен до", currentMultiplier);
-    console.log("MinesControls: возможный выигрыш обновлен до", possibleWin);
-    
-    // Отладка расчета множителя
-    if (gameActive && revealedCount > 0) {
-      const safeTotal = 25 - minesCount;
-      const expectedMultiplier = (safeTotal / (safeTotal - revealedCount)) * 0.95;
-      console.log(`MinesControls: Расчет множителя: (${safeTotal}/${safeTotal - revealedCount})*0.95=${expectedMultiplier.toFixed(4)}`);
-      console.log(`MinesControls: Текущий множитель: ${currentMultiplier.toFixed(4)}, ожидаемый: ${expectedMultiplier.toFixed(4)}`);
-    }
-  }, [currentMultiplier, possibleWin, gameActive, minesCount, revealedCount]);
-  
-  // Handler for bet amount change
+  // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
     const value = parseFloat(e.target.value);
     if (!isNaN(value) && value > 0 && value <= balance) {
@@ -39,13 +26,13 @@ const MinesControls = ({
     }
   };
   
-  // Quick buttons for bet
+  // Быстрые ставки (процент от баланса)
   const handleQuickBet = (multiplier) => {
     const quickBet = Math.min(balance, Math.max(1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
   
-  // Handler for mines count change
+  // Обработчик изменения количества мин
   const handleMinesCountChange = (e) => {
     const value = parseInt(e.target.value, 10);
     if (!isNaN(value) && value >= 1 && value <= 24) {
@@ -53,22 +40,18 @@ const MinesControls = ({
     }
   };
   
-  // Quick buttons for mines count
+  // Быстрый выбор количества мин
   const handleQuickMines = (count) => {
     setMinesCount(count);
   };
   
-  // Handler for autoplay toggle
+  // Переключение автоигры
   const toggleAutoplay = () => {
     onAutoplayChange && onAutoplayChange(!autoplay);
   };
   
-  // Calculate formula values for display
+  // Для отображения в интерфейсе
   const safeTotal = 25 - minesCount;
-  const remainingSafe = safeTotal - revealedCount;
-  const formulaResult = remainingSafe > 0 
-    ? (safeTotal / remainingSafe) * 0.95 
-    : 0;
   
   return (
     <div className="mines-controls">
@@ -83,16 +66,40 @@ const MinesControls = ({
               step="0.1"
               value={betAmount}
               onChange={handleBetAmountChange}
-              disabled={gameActive}
+              disabled={gameActive || loading}
             />
           </div>
         </div>
         
         <div className="quick-bets">
-          <button onClick={() => handleQuickBet(0.1)} disabled={gameActive}>10%</button>
-          <button onClick={() => handleQuickBet(0.25)} disabled={gameActive}>25%</button>
-          <button onClick={() => handleQuickBet(0.5)} disabled={gameActive}>50%</button>
-          <button onClick={() => handleQuickBet(1)} disabled={gameActive}>MAX</button>
+          <button 
+            onClick={() => handleQuickBet(0.1)} 
+            disabled={gameActive || loading}
+            className="quick-bet-button"
+          >
+            10%
+          </button>
+          <button 
+            onClick={() => handleQuickBet(0.25)} 
+            disabled={gameActive || loading}
+            className="quick-bet-button"
+          >
+            25%
+          </button>
+          <button 
+            onClick={() => handleQuickBet(0.5)} 
+            disabled={gameActive || loading}
+            className="quick-bet-button"
+          >
+            50%
+          </button>
+          <button 
+            onClick={() => handleQuickBet(1)} 
+            disabled={gameActive || loading}
+            className="quick-bet-button"
+          >
+            MAX
+          </button>
         </div>
       </div>
       
@@ -107,7 +114,7 @@ const MinesControls = ({
               step="1"
               value={minesCount}
               onChange={handleMinesCountChange}
-              disabled={gameActive}
+              disabled={gameActive || loading}
             />
             <span className="mines-info">
               (1-24)
@@ -116,10 +123,34 @@ const MinesControls = ({
         </div>
         
         <div className="quick-mines">
-          <button onClick={() => handleQuickMines(3)} disabled={gameActive}>3</button>
-          <button onClick={() => handleQuickMines(5)} disabled={gameActive}>5</button>
-          <button onClick={() => handleQuickMines(10)} disabled={gameActive}>10</button>
-          <button onClick={() => handleQuickMines(24)} disabled={gameActive}>24</button>
+          <button 
+            onClick={() => handleQuickMines(3)} 
+            disabled={gameActive || loading}
+            className="quick-mines-button"
+          >
+            3
+          </button>
+          <button 
+            onClick={() => handleQuickMines(5)} 
+            disabled={gameActive || loading}
+            className="quick-mines-button"
+          >
+            5
+          </button>
+          <button 
+            onClick={() => handleQuickMines(10)} 
+            disabled={gameActive || loading}
+            className="quick-mines-button"
+          >
+            10
+          </button>
+          <button 
+            onClick={() => handleQuickMines(24)} 
+            disabled={gameActive || loading}
+            className="quick-mines-button"
+          >
+            24
+          </button>
         </div>
       </div>
       
@@ -127,26 +158,10 @@ const MinesControls = ({
         <div className="info-item">
           <span className="info-label">Множитель:</span>
           <span className="info-value">{currentMultiplier.toFixed(2)}x</span>
-          {gameActive && (
-            <div className="formula-display">
-              <small>
-                Формула: ({safeTotal}/{remainingSafe})*0.95
-                {formulaResult !== currentMultiplier && 
-                 <span style={{color: 'red'}}> ≠ {formulaResult.toFixed(2)}</span>}
-              </small>
-            </div>
-          )}
         </div>
         <div className="info-item">
           <span className="info-label">Выигрыш:</span>
           <span className="info-value">{possibleWin.toFixed(2)} USDT</span>
-          {gameActive && (
-            <div className="formula-display">
-              <small>
-                {betAmount} USDT × {currentMultiplier.toFixed(2)}
-              </small>
-            </div>
-          )}
         </div>
         <div className="info-item">
           <span className="info-label">Открыто:</span>
@@ -159,16 +174,17 @@ const MinesControls = ({
           <button 
             className="play-button" 
             onClick={onPlay}
-            disabled={betAmount <= 0 || betAmount > balance}
+            disabled={betAmount <= 0 || betAmount > balance || loading}
           >
-            Играть
+            {loading ? 'Загрузка...' : 'Играть'}
           </button>
         ) : (
           <button 
             className="cashout-button" 
             onClick={onCashout}
+            disabled={loading}
           >
-            Забрать выигрыш ({possibleWin.toFixed(2)} USDT)
+            {loading ? 'Загрузка...' : `Забрать выигрыш (${possibleWin.toFixed(2)} USDT)`}
           </button>
         )}
       </div>
@@ -179,38 +195,14 @@ const MinesControls = ({
             type="checkbox" 
             checked={autoplay} 
             onChange={toggleAutoplay}
-            disabled={gameActive}
+            disabled={gameActive || loading}
           />
           <span className="toggle-slider"></span>
           <span className="toggle-text">Автоигра (авто-кешаут при x2)</span>
         </label>
       </div>
-      
-      {/* Debug area - remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="debug-area" style={{marginTop: '15px', padding: '10px', border: '1px dashed #444', fontSize: '12px'}}>
-          <h4 style={{margin: '0 0 5px 0'}}>Отладка</h4>
-          <div>Безопасных ячеек: {safeTotal}</div>
-          <div>Открыто: {revealedCount}</div>
-          <div>Осталось: {remainingSafe}</div>
-          <div>Формула: ({safeTotal}/{remainingSafe})*0.95 = {((safeTotal/remainingSafe)*0.95).toFixed(4)}</div>
-          <div>Текущий множитель: {currentMultiplier.toFixed(4)}</div>
-          <div>Ставка: {betAmount} USDT</div>
-          <div>Возможный выигрыш: {possibleWin.toFixed(4)} USDT</div>
-        </div>
-      )}
     </div>
   );
 };
-
-// Add a new style for formula display
-// Add this to your CSS file:
-/*
-.formula-display {
-  font-size: 11px;
-  color: #999;
-  margin-top: 3px;
-}
-*/
 
 export default React.memo(MinesControls);

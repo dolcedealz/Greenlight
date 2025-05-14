@@ -1,34 +1,28 @@
-// frontend/src/components/games/mines/MinesGrid.js
-import React, { useEffect } from 'react';
+// MinesGrid.js
+import React from 'react';
 import '../../../styles/MinesGrid.css';
 
-const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver }) => {
-  // Add debug logging for props changes
-  useEffect(() => {
-    console.log("MinesGrid received props - gameActive:", gameActive, "gameOver:", gameOver);
-  }, [gameActive, gameOver]);
-
+const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver, loading }) => {
+  // Обработчик клика по ячейке
   const handleCellClick = (rowIndex, colIndex) => {
-    console.log(`MinesGrid: click on cell [${rowIndex},${colIndex}], gameActive=${gameActive}, gameOver=${gameOver}`);
-    
-    // Only process clicks when game is active and not over
-    if (!gameActive || gameOver) {
-      console.log("MinesGrid: ignoring click - game not active or is over");
-      return;
-    }
-    
+    // Блокируем клики если:
+    // - игра не активна
+    // - игра завершена
+    // - идет загрузка
+    // - ячейка уже открыта
     const index = rowIndex * 5 + colIndex;
-    if (revealed[index]) {
-      console.log("MinesGrid: cell already revealed");
+    if (!gameActive || gameOver || loading || revealed[index]) {
       return;
     }
     
-    // Call parent handler
+    // Вызываем обработчик из родительского компонента
     onCellClick(rowIndex, colIndex);
   };
 
   return (
-    <div className={`mines-grid ${gameOver ? 'game-over' : ''}`}>
+    <div className={`mines-grid ${gameOver ? 'game-over' : ''} ${loading ? 'loading' : ''}`}>
+      {loading && <div className="mines-overlay"><div className="mines-spinner"></div></div>}
+      
       {grid.map((row, rowIndex) => (
         <div key={rowIndex} className="mines-row">
           {row.map((cell, colIndex) => {
@@ -57,4 +51,4 @@ const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver }) => {
   );
 };
 
-export default React.memo(MinesGrid); // Use React.memo to prevent unnecessary re-renders
+export default React.memo(MinesGrid);

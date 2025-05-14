@@ -10,18 +10,39 @@
   max-width: 500px;
   margin: 0 auto;
   position: relative;
+  transition: all 0.3s ease;
 }
 
-.mines-grid.game-over::after {
-  content: "";
+.mines-grid.game-over {
+  opacity: 0.8;
+}
+
+.mines-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 59, 48, 0.05);
+  background-color: rgba(0, 0, 0, 0.5);
   border-radius: var(--border-radius);
-  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+.mines-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid var(--primary-color);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .mines-row {
@@ -53,9 +74,10 @@
   margin-right: 0;
 }
 
-.mines-cell:hover {
+.mines-cell:hover:not(.revealed):not(.disabled) {
   background-color: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .mines-cell.revealed {
@@ -66,24 +88,66 @@
 .mines-cell.revealed.gem {
   background-color: rgba(11, 168, 74, 0.2);
   border: 1px solid var(--primary-color);
+  animation: revealGem 0.3s ease;
 }
 
 .mines-cell.revealed.mine {
   background-color: rgba(255, 59, 48, 0.2);
   border: 1px solid #ff3b30;
+  animation: revealMine 0.5s ease;
   z-index: 2;
 }
 
 .mines-cell.disabled {
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .gem-icon, .mine-icon {
   font-size: 24px;
-  animation: revealAnimation 0.3s ease;
+  animation: popIn 0.3s ease;
 }
 
-@keyframes revealAnimation {
+@keyframes revealGem {
+  0% {
+    transform: scale(0.9);
+    background-color: rgba(11, 168, 74, 0);
+  }
+  50% {
+    transform: scale(1.05);
+    background-color: rgba(11, 168, 74, 0.3);
+  }
+  100% {
+    transform: scale(1);
+    background-color: rgba(11, 168, 74, 0.2);
+  }
+}
+
+@keyframes revealMine {
+  0% {
+    transform: scale(0.9);
+    background-color: rgba(255, 59, 48, 0);
+  }
+  20% {
+    transform: scale(1.2);
+    background-color: rgba(255, 59, 48, 0.5);
+  }
+  40% {
+    transform: rotate(15deg);
+  }
+  60% {
+    transform: rotate(-15deg);
+  }
+  80% {
+    transform: rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    background-color: rgba(255, 59, 48, 0.2);
+  }
+}
+
+@keyframes popIn {
   0% {
     transform: scale(0);
     opacity: 0;

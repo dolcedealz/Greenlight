@@ -1,218 +1,246 @@
 /* frontend/src/styles/MinesControls.css */
 .mines-controls {
-    padding: 20px;
-    background-color: var(--card-background);
-    border-radius: var(--border-radius);
-    margin-top: 20px;
-    box-shadow: var(--shadow);
-  }
-  
-  .mines-bet-section,
-  .mines-count-section {
-    margin-bottom: 20px;
-  }
-  
-  .mines-bet-control,
-  .mines-count-control {
-    margin-bottom: 10px;
-  }
-  
-  .mines-bet-control label,
-  .mines-count-control label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
-  }
-  
-  .bet-input-container,
-  .mines-input-container {
-    position: relative;
-  }
-  
-  .mines-controls input {
-    width: 100%;
-    padding: 12px;
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: white;
-    font-size: 16px;
-    text-align: center;
-    transition: border-color 0.2s ease;
-  }
-  
-  .mines-controls input:focus {
-    border-color: var(--primary-color);
-    outline: none;
-  }
-  
-  .mines-info {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
-  }
-  
-  .quick-bets,
-  .quick-mines {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-  }
-  
-  .quick-bets button,
-  .quick-mines button {
-    flex: 1;
-    margin-right: 10px;
-    padding: 8px 0;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 4px;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-  
-  .quick-bets button:last-child,
-  .quick-mines button:last-child {
-    margin-right: 0;
-  }
-  
-  .quick-bets button:hover,
-  .quick-mines button:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-  }
-  
-  .quick-bets button:disabled,
-  .quick-mines button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-  
+  padding: 20px;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  margin-top: 20px;
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.mines-bet-section,
+.mines-count-section {
+  margin-bottom: 20px;
+}
+
+.mines-bet-control,
+.mines-count-control {
+  margin-bottom: 10px;
+}
+
+.mines-bet-control label,
+.mines-count-control label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.bet-input-container,
+.mines-input-container {
+  position: relative;
+}
+
+.mines-controls input {
+  width: 100%;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  text-align: center;
+  transition: border-color 0.2s ease;
+}
+
+.mines-controls input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.mines-controls input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.mines-info {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.quick-bets,
+.quick-mines {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.quick-bet-button,
+.quick-mines-button {
+  flex: 1;
+  margin-right: 10px;
+  padding: 8px 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-bet-button:last-child,
+.quick-mines-button:last-child {
+  margin-right: 0;
+}
+
+.quick-bet-button:hover:not(:disabled),
+.quick-mines-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.quick-bet-button:disabled,
+.quick-mines-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.mines-game-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.info-item {
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  text-align: center;
+  transition: background-color 0.2s ease;
+}
+
+.info-label {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 5px;
+}
+
+.info-value {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.mines-actions {
+  margin-bottom: 15px;
+}
+
+.play-button,
+.cashout-button {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.play-button {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.play-button:hover:not(:disabled) {
+  background-color: #0c9740;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(11, 168, 74, 0.3);
+}
+
+.play-button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.cashout-button {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.cashout-button:hover:not(:disabled) {
+  background-color: #ffb300;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+}
+
+.cashout-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.mines-autoplay {
+  margin-top: 15px;
+}
+
+.autoplay-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.autoplay-toggle input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  margin-right: 10px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--primary-color);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.toggle-text {
+  font-size: 14px;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 500px) {
   .mines-game-info {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  
-  .info-item {
-    padding: 10px;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    text-align: center;
-  }
-  
-  .info-label {
-    display: block;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: 5px;
-  }
-  
-  .info-value {
-    font-size: 16px;
-    font-weight: bold;
-  }
-  
-  .mines-actions {
-    margin-bottom: 15px;
+    grid-template-columns: 1fr;
+    gap: 5px;
   }
   
   .play-button,
   .cashout-button {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    font-weight: bold;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .play-button {
-    background-color: var(--primary-color);
-    color: white;
-  }
-  
-  .play-button:hover {
-    background-color: #0c9740;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(11, 168, 74, 0.3);
-  }
-  
-  .play-button:disabled {
-    background-color: #666;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-  
-  .cashout-button {
-    background-color: #ffc107;
-    color: #000;
-  }
-  
-  .cashout-button:hover {
-    background-color: #ffb300;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
-  }
-  
-  .mines-autoplay {
-    margin-top: 15px;
-  }
-  
-  .autoplay-toggle {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-  }
-  
-  .autoplay-toggle input {
-    position: absolute;
-    opacity: 0;
-    cursor: pointer;
-    height: 0;
-    width: 0;
-  }
-  
-  .toggle-slider {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 20px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    transition: all 0.2s ease;
-    margin-right: 10px;
-  }
-  
-  .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
-    background-color: white;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-  }
-  
-  input:checked + .toggle-slider {
-    background-color: var(--primary-color);
-  }
-  
-  input:checked + .toggle-slider:before {
-    transform: translateX(20px);
-  }
-  
-  .toggle-text {
+    padding: 12px;
     font-size: 14px;
   }
+}

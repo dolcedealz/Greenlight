@@ -90,7 +90,16 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
   
       // Handle cell click
   const handleCellClick = useCallback(async (row, col) => {
-    console.log(`MINES COMPONENT: Cell click [${row},${col}], gameActive=${gameActive}, gameOver=${gameOver}`);
+    // Путь: frontend/src/components/games/mines/MinesGame.js
+    // В методе handleCellClick, после получения ответа от сервера
+    console.log("ОТЛАДКА API ОТВЕТА:", response.data);
+    if (data.currentMultiplier !== undefined) {
+        console.log("ОБНОВЛЕНИЕ МНОЖИТЕЛЯ:", data.currentMultiplier);
+        setCurrentMultiplier(data.currentMultiplier);
+        setPossibleWin(betAmount * data.currentMultiplier);
+    } else {
+        console.log("МНОЖИТЕЛЬ НЕ ПОЛУЧЕН ОТ СЕРВЕРА!");
+    }   
     
     // Guard against clicks when game is inactive
     if (!gameActive || gameOver) {

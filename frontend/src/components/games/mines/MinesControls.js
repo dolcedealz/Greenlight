@@ -19,9 +19,17 @@ const MinesControls = ({
 }) => {
   // Debug log when important props change
   useEffect(() => {
-    console.log("MinesControls: multiplier updated to", currentMultiplier);
-    console.log("MinesControls: possibleWin updated to", possibleWin);
-  }, [currentMultiplier, possibleWin]);
+    console.log("MinesControls: множитель обновлен до", currentMultiplier);
+    console.log("MinesControls: возможный выигрыш обновлен до", possibleWin);
+    
+    // Отладка расчета множителя
+    if (gameActive && revealedCount > 0) {
+      const safeTotal = 25 - minesCount;
+      const expectedMultiplier = (safeTotal / (safeTotal - revealedCount)) * 0.95;
+      console.log(`MinesControls: Расчет множителя: (${safeTotal}/${safeTotal - revealedCount})*0.95=${expectedMultiplier.toFixed(4)}`);
+      console.log(`MinesControls: Текущий множитель: ${currentMultiplier.toFixed(4)}, ожидаемый: ${expectedMultiplier.toFixed(4)}`);
+    }
+  }, [currentMultiplier, possibleWin, gameActive, minesCount, revealedCount]);
   
   // Handler for bet amount change
   const handleBetAmountChange = (e) => {
@@ -54,6 +62,13 @@ const MinesControls = ({
   const toggleAutoplay = () => {
     onAutoplayChange && onAutoplayChange(!autoplay);
   };
+  
+  // Calculate formula values for display
+  const safeTotal = 25 - minesCount;
+  const remainingSafe = safeTotal - revealedCount;
+  const formulaResult = remainingSafe > 0 
+    ? (safeTotal / remainingSafe) * 0.95 
+    : 0;
   
   return (
     <div className="mines-controls">
@@ -112,14 +127,30 @@ const MinesControls = ({
         <div className="info-item">
           <span className="info-label">Множитель:</span>
           <span className="info-value">{currentMultiplier.toFixed(2)}x</span>
+          {gameActive && (
+            <div className="formula-display">
+              <small>
+                Формула: ({safeTotal}/{remainingSafe})*0.95
+                {formulaResult !== currentMultiplier && 
+                 <span style={{color: 'red'}}> ≠ {formulaResult.toFixed(2)}</span>}
+              </small>
+            </div>
+          )}
         </div>
         <div className="info-item">
           <span className="info-label">Выигрыш:</span>
           <span className="info-value">{possibleWin.toFixed(2)} USDT</span>
+          {gameActive && (
+            <div className="formula-display">
+              <small>
+                {betAmount} USDT × {currentMultiplier.toFixed(2)}
+              </small>
+            </div>
+          )}
         </div>
         <div className="info-item">
           <span className="info-label">Открыто:</span>
-          <span className="info-value">{revealedCount} из {25 - minesCount}</span>
+          <span className="info-value">{revealedCount} из {safeTotal}</span>
         </div>
       </div>
       
@@ -154,8 +185,32 @@ const MinesControls = ({
           <span className="toggle-text">Автоигра (авто-кешаут при x2)</span>
         </label>
       </div>
+      
+      {/* Debug area - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="debug-area" style={{marginTop: '15px', padding: '10px', border: '1px dashed #444', fontSize: '12px'}}>
+          <h4 style={{margin: '0 0 5px 0'}}>Отладка</h4>
+          <div>Безопасных ячеек: {safeTotal}</div>
+          <div>Открыто: {revealedCount}</div>
+          <div>Осталось: {remainingSafe}</div>
+          <div>Формула: ({safeTotal}/{remainingSafe})*0.95 = {((safeTotal/remainingSafe)*0.95).toFixed(4)}</div>
+          <div>Текущий множитель: {currentMultiplier.toFixed(4)}</div>
+          <div>Ставка: {betAmount} USDT</div>
+          <div>Возможный выигрыш: {possibleWin.toFixed(4)} USDT</div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default React.memo(MinesControls); // Use React.memo to prevent unnecessary re-renders
+// Add a new style for formula display
+// Add this to your CSS file:
+/*
+.formula-display {
+  font-size: 11px;
+  color: #999;
+  margin-top: 3px;
+}
+*/
+
+export default React.memo(MinesControls);

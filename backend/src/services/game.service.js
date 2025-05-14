@@ -363,17 +363,21 @@ class GameService {
         const safeTotal = 25 - minesCount;
         const revealedCount = clickedCells.length;
         const remainingCount = safeTotal - revealedCount;
-        const multiplier = remainingCount > 0 
-            ? (safeTotal / remainingCount) * 0.95 
-            : safeTotal * 0.95;
         
         console.log('Рассчитанный множитель при кешауте:', multiplier);
         
         // Рассчитываем выигрыш
         const winAmount = game.bet * multiplier;
-        const profit = winAmount - game.bet; // Должно быть положительным для выигрыша
-        
-        console.log('Сумма выигрыша:', winAmount, 'Прибыль:', profit);
+        let profit;
+        if (multiplier >= 1) {
+            profit = winAmount - game.bet; // Положительная прибыль 
+        } else {
+        // При коэффициенте меньше 1, выигрыш меньше ставки, но это всё равно выигрыш, а не проигрыш
+        // Прибыль должна быть отрицательной, но в результате должен быть winAmount
+            profit = -Math.abs(game.bet - winAmount);
+        }
+
+console.log(`ОТЛАДКА ВЫИГРЫША: Bet=${game.bet}, Multiplier=${multiplier}, WinAmount=${winAmount}, Profit=${profit}`);
         
         // Обновляем игру
         game.multiplier = multiplier;
@@ -471,10 +475,10 @@ class GameService {
           
           // Рассчитываем множитель
           const multiplier = remainingCount > 0 
-              ? (safeTotal / remainingCount) * 0.95 
+              ? (safeTotal / (safeTotal - revealedCount)) * 0.95 
               : safeTotal * 0.95;
           
-          console.log('Новый множитель:', multiplier, 'Открыто:', revealedCount, 'из', safeTotal);
+            console.log(`ОТЛАДКА МНОЖИТЕЛЯ: SafeTotal=${safeTotal}, Revealed=${revealedCount}, Formula=${safeTotal}/(${safeTotal}-${revealedCount})*0.95, Multiplier=${multiplier}`);
           
           // Обновляем множитель в игре
           game.multiplier = multiplier;

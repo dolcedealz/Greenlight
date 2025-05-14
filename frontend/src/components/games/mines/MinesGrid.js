@@ -1,22 +1,30 @@
 // frontend/src/components/games/mines/MinesGrid.js
-import React from 'react';
+import React, { useEffect } from 'react';
 import '../../../styles/MinesGrid.css';
 
-/// frontend/src/components/games/mines/MinesGrid.js
 const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver }) => {
-  // Добавляем отладочную информацию
-  console.log("Рендер MinesGrid, gameActive:", gameActive);
-  
+  // Add debug logging for props changes
+  useEffect(() => {
+    console.log("MinesGrid received props - gameActive:", gameActive, "gameOver:", gameOver);
+  }, [gameActive, gameOver]);
+
   const handleCellClick = (rowIndex, colIndex) => {
-    console.log(`MinesGrid: клик на ячейке [${rowIndex}, ${colIndex}], gameActive: ${gameActive}`);
+    console.log(`MinesGrid: click on cell [${rowIndex},${colIndex}], gameActive=${gameActive}, gameOver=${gameOver}`);
     
-    // Если игра активна и ячейка не открыта, вызываем обработчик
-    const index = rowIndex * 5 + colIndex;
-    if (gameActive && !revealed[index]) {
-      onCellClick(rowIndex, colIndex);
-    } else {
-      console.log(`MinesGrid: клик игнорирован, gameActive: ${gameActive}, revealed: ${revealed[index]}`);
+    // Only process clicks when game is active and not over
+    if (!gameActive || gameOver) {
+      console.log("MinesGrid: ignoring click - game not active or is over");
+      return;
     }
+    
+    const index = rowIndex * 5 + colIndex;
+    if (revealed[index]) {
+      console.log("MinesGrid: cell already revealed");
+      return;
+    }
+    
+    // Call parent handler
+    onCellClick(rowIndex, colIndex);
   };
 
   return (
@@ -27,11 +35,15 @@ const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver }) => {
             const index = rowIndex * 5 + colIndex;
             const isRevealed = revealed[index];
             
-            // Обновляем обработчик клика для дополнительного логирования
             return (
               <div
                 key={colIndex}
-                className={`mines-cell ${isRevealed ? 'revealed' : ''} ${isRevealed && cell === 'mine' ? 'mine' : ''} ${isRevealed && cell !== 'mine' ? 'gem' : ''}`}
+                className={`mines-cell 
+                  ${isRevealed ? 'revealed' : ''} 
+                  ${isRevealed && cell === 'mine' ? 'mine' : ''} 
+                  ${isRevealed && cell !== 'mine' ? 'gem' : ''}
+                  ${!gameActive && !isRevealed ? 'disabled' : ''}
+                `}
                 onClick={() => handleCellClick(rowIndex, colIndex)}
               >
                 {isRevealed && cell === 'mine' && <span className="mine-icon">💣</span>}
@@ -45,4 +57,4 @@ const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver }) => {
   );
 };
 
-export default MinesGrid;
+export default React.memo(MinesGrid); // Use React.memo to prevent unnecessary re-renders

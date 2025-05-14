@@ -1,33 +1,36 @@
 // frontend/src/screens/GameScreen.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CoinFlip, CoinControls } from '../components/games/coin';
-import { MinesGrid, MinesControls } from '../components/games/mines';
+import MinesGame from '../components/games/mines/MinesGame'; // Import the new component
 import { Header } from '../components/layout';
 import { userApi, gameApi } from '../services';
 import '../styles/GameScreen.css';
 
 const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setBalance }) => {
+  // For Coin game
   const [isFlipping, setIsFlipping] = useState(false);
   const [result, setResult] = useState(null);
   const [lastResults, setLastResults] = useState([]);
+  
+  // Shared between games
   const [gameResult, setGameResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [gameStats, setGameStats] = useState(null);
   
-  // Загрузка истории игр и статистики при монтировании
+  // Fetch game history and stats on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Загрузка истории игр для текущего типа игры
+        // Load game history for the current game type
         const historyResponse = await gameApi.getGameHistory({
           gameType: gameType,
           limit: 10
         });
         
-        // Обрабатываем историю игр
+        // Process game history
         if (historyResponse.data.data.games && historyResponse.data.data.games.length > 0) {
           if (gameType === 'coin') {
             const results = historyResponse.data.data.games.map(game => 
@@ -37,7 +40,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
           }
         }
         
-        // Загружаем статистику игр
+        // Load game stats
         const statsResponse = await gameApi.getGameStats();
         if (statsResponse.data.data.byGameType && statsResponse.data.data.byGameType[gameType]) {
           setGameStats(statsResponse.data.data.byGameType[gameType]);
@@ -54,13 +57,13 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     fetchData();
   }, [gameType]);
   
-  // Обработчик подбрасывания монеты
+  // Coin game handler
   const handleFlip = async (betData) => {
     try {
       setIsFlipping(true);
       setGameResult(null);
       
-      // Запрос к API для игры
+      // API request for the game
       const response = await gameApi.playCoinFlip(
         betData.betAmount,
         betData.selectedSide,
@@ -69,13 +72,13 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       
       const gameData = response.data.data;
       
-      // Устанавливаем результат
+      // Set result
       setResult(gameData.result);
       
-      // Сохраняем результат в истории
+      // Store result in history
       setLastResults(prev => [gameData.result, ...prev].slice(0, 10));
       
-      // Устанавливаем результат игры для отображения
+      // Set game result for display
       setGameResult({
         win: gameData.win,
         amount: Math.abs(gameData.profit),
@@ -85,12 +88,12 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         nonce: gameData.nonce
       });
       
-      // Обновляем баланс после показа результата
+      // Update balance
       if (gameData.balanceAfter !== undefined) {
         setBalance(gameData.balanceAfter);
       }
         
-      // Обновляем статистику
+      // Update stats
       if (gameStats) {
         const updatedStats = { ...gameStats };
         updatedStats.totalGames += 1;
@@ -113,369 +116,13 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     }
   };
   
-  // Сбрасываем анимацию после завершения
+  // Reset animation after completion
   const handleAnimationEnd = () => {
     setIsFlipping(false);
     setError(null);
   };
   
-  // Компонент для игры "Мины"
-  const MinesGame = () => {
-    const [grid, setGrid] = useState(Array(5).fill().map(() => Array(5).fill('gem')));
-    const [revealed, setRevealed] = useState(Array(25).fill(false));
-    const [gameActive, setGameActive] = useState(false);
-    const [gameOver, setGameOver] = useState(false);
-    const [betAmount, setBetAmount] = useState(1);
-    const [minesCount, setMinesCount] = useState(5);
-    const [currentMultiplier, setCurrentMultiplier] = useState(1);
-    const [possibleWin, setPossibleWin] = useState(0);
-    const [revealedCount, setRevealedCount] = useState(0);
-    const [autoplay, setAutoplay] = useState(false);
-    
-    // Используем useRef для хранения gameData
-    const gameDataRef = useRef(null);
-    
-    // Логирование изменений состояния
-    useEffect(() => {
-      console.log("Состояние gameActive изменилось на:", gameActive);
-    }, [gameActive]);
-  
-    // Инициализация и расчет коэффициентов
-    useEffect(() => {
-      setPossibleWin(betAmount);
-    }, [betAmount]);
-    
-    // Начало новой игры
-    const startGame = async () => {
-      try {
-        console.log("Начинаем новую игру...");
-        // Сбрасываем все состояния в начале игры
-        setGameActive(false);
-        setError(null);
-        setGameResult(null);
-        setGameOver(false);
-        
-        // Создаем уникальный seed
-        const uniqueSeed = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        console.log("Уникальный seed для игры:", uniqueSeed);
-
-        // Создаем новую игру на сервере
-        console.log("Отправляем запрос на создание игры...");
-        const response = await gameApi.playMines(betAmount, minesCount, uniqueSeed);
-        console.log("Ответ сервера:", response.data);
-        
-        const data = response.data.data;
-        if (!data || !data.gameId) {
-          console.error("Ошибка: API не вернул gameId", data);
-          setError("Ошибка: Не получен ID игры от сервера");
-          return;
-        }
-        
-        // Сохраняем данные игры в ref
-        gameDataRef.current = data;
-        console.log("ID новой игры:", data.gameId);
-        
-        // Сбрасываем игровое поле
-        setGrid(Array(5).fill().map(() => Array(5).fill('gem')));
-        setRevealed(Array(25).fill(false));
-        setRevealedCount(0);
-        setCurrentMultiplier(1);
-        setPossibleWin(betAmount);
-        
-        // Обновляем баланс
-        if (data.balanceAfter !== undefined) {
-          setBalance(data.balanceAfter);
-        }
-        
-        // Активируем игру немедленно без setTimeout
-        console.log("Активируем игру немедленно");
-        setGameActive(true);
-        console.log("gameActive установлен в:", true);
-        
-      } catch (err) {
-        console.error("Ошибка при начале игры:", err);
-        setError(err.response?.data?.message || "Произошла ошибка при начале игры");
-        setGameActive(false);
-      }
-    };
-  
-    // Модифицируем обработчик клика для улучшенной отладки
-    const handleCellClick = async (row, col) => {
-      console.log(`Клик по ячейке [${row}, ${col}], gameActive: ${gameActive}, gameData: ${gameDataRef.current?.gameId}`);
-      
-      // Проверяем статус игры перед обработкой клика
-      if (!gameActive || gameOver) {
-        console.log("Игра не активна или окончена, клик игнорируется");
-        return;
-      }
-        
-      // Проверяем наличие данных игры
-      if (!gameDataRef.current || !gameDataRef.current.gameId) {
-        console.error("Отсутствуют данные игры:", gameDataRef.current);
-        setError("Ошибка: отсутствуют данные игры. Пожалуйста, начните игру заново.");
-        return;
-      }
-        
-      const index = row * 5 + col;
-        
-      // Проверяем, не открыта ли уже эта ячейка
-      if (revealed[index]) {
-        console.log("Ячейка уже открыта, клик игнорируется");
-        return;
-      }
-        
-      try {
-        console.log(`Отправляем запрос на клик по ячейке [${row}, ${col}], gameId: ${gameDataRef.current.gameId}`);
-          
-        // Временно деактивируем игру для предотвращения множественных кликов
-        console.log("Временно деактивируем игру для предотвращения множественных кликов");
-        setGameActive(false);
-          
-        // Отправляем запрос на сервер
-        const response = await gameApi.completeMinesGame(
-          gameDataRef.current.gameId, 
-          row, 
-          col, 
-          false
-        );
-          
-        console.log("Ответ сервера на клик:", response.data);
-          
-        const data = response.data.data;
-          
-        // Создаем копию массива открытых ячеек
-        const newRevealed = [...revealed];
-        newRevealed[index] = true;
-        setRevealed(newRevealed);
-          
-        // Увеличиваем счетчик открытых ячеек
-        const newRevealedCount = revealedCount + 1;
-        setRevealedCount(newRevealedCount);
-          
-        if (data.win === false) {
-          // Игрок попал на мину
-          console.log("Попадание на мину - игра окончена");
-            
-          // Если сервер прислал игровое поле, используем его
-          if (data.grid) {
-            setGrid(data.grid);
-              
-            // Открываем все мины
-            const allRevealed = [...newRevealed];
-            data.grid.forEach((row, rowIndex) => {
-              row.forEach((cell, colIndex) => {
-                if (cell === 'mine') {
-                  allRevealed[rowIndex * 5 + colIndex] = true;
-                }
-              });
-            });
-            setRevealed(allRevealed);
-          }
-            
-          // Завершаем игру
-          setGameActive(false);
-          setGameOver(true);
-            
-          // Показываем результат
-          setGameResult({
-            win: false,
-            amount: betAmount,
-            newBalance: data.balanceAfter
-          });
-            
-          // Обновляем баланс
-          if (data.balanceAfter !== undefined) {
-            setBalance(data.balanceAfter);
-          }
-            
-        } else if (data.maxWin === true) {
-          // Игрок открыл все безопасные ячейки - максимальный выигрыш
-          console.log("Все безопасные ячейки открыты - максимальный выигрыш!");
-            
-          const finalMultiplier = data.multiplier || (data.currentMultiplier || 1);
-          setCurrentMultiplier(finalMultiplier);
-          setPossibleWin(betAmount * finalMultiplier);
-            
-          // Завершаем игру
-          setGameActive(false);
-          setGameOver(true);
-            
-          // Показываем результат
-          setGameResult({
-            win: true,
-            amount: data.profit,
-            newBalance: data.balanceAfter
-          });
-            
-          // Обновляем баланс
-          if (data.balanceAfter !== undefined) {
-            setBalance(data.balanceAfter);
-          }
-            
-        } else {
-          // Игрок открыл безопасную ячейку, игра продолжается
-          console.log("Найдено сокровище, игра продолжается");
-            
-          // Обновляем множитель и возможный выигрыш
-          if (data.currentMultiplier !== undefined) {
-            setCurrentMultiplier(data.currentMultiplier);
-            setPossibleWin(betAmount * data.currentMultiplier);
-          }
-            
-          // Активируем игру снова для продолжения
-          console.log("Продолжаем игру - активируем снова");
-          setGameActive(true);
-            
-          // Проверяем условие автоигры
-          if (autoplay && data.currentMultiplier >= 2) {
-            console.log("Сработало условие автоигры - забираем выигрыш");
-            // Делаем небольшую паузу перед автокешаутом для лучшего UX
-            setTimeout(() => {
-              if (gameActive && !gameOver) {
-                handleCashout();
-              }
-            }, 300);
-          }
-        }
-      } catch (err) {
-        console.error("Ошибка при клике по ячейке:", err);
-        setError(err.response?.data?.message || "Произошла ошибка при игре");
-          
-        // Восстанавливаем активность игры в случае ошибки
-        console.log("Восстанавливаем активность игры после ошибки");
-        setGameActive(true);
-      }
-    };
-      
-    // Забрать выигрыш - переработано
-    const handleCashout = async () => {
-      console.log("Забираем выигрыш, gameActive:", gameActive);
-        
-      if (!gameActive || gameOver) {
-        console.log("Игра не активна или окончена, кешаут невозможен");
-        return;
-      }
-        
-      // Проверяем наличие данных игры
-      if (!gameDataRef.current || !gameDataRef.current.gameId) {
-        console.error("Отсутствуют данные игры:", gameDataRef.current);
-        setError("Ошибка: отсутствуют данные игры для кешаута");
-        return;
-      }
-        
-      try {
-        console.log("Отправляем запрос на кешаут, gameId:", gameDataRef.current.gameId);
-          
-        // Деактивируем игру на время запроса
-        console.log("Деактивируем игру на время кешаута");
-        setGameActive(false);
-          
-        // Отправляем запрос на сервер
-        const response = await gameApi.completeMinesGame(
-          gameDataRef.current.gameId, 
-          null, 
-          null, 
-          true
-        );
-          
-        console.log("Ответ сервера на кешаут:", response.data);
-          
-        const data = response.data.data;
-        
-        // Игра завершена успешно после кешаута
-        setGameOver(true);
-          
-        // Обновляем баланс
-        if (data.balanceAfter !== undefined) {
-          setBalance(data.balanceAfter);
-        }
-          
-        // Показываем результат
-        setGameResult({
-          win: true,
-          amount: data.profit,
-          newBalance: data.balanceAfter,
-          serverSeedHashed: data.serverSeedHashed,
-          clientSeed: data.clientSeed,
-          nonce: data.nonce
-        });
-          
-      } catch (err) {
-        console.error("Ошибка при получении выигрыша:", err);
-        setError(err.response?.data?.message || "Произошла ошибка при получении выигрыша");
-          
-        // Восстанавливаем активность игры в случае ошибки
-        console.log("Восстанавливаем активность игры после ошибки кешаута");
-        setGameActive(true);
-      }
-    };
-      
-    // Обработчик изменения автоигры
-    const handleAutoplayChange = (value) => {
-      console.log("Изменение настройки автоигры:", value);
-      setAutoplay(value);
-    };
-      
-    return (
-      <>
-        <MinesGrid 
-          grid={grid}
-          revealed={revealed}
-          onCellClick={handleCellClick}
-          gameActive={gameActive}
-          gameOver={gameOver}
-        />
-          
-        <MinesControls 
-          balance={balance}
-          onPlay={startGame}
-          onCashout={handleCashout}
-          gameActive={gameActive}
-          currentMultiplier={currentMultiplier}
-          possibleWin={possibleWin}
-          betAmount={betAmount}
-          setBetAmount={setBetAmount}
-          minesCount={minesCount}
-          setMinesCount={setMinesCount}
-          revealedCount={revealedCount}
-          onAutoplayChange={handleAutoplayChange}
-          autoplay={autoplay}
-        />
-          
-        {gameStats && (
-          <div className="game-stats">
-            <h3>Ваша статистика</h3>
-            <div className="stats-container">
-              <div className="stat-item">
-                <span className="stat-label">Всего игр:</span>
-                <span className="stat-value">{gameStats.totalGames}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Победы:</span>
-                <span className="stat-value">{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Ставки:</span>
-                <span className="stat-value">{gameStats.totalBet?.toFixed(2) || 0} USDT</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Выигрыши:</span>
-                <span className="stat-value">{gameStats.totalWin?.toFixed(2) || 0} USDT</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Профит:</span>
-                <span className={`stat-value ${(gameStats.totalWin - gameStats.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
-                  {((gameStats.totalWin || 0) - (gameStats.totalLoss || 0)).toFixed(2)} USDT
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
-  
-  // Рендерим соответствующую игру в зависимости от типа
+  // Render appropriate game based on type
   const renderGame = () => {
     switch (gameType) {
       case 'coin':
@@ -534,7 +181,49 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       case 'mines':
         return (
           <div className="game-container mines-game">
-            <MinesGame />
+            <MinesGame 
+              balance={balance}
+              setBalance={setBalance}
+              gameStats={gameStats}
+              setGameResult={setGameResult}
+              setError={setError}
+            />
+            
+            {error && (
+              <div className="game-error">
+                <p>{error}</p>
+              </div>
+            )}
+            
+            {gameStats && (
+              <div className="game-stats">
+                <h3>Ваша статистика</h3>
+                <div className="stats-container">
+                  <div className="stat-item">
+                    <span className="stat-label">Всего игр:</span>
+                    <span className="stat-value">{gameStats.totalGames}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Победы:</span>
+                    <span className="stat-value">{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Ставки:</span>
+                    <span className="stat-value">{gameStats.totalBet?.toFixed(2) || 0} USDT</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Выигрыши:</span>
+                    <span className="stat-value">{gameStats.totalWin?.toFixed(2) || 0} USDT</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Профит:</span>
+                    <span className={`stat-value ${(gameStats.totalWin - gameStats.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
+                      {((gameStats.totalWin || 0) - (gameStats.totalLoss || 0)).toFixed(2)} USDT
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
         
@@ -552,7 +241,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     <div className="game-screen">
       <Header balance={balance} />
       
-      {/* Название игры */}
+      {/* Game title */}
       <div className="game-header">
         <button className="back-button" onClick={onBack}>←</button>
         <h1 className="game-title">
@@ -563,7 +252,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </h1>
       </div>
       
-      {/* Результат игры */}
+      {/* Game result */}
       {gameResult && (
         <div className={`game-result ${gameResult.win ? 'win' : 'lose'}`}>
           <div className="result-text">
@@ -591,7 +280,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </div>
       )}
       
-      {/* Игровой компонент */}
+      {/* Game component */}
       {loading ? (
         <div className="game-loading">
           <div className="loader"></div>
@@ -599,13 +288,6 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </div>
       ) : (
         renderGame()
-      )}
-      
-      {/* Отображение ошибки */}
-      {error && !gameResult && (
-        <div className="game-error">
-          <p>{error}</p>
-        </div>
       )}
     </div>
   );

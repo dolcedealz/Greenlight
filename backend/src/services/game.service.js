@@ -175,7 +175,7 @@ class GameService {
         throw new Error('Пользователь не найден');
       }
   
-      // ДОБАВИТЬ ЭТОТ БЛОК: Завершаем все предыдущие активные игры пользователя в мины
+      // Завершаем все предыдущие активные игры пользователя в мины
       await Game.updateMany(
         { 
           user: user._id, 
@@ -189,8 +189,6 @@ class GameService {
           } 
         }
       ).session(session);
-      
-      // Далее оставить существующий код без изменений...
       
       // Проверяем достаточно ли средств
       if (user.balance < betAmount) {
@@ -260,7 +258,7 @@ class GameService {
         user: user._id,
         gameType: 'mines',
         bet: betAmount,
-        multiplier: 1, // Начальный множитель
+        multiplier: 0.95, // Начальный множитель (95% RTP)
         result: {
           grid, // Сохраняем игровое поле
           minesCount,
@@ -358,28 +356,39 @@ class GameService {
       
       // Если игрок хочет забрать выигрыш
       if (cashout) {
+        console.log('Игрок забирает выигрыш, открытых ячеек:', clickedCells.length);
+        
         // Рассчитываем множитель на основе открытых ячеек
         // Формула: (25 - mines) / (25 - mines - revealed) * 0.95 (5% комиссия казино)
+        const safeTotal = 25 - minesCount;
         const revealedCount = clickedCells.length;
-        const multiplier = ((25 - minesCount) / (25 - minesCount - revealedCount)) * 0.95;
+        const remainingCount = safeTotal - revealedCount;
+        const multiplier = remainingCount > 0 
+            ? (safeTotal / remainingCount) * 0.95 
+            : safeTotal * 0.95;
+        
+        console.log('Рассчитанный множитель при кешауте:', multiplier);
         
         // Рассчитываем выигрыш
         const winAmount = game.bet * multiplier;
-        const profit = winAmount - game.bet;
+        const profit = winAmount - game.bet; // Должно быть положительным для выигрыша
+        
+        console.log('Сумма выигрыша:', winAmount, 'Прибыль:', profit);
         
         // Обновляем игру
         game.multiplier = multiplier;
         game.result.win = true;
         game.result.cashout = true;
         game.win = true;
-        game.profit = profit;
+        game.profit = profit; // Только прибыль, без учета ставки
         game.balanceAfter = game.balanceBefore + profit;
         game.status = 'completed';
         
         await game.save({ session });
         
-        // Обновляем баланс пользователя
-        user.balance += winAmount; // Возвращаем ставку + выигрыш
+        // Обновляем баланс пользователя - возвращаем ставку + выигрыш
+        // ВАЖНО: добавляем к текущему балансу только winAmount, так как ставка уже была списана
+        user.balance += winAmount;
         user.totalWon += winAmount;
         await user.save({ session });
         
@@ -404,7 +413,7 @@ class GameService {
           win: true,
           multiplier,
           profit,
-          balanceAfter: user.balance, // Добавить текущий баланс
+          balanceAfter: user.balance,
           clickedCells,
           serverSeedHashed: game.serverSeedHashed,
           clientSeed: game.clientSeed,
@@ -428,13 +437,16 @@ class GameService {
         // Добавляем ячейку в список открытых
         clickedCells.push([row, col]);
         game.result.clickedCells = clickedCells;
-        await game.save({ session });
         
         // Проверяем, попал ли игрок на мину
         if (grid[row][col] === 'mine') {
           // Игрок проиграл
+          console.log('Игрок попал на мину, игра окончена');
+          
           game.result.win = false;
+          game.win = false;
           game.status = 'completed';
+          // profit остается -game.bet, так как игрок проиграл ставку
           
           await game.save({ session });
           
@@ -445,23 +457,42 @@ class GameService {
             win: false,
             clickedCells,
             grid, // Показываем все мины
-            balanceAfter: user.balance // Добавляем текущий баланс
+            balanceAfter: user.balance
           };
         } else {
           // Игрок не попал на мину
+          console.log('Игрок открыл безопасную ячейку, продолжает игру');
+          
+          // Рассчитываем новый множитель на основе открытых ячеек
+          // Формула: (25 - mines) / (25 - mines - revealed) * 0.95
+          const safeTotal = 25 - minesCount;
+          const revealedCount = clickedCells.length;
+          const remainingCount = safeTotal - revealedCount;
+          
+          // Рассчитываем множитель
+          const multiplier = remainingCount > 0 
+              ? (safeTotal / remainingCount) * 0.95 
+              : safeTotal * 0.95;
+          
+          console.log('Новый множитель:', multiplier, 'Открыто:', revealedCount, 'из', safeTotal);
+          
+          // Обновляем множитель в игре
+          game.multiplier = multiplier;
+          
+          await game.save({ session });
           
           // Проверяем, открыты ли все безопасные ячейки
-          if (clickedCells.length === 25 - minesCount) {
+          if (revealedCount === safeTotal) {
             // Все безопасные ячейки открыты, автоматически забираем выигрыш
-            // Рассчитываем множитель (максимальный)
-            const multiplier = ((25 - minesCount) / 1) * 0.95;
+            console.log('Все безопасные ячейки открыты, автоматический кешаут');
             
-            // Рассчитываем выигрыш
-            const winAmount = game.bet * multiplier;
+            // Рассчитываем выигрыш по максимальному множителю
+            const maxMultiplier = safeTotal * 0.95;
+            const winAmount = game.bet * maxMultiplier;
             const profit = winAmount - game.bet;
             
             // Обновляем игру
-            game.multiplier = multiplier;
+            game.multiplier = maxMultiplier;
             game.result.win = true;
             game.result.cashout = true;
             game.win = true;
@@ -472,7 +503,7 @@ class GameService {
             await game.save({ session });
             
             // Обновляем баланс пользователя
-            user.balance += winAmount; // Возвращаем ставку + выигрыш
+            user.balance += winAmount;
             user.totalWon += winAmount;
             await user.save({ session });
             
@@ -482,7 +513,7 @@ class GameService {
               type: 'win',
               amount: winAmount,
               game: game._id,
-              description: `Выигрыш в игре "Мины" (x${multiplier.toFixed(2)})`,
+              description: `Максимальный выигрыш в игре "Мины" (x${maxMultiplier.toFixed(2)})`,
               balanceBefore: user.balance - winAmount,
               balanceAfter: user.balance,
               status: 'completed'
@@ -495,9 +526,9 @@ class GameService {
             // Возвращаем данные для клиента
             return {
               win: true,
-              multiplier,
+              multiplier: maxMultiplier,
               profit,
-              balanceAfter: user.balance, // Добавляем текущий баланс
+              balanceAfter: user.balance,
               clickedCells,
               maxWin: true,
               serverSeedHashed: game.serverSeedHashed,
@@ -506,20 +537,18 @@ class GameService {
             };
           }
           
-          // Рассчитываем текущий множитель для продолжающейся игры
-          const revealedCount = clickedCells.length;
-          const currentMultiplier = ((25 - minesCount) / (25 - minesCount - revealedCount)) * 0.95;
-          const possibleWin = game.bet * currentMultiplier;
+          // Рассчитываем текущий возможный выигрыш
+          const possibleWin = game.bet * multiplier;
           
           await session.commitTransaction();
           
-          // Возвращаем данные для клиента с текущим множителем и возможным выигрышем
+          // Возвращаем данные для клиента
           return {
-            win: null, // Игра продолжается
+            win: null, // null означает, что игра продолжается
             clickedCells,
-            currentMultiplier,
+            currentMultiplier: multiplier,
             possibleWin,
-            balanceAfter: user.balance // Добавляем текущий баланс
+            balanceAfter: user.balance
           };
         }
       }

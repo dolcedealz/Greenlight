@@ -1,5 +1,5 @@
 // frontend/src/screens/GameScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';  // Добавлен useRef
 import { CoinFlip, CoinControls } from '../components/games/coin';
 import { MinesGrid, MinesControls } from '../components/games/mines';
 import { Header } from '../components/layout';

@@ -15,8 +15,16 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
   
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value) && value > 0 && value <= balance) {
+    const inputValue = e.target.value;
+    
+    // Разрешаем пустое значение или 0 для ввода
+    if (inputValue === '' || inputValue === '0') {
+      setBetAmount(inputValue);
+      return;
+    }
+    
+    const value = parseFloat(inputValue);
+    if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
     }
   };
@@ -69,7 +77,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
         <div className="bet-input-container">
           <input
             type="number"
-            min="1"
+            min="0"
             max={balance}
             step="0.1"
             value={betAmount}

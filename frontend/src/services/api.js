@@ -58,12 +58,26 @@ api.interceptors.response.use(
     if (response.config.url.includes('/games/mines/')) {
       console.log('ОТЛАДКА МИНЫ - Ответ сервера:', JSON.stringify(response.data, null, 2));
       
-      // Проверка на наличие множителя в ответе
+      // Проверка для игры "Мины"
       if (response.data && response.data.data) {
-        if (response.data.data.currentMultiplier) {
-          console.log('МНОЖИТЕЛЬ ПОЛУЧЕН:', response.data.data.currentMultiplier);
-        } else {
-          console.warn('ВНИМАНИЕ: Множитель не найден в ответе сервера!');
+        // При начале игры в Мины (только логирование, без ошибки)
+        if (response.config.url.includes('/games/mines/play')) {
+          console.log('ОТЛАДКА МИНЫ - Ответ на начало игры:', JSON.stringify(response.data, null, 2));
+        }
+        
+        // При выполнении хода
+        if (response.config.url.includes('/games/mines/complete')) {
+          // Проверка множителя в ответе (без сравнения с формулой)
+          if (response.data.data.currentMultiplier) {
+            console.log('МНОЖИТЕЛЬ ПОЛУЧЕН:', response.data.data.currentMultiplier);
+            
+            // Логируем открытые ячейки
+            if (response.data.data.clickedCells) {
+              console.log('Открытые ячейки:', response.data.data.clickedCells.length);
+            }
+          }
+          
+          console.log('ОТЛАДКА МИНЫ - Ответ на действие:', JSON.stringify(response.data, null, 2));
         }
         
         // Проверка на странные значения
@@ -151,15 +165,6 @@ const gameApi = {
       betAmount,
       minesCount,
       clientSeed: finalClientSeed
-    }).then(response => {
-      console.log('ОТЛАДКА МИНЫ - Ответ на начало игры:', JSON.stringify(response.data, null, 2));
-      
-      // Проверка валидности ответа
-      if (!response.data?.data?.gameId) {
-        console.error('ОШИБКА: API не вернул ID игры');
-      }
-      
-      return response;
     });
   },
 
@@ -180,52 +185,7 @@ const gameApi = {
     
     console.log('ОТЛАДКА МИНЫ - Отправка данных:', JSON.stringify(requestData, null, 2));
     
-    return api.post('/games/mines/complete', requestData)
-      .then(response => {
-        console.log('ОТЛАДКА МИНЫ - Ответ на действие:', JSON.stringify(response.data, null, 2));
-        
-        // Проверка данных ответа
-        if (response.data?.data) {
-          // Проверка множителя для продолжающейся игры
-          if (!cashout && response.data.data.win === null) {
-            if (response.data.data.currentMultiplier) {
-              // Получаем открытые ячейки для расчета ожидаемого множителя
-              const clickedCells = response.data.data.clickedCells || [];
-              const revealedCount = clickedCells.length;
-              
-              // Примерно оцениваем количество мин (если не знаем точно)
-              const safeTotal = 25 - (requestData.minesCount || 5);
-              const remainingSafe = safeTotal - revealedCount;
-              
-              // Расчетный множитель
-              const expectedMultiplier = remainingSafe > 0 ? 
-                (safeTotal / remainingSafe) * 0.95 : 
-                safeTotal * 0.95;
-              
-              console.log('ОТЛАДКА МНОЖИТЕЛЯ:');
-              console.log(`- Множитель от сервера: ${response.data.data.currentMultiplier}`);
-              console.log(`- Ожидаемый множитель: ${expectedMultiplier.toFixed(4)}`);
-              console.log(`- Формула: (${safeTotal}/${remainingSafe})*0.95`);
-              
-              // Проверка соответствия с погрешностью
-              if (Math.abs(response.data.data.currentMultiplier - expectedMultiplier) > 0.01) {
-                console.warn('ПРЕДУПРЕЖДЕНИЕ: Множитель от сервера не соответствует ожидаемому');
-              }
-            } else {
-              console.warn('ВНИМАНИЕ: Множитель отсутствует в ответе сервера!');
-            }
-          }
-          
-          // Проверка корректности данных при кешауте
-          if (cashout && response.data.data.win === true) {
-            if (response.data.data.profit <= 0) {
-              console.error('ОШИБКА: Выигрыш имеет отрицательное значение при win=true!');
-            }
-          }
-        }
-        
-        return response;
-      });
+    return api.post('/games/mines/complete', requestData);
   },
   
   // Получение истории игр

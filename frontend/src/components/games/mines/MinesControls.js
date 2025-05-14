@@ -40,17 +40,6 @@ const MinesControls = ({
     setBetAmount(quickBet);
   };
   
-  // Обработчик изменения количества мин
-  const handleMinesCountChange = (e) => {
-    const value = parseInt(e.target.value, 10);
-    // Список допустимых значений для количества мин
-    const allowedValues = [3, 5, 7, 9, 12, 15, 18, 21, 23];
-    
-    if (!isNaN(value) && allowedValues.includes(value)) {
-      setMinesCount(value);
-    }
-  };
-  
   // Быстрый выбор количества мин
   const handleQuickMines = (count) => {
     setMinesCount(count);
@@ -111,39 +100,28 @@ const MinesControls = ({
       
       <div className="mines-count-section">
         <div className="mines-count-control">
-          <label>Количество мин:</label>
-          <div className="mines-input-container">
-            <input
-              type="number"
-              value={minesCount}
-              onChange={handleMinesCountChange}
-              disabled={gameActive || loading}
-            />
-            <span className="mines-info">
-              (3-23)
-            </span>
-          </div>
+          <label>Количество мин: <span className="selected-mines-count">{minesCount}</span></label>
         </div>
         
         <div className="quick-mines">
           <button 
             onClick={() => handleQuickMines(3)} 
             disabled={gameActive || loading}
-            className="quick-mines-button"
+            className={`quick-mines-button ${minesCount === 3 ? 'active' : ''}`}
           >
             3
           </button>
           <button 
             onClick={() => handleQuickMines(5)} 
             disabled={gameActive || loading}
-            className="quick-mines-button"
+            className={`quick-mines-button ${minesCount === 5 ? 'active' : ''}`}
           >
             5
           </button>
           <button 
             onClick={() => handleQuickMines(7)} 
             disabled={gameActive || loading}
-            className="quick-mines-button"
+            className={`quick-mines-button ${minesCount === 7 ? 'active' : ''}`}
           >
             7
           </button>
@@ -152,21 +130,21 @@ const MinesControls = ({
           <button 
             onClick={() => handleQuickMines(9)} 
             disabled={gameActive || loading}
-            className="quick-mines-button"
+            className={`quick-mines-button ${minesCount === 9 ? 'active' : ''}`}
           >
             9
           </button>
           <button 
             onClick={() => handleQuickMines(12)} 
             disabled={gameActive || loading}
-            className="quick-mines-button"
+            className={`quick-mines-button ${minesCount === 12 ? 'active' : ''}`}
           >
             12
           </button>
           <button 
             onClick={() => handleQuickMines(15)} 
             disabled={gameActive || loading}
-            className="quick-mines-button"
+            className={`quick-mines-button ${minesCount === 15 ? 'active' : ''}`}
           >
             15
           </button>
@@ -175,21 +153,21 @@ const MinesControls = ({
           <button 
             onClick={() => handleQuickMines(18)} 
             disabled={gameActive || loading}
-            className="quick-mines-button"
+            className={`quick-mines-button ${minesCount === 18 ? 'active' : ''}`}
           >
             18
           </button>
           <button 
             onClick={() => handleQuickMines(21)} 
             disabled={gameActive || loading}
-            className="quick-mines-button"
+            className={`quick-mines-button ${minesCount === 21 ? 'active' : ''}`}
           >
             21
           </button>
           <button 
             onClick={() => handleQuickMines(23)} 
             disabled={gameActive || loading}
-            className="quick-mines-button"
+            className={`quick-mines-button ${minesCount === 23 ? 'active' : ''}`}
           >
             23
           </button>

@@ -8,6 +8,21 @@
   transition: all 0.3s ease;
 }
 
+/* Добавить к существующему файлу */
+.selected-mines-count {
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-left: 5px;
+  font-size: 18px;
+}
+
+.quick-mines-button.active {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(11, 168, 74, 0.3);
+}
+
 .mines-bet-section,
 .mines-count-section {
   margin-bottom: 20px;

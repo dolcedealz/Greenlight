@@ -2,7 +2,7 @@
 import React from 'react';
 import '../../../styles/MinesGrid.css';
 
-const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver, loading }) => {
+const MinesGrid = ({ grid, revealed, clickedCells = [], onCellClick, gameActive, gameOver, loading }) => {
   // Обработчик клика по ячейке
   const handleCellClick = (rowIndex, colIndex) => {
     // Блокируем клики если:
@@ -10,8 +10,13 @@ const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver, loading 
     // - игра завершена
     // - идет загрузка
     // - ячейка уже открыта
-    const index = rowIndex * 5 + colIndex;
-    if (!gameActive || gameOver || loading || revealed[index]) {
+    
+    // Проверяем, открыта ли ячейка через массив координат
+    const alreadyClicked = clickedCells.some(cell => 
+      cell[0] === rowIndex && cell[1] === colIndex
+    );
+    
+    if (!gameActive || gameOver || loading || alreadyClicked) {
       return;
     }
     
@@ -26,18 +31,22 @@ const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver, loading 
       {grid.map((row, rowIndex) => (
         <div key={rowIndex} className="mines-row">
           {row.map((cell, colIndex) => {
-            const index = rowIndex * 5 + colIndex;
-            const isRevealed = revealed[index];
+            // Проверяем, находится ли ячейка в списке открытых
+            const isRevealed = clickedCells.some(coords => 
+              coords[0] === rowIndex && coords[1] === colIndex
+            );
+            
+            const cellClass = `mines-cell 
+              ${isRevealed ? 'revealed' : ''} 
+              ${isRevealed && cell === 'mine' ? 'mine' : ''} 
+              ${isRevealed && cell !== 'mine' ? 'gem' : ''}
+              ${!gameActive && !isRevealed ? 'disabled' : ''}
+            `;
             
             return (
               <div
                 key={colIndex}
-                className={`mines-cell 
-                  ${isRevealed ? 'revealed' : ''} 
-                  ${isRevealed && cell === 'mine' ? 'mine' : ''} 
-                  ${isRevealed && cell !== 'mine' ? 'gem' : ''}
-                  ${!gameActive && !isRevealed ? 'disabled' : ''}
-                `}
+                className={cellClass}
                 onClick={() => handleCellClick(rowIndex, colIndex)}
               >
                 {isRevealed && cell === 'mine' && <span className="mine-icon">💣</span>}

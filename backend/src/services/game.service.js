@@ -328,6 +328,8 @@ async playMines(userData, gameData) {
  * @param {Object} gameData - Данные игры
  * @returns {Object} - Результат хода
  */
+// backend/src/services/game.service.js — метод completeMinesGame
+
 async completeMinesGame(userData, gameData) {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -359,6 +361,7 @@ async completeMinesGame(userData, gameData) {
     // Важные константы для расчетов
     const minesCount = game.result.minesCount;
     const safeTotal = 25 - minesCount;
+    // Убедимся, что clickedCells - это массив
     const clickedCells = Array.isArray(game.result.clickedCells) ? 
       [...game.result.clickedCells] : [];
     
@@ -366,6 +369,11 @@ async completeMinesGame(userData, gameData) {
     if (cashout) {
       // Рассчитываем множитель
       const revealedCount = clickedCells.length;
+      
+      if (revealedCount === 0) {
+        throw new Error('Необходимо открыть хотя бы одну ячейку');
+      }
+      
       const remainingSafe = safeTotal - revealedCount;
       
       if (remainingSafe <= 0) {
@@ -373,11 +381,16 @@ async completeMinesGame(userData, gameData) {
       }
       
       // Формула множителя: (всего_безопасных / оставшиеся_безопасные) * 0.95
-      const multiplier = (safeTotal / remainingSafe) * 0.95;
+      // Округляем до 4 знаков для предотвращения ошибок с плавающей точкой
+      const multiplier = Math.round((safeTotal / remainingSafe) * 0.95 * 10000) / 10000;
       
-      // Рассчитываем выигрыш
+      // Рассчитываем выигрыш - bet * multiplier
       const winAmount = game.bet * multiplier;
+      
+      // Правильно рассчитываем profit - это выигрыш МИНУС ставку
       const profit = winAmount - game.bet;
+      
+      console.log(`КЕШАУТ: ставка=${game.bet}, множитель=${multiplier}, выигрыш=${winAmount}, прибыль=${profit}`);
       
       // Обновляем игру
       game.multiplier = multiplier;
@@ -385,13 +398,14 @@ async completeMinesGame(userData, gameData) {
       game.result.cashout = true;
       game.win = true;
       game.profit = profit;
-      game.balanceAfter = game.balanceBefore + profit; // Полный выигрыш (с учетом ставки)
+      game.balanceAfter = game.balanceBefore + profit; // Это полный выигрыш с учетом ставки
       game.status = 'completed';
       
       await game.save({ session });
       
       // Обновляем баланс пользователя
-      user.balance += winAmount; // Возвращаем ставку + выигрыш
+      // При выигрыше возвращаем полную сумму (ставка + прибыль)
+      user.balance += winAmount;
       user.totalWon += winAmount;
       user.lastActivity = new Date();
       await user.save({ session });
@@ -418,7 +432,7 @@ async completeMinesGame(userData, gameData) {
         multiplier,
         profit,
         balanceAfter: user.balance,
-        clickedCells,
+        clickedCells, // Возвращаем ВСЕ открытые ячейки, а не пустой массив
         serverSeedHashed: game.serverSeedHashed,
         clientSeed: game.clientSeed,
         nonce: game.nonce
@@ -464,7 +478,7 @@ async completeMinesGame(userData, gameData) {
         // Возвращаем данные для клиента
         return {
           win: false,
-          clickedCells: [[row, col]], // Возвращаем только последнюю ячейку
+          clickedCells, // Возвращаем все открытые ячейки
           grid, // Показываем всё поле с минами
           balanceAfter: user.balance
         };
@@ -521,7 +535,7 @@ async completeMinesGame(userData, gameData) {
             multiplier: maxMultiplier,
             profit,
             balanceAfter: user.balance,
-            clickedCells: [[row, col]], // Возвращаем только последнюю ячейку
+            clickedCells, // Возвращаем все открытые ячейки
             maxWin: true,
             serverSeedHashed: game.serverSeedHashed,
             clientSeed: game.clientSeed,
@@ -529,8 +543,8 @@ async completeMinesGame(userData, gameData) {
           };
         } else {
           // Игра продолжается
-          // Рассчитываем новый множитель: (всего_безопасных / оставшиеся_безопасные) * 0.95
-          const multiplier = (safeTotal / remainingSafe) * 0.95;
+          // Корректный расчет множителя с округлением, чтобы избежать проблем с плавающей точкой
+          const multiplier = Math.round((safeTotal / remainingSafe) * 0.95 * 10000) / 10000;
           
           // Обновляем множитель в игре
           game.multiplier = multiplier;
@@ -542,7 +556,7 @@ async completeMinesGame(userData, gameData) {
           // Возвращаем данные для клиента
           return {
             win: null, // null означает, что игра продолжается
-            clickedCells: [[row, col]], // Возвращаем только последнюю ячейку
+            clickedCells, // Возвращаем все открытые ячейки, а не только последнюю
             currentMultiplier: multiplier,
             possibleWin: game.bet * multiplier,
             balanceAfter: user.balance

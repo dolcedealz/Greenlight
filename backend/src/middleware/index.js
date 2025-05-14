@@ -1,6 +1,6 @@
-// index.js
+// backend/src/middleware/index.js
 const { telegramAuthMiddleware, adminAuthMiddleware } = require('./auth.middleware');
-const { validateCoinFlip, validateTelegramAuth } = require('./validation.middleware');
+const { validateCoinFlip, validateTelegramAuth, validateMinesPlay, validateMinesComplete } = require('./validation.middleware');
 const errorMiddleware = require('./error.middleware');
 
 module.exports = {
@@ -8,5 +8,7 @@ module.exports = {
   adminAuthMiddleware,
   validateCoinFlip,
   validateTelegramAuth,
+  validateMinesPlay,
+  validateMinesComplete,
   errorMiddleware
 };

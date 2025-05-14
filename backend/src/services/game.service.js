@@ -1,4 +1,4 @@
-// game.service.js
+// backend/src/services/game.service.js
 const { User, Game, Transaction } = require('../models');
 const randomService = require('./random.service');
 const mongoose = require('mongoose');
@@ -143,6 +143,373 @@ class GameService {
         clientSeed: clientSeed || 'default',
         nonce
       };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+  
+  /**
+   * Начать игру в мины
+   * @param {Object} userData - Данные пользователя
+   * @param {Object} gameData - Данные игры
+   * @returns {Object} - Результат создания игры
+   */
+  async playMines(userData, gameData) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      const { userId, telegramId } = userData;
+      const { betAmount, minesCount = 5, clientSeed = null } = gameData;
+      
+      // Найдем пользователя
+      const user = await User.findOne(
+        userId ? { _id: userId } : { telegramId }
+      ).session(session);
+      
+      if (!user) {
+        throw new Error('Пользователь не найден');
+      }
+      
+      if (user.isBlocked) {
+        throw new Error('Ваш аккаунт заблокирован');
+      }
+      
+      // Проверяем достаточно ли средств
+      if (user.balance < betAmount) {
+        throw new Error('Недостаточно средств');
+      }
+      
+      // Проверяем правильность ставки
+      if (betAmount <= 0) {
+        throw new Error('Сумма ставки должна быть положительной');
+      }
+      
+      // Проверяем количество мин
+      if (minesCount < 1 || minesCount > 24) {
+        throw new Error('Неверное количество мин (от 1 до 24)');
+      }
+      
+      // Генерируем серверный сид и хешируем его для проверки честности
+      const serverSeed = randomService.generateServerSeed();
+      const serverSeedHashed = randomService.hashServerSeed(serverSeed);
+      const realClientSeed = clientSeed || 'default';
+      const nonce = randomService.generateNonce();
+      
+      // Создаем игровое поле (5x5)
+      const grid = Array(5).fill().map(() => Array(5).fill('gem'));
+      const positions = [];
+      
+      // Заполняем массив всеми возможными позициями
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          positions.push([i, j]);
+        }
+      }
+      
+      // Используем криптографическую функцию для выбора позиций мин
+      // для обеспечения честности игры
+      for (let i = 0; i < minesCount; i++) {
+        if (positions.length === 0) break;
+        
+        // Используем функцию из randomService для генерации случайного числа
+        const randomValue = randomService.generateRandomNumber(
+          serverSeed, 
+          realClientSeed, 
+          nonce + i
+        );
+        
+        const randomIndex = Math.floor(randomValue * positions.length);
+        const [row, col] = positions[randomIndex];
+        
+        // Устанавливаем мину
+        grid[row][col] = 'mine';
+        
+        // Удаляем эту позицию из массива
+        positions.splice(randomIndex, 1);
+      }
+      
+      // Баланс до игры
+      const balanceBefore = user.balance;
+      
+      // Создаем запись об игре
+      const game = new Game({
+        user: user._id,
+        gameType: 'mines',
+        bet: betAmount,
+        multiplier: 1, // Начальный множитель
+        result: {
+          grid, // Сохраняем игровое поле
+          minesCount,
+          clickedCells: [], // Ячейки, которые игрок открыл
+          win: false, // Пока игра не закончена, выигрыш не определен
+          cashout: false // Игрок еще не забрал выигрыш
+        },
+        win: false, // Пока игра не закончена
+        profit: -betAmount, // Предполагаем проигрыш
+        balanceBefore,
+        balanceAfter: balanceBefore - betAmount, // Предполагаем проигрыш
+        clientSeed: realClientSeed,
+        serverSeed,
+        serverSeedHashed,
+        nonce,
+        status: 'active', // Игра активна
+        gameData: {
+          minesCount,
+          grid // Сохраняем игровое поле для проверки
+        }
+      });
+      
+      await game.save({ session });
+      
+      // Создаем транзакцию для ставки (блокируем средства)
+      const betTransaction = new Transaction({
+        user: user._id,
+        type: 'bet',
+        amount: -betAmount,
+        game: game._id,
+        description: 'Ставка в игре "Мины"',
+        balanceBefore,
+        balanceAfter: balanceBefore - betAmount,
+        status: 'pending' // Транзакция в ожидании
+      });
+      
+      await betTransaction.save({ session });
+      
+      // Обновляем статистику пользователя
+      user.totalWagered += betAmount;
+      user.lastActivity = new Date();
+      await user.save({ session });
+      
+      await session.commitTransaction();
+      
+      // Возвращаем данные для клиента
+      return {
+        gameId: game._id,
+        betAmount,
+        minesCount,
+        serverSeedHashed, // Хеш для проверки
+        clientSeed: realClientSeed,
+        nonce
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+  
+  /**
+   * Завершить игру в мины
+   * @param {Object} userData - Данные пользователя
+   * @param {Object} gameData - Данные игры
+   * @returns {Object} - Результат игры
+   */
+  async completeMinesGame(userData, gameData) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      const { userId, telegramId } = userData;
+      const { gameId, row, col, cashout } = gameData;
+      
+      // Найдем пользователя
+      const user = await User.findOne(
+        userId ? { _id: userId } : { telegramId }
+      ).session(session);
+      
+      if (!user) {
+        throw new Error('Пользователь не найден');
+      }
+      
+      // Найдем игру
+      const game = await Game.findOne({
+        _id: gameId,
+        user: user._id,
+        status: 'active'
+      }).session(session);
+      
+      if (!game) {
+        throw new Error('Игра не найдена или уже завершена');
+      }
+      
+      // Получаем данные игры
+      const { grid, minesCount, clickedCells } = game.result;
+      
+      // Если игрок хочет забрать выигрыш
+      if (cashout) {
+        // Рассчитываем множитель на основе открытых ячеек
+        // Формула: (25 - mines) / (25 - mines - revealed) * 0.95 (5% комиссия казино)
+        const revealedCount = clickedCells.length;
+        const multiplier = ((25 - minesCount) / (25 - minesCount - revealedCount)) * 0.95;
+        
+        // Рассчитываем выигрыш
+        const winAmount = game.bet * multiplier;
+        const profit = winAmount - game.bet;
+        
+        // Обновляем игру
+        game.multiplier = multiplier;
+        game.result.win = true;
+        game.result.cashout = true;
+        game.win = true;
+        game.profit = profit;
+        game.balanceAfter = game.balanceBefore + profit;
+        game.status = 'completed';
+        
+        await game.save({ session });
+        
+        // Обновляем баланс пользователя
+        user.balance += winAmount; // Возвращаем ставку + выигрыш
+        user.totalWon += winAmount;
+        await user.save({ session });
+        
+        // Создаем транзакцию для выигрыша
+        const winTransaction = new Transaction({
+          user: user._id,
+          type: 'win',
+          amount: winAmount,
+          game: game._id,
+          description: `Выигрыш в игре "Мины" (x${multiplier.toFixed(2)})`,
+          balanceBefore: user.balance - winAmount,
+          balanceAfter: user.balance,
+          status: 'completed'
+        });
+        
+        await winTransaction.save({ session });
+        
+        await session.commitTransaction();
+        
+        // Возвращаем данные для клиента
+        return {
+          win: true,
+          multiplier,
+          profit,
+          balanceAfter: user.balance,
+          clickedCells
+        };
+      } else {
+        // Игрок кликнул по ячейке
+        if (row === null || col === null) {
+          throw new Error('Не указаны координаты ячейки');
+        }
+        
+        // Проверяем, что ячейка еще не была открыта
+        const cellIndex = clickedCells.findIndex(
+          cell => cell[0] === row && cell[1] === col
+        );
+        
+        if (cellIndex !== -1) {
+          throw new Error('Эта ячейка уже открыта');
+        }
+        
+        // Добавляем ячейку в список открытых
+        clickedCells.push([row, col]);
+        game.result.clickedCells = clickedCells;
+        await game.save({ session });
+        
+        // Проверяем, попал ли игрок на мину
+        if (grid[row][col] === 'mine') {
+          // Игрок проиграл
+          game.result.win = false;
+          game.status = 'completed';
+          
+          await game.save({ session });
+          
+          // Обновляем транзакцию ставки
+          const betTransaction = await Transaction.findOne({
+            game: game._id,
+            type: 'bet',
+            status: 'pending'
+          }).session(session);
+          
+          if (betTransaction) {
+            betTransaction.status = 'completed';
+            await betTransaction.save({ session });
+          }
+          
+          await session.commitTransaction();
+          
+          // Возвращаем данные для клиента
+          return {
+            win: false,
+            clickedCells,
+            grid // Показываем все мины
+          };
+        } else {
+          // Игрок не попал на мину
+          
+          // Проверяем, открыты ли все безопасные ячейки
+          if (clickedCells.length === 25 - minesCount) {
+            // Все безопасные ячейки открыты, автоматически забираем выигрыш
+            // Рассчитываем множитель (максимальный)
+            const multiplier = ((25 - minesCount) / 1) * 0.95;
+            
+            // Рассчитываем выигрыш
+            const winAmount = game.bet * multiplier;
+            const profit = winAmount - game.bet;
+            
+            // Обновляем игру
+            game.multiplier = multiplier;
+            game.result.win = true;
+            game.result.cashout = true;
+            game.win = true;
+            game.profit = profit;
+            game.balanceAfter = game.balanceBefore + profit;
+            game.status = 'completed';
+            
+            await game.save({ session });
+            
+            // Обновляем баланс пользователя
+            user.balance += winAmount; // Возвращаем ставку + выигрыш
+            user.totalWon += winAmount;
+            await user.save({ session });
+            
+            // Создаем транзакцию для выигрыша
+            const winTransaction = new Transaction({
+              user: user._id,
+              type: 'win',
+              amount: winAmount,
+              game: game._id,
+              description: `Выигрыш в игре "Мины" (x${multiplier.toFixed(2)})`,
+              balanceBefore: user.balance - winAmount,
+              balanceAfter: user.balance,
+              status: 'completed'
+            });
+            
+            await winTransaction.save({ session });
+            
+            await session.commitTransaction();
+            
+            // Возвращаем данные для клиента
+            return {
+              win: true,
+              multiplier,
+              profit,
+              balanceAfter: user.balance,
+              clickedCells,
+              maxWin: true
+            };
+          }
+          
+          await session.commitTransaction();
+          
+          // Рассчитываем текущий множитель
+          const revealedCount = clickedCells.length;
+          const currentMultiplier = ((25 - minesCount) / (25 - minesCount - revealedCount)) * 0.95;
+          
+          // Возвращаем данные для клиента
+          return {
+            win: null, // Игра продолжается
+            clickedCells,
+            currentMultiplier,
+            possibleWin: game.bet * currentMultiplier
+          };
+        }
+      }
     } catch (error) {
       await session.abortTransaction();
       throw error;

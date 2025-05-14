@@ -1,0 +1,122 @@
+/* frontend/src/styles/MinesGrid.css */
+.mines-grid {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  padding: 15px;
+  box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.mines-grid.game-over::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 59, 48, 0.05);
+  border-radius: var(--border-radius);
+  z-index: 1;
+}
+
+.mines-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.mines-row:last-child {
+  margin-bottom: 0;
+}
+
+.mines-cell {
+  width: 50px;
+  height: 50px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mines-cell:last-child {
+  margin-right: 0;
+}
+
+.mines-cell:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.mines-cell.revealed {
+  cursor: default;
+  transform: none;
+}
+
+.mines-cell.revealed.gem {
+  background-color: rgba(11, 168, 74, 0.2);
+  border: 1px solid var(--primary-color);
+}
+
+.mines-cell.revealed.mine {
+  background-color: rgba(255, 59, 48, 0.2);
+  border: 1px solid #ff3b30;
+  z-index: 2;
+}
+
+.mines-cell.disabled {
+  cursor: not-allowed;
+}
+
+.gem-icon, .mine-icon {
+  font-size: 24px;
+  animation: revealAnimation 0.3s ease;
+}
+
+@keyframes revealAnimation {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 500px) {
+  .mines-cell {
+    width: 40px;
+    height: 40px;
+    margin-right: 8px;
+  }
+  
+  .gem-icon, .mine-icon {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 400px) {
+  .mines-cell {
+    width: 30px;
+    height: 30px;
+    margin-right: 6px;
+  }
+  
+  .gem-icon, .mine-icon {
+    font-size: 16px;
+  }
+}

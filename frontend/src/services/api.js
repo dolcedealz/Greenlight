@@ -1,34 +1,94 @@
-// api.js
+// api.js - окончательно исправленная версия с поддержкой игры "Мины"
 import axios from 'axios';
 
-// Получаем базовый URL из переменных окружения или используем localhost для разработки
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// Используем фиксированный URL для API с префиксом /api
+const API_BASE_URL = 'https://greenlight-api-ghqh.onrender.com/api';
+console.log('API URL:', API_BASE_URL);
 
-// Создаем экземпляр axios с базовым URL
+// Создаем экземпляр axios
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  timeout: 30000, // Увеличиваем таймаут до 30 секунд
 });
 
-// Добавляем интерцептор для добавления данных Telegram инициализации
+// Добавляем интерцептор для запросов
 api.interceptors.request.use(
   (config) => {
-    // Если в window есть объект Telegram и initData
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-      config.headers['Telegram-Data'] = window.Telegram.WebApp.initData;
+    console.log(`Отправка запроса на: ${config.baseURL}${config.url}`);
+    
+    // Добавляем данные Telegram WebApp, если доступны
+    if (window.Telegram && window.Telegram.WebApp) {
+      const webApp = window.Telegram.WebApp;
+      
+      // Если есть initData, добавляем его в заголовки
+      if (webApp.initData) {
+        config.headers['Telegram-Data'] = webApp.initData;
+        console.log('Данные Telegram добавлены в заголовки');
+      } else {
+        console.warn('Данные Telegram WebApp.initData отсутствуют');
+        
+        // Если нет initData, но есть user, создаем базовый объект для тестирования
+        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+          const userData = webApp.initDataUnsafe.user;
+          config.headers['X-Telegram-User'] = JSON.stringify(userData);
+          console.log('Добавлены тестовые данные пользователя Telegram:', userData);
+        }
+      }
+    } else {
+      console.warn('Telegram WebApp не обнаружен');
     }
+    
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('Ошибка в интерцепторе запросов:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Добавляем интерцептор для ответов
+api.interceptors.response.use(
+  (response) => {
+    console.log(`Успешный ответ от: ${response.config.url}`, response.data);
+    return response;
+  },
+  (error) => {
+    // Детальное логирование ошибки для отладки
+    if (error.response) {
+      // Ошибка с ответом от сервера
+      console.error(`Ошибка API ${error.response.status}:`, error.response.data);
+      console.error('URL запроса:', error.config.url);
+      console.error('Метод запроса:', error.config.method);
+    } else if (error.request) {
+      // Запрос был сделан, но ответ не получен
+      console.error('Нет ответа от API. Возможные причины:');
+      console.error('- API-сервер недоступен или перегружен');
+      console.error('- Проблемы с сетевым соединением');
+      console.error('- Таймаут соединения (текущий таймаут: 30с)');
+      console.error('URL запроса:', error.config.url);
+      console.error('Метод запроса:', error.config.method);
+    } else {
+      // Ошибка до выполнения запроса
+      console.error('Ошибка запроса API:', error.message);
+    }
+    
+    return Promise.reject(error);
+  }
 );
 
 // API для пользователей
 const userApi = {
   // Авторизация через Telegram
   authWithTelegram: (telegramUser, referralCode = null) => {
-    return api.post('/users/auth', { user: telegramUser, referralCode });
+    console.log('Аутентификация пользователя:', telegramUser);
+    
+    return api.post('/users/auth', { 
+      user: telegramUser, 
+      referralCode 
+    });
   },
   
   // Получение профиля пользователя
@@ -51,7 +111,36 @@ const userApi = {
 const gameApi = {
   // Игра "Монетка"
   playCoinFlip: (betAmount, selectedSide, clientSeed = null) => {
-    return api.post('/games/coin/play', { betAmount, selectedSide, clientSeed });
+    console.log('Игра "Монетка":', { betAmount, selectedSide, clientSeed });
+    
+    return api.post('/games/coin/play', { 
+      betAmount, 
+      selectedSide, 
+      clientSeed 
+    });
+  },
+  
+  // Игра "Мины"
+  playMines: (betAmount, minesCount, clientSeed = null) => {
+    console.log('Игра "Мины":', { betAmount, minesCount, clientSeed });
+    
+    return api.post('/games/mines/play', {
+      betAmount,
+      minesCount,
+      clientSeed
+    });
+  },
+  
+  // Завершение игры в мины (клик по ячейке или кешаут)
+  completeMinesGame: (gameId, row, col, cashout) => {
+    console.log('Завершение игры "Мины":', { gameId, row, col, cashout });
+    
+    return api.post('/games/mines/complete', {
+      gameId,
+      row,
+      col,
+      cashout
+    });
   },
   
   // Получение истории игр

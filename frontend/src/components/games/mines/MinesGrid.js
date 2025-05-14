@@ -2,38 +2,8 @@
 import React from 'react';
 import '../../../styles/MinesGrid.css';
 
+// frontend/src/components/games/mines/MinesGrid.js
 const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver }) => {
-  // Получение класса и содержимого ячейки
-  const getCellContent = (cell, isRevealed) => {
-    if (!isRevealed) {
-      return null;
-    }
-    
-    if (cell === 'mine') {
-      return <span className="mine-icon">💣</span>;
-    } else {
-      return <span className="gem-icon">💎</span>;
-    }
-  };
-  
-  // Определение класса ячейки
-  const getCellClass = (cell, isRevealed) => {
-    let cellClass = 'mines-cell';
-    
-    if (isRevealed) {
-      cellClass += ' revealed';
-      if (cell === 'mine') {
-        cellClass += ' mine';
-      } else {
-        cellClass += ' gem';
-      }
-    } else if (!gameActive) {
-      cellClass += ' disabled';
-    }
-    
-    return cellClass;
-  };
-  
   return (
     <div className={`mines-grid ${gameOver ? 'game-over' : ''}`}>
       {grid.map((row, rowIndex) => (
@@ -45,14 +15,16 @@ const MinesGrid = ({ grid, revealed, onCellClick, gameActive, gameOver }) => {
             return (
               <div
                 key={colIndex}
-                className={getCellClass(cell, isRevealed)}
+                className={`mines-cell ${isRevealed ? 'revealed' : ''} ${isRevealed && cell === 'mine' ? 'mine' : ''} ${isRevealed && cell !== 'mine' ? 'gem' : ''} ${!gameActive && !isRevealed ? 'disabled' : ''}`}
                 onClick={() => {
                   if (gameActive && !isRevealed) {
+                    console.log(`Клик на ячейке [${rowIndex}, ${colIndex}]`);
                     onCellClick(rowIndex, colIndex);
                   }
                 }}
               >
-                {getCellContent(cell, isRevealed)}
+                {isRevealed && cell === 'mine' && <span className="mine-icon">💣</span>}
+                {isRevealed && cell !== 'mine' && <span className="gem-icon">💎</span>}
               </div>
             );
           })}

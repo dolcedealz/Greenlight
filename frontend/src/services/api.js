@@ -121,27 +121,33 @@ const gameApi = {
   },
   
   // Игра "Мины"
-  playMines: (betAmount, minesCount, clientSeed = null) => {
-    console.log('Игра "Мины":', { betAmount, minesCount, clientSeed });
-    
-    return api.post('/games/mines/play', {
-      betAmount,
-      minesCount,
-      clientSeed
-    });
-  },
+  // frontend/src/services/api.js
+// Игра "Мины"
+playMines: (betAmount, minesCount, clientSeed = null) => {
+  console.log('Игра "Мины":', { betAmount, minesCount, clientSeed });
   
-  // Завершение игры в мины (клик по ячейке или кешаут)
-  completeMinesGame: (gameId, row, col, cashout) => {
-    console.log('Завершение игры "Мины":', { gameId, row, col, cashout });
-    
-    return api.post('/games/mines/complete', {
-      gameId,
-      row,
-      col,
-      cashout
-    });
-  },
+  return api.post('/games/mines/play', {
+    betAmount,
+    minesCount,
+    clientSeed
+  });
+},
+
+// Завершение игры в мины (клик по ячейке или кешаут)
+completeMinesGame: (gameId, row, col, cashout) => {
+  console.log('Завершение игры "Мины":', { gameId, row, col, cashout });
+  
+  // Создаем объект с параметрами запроса
+  const requestData = { gameId, cashout };
+  
+  // Добавляем координаты только для клика по ячейке
+  if (!cashout && row !== null && col !== null) {
+    requestData.row = row;
+    requestData.col = col;
+  }
+  
+  return api.post('/games/mines/complete', requestData);
+},
   
   // Получение истории игр
   getGameHistory: (params = {}) => {

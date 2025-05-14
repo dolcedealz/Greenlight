@@ -134,89 +134,118 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     const [currentMultiplier, setCurrentMultiplier] = useState(1);
     const [possibleWin, setPossibleWin] = useState(0);
     const [revealedCount, setRevealedCount] = useState(0);
-    const [gameData, setGameData] = useState(null);
     const [autoplay, setAutoplay] = useState(false);
     
-    // Инициализация игры и расчет коэффициентов
+    // Важно: используем useRef для хранения gameData, чтобы избежать проблем с асинхронным обновлением состояния
+    const gameDataRef = useRef(null);
+    
+    // Логирование для отладки
     useEffect(() => {
-      // Рассчитываем начальный возможный выигрыш
+      console.log("Состояние gameActive изменилось на:", gameActive);
+    }, [gameActive]);
+  
+    // Инициализация и расчет коэффициентов
+    useEffect(() => {
       setPossibleWin(betAmount);
     }, [betAmount]);
     
-    // Начало новой игры
+    // Начало новой игры - полностью переработанная функция
     const startGame = async () => {
       try {
-        setError(null); // Очищаем предыдущие ошибки
-        setGameResult(null); // Очищаем предыдущий результат
-    
-        // ДОБАВИТЬ БЛОК ДИАГНОСТИКИ:
-        console.log("Запускаем диагностику перед стартом игры...");
-        try {
-          // Проверяем, нет ли активных игр
-          const historyResponse = await gameApi.getGameHistory({
-            gameType: 'mines',
-            limit: 10
-          });
-          
-          if (historyResponse.data && historyResponse.data.data && historyResponse.data.data.games) {
-            const activeGames = historyResponse.data.data.games.filter(game => 
-              game.status === 'active');
-            
-            console.log(`Найдено ${activeGames.length} активных игр.`);
-            if (activeGames.length > 0) {
-              console.warn("Активные игры могут вызывать конфликты:", activeGames);
-            }
-          }
-        } catch (diagError) {
-          console.error("Ошибка диагностики:", diagError);
-        }
-
-
+        console.log("Начинаем новую игру...");
+        setError(null);
+        setGameResult(null);
+        
+        // Сначала деактивируем игру (защита от двойных кликов)
+        setGameActive(false);
+        setGameOver(false);
+        
+        // Создаем уникальный seed для надежности различения игр
+        const uniqueSeed = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log("Уникальный seed для игры:", uniqueSeed);
+  
         // Создаем новую игру на сервере
-        const response = await gameApi.playMines(betAmount, minesCount);
+        console.log("Отправляем запрос на создание игры...");
+        const response = await gameApi.playMines(betAmount, minesCount, uniqueSeed);
+        console.log("Ответ сервера:", response.data);
+        
         const data = response.data.data;
+        if (!data || !data.gameId) {
+          console.error("Ошибка: API не вернул gameId", data);
+          setError("Ошибка: Не получен ID игры от сервера");
+          return;
+        }
         
-        // Сохраняем данные игры
-        setGameData(data);
+        // Сохраняем данные игры в ref для надежного доступа
+        gameDataRef.current = data;
+        console.log("ID новой игры:", data.gameId);
         
-        // Создаем новое игровое поле (в реальной игре сетка будет на сервере)
+        // Сбрасываем игровое поле
         const newGrid = Array(5).fill().map(() => Array(5).fill('gem'));
-        
-        // Инициализируем массив открытых ячеек
         const newRevealed = Array(25).fill(false);
         
+        // Обновляем все состояния игры
         setGrid(newGrid);
         setRevealed(newRevealed);
-        setGameActive(true);
-        setGameOver(false);
         setRevealedCount(0);
         setCurrentMultiplier(1);
         setPossibleWin(betAmount);
         
-        // Обновляем баланс из ответа сервера
+        // Обновляем баланс
         if (data.balanceAfter !== undefined) {
           setBalance(data.balanceAfter);
         }
+        
+        // Активируем игру в последнюю очередь после всех обновлений
+        console.log("Активируем игру");
+        setGameActive(true);
+        
       } catch (err) {
-        console.error('Ошибка при начале игры:', err);
-        setError(err.response?.data?.message || 'Произошла ошибка при начале игры');
+        console.error("Ошибка при начале игры:", err);
+        setError(err.response?.data?.message || "Произошла ошибка при начале игры");
       }
     };
     
-    // Обработчик клика по ячейке
+    // Обработчик клика по ячейке - полностью переработан
     const handleCellClick = async (row, col) => {
-      if (!gameActive) return;
+      console.log(`Клик по ячейке [${row}, ${col}], gameActive: ${gameActive}`);
+      
+      // Проверяем, активна ли игра
+      if (!gameActive) {
+        console.log("Игра не активна, клик игнорируется");
+        return;
+      }
+      
+      // Проверяем наличие данных игры
+      if (!gameDataRef.current || !gameDataRef.current.gameId) {
+        console.error("Отсутствуют данные игры:", gameDataRef.current);
+        setError("Ошибка: отсутствуют данные игры. Пожалуйста, начните игру заново.");
+        return;
+      }
       
       const index = row * 5 + col;
       
+      // Проверяем, не открыта ли уже эта ячейка
+      if (revealed[index]) {
+        console.log("Ячейка уже открыта, клик игнорируется");
+        return;
+      }
+      
       try {
-        // Отправляем запрос на сервер о клике
+        console.log(`Отправляем запрос на клик по ячейке [${row}, ${col}], gameId: ${gameDataRef.current.gameId}`);
+        
+        // Временно деактивируем игру для предотвращения множественных кликов
+        setGameActive(false);
+        
+        // Отправляем запрос на сервер
         const response = await gameApi.completeMinesGame(
-          gameData.gameId, 
+          gameDataRef.current.gameId, 
           row, 
           col, 
           false
         );
+        
+        console.log("Ответ сервера на клик:", response.data);
         
         const data = response.data.data;
         
@@ -226,123 +255,139 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         setRevealed(newRevealed);
         
         // Увеличиваем счетчик открытых ячеек
-        setRevealedCount(prevCount => prevCount + 1);
+        const newRevealedCount = revealedCount + 1;
+        setRevealedCount(newRevealedCount);
         
         if (data.win === false) {
           // Игрок попал на мину
-          // Получаем игровое поле с сервера и открываем все мины
-          const serverGrid = data.grid;
-          let allRevealed = [...newRevealed];
+          console.log("Попадание на мину - игра окончена");
           
-          // Если сервер прислал поле, используем его
-          if (serverGrid) {
-            serverGrid.forEach((row, rowIndex) => {
+          // Если сервер прислал игровое поле, используем его
+          if (data.grid) {
+            setGrid(data.grid);
+            
+            // Открываем все мины
+            const allRevealed = [...newRevealed];
+            data.grid.forEach((row, rowIndex) => {
               row.forEach((cell, colIndex) => {
                 if (cell === 'mine') {
                   allRevealed[rowIndex * 5 + colIndex] = true;
                 }
               });
             });
-            setGrid(serverGrid);
+            setRevealed(allRevealed);
           }
           
-          setRevealed(allRevealed);
+          // Завершаем игру
           setGameActive(false);
           setGameOver(true);
           
-          // Уведомляем пользователя о проигрыше
+          // Показываем результат
           setGameResult({
             win: false,
             amount: betAmount,
             newBalance: data.balanceAfter
           });
           
-          // Обновляем баланс из ответа сервера
+          // Обновляем баланс
           if (data.balanceAfter !== undefined) {
             setBalance(data.balanceAfter);
           }
           
-          // Обновляем статистику
-          if (gameStats) {
-            const updatedStats = { ...gameStats };
-            updatedStats.totalGames += 1;
-            updatedStats.totalBet += betAmount;
-            updatedStats.totalLoss += betAmount;
-            updatedStats.winRate = updatedStats.winCount / updatedStats.totalGames;
-            setGameStats(updatedStats);
-          }
-        } else if (data.maxWin) {
+        } else if (data.maxWin === true) {
           // Игрок открыл все безопасные ячейки - максимальный выигрыш
-          const finalMultiplier = data.multiplier || data.currentMultiplier;
+          console.log("Все безопасные ячейки открыты - максимальный выигрыш!");
+          
+          const finalMultiplier = data.multiplier || (data.currentMultiplier || 1);
           setCurrentMultiplier(finalMultiplier);
           setPossibleWin(betAmount * finalMultiplier);
           
-          // Обновляем баланс из ответа сервера
-          if (data.balanceAfter !== undefined) {
-            setBalance(data.balanceAfter);
-          }
+          // Завершаем игру
+          setGameActive(false);
+          setGameOver(true);
           
-          // Уведомляем пользователя о выигрыше
+          // Показываем результат
           setGameResult({
             win: true,
             amount: data.profit,
             newBalance: data.balanceAfter
           });
           
-          // Завершаем игру
-          setGameActive(false);
-          
-          // Обновляем статистику
-          if (gameStats) {
-            const updatedStats = { ...gameStats };
-            updatedStats.totalGames += 1;
-            updatedStats.totalBet += betAmount;
-            updatedStats.winCount += 1;
-            updatedStats.totalWin += data.profit;
-            updatedStats.winRate = updatedStats.winCount / updatedStats.totalGames;
-            setGameStats(updatedStats);
+          // Обновляем баланс
+          if (data.balanceAfter !== undefined) {
+            setBalance(data.balanceAfter);
           }
+          
         } else {
-          // Игрок нашел сокровище
-          // Обновляем множитель и возможный выигрыш из данных сервера
+          // Игрок открыл безопасную ячейку, игра продолжается
+          console.log("Найдено сокровище, игра продолжается");
+          
+          // Обновляем множитель и возможный выигрыш
           if (data.currentMultiplier !== undefined) {
             setCurrentMultiplier(data.currentMultiplier);
             setPossibleWin(betAmount * data.currentMultiplier);
           }
           
+          // Активируем игру снова
+          setGameActive(true);
+          
           // Проверяем условие автоигры
           if (autoplay && data.currentMultiplier >= 2) {
-            // Автоматически забираем выигрыш
-            handleCashout();
+            console.log("Сработало условие автоигры - забираем выигрыш");
+            setTimeout(() => {
+              handleCashout();
+            }, 500);
           }
         }
       } catch (err) {
-        console.error('Ошибка при клике по ячейке:', err);
-        setError(err.response?.data?.message || 'Произошла ошибка при игре');
+        console.error("Ошибка при клике по ячейке:", err);
+        setError(err.response?.data?.message || "Произошла ошибка при игре");
+        
+        // Восстанавливаем активность игры в случае ошибки
+        setGameActive(true);
       }
     };
     
-    // Забрать выигрыш
+    // Забрать выигрыш - переработано
     const handleCashout = async () => {
-      if (!gameActive) return;
+      console.log("Забираем выигрыш, gameActive:", gameActive);
+      
+      if (!gameActive) {
+        console.log("Игра не активна, кешаут невозможен");
+        return;
+      }
+      
+      // Проверяем наличие данных игры
+      if (!gameDataRef.current || !gameDataRef.current.gameId) {
+        console.error("Отсутствуют данные игры:", gameDataRef.current);
+        setError("Ошибка: отсутствуют данные игры для кешаута");
+        return;
+      }
       
       try {
-        // Отправляем запрос на сервер о выигрыше
+        console.log("Отправляем запрос на кешаут, gameId:", gameDataRef.current.gameId);
+        
+        // Деактивируем игру на время запроса
+        setGameActive(false);
+        
+        // Отправляем запрос на сервер
         const response = await gameApi.completeMinesGame(
-          gameData.gameId, 
+          gameDataRef.current.gameId, 
           null, 
           null, 
           true
         );
         
+        console.log("Ответ сервера на кешаут:", response.data);
+        
         const data = response.data.data;
         
-        // Обновляем баланс из ответа сервера
+        // Обновляем баланс
         if (data.balanceAfter !== undefined) {
           setBalance(data.balanceAfter);
         }
         
-        // Уведомляем пользователя о выигрыше
+        // Показываем результат
         setGameResult({
           win: true,
           amount: data.profit,
@@ -352,22 +397,12 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
           nonce: data.nonce
         });
         
-        // Завершаем игру
-        setGameActive(false);
-        
-        // Обновляем статистику
-        if (gameStats) {
-          const updatedStats = { ...gameStats };
-          updatedStats.totalGames += 1;
-          updatedStats.totalBet += betAmount;
-          updatedStats.winCount += 1;
-          updatedStats.totalWin += data.profit;
-          updatedStats.winRate = updatedStats.winCount / updatedStats.totalGames;
-          setGameStats(updatedStats);
-        }
       } catch (err) {
-        console.error('Ошибка при получении выигрыша:', err);
-        setError(err.response?.data?.message || 'Произошла ошибка при получении выигрыша');
+        console.error("Ошибка при получении выигрыша:", err);
+        setError(err.response?.data?.message || "Произошла ошибка при получении выигрыша");
+        
+        // Восстанавливаем активность игры в случае ошибки
+        setGameActive(true);
       }
     };
     

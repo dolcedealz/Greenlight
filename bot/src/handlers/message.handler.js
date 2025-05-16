@@ -88,14 +88,54 @@ function registerMessageHandlers(bot) {
     );
   });
   
-  // Обработка всех остальных сообщений
-  bot.on('text', async (ctx) => {
-    // Проверяем, находится ли пользователь в каком-либо состоянии
-    // (например, ввод суммы для пополнения)
-    
-    // По умолчанию отправляем сообщение о неизвестной команде
-    await ctx.reply(config.messages.invalidCommand);
-  });
+  // Обработка текстовых сообщений
+bot.on('text', async (ctx) => {
+  try {
+    // Проверяем, ожидаем ли мы сумму для пополнения
+    if (ctx.session.awaitingDepositAmount) {
+      // Сбрасываем флаг
+      ctx.session.awaitingDepositAmount = false;
+      
+      // Парсим введенную сумму
+      const amount = parseFloat(ctx.message.text.replace(',', '.'));
+      
+      // Проверяем корректность суммы
+      if (isNaN(amount) || amount <= 0) {
+        return ctx.reply('Пожалуйста, введите корректную сумму для пополнения.');
+      }
+      
+      // Минимальная и максимальная сумма
+      if (amount < 1) {
+        return ctx.reply('Минимальная сумма пополнения - 1 USDT.');
+      }
+      
+      if (amount > 1000) {
+        return ctx.reply('Максимальная сумма пополнения - 1000 USDT.');
+      }
+      
+      // Создаем инвойс для оплаты
+      const invoice = await createInvoice(ctx.from.id, amount);
+      
+      // Сохраняем ID инвойса в сессии
+      ctx.session.lastInvoiceId = invoice.invoice_id;
+      
+      // Отправляем пользователю ссылку на оплату
+      await ctx.reply(
+        `💰 Создан счет на сумму ${amount.toFixed(2)} USDT.\n\nНажмите на кнопку ниже для оплаты:`,
+        Markup.inlineKeyboard([
+          Markup.button.url('Оплатить', invoice.pay_url),
+          Markup.button.callback('Проверить статус', 'check_payment')
+        ])
+      );
+    } else {
+      // Стандартный ответ на текст
+      await ctx.reply(config.messages.invalidCommand);
+    }
+  } catch (error) {
+    console.error('Ошибка при обработке сообщения:', error);
+    await ctx.reply('Произошла ошибка. Пожалуйста, попробуйте еще раз.');
+  }
+});
   
   return bot;
 }

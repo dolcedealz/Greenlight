@@ -7,44 +7,48 @@ const config = require('../config');
  */
 class PaymentService {
   /**
-   * Создает инвойс для оплаты через CryptoBot
-   * @param {number} userId - ID пользователя Telegram
-   * @param {number} amount - Сумма для оплаты
-   * @returns {Object} - Данные созданного инвойса
-   */
-  async createInvoice(userId, amount) {
-    try {
-      const { token, apiUrl } = config.cryptoBot;
-      
-      // Формируем данные для запроса
-      const data = {
-        asset: 'USDT',
-        amount: amount.toString(),
-        description: `Пополнение баланса в Greenlight Casino`,
-        hidden_message: `Пополнение для пользователя #${userId}`,
-        paid_btn_name: 'return',
-        paid_btn_url: config.webAppUrl
-      };
-      
-      // Отправляем запрос к API CryptoBot
-      const response = await axios.post(
-        `${apiUrl}/createInvoice`,
-        data,
-        {
-          headers: {
-            'Crypto-Pay-API-Token': token,
-            'Content-Type': 'application/json'
-          }
+  /**
+ * Создает инвойс для оплаты через CryptoBot
+ * @param {number} userId - ID пользователя Telegram
+ * @param {number} amount - Сумма для оплаты
+ * @returns {Object} - Данные созданного инвойса
+ */
+async createInvoice(userId, amount) {
+  try {
+    const { token, apiUrl } = config.cryptoBot;
+    
+    // Формируем данные для запроса
+    const data = {
+      asset: 'USDT',
+      amount: amount.toString(),
+      description: `Пополнение баланса в Greenlight Casino`,
+      hidden_message: `Пополнение для пользователя #${userId}`,
+      paid_btn_name: 'return',
+      paid_btn_url: config.webAppUrl,
+      payload: `deposit_${userId}_${Date.now()}` // Добавляем payload для идентификации
+    };
+    
+    // Отправляем запрос к API CryptoBot
+    const response = await axios.post(
+      `${apiUrl}/createInvoice`,
+      data,
+      {
+        headers: {
+          'Crypto-Pay-API-Token': token,
+          'Content-Type': 'application/json'
         }
-      );
-      
-      // Возвращаем данные инвойса
-      return response.data.result;
-    } catch (error) {
-      console.error('Ошибка при создании инвойса:', error);
-      throw new Error('Не удалось создать счет для оплаты. Пожалуйста, попробуйте позже.');
-    }
+      }
+    );
+    
+    console.log(`Создан инвойс для пользователя ${userId} на сумму ${amount} USDT`);
+    
+    // Возвращаем данные инвойса
+    return response.data.result;
+  } catch (error) {
+    console.error('Ошибка при создании инвойса:', error);
+    throw new Error('Не удалось создать счет для оплаты. Пожалуйста, попробуйте позже.');
   }
+} 
   
   /**
    * Проверяет статус инвойса

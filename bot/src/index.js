@@ -13,6 +13,29 @@ const app = express();
 // Настройка для обработки JSON
 app.use(express.json());
 
+
+// Обработчик вебхуков от CryptoBot
+app.post('/webhook/cryptobot', express.json(), async (req, res) => {
+  try {
+    console.log('Получено уведомление от CryptoBot:', req.body);
+    
+    // Проверка подписи запроса для безопасности
+    const { payment } = req.body;
+    if (!payment) {
+      return res.status(400).send('Invalid payload');
+    }
+    
+    // Обрабатываем платеж
+    await handleCryptoBotPayment(payment);
+    
+    // Отвечаем CryptoBot, что все ок
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Ошибка при обработке вебхука CryptoBot:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 // Инициализация бота
 const bot = new Telegraf(config.botToken);
 
@@ -43,6 +66,43 @@ app.get('/', (req, res) => {
 // Получаем порт и домен из переменных окружения
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_DOMAIN = process.env.RENDER_EXTERNAL_URL || process.env.WEBHOOK_DOMAIN;
+
+/**
+ * Настраивает вебхук для уведомлений от CryptoBot
+ */
+async function setupCryptoBotWebhook() {
+  try {
+    const { token, apiUrl } = config.cryptoBot;
+    const webhookUrl = `${process.env.WEBHOOK_DOMAIN}/webhook/cryptobot`;
+    
+    // Отправляем запрос к API CryptoBot для настройки вебхука
+    const response = await axios.post(
+      `${apiUrl}/setWebhook`,
+      {
+        url: webhookUrl
+      },
+      {
+        headers: {
+          'Crypto-Pay-API-Token': token,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    if (response.data.ok) {
+      console.log(`✅ Вебхук CryptoBot успешно настроен: ${webhookUrl}`);
+    } else {
+      console.error('❌ Ошибка при настройке вебхука CryptoBot:', response.data);
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при настройке вебхука CryptoBot:', error);
+  }
+}
+
+// Вызываем настройку вебхука при запуске сервера
+if (WEBHOOK_DOMAIN) {
+  setupCryptoBotWebhook();
+}
 
 // Запуск бота и настройка webhook
 if (WEBHOOK_DOMAIN) {
@@ -97,6 +157,7 @@ if (WEBHOOK_DOMAIN) {
       .catch(err => console.error('❌ Ошибка запуска бота:', err));
   });
 }
+
 
 // Корректное завершение работы
 process.once('SIGINT', () => bot.stop('SIGINT'));

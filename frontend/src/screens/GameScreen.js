@@ -1,7 +1,8 @@
 // frontend/src/screens/GameScreen.js
 import React, { useState, useEffect } from 'react';
 import { CoinFlip, CoinControls } from '../components/games/coin';
-import MinesGame from '../components/games/mines/MinesGame'; // Import the new component
+import MinesGame from '../components/games/mines/MinesGame';
+import SlotGame from '../components/games/slots/SlotGame'; // Добавляем SlotGame
 import { Header } from '../components/layout';
 import { userApi, gameApi } from '../services';
 import '../styles/GameScreen.css';
@@ -57,13 +58,12 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     fetchData();
   }, [gameType]);
   
-  // Coin game handler - ОБНОВЛЕННАЯ ВЕРСИЯ
+  // Coin game handler
   const handleFlip = async (betData) => {
     try {
       setIsFlipping(true);
       setGameResult(null);
       
-      // API запрос для игры (упрощенный объект)
       const response = await gameApi.playCoinFlip(
         betData.betAmount,
         betData.selectedSide
@@ -71,25 +71,19 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       
       const gameData = response.data.data;
       
-      // Установить результат
       setResult(gameData.result);
-      
-      // Сохранить результат в истории
       setLastResults(prev => [gameData.result, ...prev].slice(0, 10));
       
-      // Установить результат игры для отображения
       setGameResult({
         win: gameData.win,
         amount: Math.abs(gameData.profit),
         newBalance: gameData.balanceAfter
       });
       
-      // Обновить баланс
       if (gameData.balanceAfter !== undefined) {
         setBalance(gameData.balanceAfter);
       }
       
-      // Обновить статистику
       if (gameStats) {
         const updatedStats = { ...gameStats };
         updatedStats.totalGames += 1;
@@ -112,7 +106,6 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     }
   };
   
-  // Reset animation after completion
   const handleAnimationEnd = () => {
     setIsFlipping(false);
     setError(null);
@@ -222,6 +215,55 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
             )}
           </div>
         );
+
+      case 'slots':
+        return (
+          <div className="game-container slots-game">
+            <SlotGame 
+              balance={balance}
+              setBalance={setBalance}
+              gameStats={gameStats}
+              setGameResult={setGameResult}
+              setError={setError}
+            />
+            
+            {error && (
+              <div className="game-error">
+                <p>{error}</p>
+              </div>
+            )}
+            
+            {gameStats && (
+              <div className="game-stats">
+                <h3>Ваша статистика</h3>
+                <div className="stats-container">
+                  <div className="stat-item">
+                    <span className="stat-label">Всего игр:</span>
+                    <span className="stat-value">{gameStats.totalGames}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Победы:</span>
+                    <span className="stat-value">{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Ставки:</span>
+                    <span className="stat-value">{gameStats.totalBet?.toFixed(2) || 0} USDT</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Выигрыши:</span>
+                    <span className="stat-value">{gameStats.totalWin?.toFixed(2) || 0} USDT</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Профит:</span>
+                    <span className={`stat-value ${(gameStats.totalWin - gameStats.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
+                      {((gameStats.totalWin || 0) - (gameStats.totalLoss || 0)).toFixed(2)} USDT
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
         
       default:
         return (
@@ -237,7 +279,6 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     <div className="game-screen">
       <Header balance={balance} />
       
-      {/* Game title */}
       <div className="game-header">
         <button className="back-button" onClick={onBack}>←</button>
         <h1 className="game-title">
@@ -248,7 +289,6 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </h1>
       </div>
       
-      {/* Game result - ОБНОВЛЕННАЯ ВЕРСИЯ БЕЗ ИНФОРМАЦИИ О SEED */}
       {gameResult && (
         <div className={`game-result ${gameResult.win ? 'win' : 'lose'}`}>
           <div className="result-text">
@@ -260,7 +300,6 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </div>
       )}
       
-      {/* Game component */}
       {loading ? (
         <div className="game-loading">
           <div className="loader"></div>

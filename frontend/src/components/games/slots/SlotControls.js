@@ -39,7 +39,7 @@ const SlotControls = ({
     }
   };
   
-  // Быстрые ставки - только 1% и 5%
+  // Быстрые ставки
   const handleQuickBet = (multiplier) => {
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
@@ -60,6 +60,18 @@ const SlotControls = ({
   const handleAutoplayCountChange = (count) => {
     setAutoplayCount(count);
   };
+  
+  // Символы с эмодзи fallback
+  const slotSymbols = [
+    { symbol: 'cherry', payout: 4, threeInRow: 2, emoji: '🍒' },
+    { symbol: 'lemon', payout: 6, threeInRow: 3, emoji: '🍋' },
+    { symbol: 'persik', payout: 8, threeInRow: 4, emoji: '🍑' },
+    { symbol: 'grape', payout: 12, threeInRow: 6, emoji: '🍇' },
+    { symbol: 'bell', payout: 18, threeInRow: 9, emoji: '🔔' },
+    { symbol: 'diamond', payout: 30, threeInRow: 15, emoji: '💎' },
+    { symbol: 'star', payout: 50, threeInRow: 25, emoji: '⭐' },
+    { symbol: 'jackpot', payout: 100, threeInRow: 50, emoji: '🎰' }
+  ];
   
   return (
     <div className="slot-controls">
@@ -103,21 +115,21 @@ const SlotControls = ({
           </div>
         </div>
         
-        {/* Только 2 кнопки - 1% и 5% в столбик */}
+        {/* Быстрые ставки */}
         <div className="quick-bets">
           <button 
             onClick={() => handleQuickBet(0.01)} 
             disabled={isSpinning || loading || autoplay}
             className="quick-bet-btn large"
           >
-            1%
+            1% ({(balance * 0.01).toFixed(2)} USDT)
           </button>
           <button 
             onClick={() => handleQuickBet(0.05)} 
             disabled={isSpinning || loading || autoplay}
             className="quick-bet-btn large"
           >
-            5%
+            5% ({(balance * 0.05).toFixed(2)} USDT)
           </button>
         </div>
       </div>
@@ -179,7 +191,7 @@ const SlotControls = ({
         )}
       </div>
       
-      {/* Таблица выплат с PNG изображениями */}
+      {/* Таблица выплат с эмодзи */}
       <div className="payout-table">
         <h4>Таблица выплат</h4>
         <div className="payout-rules">
@@ -193,35 +205,9 @@ const SlotControls = ({
           </div>
         </div>
         <div className="payout-grid">
-          {[
-            { symbol: 'cherry', payout: 4, threeInRow: 2, img: '/assets/images/slots/cherry final png.png' },
-            { symbol: 'lemon', payout: 6, threeInRow: 3, img: '/assets/images/slots/lemon final png.png' },
-            { symbol: 'persik', payout: 8, threeInRow: 4, img: '/assets/images/slots/persik final png.png' },
-            { symbol: 'grape', payout: 12, threeInRow: 6, img: '/assets/images/slots/grape final png.png' },
-            { symbol: 'bell', payout: 18, threeInRow: 9, img: '/assets/images/slots/bell final png.png' },
-            { symbol: 'diamond', payout: 30, threeInRow: 15, img: '/assets/images/slots/diamond final png.png' },
-            { symbol: 'star', payout: 50, threeInRow: 25, img: '/assets/images/slots/star final png.png' },
-            { symbol: 'jackpot', payout: 100, threeInRow: 50, img: '/assets/images/slots/jackpot final png.png' }
-          ].map((symbolData, index) => (
+          {slotSymbols.map((symbolData, index) => (
             <div key={index} className="payout-item">
-              <img 
-                src={symbolData.img} 
-                alt={symbolData.symbol}
-                className="payout-symbol-img"
-                onError={(e) => {
-                  const fallbackEmojis = {
-                    'cherry': '🍒',
-                    'lemon': '🍋',
-                    'persik': '🍑',
-                    'grape': '🍇',
-                    'bell': '🔔',
-                    'diamond': '💎',
-                    'star': '⭐',
-                    'jackpot': '🎰'
-                  };
-                  e.target.outerHTML = `<span class="payout-symbol">${fallbackEmojis[symbolData.symbol] || '🍒'}</span>`;
-                }}
-              />
+              <span className="payout-symbol">{symbolData.emoji}</span>
               <span className="payout-multiplier">4×{symbolData.payout} | 3×{symbolData.threeInRow}</span>
             </div>
           ))}

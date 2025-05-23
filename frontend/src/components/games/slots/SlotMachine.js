@@ -2,16 +2,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
 
-// ОБНОВЛЕННЫЕ символы слотов с УВЕЛИЧЕННЫМИ коэффициентами
+// ОБНОВЛЕННЫЕ символы слотов с PNG изображениями
 const SLOT_SYMBOLS = [
-  { symbol: '🍒', name: 'cherry', weight: 25, payout: 4 },   // было 2, стало 4
-  { symbol: '🍋', name: 'lemon', weight: 20, payout: 6 },    // было 3, стало 6
-  { symbol: '🍊', name: 'orange', weight: 15, payout: 8 },   // было 4, стало 8
-  { symbol: '🍇', name: 'grape', weight: 12, payout: 12 },   // было 5, стало 12
-  { symbol: '🔔', name: 'bell', weight: 8, payout: 18 },     // было 8, стало 18
-  { symbol: '💎', name: 'diamond', weight: 5, payout: 30 },  // было 15, стало 30
-  { symbol: '⭐', name: 'star', weight: 3, payout: 50 },     // было 25, стало 50
-  { symbol: '🎰', name: 'jackpot', weight: 2, payout: 100 }  // было 50, стало 100
+  { symbol: 'cherry', name: 'cherry', weight: 25, payout: 4, img: '/assets/images/slots/cherry final png.png' },
+  { symbol: 'lemon', name: 'lemon', weight: 20, payout: 6, img: '/assets/images/slots/lemon final png.png' },
+  { symbol: 'persik', name: 'persik', weight: 15, payout: 8, img: '/assets/images/slots/persik final png.png' },
+  { symbol: 'grape', name: 'grape', weight: 12, payout: 12, img: '/assets/images/slots/grape final png.png' },
+  { symbol: 'bell', name: 'bell', weight: 8, payout: 18, img: '/assets/images/slots/bell final png.png' },
+  { symbol: 'diamond', name: 'diamond', weight: 5, payout: 30, img: '/assets/images/slots/diamond final png.png' },
+  { symbol: 'star', name: 'star', weight: 3, payout: 50, img: '/assets/images/slots/star final png.png' },
+  { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 100, img: '/assets/images/slots/jackpot final png.png' }
 ];
 
 const SlotMachine = ({ 
@@ -24,13 +24,13 @@ const SlotMachine = ({
   loading,
   gameStats 
 }) => {
-  // Состояние барабанов - начинаем с пустых символов
+  // Состояние барабанов - начинаем с символов по умолчанию
   const [reels, setReels] = useState(() => {
     return [
-      ['🍒', '🍋', '🍊', '🍇'],
-      ['🍒', '🍋', '🍊', '🍇'],
-      ['🍒', '🍋', '🍊', '🍇'],
-      ['🍒', '🍋', '🍊', '🍇']
+      ['cherry', 'lemon', 'persik', 'grape'],
+      ['cherry', 'lemon', 'persik', 'grape'],
+      ['cherry', 'lemon', 'persik', 'grape'],
+      ['cherry', 'lemon', 'persik', 'grape']
     ];
   });
   
@@ -45,6 +45,11 @@ const SlotMachine = ({
   const animationTimeoutRefs = useRef([]);
   const winningTimeoutRef = useRef(null);
   const resultProcessedRef = useRef(false);
+  
+  // Функция для получения данных символа по его названию
+  const getSymbolData = useCallback((symbolName) => {
+    return SLOT_SYMBOLS.find(s => s.symbol === symbolName) || SLOT_SYMBOLS[0];
+  }, []);
   
   // Функция для генерации случайного символа для анимации
   const getRandomSymbol = useCallback(() => {
@@ -140,11 +145,6 @@ const SlotMachine = ({
   
   // Обработка результата с сервера
   useEffect(() => {
-    // Проверяем, что:
-    // 1. Есть новый результат
-    // 2. Анимация завершена
-    // 3. Результат еще не был обработан
-    // 4. Спин завершен (isSpinning = false)
     if (lastResult && 
         lastResult !== lastResultRef.current && 
         lastResult.reels && 
@@ -223,15 +223,37 @@ const SlotMachine = ({
               key={reelIndex} 
               className={`slot-reel ${animatingReels[reelIndex] ? 'spinning' : ''}`}
             >
-              {reel.map((symbol, rowIndex) => (
-                <div
-                  key={`${reelIndex}-${rowIndex}`}
-                  className={getCellClass(reelIndex, rowIndex)}
-                  data-position={`${reelIndex}-${rowIndex}`}
-                >
-                  <span className="slot-symbol">{symbol}</span>
-                </div>
-              ))}
+              {reel.map((symbolName, rowIndex) => {
+                const symbolData = getSymbolData(symbolName);
+                return (
+                  <div
+                    key={`${reelIndex}-${rowIndex}`}
+                    className={getCellClass(reelIndex, rowIndex)}
+                    data-position={`${reelIndex}-${rowIndex}`}
+                  >
+                    <img 
+                      src={symbolData.img} 
+                      alt={symbolData.name}
+                      className="slot-symbol-img"
+                      onError={(e) => {
+                        // Fallback на эмодзи если изображение не загрузилось
+                        const fallbackEmojis = {
+                          'cherry': '🍒',
+                          'lemon': '🍋',
+                          'persik': '🍑',
+                          'grape': '🍇',
+                          'bell': '🔔',
+                          'diamond': '💎',
+                          'star': '⭐',
+                          'jackpot': '🎰'
+                        };
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = `<span class="slot-symbol">${fallbackEmojis[symbolName] || '🍒'}</span>`;
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -243,9 +265,6 @@ const SlotMachine = ({
           <div className="payline horizontal line-2"></div>
           <div className="payline horizontal line-3"></div>
           <div className="payline horizontal line-4"></div>
-          
-          {/* УБИРАЕМ ВСЕ ВЕРТИКАЛЬНЫЕ ЛИНИИ */}
-          {/* Вертикальные линии полностью удалены */}
           
           {/* Диагональные линии - ОСТАВЛЯЕМ */}
           <div className="payline diagonal line-9"></div>
@@ -262,9 +281,30 @@ const SlotMachine = ({
               <span className="win-amount">+{(Math.abs(lastResult.profit) || 0).toFixed(2)} USDT</span>
               {lastResult.winningSymbols && lastResult.winningSymbols.length > 0 && (
                 <div className="winning-symbols">
-                  {lastResult.winningSymbols.map((symbol, index) => (
-                    <span key={index} className="winning-symbol">{symbol}</span>
-                  ))}
+                  {lastResult.winningSymbols.map((symbolName, index) => {
+                    const symbolData = getSymbolData(symbolName);
+                    return (
+                      <img 
+                        key={index} 
+                        src={symbolData.img} 
+                        alt={symbolData.name}
+                        className="winning-symbol-img"
+                        onError={(e) => {
+                          const fallbackEmojis = {
+                            'cherry': '🍒',
+                            'lemon': '🍋',
+                            'persik': '🍑',
+                            'grape': '🍇',
+                            'bell': '🔔',
+                            'diamond': '💎',
+                            'star': '⭐',
+                            'jackpot': '🎰'
+                          };
+                          e.target.outerHTML = `<span class="winning-symbol">${fallbackEmojis[symbolName] || '🍒'}</span>`;
+                        }}
+                      />
+                    );
+                  })}
                 </div>
               )}
               {lastResult.winningLines && lastResult.winningLines.length > 0 && (

@@ -27,7 +27,7 @@
 .slot-reels {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 8px;
   position: relative;
   z-index: 2;
 }
@@ -44,7 +44,7 @@
 }
 
 .slot-reel.spinning {
-  animation: reelShake 0.1s linear infinite;
+  animation: reelShake 0.08s linear infinite;
 }
 
 .slot-reel.spinning::before {
@@ -60,7 +60,7 @@
     transparent 50%,
     rgba(255, 255, 255, 0.1) 100%
   );
-  animation: reelGlow 0.2s linear infinite;
+  animation: reelGlow 0.15s linear infinite;
   z-index: 1;
 }
 
@@ -68,7 +68,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 70px;
+  height: 65px;
   background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
   border-bottom: 1px solid #333;
   transition: all 0.3s ease;
@@ -98,10 +98,10 @@
   animation: winningGlow 1.5s ease-in-out infinite;
 }
 
-/* СТИЛИ ДЛЯ PNG ИЗОБРАЖЕНИЙ */
+/* Стили для изображений символов */
 .slot-symbol-img {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   transition: transform 0.3s ease;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
@@ -117,7 +117,7 @@
 
 /* Fallback для эмодзи */
 .slot-symbol {
-  font-size: 36px;
+  font-size: 32px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   transition: transform 0.3s ease;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
@@ -131,7 +131,7 @@
   filter: drop-shadow(0 0 15px var(--primary-color));
 }
 
-/* Линии выплат для 4x4 поля - ТОЛЬКО горизонтальные и диагональные */
+/* Линии выплат */
 .paylines {
   position: absolute;
   top: 0;
@@ -154,7 +154,7 @@
   animation: paylinePulse 1s ease-in-out infinite alternate;
 }
 
-/* Горизонтальные линии для 4x4 - ОСТАВЛЯЕМ */
+/* Горизонтальные линии */
 .payline.horizontal {
   height: 3px;
   left: 20px;
@@ -162,39 +162,39 @@
 }
 
 .payline.horizontal.line-1 {
-  top: 55px; /* Первая строка */
+  top: 52px; /* Первая строка */
 }
 
 .payline.horizontal.line-2 {
-  top: 125px; /* Вторая строка */
+  top: 118px; /* Вторая строка */
 }
 
 .payline.horizontal.line-3 {
-  top: 195px; /* Третья строка */
+  top: 184px; /* Третья строка */
 }
 
 .payline.horizontal.line-4 {
-  top: 265px; /* Четвертая строка */
+  top: 250px; /* Четвертая строка */
 }
 
-/* Диагональные линии для 4x4 - ОСТАВЛЯЕМ */
+/* Диагональные линии */
 .payline.diagonal {
   width: 3px;
-  height: 280px;
+  height: 260px;
   left: 50%;
   top: 20px;
   transform-origin: top center;
 }
 
 .payline.diagonal.line-9 {
-  transform: translateX(-50%) rotate(17deg); /* Главная диагональ */
+  transform: translateX(-50%) rotate(15deg); /* Главная диагональ */
 }
 
 .payline.diagonal.line-10 {
-  transform: translateX(-50%) rotate(-17deg); /* Побочная диагональ */
+  transform: translateX(-50%) rotate(-15deg); /* Побочная диагональ */
 }
 
-/* Информация о последнем спине */
+/* Информация о результате */
 .last-spin-info {
   text-align: center;
   padding: 15px;
@@ -238,17 +238,8 @@
   gap: 10px;
 }
 
-/* СТИЛИ ДЛЯ ВЫИГРЫШНЫХ PNG СИМВОЛОВ */
-.winning-symbol-img {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 10px rgba(11, 168, 74, 0.7));
-  animation: symbolCelebration 1s ease-in-out infinite alternate;
-}
-
 .winning-symbol {
-  font-size: 28px;
+  font-size: 24px;
   filter: drop-shadow(0 0 10px rgba(11, 168, 74, 0.7));
   animation: symbolCelebration 1s ease-in-out infinite alternate;
 }
@@ -329,7 +320,7 @@
   }
 }
 
-/* Адаптивность для мобильных устройств */
+/* Адаптивность */
 @media (max-width: 500px) {
   .slot-machine {
     padding: 15px;
@@ -345,25 +336,20 @@
   }
   
   .slot-cell {
-    height: 55px;
+    height: 50px;
   }
   
   .slot-symbol-img {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
   }
   
   .slot-symbol {
-    font-size: 28px;
-  }
-  
-  .winning-symbol-img {
-    width: 24px;
-    height: 24px;
+    font-size: 24px;
   }
   
   .winning-symbol {
-    font-size: 24px;
+    font-size: 20px;
   }
 }
 
@@ -373,25 +359,19 @@
   }
   
   .slot-cell {
-    height: 45px;
+    height: 40px;
   }
   
   .slot-symbol-img {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
   }
   
   .slot-symbol {
-    font-size: 24px;
-  }
-  
-  .winning-symbol-img {
-    width: 20px;
-    height: 20px;
+    font-size: 20px;
   }
   
   .winning-symbol {
-    font-size: 20px;
+    font-size: 18px;
   }
 }
-

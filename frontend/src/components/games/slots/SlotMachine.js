@@ -2,16 +2,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
 
-// Упрощенные символы слотов с fallback на эмодзи
+// Символы слотов только с эмодзи (убираем PNG)
 const SLOT_SYMBOLS = [
-  { symbol: 'cherry', name: 'cherry', weight: 25, payout: 4, emoji: '🍒', img: '/assets/images/slots/cherry.png' },
-  { symbol: 'lemon', name: 'lemon', weight: 20, payout: 6, emoji: '🍋', img: '/assets/images/slots/lemon.png' },
-  { symbol: 'persik', name: 'persik', weight: 15, payout: 8, emoji: '🍑', img: '/assets/images/slots/persik.png' },
-  { symbol: 'grape', name: 'grape', weight: 12, payout: 12, emoji: '🍇', img: '/assets/images/slots/grape.png' },
-  { symbol: 'bell', name: 'bell', weight: 8, payout: 18, emoji: '🔔', img: '/assets/images/slots/bell.png' },
-  { symbol: 'diamond', name: 'diamond', weight: 5, payout: 30, emoji: '💎', img: '/assets/images/slots/diamond.png' },
-  { symbol: 'star', name: 'star', weight: 3, payout: 50, emoji: '⭐', img: '/assets/images/slots/star.png' },
-  { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 100, emoji: '🎰', img: '/assets/images/slots/jackpot.png' }
+  { symbol: 'cherry', name: 'cherry', weight: 25, payout: 4, emoji: '🍒' },
+  { symbol: 'lemon', name: 'lemon', weight: 20, payout: 6, emoji: '🍋' },
+  { symbol: 'persik', name: 'persik', weight: 15, payout: 8, emoji: '🍑' },
+  { symbol: 'grape', name: 'grape', weight: 12, payout: 12, emoji: '🍇' },
+  { symbol: 'bell', name: 'bell', weight: 8, payout: 18, emoji: '🔔' },
+  { symbol: 'diamond', name: 'diamond', weight: 5, payout: 30, emoji: '💎' },
+  { symbol: 'star', name: 'star', weight: 3, payout: 50, emoji: '⭐' },
+  { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 100, emoji: '🎰' }
 ];
 
 const SlotMachine = ({ 
@@ -37,11 +37,13 @@ const SlotMachine = ({
   const [animatingReels, setAnimatingReels] = useState([false, false, false, false]);
   const [winningLines, setWinningLines] = useState([]);
   const [showingResult, setShowingResult] = useState(false);
+  const [spinPhase, setSpinPhase] = useState('idle'); // 'idle', 'spinning', 'stopping', 'stopped'
   
   // Рефы
   const animationIntervals = useRef([]);
   const animationTimeouts = useRef([]);
   const lastResultRef = useRef(null);
+  const spinStartTime = useRef(null);
   
   // Получить данные символа
   const getSymbolData = useCallback((symbolName) => {
@@ -88,27 +90,61 @@ const SlotMachine = ({
       setWinningLines([]);
       setShowingResult(false);
       setIsAnimating(true);
+      setSpinPhase('spinning');
       setAnimatingReels([true, true, true, true]);
+      spinStartTime.current = Date.now();
       
-      // Запускаем анимацию быстрой смены символов
+      // Запускаем анимацию быстрой смены символов с ускорением
       const intervals = [];
       
       for (let reelIndex = 0; reelIndex < 4; reelIndex++) {
+        let spinSpeed = 60; // Начальная скорость
+        
         const interval = setInterval(() => {
           setReels(prevReels => {
             const newReels = [...prevReels];
             newReels[reelIndex] = Array(4).fill().map(() => getRandomSymbol());
             return newReels;
           });
-        }, 80); // Быстрая смена каждые 80мс
+          
+          // Ускоряем вращение
+          if (spinSpeed > 30) {
+            spinSpeed -= 2;
+          }
+        }, spinSpeed);
         
         intervals.push(interval);
       }
       
       animationIntervals.current = intervals;
       
-      // Останавливаем барабаны поочередно
-      const stopDelays = [1500, 1700, 1900, 2100]; // Задержки для каждого барабана
+      // Фаза замедления
+      const slowdownTimeout = setTimeout(() => {
+        setSpinPhase('stopping');
+        
+        // Замедляем все барабаны
+        animationIntervals.current.forEach((interval, index) => {
+          if (interval) {
+            clearInterval(interval);
+            
+            // Создаем новый интервал с медленной скоростью
+            const slowInterval = setInterval(() => {
+              setReels(prevReels => {
+                const newReels = [...prevReels];
+                newReels[index] = Array(4).fill().map(() => getRandomSymbol());
+                return newReels;
+              });
+            }, 150); // Медленное вращение
+            
+            animationIntervals.current[index] = slowInterval;
+          }
+        });
+      }, 1000);
+      
+      animationTimeouts.current.push(slowdownTimeout);
+      
+      // Останавливаем барабаны поочередно с задержкой
+      const stopDelays = [1800, 2000, 2200, 2400]; // Увеличенные задержки
       
       stopDelays.forEach((delay, index) => {
         const timeout = setTimeout(() => {
@@ -118,7 +154,7 @@ const SlotMachine = ({
             animationIntervals.current[index] = null;
           }
           
-          // Отключаем анимацию для барабана
+          // Отключаем анимацию для барабана с эффектом "подпрыгивания"
           setAnimatingReels(prev => {
             const newState = [...prev];
             newState[index] = false;
@@ -128,6 +164,7 @@ const SlotMachine = ({
           // Если это последний барабан
           if (index === 3) {
             setIsAnimating(false);
+            setSpinPhase('stopped');
           }
         }, delay);
         
@@ -148,21 +185,23 @@ const SlotMachine = ({
       
       lastResultRef.current = lastResult;
       
-      // Устанавливаем барабаны из результата
-      setReels([...lastResult.reels]);
-      setShowingResult(true);
-      
-      // Показываем выигрышные линии
-      if (lastResult.winningLines && lastResult.winningLines.length > 0) {
-        setTimeout(() => {
-          setWinningLines([...lastResult.winningLines]);
-          
-          // Убираем подсветку через 3 секунды
+      // Устанавливаем барабаны из результата с анимацией
+      setTimeout(() => {
+        setReels([...lastResult.reels]);
+        setShowingResult(true);
+        
+        // Показываем выигрышные линии с задержкой
+        if (lastResult.winningLines && lastResult.winningLines.length > 0) {
           setTimeout(() => {
-            setWinningLines([]);
-          }, 3000);
-        }, 500);
-      }
+            setWinningLines([...lastResult.winningLines]);
+            
+            // Убираем подсветку через 4 секунды
+            setTimeout(() => {
+              setWinningLines([]);
+            }, 4000);
+          }, 300);
+        }
+      }, 200);
     }
   }, [lastResult, isAnimating, isSpinning]);
   
@@ -188,27 +227,10 @@ const SlotMachine = ({
     return baseClass;
   }, [winningLines]);
   
-  // Компонент символа с fallback
-  const SymbolComponent = React.memo(({ symbolName, className }) => {
+  // Компонент символа (только эмодзи)
+  const SymbolComponent = React.memo(({ symbolName }) => {
     const symbolData = getSymbolData(symbolName);
-    const [imageError, setImageError] = useState(false);
-    
-    const handleImageError = () => {
-      setImageError(true);
-    };
-    
-    if (imageError) {
-      return <span className="slot-symbol">{symbolData.emoji}</span>;
-    }
-    
-    return (
-      <img 
-        src={symbolData.img} 
-        alt={symbolData.name}
-        className={className}
-        onError={handleImageError}
-      />
-    );
+    return <span className="slot-symbol">{symbolData.emoji}</span>;
   });
   
   return (
@@ -219,7 +241,7 @@ const SlotMachine = ({
           {reels.map((reel, reelIndex) => (
             <div 
               key={reelIndex} 
-              className={`slot-reel ${animatingReels[reelIndex] ? 'spinning' : ''}`}
+              className={`slot-reel ${animatingReels[reelIndex] ? 'spinning' : ''} ${spinPhase}`}
             >
               {reel.map((symbolName, rowIndex) => (
                 <div
@@ -227,10 +249,7 @@ const SlotMachine = ({
                   className={getCellClass(reelIndex, rowIndex)}
                   data-position={`${reelIndex}-${rowIndex}`}
                 >
-                  <SymbolComponent 
-                    symbolName={symbolName}
-                    className="slot-symbol-img"
-                  />
+                  <SymbolComponent symbolName={symbolName} />
                 </div>
               ))}
             </div>
@@ -239,12 +258,15 @@ const SlotMachine = ({
         
         {/* Линии выплат */}
         <div className="paylines">
+          {/* Горизонтальные линии */}
           <div className={`payline horizontal line-1 ${winningLines.some(line => line.includes('0-0') && line.includes('1-0')) ? 'active' : ''}`}></div>
           <div className={`payline horizontal line-2 ${winningLines.some(line => line.includes('0-1') && line.includes('1-1')) ? 'active' : ''}`}></div>
           <div className={`payline horizontal line-3 ${winningLines.some(line => line.includes('0-2') && line.includes('1-2')) ? 'active' : ''}`}></div>
           <div className={`payline horizontal line-4 ${winningLines.some(line => line.includes('0-3') && line.includes('1-3')) ? 'active' : ''}`}></div>
-          <div className={`payline diagonal line-9 ${winningLines.some(line => line.includes('0-0') && line.includes('1-1') && line.includes('2-2')) ? 'active' : ''}`}></div>
-          <div className={`payline diagonal line-10 ${winningLines.some(line => line.includes('0-3') && line.includes('1-2') && line.includes('2-1')) ? 'active' : ''}`}></div>
+          
+          {/* Диагональные линии */}
+          <div className={`payline diagonal line-main ${winningLines.some(line => line.includes('0-0') && line.includes('1-1') && line.includes('2-2')) ? 'active' : ''}`}></div>
+          <div className={`payline diagonal line-anti ${winningLines.some(line => line.includes('0-3') && line.includes('1-2') && line.includes('2-1')) ? 'active' : ''}`}></div>
         </div>
       </div>
       
@@ -253,7 +275,7 @@ const SlotMachine = ({
         <div className="last-spin-info">
           {lastResult.win ? (
             <div className="win-display">
-              <span className="win-text">ВЫИГРЫШ!</span>
+              <span className="win-text">💰 ВЫИГРЫШ! 💰</span>
               <span className="win-amount">+{(Math.abs(lastResult.profit) || 0).toFixed(2)} USDT</span>
               {lastResult.winningSymbols && lastResult.winningSymbols.length > 0 && (
                 <div className="winning-symbols">
@@ -269,13 +291,13 @@ const SlotMachine = ({
               )}
               {lastResult.winningLines && lastResult.winningLines.length > 0 && (
                 <div className="winning-lines-count">
-                  Выигрышных линий: {lastResult.winningLines.length} | Множитель: x{(lastResult.multiplier || 0).toFixed(2)}
+                  🎯 Выигрышных линий: {lastResult.winningLines.length} | Множитель: ×{(lastResult.multiplier || 0).toFixed(2)}
                 </div>
               )}
             </div>
           ) : (
             <div className="lose-display">
-              <span className="lose-text">Попробуйте еще раз!</span>
+              <span className="lose-text">🎯 Удача в следующий раз!</span>
             </div>
           )}
         </div>

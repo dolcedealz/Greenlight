@@ -152,7 +152,16 @@ const gameApi = {
       selectedSide
     });
   },
+
+  // Игра "Слоты"
+playSlots: (betAmount) => {
+  console.log('Игра "Слоты":', { betAmount });
   
+  return api.post('/games/slots/play', { 
+    betAmount
+  });
+},
+
   // Игра "Мины" - ОБНОВЛЕННАЯ ВЕРСИЯ
   playMines: (betAmount, minesCount, clientSeed = null) => {
     console.log('Запуск игры "Мины":', { betAmount, minesCount, clientSeed });

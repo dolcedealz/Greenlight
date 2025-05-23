@@ -189,8 +189,10 @@ class GameService {
     }
   }
   
+// backend/src/services/game.service.js (только функция playSlots, остальное без изменений)
+
 /**
- * Играть в слоты (обновленная версия для 4x4)
+ * Играть в слоты (обновленная версия для 4x4 с ИСПРАВЛЕННЫМИ коэффициентами)
  * @param {Object} userData - Данные пользователя
  * @param {Object} gameData - Данные игры
  * @returns {Object} - Результат игры
@@ -225,16 +227,16 @@ async playSlots(userData, gameData) {
       throw new Error('Сумма ставки должна быть положительной');
     }
     
-    // Символы слотов с весами и выплатами
+    // ИСПРАВЛЕНО: Символы слотов с правильными коэффициентами
     const SLOT_SYMBOLS = [
-      { symbol: '🍒', weight: 25, payout: 2 },
-      { symbol: '🍋', weight: 20, payout: 3 },
-      { symbol: '🍊', weight: 15, payout: 4 },
-      { symbol: '🍇', weight: 12, payout: 5 },
-      { symbol: '🔔', weight: 8, payout: 8 },
-      { symbol: '💎', weight: 5, payout: 15 },
-      { symbol: '⭐', weight: 3, payout: 25 },
-      { symbol: '🎰', weight: 2, payout: 50 }
+      { symbol: '🍒', weight: 25, payout: 2 }, // 3 в ряд: 1, 4 в ряд: 2
+      { symbol: '🍋', weight: 20, payout: 3 }, // 3 в ряд: 1.5, 4 в ряд: 3
+      { symbol: '🍊', weight: 15, payout: 4 }, // 3 в ряд: 2, 4 в ряд: 4
+      { symbol: '🍇', weight: 12, payout: 5 }, // 3 в ряд: 2.5, 4 в ряд: 5
+      { symbol: '🔔', weight: 8, payout: 8 },  // 3 в ряд: 4, 4 в ряд: 8
+      { symbol: '💎', weight: 5, payout: 15 }, // 3 в ряд: 7.5, 4 в ряд: 15
+      { symbol: '⭐', weight: 3, payout: 25 }, // 3 в ряд: 12.5, 4 в ряд: 25
+      { symbol: '🎰', weight: 2, payout: 50 }  // 3 в ряд: 25, 4 в ряд: 50
     ];
     
     // Функция генерации символа
@@ -279,7 +281,7 @@ async playSlots(userData, gameData) {
         }
       }
       
-      // Если 3 одинаковых символа в ряд - коэффициент 1.5
+      // ИСПРАВЛЕНО: Разные коэффициенты для 3 и 4 в ряд
       if (consecutiveCount >= 3) {
         const symbolData = SLOT_SYMBOLS.find(s => s.symbol === symbol);
         if (symbolData) {
@@ -291,9 +293,11 @@ async playSlots(userData, gameData) {
           winningSymbols.push(symbol);
           
           if (consecutiveCount === 3) {
-            totalMultiplier += 1.5; // 3 в ряд
+            // ИСПРАВЛЕНО: для 3 в ряд коэффициент в 2 раза меньше
+            totalMultiplier += symbolData.payout / 2;
           } else if (consecutiveCount === 4) {
-            totalMultiplier += symbolData.payout; // 4 в ряд - полный коэффициент символа
+            // Для 4 в ряд - полный коэффициент символа
+            totalMultiplier += symbolData.payout;
           }
         }
       }
@@ -313,7 +317,7 @@ async playSlots(userData, gameData) {
         }
       }
       
-      // Если 3 одинаковых символа в ряд - коэффициент 1.5
+      // ИСПРАВЛЕНО: Разные коэффициенты для 3 и 4 в ряд
       if (consecutiveCount >= 3) {
         const symbolData = SLOT_SYMBOLS.find(s => s.symbol === symbol);
         if (symbolData) {
@@ -325,9 +329,11 @@ async playSlots(userData, gameData) {
           winningSymbols.push(symbol);
           
           if (consecutiveCount === 3) {
-            totalMultiplier += 1.5; // 3 в ряд
+            // ИСПРАВЛЕНО: для 3 в ряд коэффициент в 2 раза меньше
+            totalMultiplier += symbolData.payout / 2;
           } else if (consecutiveCount === 4) {
-            totalMultiplier += symbolData.payout; // 4 в ряд - полный коэффициент символа
+            // Для 4 в ряд - полный коэффициент символа
+            totalMultiplier += symbolData.payout;
           }
         }
       }
@@ -355,9 +361,11 @@ async playSlots(userData, gameData) {
         winningSymbols.push(diagonal1);
         
         if (diagonal1Count === 3) {
-          totalMultiplier += 1.5; // 3 в ряд
+          // ИСПРАВЛЕНО: для 3 в ряд коэффициент в 2 раза меньше
+          totalMultiplier += symbolData.payout / 2;
         } else if (diagonal1Count === 4) {
-          totalMultiplier += symbolData.payout; // 4 в ряд - полный коэффициент символа
+          // Для 4 в ряд - полный коэффициент символа
+          totalMultiplier += symbolData.payout;
         }
       }
     }
@@ -384,9 +392,11 @@ async playSlots(userData, gameData) {
         winningSymbols.push(diagonal2);
         
         if (diagonal2Count === 3) {
-          totalMultiplier += 1.5; // 3 в ряд
+          // ИСПРАВЛЕНО: для 3 в ряд коэффициент в 2 раза меньше
+          totalMultiplier += symbolData.payout / 2;
         } else if (diagonal2Count === 4) {
-          totalMultiplier += symbolData.payout; // 4 в ряд - полный коэффициент символа
+          // Для 4 в ряд - полный коэффициент символа
+          totalMultiplier += symbolData.payout;
         }
       }
     }
@@ -478,6 +488,7 @@ async playSlots(userData, gameData) {
     session.endSession();
   }
 }
+
   /**
    * Начать игру в мины
    * @param {Object} userData - Данные пользователя

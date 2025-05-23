@@ -16,6 +16,7 @@ const SlotGame = ({
   const [betAmount, setBetAmount] = useState(1);
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [animationComplete, setAnimationComplete] = useState(true); // НОВОЕ СОСТОЯНИЕ
   
   // Состояние автоигры
   const [autoplay, setAutoplay] = useState(false);
@@ -23,9 +24,18 @@ const SlotGame = ({
   const [autoplayRemaining, setAutoplayRemaining] = useState(0);
   const [autoplayTimeoutId, setAutoplayTimeoutId] = useState(null);
   
+  // Обработчик завершения анимации
+  const handleAnimationComplete = useCallback(() => {
+    console.log('СЛОТЫ: Анимация завершена в SlotGame');
+    setAnimationComplete(true);
+    setIsSpinning(false);
+    setLoading(false);
+  }, []);
+  
   // Функция для выполнения спина
   const performSpin = useCallback(async () => {
-    if (betAmount <= 0 || betAmount > balance || loading || isSpinning) {
+    if (betAmount <= 0 || betAmount > balance || loading || isSpinning || !animationComplete) {
+      console.log('СЛОТЫ: Спин заблокирован:', { betAmount, balance, loading, isSpinning, animationComplete });
       return false;
     }
     
@@ -33,6 +43,7 @@ const SlotGame = ({
       console.log('СЛОТЫ: Начинаем спин с ставкой:', betAmount);
       setLoading(true);
       setIsSpinning(true);
+      setAnimationComplete(false); // БЛОКИРУЕМ до завершения анимации
       setError(null);
       
       // Очищаем предыдущий результат
@@ -49,7 +60,7 @@ const SlotGame = ({
         throw new Error('Сервер вернул некорректные данные барабанов');
       }
       
-      // ИЗМЕНЕНИЕ: Сразу передаем результат в SlotMachine для остановки анимации
+      // Передаем результат в SlotMachine для запуска анимации
       setLastResult({
         reels: data.reels,
         winningLines: data.winningLines || [],
@@ -59,29 +70,20 @@ const SlotGame = ({
         winningSymbols: data.winningSymbols || []
       });
       
-      // ИЗМЕНЕНИЕ: Уменьшаем время ожидания, так как анимация теперь быстрее
-      setTimeout(() => {
-        console.log('СЛОТЫ: Анимация завершена');
-        
-        // Обновляем баланс
-        if (data.balanceAfter !== undefined) {
-          console.log('СЛОТЫ: Обновляем баланс:', data.balanceAfter);
-          setBalance(data.balanceAfter);
-        }
-        
-        // Показываем результат в GameScreen
-        setGameResult({
-          win: data.win,
-          amount: data.win ? Math.abs(data.profit) : betAmount,
-          newBalance: data.balanceAfter
-        });
-        
-        // Завершаем спин
-        setIsSpinning(false);
-        setLoading(false);
-        
-        console.log('СЛОТЫ: Спин полностью завершен');
-      }, 1800); // ИЗМЕНЕНИЕ: Уменьшено с 2500 до 1800
+      // Обновляем баланс после получения ответа
+      if (data.balanceAfter !== undefined) {
+        console.log('СЛОТЫ: Обновляем баланс:', data.balanceAfter);
+        setBalance(data.balanceAfter);
+      }
+      
+      // Показываем результат в GameScreen
+      setGameResult({
+        win: data.win,
+        amount: data.win ? Math.abs(data.profit) : betAmount,
+        newBalance: data.balanceAfter
+      });
+      
+      // Анимация будет завершена через handleAnimationComplete
       
       return data.win;
     } catch (err) {
@@ -89,22 +91,23 @@ const SlotGame = ({
       setError(err.response?.data?.message || 'Произошла ошибка при игре');
       setIsSpinning(false);
       setLoading(false);
+      setAnimationComplete(true);
       setLastResult(null);
       return false;
     }
-  }, [betAmount, balance, loading, isSpinning, setBalance, setError, setGameResult]);
+  }, [betAmount, balance, loading, isSpinning, animationComplete, setBalance, setError, setGameResult]);
   
   // Обработчик обычного спина
   const handleSpin = useCallback(async () => {
-    if (!autoplay && !isSpinning && !loading) {
+    if (!autoplay && !isSpinning && !loading && animationComplete) {
       console.log('СЛОТЫ: Ручной спин');
       await performSpin();
     }
-  }, [autoplay, isSpinning, loading, performSpin]);
+  }, [autoplay, isSpinning, loading, animationComplete, performSpin]);
   
   // Функция автоигры
   const performAutoplay = useCallback(async () => {
-    if (!autoplay || autoplayRemaining <= 0 || betAmount > balance || isSpinning || loading) {
+    if (!autoplay || autoplayRemaining <= 0 || betAmount > balance || isSpinning || loading || !animationComplete) {
       setAutoplay(false);
       setAutoplayRemaining(0);
       return;
@@ -122,22 +125,28 @@ const SlotGame = ({
       return;
     }
     
-    // Планируем следующий спин
+    // Планируем следующий спин только после завершения анимации
     if (autoplayRemaining > 1 && betAmount <= balance) {
       const timeoutId = setTimeout(() => {
-        performAutoplay();
-      }, 2500); // ИЗМЕНЕНИЕ: Уменьшено время между автоспинами
+        if (animationComplete) {
+          performAutoplay();
+        }
+      }, 1000); // Короткая пауза между спинами
       setAutoplayTimeoutId(timeoutId);
     } else {
       setAutoplay(false);
       setAutoplayRemaining(0);
     }
-  }, [autoplay, autoplayRemaining, betAmount, balance, isSpinning, loading, performSpin, lastResult]);
+  }, [autoplay, autoplayRemaining, betAmount, balance, isSpinning, loading, animationComplete, performSpin, lastResult]);
   
   // Эффект для запуска автоигры
   useEffect(() => {
-    if (autoplay && autoplayRemaining > 0 && !isSpinning && !loading) {
-      performAutoplay();
+    if (autoplay && autoplayRemaining > 0 && !isSpinning && !loading && animationComplete) {
+      const autoplayTimeout = setTimeout(() => {
+        performAutoplay();
+      }, 500);
+      
+      return () => clearTimeout(autoplayTimeout);
     }
     
     return () => {
@@ -145,7 +154,7 @@ const SlotGame = ({
         clearTimeout(autoplayTimeoutId);
       }
     };
-  }, [autoplay, autoplayRemaining, isSpinning, loading, performAutoplay, autoplayTimeoutId]);
+  }, [autoplay, autoplayRemaining, isSpinning, loading, animationComplete, performAutoplay, autoplayTimeoutId]);
   
   // Обработчик включения автоигры
   const handleAutoplayToggle = useCallback((enabled) => {
@@ -182,6 +191,7 @@ const SlotGame = ({
         autoplay={autoplay}
         loading={loading}
         gameStats={gameStats}
+        onAnimationComplete={handleAnimationComplete} // ПЕРЕДАЕМ CALLBACK
       />
       
       <SlotControls 

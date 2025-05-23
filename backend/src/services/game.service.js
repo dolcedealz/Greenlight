@@ -225,16 +225,15 @@ async playSlots(userData, gameData) {
       throw new Error('Сумма ставки должна быть положительной');
     }
     
-    // ОБНОВЛЕННЫЕ символы слотов с УВЕЛИЧЕННЫМИ коэффициентами
     const SLOT_SYMBOLS = [
-      { symbol: '🍒', weight: 25, payout: 4 },   // было 2, стало 4
-      { symbol: '🍋', weight: 20, payout: 6 },   // было 3, стало 6
-      { symbol: '🍊', weight: 15, payout: 8 },   // было 4, стало 8
-      { symbol: '🍇', weight: 12, payout: 12 },  // было 5, стало 12
-      { symbol: '🔔', weight: 8, payout: 18 },   // было 8, стало 18
-      { symbol: '💎', weight: 5, payout: 30 },   // было 15, стало 30
-      { symbol: '⭐', weight: 3, payout: 50 },   // было 25, стало 50
-      { symbol: '🎰', weight: 2, payout: 100 }   // было 50, стало 100
+      { symbol: 'cherry', weight: 25, payout: 4 },    // было 2, стало 4
+      { symbol: 'lemon', weight: 20, payout: 6 },     // было 3, стало 6
+      { symbol: 'persik', weight: 15, payout: 8 },    // было orange, теперь persik
+      { symbol: 'grape', weight: 12, payout: 12 },    // было 5, стало 12
+      { symbol: 'bell', weight: 8, payout: 18 },      // было 8, стало 18
+      { symbol: 'diamond', weight: 5, payout: 30 },   // было 15, стало 30
+      { symbol: 'star', weight: 3, payout: 50 },      // было 25, стало 50
+      { symbol: 'jackpot', weight: 2, payout: 100 }   // было 50, стало 100
     ];
     
     // Функция генерации символа
@@ -1056,3 +1055,4 @@ async playSlots(userData, gameData) {
 }
 
 module.exports = new GameService();
+

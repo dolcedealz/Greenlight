@@ -13,7 +13,8 @@ const SlotControls = ({
   autoplayCount,
   setAutoplayCount,
   loading,
-  autoplayRemaining
+  autoplayRemaining,
+  gameStats
 }) => {
   const [maxWin, setMaxWin] = useState(0);
   
@@ -62,6 +63,29 @@ const SlotControls = ({
   
   return (
     <div className="slot-controls">
+      {/* Кнопка спина */}
+      <div className="spin-section">
+        <button 
+          className={`spin-button ${isSpinning ? 'spinning' : ''} ${autoplay ? 'autoplay-active' : ''}`}
+          onClick={handleSpinClick}
+          disabled={isSpinning || loading || betAmount <= 0 || betAmount > balance || autoplay}
+        >
+          {isSpinning ? (
+            <span className="spin-text spinning-text">
+              <span className="spinner">🎰</span> Крутим...
+            </span>
+          ) : autoplay ? (
+            <span className="spin-text">
+              🤖 АВТОИГРА АКТИВНА
+            </span>
+          ) : (
+            <span className="spin-text">
+              🎰 КРУТИТЬ ({betAmount} USDT)
+            </span>
+          )}
+        </button>
+      </div>
+      
       {/* Управление ставкой */}
       <div className="bet-section">
         <div className="bet-control">
@@ -109,47 +133,6 @@ const SlotControls = ({
             MAX
           </button>
         </div>
-      </div>
-      
-      {/* Информация о выигрыше */}
-      <div className={`win-info ${autoplay && autoplayRemaining > 0 ? 'has-autoplay' : ''}`}>
-        <div className="info-item">
-          <span className="info-label">Макс. выигрыш:</span>
-          <span className="info-value">{maxWin.toFixed(2)} USDT</span>
-        </div>
-        <div className="info-item">
-          <span className="info-label">Баланс:</span>
-          <span className="info-value">{balance.toFixed(2)} USDT</span>
-        </div>
-        {autoplay && autoplayRemaining > 0 && (
-          <div className="info-item autoplay-info">
-            <span className="info-label">Осталось:</span>
-            <span className="info-value">{autoplayRemaining} спинов</span>
-          </div>
-        )}
-      </div>
-      
-      {/* Кнопка спина */}
-      <div className="spin-section">
-        <button 
-          className={`spin-button ${isSpinning ? 'spinning' : ''} ${autoplay ? 'autoplay-active' : ''}`}
-          onClick={handleSpinClick}
-          disabled={isSpinning || loading || betAmount <= 0 || betAmount > balance || autoplay}
-        >
-          {isSpinning ? (
-            <span className="spin-text spinning-text">
-              <span className="spinner">🎰</span> Крутим...
-            </span>
-          ) : autoplay ? (
-            <span className="spin-text">
-              🤖 АВТОИГРА АКТИВНА
-            </span>
-          ) : (
-            <span className="spin-text">
-              🎰 КРУТИТЬ ({betAmount} USDT)
-            </span>
-          )}
-        </button>
       </div>
       
       {/* Автоигра */}
@@ -201,25 +184,79 @@ const SlotControls = ({
             </div>
           </div>
         )}
+        
+        {autoplay && autoplayRemaining > 0 && (
+          <div className="autoplay-status">
+            <span>Осталось спинов: {autoplayRemaining}</span>
+          </div>
+        )}
       </div>
       
-      {/* Дополнительные кнопки */}
-      <div className="additional-controls">
-        <button 
-          className="control-btn"
-          onClick={() => setBetAmount(Math.max(0.1, betAmount / 2))}
-          disabled={isSpinning || loading || autoplay}
-        >
-          ÷2 Ставка
-        </button>
-        <button 
-          className="control-btn"
-          onClick={() => setBetAmount(Math.min(balance, betAmount * 2))}
-          disabled={isSpinning || loading || autoplay}
-        >
-          ×2 Ставка
-        </button>
+      {/* Таблица выплат */}
+      <div className="payout-table">
+        <h4>Таблица выплат</h4>
+        <div className="payout-rules">
+          <div className="payout-rule">
+            <span className="rule-text">3 в ряд</span>
+            <span className="rule-multiplier">×1.5</span>
+          </div>
+          <div className="payout-rule">
+            <span className="rule-text">4 в ряд</span>
+            <span className="rule-multiplier">×(коэффициент символа)</span>
+          </div>
+        </div>
+        <div className="payout-grid">
+          {[
+            { symbol: '🍒', payout: 2 },
+            { symbol: '🍋', payout: 3 },
+            { symbol: '🍊', payout: 4 },
+            { symbol: '🍇', payout: 5 },
+            { symbol: '🔔', payout: 8 },
+            { symbol: '💎', payout: 15 },
+            { symbol: '⭐', payout: 25 },
+            { symbol: '🎰', payout: 50 }
+          ].map((symbolData, index) => (
+            <div key={index} className="payout-item">
+              <span className="payout-symbol">{symbolData.symbol}</span>
+              <span className="payout-multiplier">×{symbolData.payout}</span>
+            </div>
+          ))}
+        </div>
+        <div className="payout-note">
+          * Выигрыш при 4 одинаковых символах в линию
+        </div>
       </div>
+      
+      {/* Статистика */}
+      {gameStats && (
+        <div className="game-stats">
+          <h4>Ваша статистика</h4>
+          <div className="stats-container">
+            <div className="stat-item">
+              <span className="stat-label">Всего игр:</span>
+              <span className="stat-value">{gameStats.totalGames}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Победы:</span>
+              <span className="stat-value">{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Ставки:</span>
+              <span className="stat-value">{gameStats.totalBet?.toFixed(2) || 0} USDT</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Выигрыши:</span>
+              <span className="stat-value">{gameStats.totalWin?.toFixed(2) || 0} USDT</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Профит:</span>
+              <span className={`stat-value ${(gameStats.totalWin - gameStats.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
+                {((gameStats.totalWin || 0) - (gameStats.totalLoss || 0)).toFixed(2)} USDT
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

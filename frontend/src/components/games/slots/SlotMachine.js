@@ -24,9 +24,8 @@ const SlotMachine = ({
   loading,
   gameStats 
 }) => {
-  // Состояние барабанов сохраняется между играми
+  // ИСПРАВЛЕНО: Состояние барабанов - начинаем с пустых символов
   const [reels, setReels] = useState(() => {
-    // Инициализация случайными символами
     return [
       ['🍒', '🍋', '🍊', '🍇'],
       ['🍒', '🍋', '🍊', '🍇'],
@@ -35,14 +34,17 @@ const SlotMachine = ({
     ];
   });
   
-  // ИСПРАВЛЕНО: добавлены состояния для анимации
+  // Состояния для анимации
   const [isAnimating, setIsAnimating] = useState(false);
   const [animatingReels, setAnimatingReels] = useState([false, false, false, false]);
   const [winningLines, setWinningLines] = useState([]);
-  const [finalResult, setFinalResult] = useState(null);
+  const [showingResult, setShowingResult] = useState(false);
+  
+  // Рефы для управления
   const lastResultRef = useRef(null);
-  const winningTimeoutRef = useRef(null);
   const animationTimeoutRefs = useRef([]);
+  const winningTimeoutRef = useRef(null);
+  const resultProcessedRef = useRef(false);
   
   // Функция для генерации случайного символа для анимации
   const getRandomSymbol = useCallback(() => {
@@ -59,10 +61,13 @@ const SlotMachine = ({
     return SLOT_SYMBOLS[0].symbol;
   }, []);
   
-  // ИСПРАВЛЕНО: Очистка состояния при начале нового спина
+  // ИСПРАВЛЕНО: Очистка и запуск анимации при начале спина
   useEffect(() => {
     if (isSpinning && !isAnimating) {
-      console.log('Спин начался - запускаем анимацию');
+      console.log('СЛОТЫ ФРОНТ: Спин начался - запускаем анимацию');
+      
+      // Сбрасываем флаг обработки результата
+      resultProcessedRef.current = false;
       
       // Очищаем предыдущие таймауты
       animationTimeoutRefs.current.forEach(timeout => {
@@ -75,19 +80,17 @@ const SlotMachine = ({
         winningTimeoutRef.current = null;
       }
       
-      // Очищаем выигрышные линии
+      // Очищаем состояние
       setWinningLines([]);
-      setFinalResult(null);
-      lastResultRef.current = null;
+      setShowingResult(false);
       
       // Запускаем анимацию вращения
       setIsAnimating(true);
       setAnimatingReels([true, true, true, true]);
       
-      // Запускаем анимацию барабанов
+      // Интервалы для быстрой смены символов во время анимации
       const animationIntervals = [];
       
-      // Для каждого барабана создаем интервал с быстрой сменой символов
       reels.forEach((_, reelIndex) => {
         const interval = setInterval(() => {
           setReels(prev => {
@@ -100,17 +103,17 @@ const SlotMachine = ({
             ];
             return newReels;
           });
-        }, 100); // Меняем символы каждые 100мс
+        }, 100); // Быстрая смена каждые 100мс
         
         animationIntervals.push(interval);
       });
       
       // Останавливаем анимацию через 2 секунды
       const stopAnimationTimeout = setTimeout(() => {
-        // Очищаем все интервалы
+        // Очищаем интервалы
         animationIntervals.forEach(interval => clearInterval(interval));
         
-        // Останавливаем анимацию барабанов поочередно
+        // Останавливаем барабаны поочередно
         const delays = [0, 200, 400, 600];
         
         delays.forEach((delay, index) => {
@@ -133,39 +136,56 @@ const SlotMachine = ({
       
       animationTimeoutRefs.current.push(stopAnimationTimeout);
     }
-  }, [isSpinning, isAnimating, getRandomSymbol, reels]);
+  }, [isSpinning, isAnimating, getRandomSymbol]);
   
-  // ИСПРАВЛЕНО: Обработка нового результата
+  // ИСПРАВЛЕНО: Обработка результата с сервера
   useEffect(() => {
-    // Проверяем, что результат действительно новый и анимация завершена
-    if (lastResult && lastResult !== lastResultRef.current && lastResult.reels && !isAnimating) {
-      console.log('Получен НОВЫЙ результат с сервера:', lastResult);
+    // Проверяем, что:
+    // 1. Есть новый результат
+    // 2. Анимация завершена
+    // 3. Результат еще не был обработан
+    // 4. Спин завершен (isSpinning = false)
+    if (lastResult && 
+        lastResult !== lastResultRef.current && 
+        lastResult.reels && 
+        !isAnimating && 
+        !isSpinning &&
+        !resultProcessedRef.current) {
       
-      // Сохраняем ссылку на текущий результат
+      console.log('СЛОТЫ ФРОНТ: Обрабатываем НОВЫЙ результат с сервера:', lastResult);
+      
+      // Помечаем результат как обработанный
+      resultProcessedRef.current = true;
       lastResultRef.current = lastResult;
-      setFinalResult({ ...lastResult });
       
-      // Устанавливаем финальные символы
-      setReels(lastResult.reels);
+      // КРИТИЧНО: Устанавливаем ТОЧНО ТЕ ЖЕ барабаны, что пришли с сервера
+      console.log('СЛОТЫ ФРОНТ: Устанавливаем барабаны с сервера:', lastResult.reels);
+      setReels([...lastResult.reels]); // Создаем новый массив
       
-      // Показываем выигрышные линии если есть
+      // Показываем результат
+      setShowingResult(true);
+      
+      // Если есть выигрышные линии, показываем их с задержкой
       if (lastResult.winningLines && lastResult.winningLines.length > 0) {
+        console.log('СЛОТЫ ФРОНТ: Показываем выигрышные линии:', lastResult.winningLines);
+        
         setTimeout(() => {
-          console.log('Устанавливаем выигрышные линии');
-          setWinningLines(lastResult.winningLines);
+          setWinningLines([...lastResult.winningLines]);
           
           // Убираем подсветку через 3 секунды
           winningTimeoutRef.current = setTimeout(() => {
-            console.log('Очищаем выигрышные линии через таймаут');
+            console.log('СЛОТЫ ФРОНТ: Убираем выигрышные линии');
             setWinningLines([]);
             winningTimeoutRef.current = null;
           }, 3000);
         }, 500);
+      } else {
+        console.log('СЛОТЫ ФРОНТ: Выигрышных линий нет');
       }
     }
-  }, [lastResult, isAnimating]);
+  }, [lastResult, isAnimating, isSpinning]);
   
-  // Очистка таймаутов при размонтировании
+  // Очистка при размонтировании
   useEffect(() => {
     return () => {
       animationTimeoutRefs.current.forEach(timeout => {
@@ -177,14 +197,17 @@ const SlotMachine = ({
     };
   }, []);
   
-  // Функция для получения класса ячейки
+  // ИСПРАВЛЕНО: Функция для определения класса ячейки
   const getCellClass = useCallback((reelIndex, rowIndex) => {
     const baseClass = 'slot-cell';
     const position = `${reelIndex}-${rowIndex}`;
     
-    // Показываем выигрышные только если есть актуальные линии
-    if (winningLines.length > 0 && winningLines.some(line => line.includes(position))) {
-      return `${baseClass} winning`;
+    // Показываем выигрышные только если есть активные линии
+    if (winningLines.length > 0) {
+      const isWinning = winningLines.some(line => line.includes(position));
+      if (isWinning) {
+        return `${baseClass} winning`;
+      }
     }
     
     return baseClass;
@@ -231,23 +254,23 @@ const SlotMachine = ({
         </div>
       </div>
       
-      {/* Информация о последнем спине */}
-      {finalResult && !isSpinning && !isAnimating && finalResult === lastResultRef.current && (
+      {/* ИСПРАВЛЕНО: Информация о результате */}
+      {showingResult && lastResult && lastResultRef.current === lastResult && !isSpinning && !isAnimating && (
         <div className="last-spin-info">
-          {finalResult.win ? (
+          {lastResult.win ? (
             <div className="win-display">
               <span className="win-text">ВЫИГРЫШ!</span>
-              <span className="win-amount">+{(Math.abs(finalResult.profit) || 0).toFixed(2)} USDT</span>
-              {finalResult.winningSymbols && (
+              <span className="win-amount">+{(Math.abs(lastResult.profit) || 0).toFixed(2)} USDT</span>
+              {lastResult.winningSymbols && lastResult.winningSymbols.length > 0 && (
                 <div className="winning-symbols">
-                  {finalResult.winningSymbols.map((symbol, index) => (
+                  {lastResult.winningSymbols.map((symbol, index) => (
                     <span key={index} className="winning-symbol">{symbol}</span>
                   ))}
                 </div>
               )}
-              {finalResult.winningLines && finalResult.winningLines.length > 0 && (
+              {lastResult.winningLines && lastResult.winningLines.length > 0 && (
                 <div className="winning-lines-count">
-                  Выигрышных линий: {finalResult.winningLines.length}
+                  Выигрышных линий: {lastResult.winningLines.length} | Множитель: x{(lastResult.multiplier || 0).toFixed(2)}
                 </div>
               )}
             </div>

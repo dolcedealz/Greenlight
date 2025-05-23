@@ -8,141 +8,19 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
-  /* Секция ставки */
-  .bet-section {
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .bet-control {
-    margin-bottom: 15px;
-  }
-  
-  .bet-control label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: 500;
-  }
-  
-  .bet-input-container {
-    position: relative;
-  }
-  
-  .bet-control input {
-    width: 100%;
-    padding: 12px 15px;
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: white;
-    font-size: 18px;
-    text-align: center;
-    transition: all 0.2s ease;
-    font-weight: 600;
-  }
-  
-  .bet-control input:focus {
-    border-color: var(--primary-color);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(11, 168, 74, 0.2);
-    background-color: rgba(255, 255, 255, 0.08);
-  }
-  
-  .bet-control input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-  
-  /* Быстрые ставки */
-  .quick-bets {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-  
-  .quick-bet-btn {
-    padding: 8px 12px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .quick-bet-btn:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-  
-  .quick-bet-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  
-  /* Информация о выигрыше */
-  .win-info {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 20px;
-  }
-  
-  .win-info.has-autoplay {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-  
-  .info-item {
-    padding: 12px;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.2s ease;
-  }
-  
-  .info-item:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-  }
-  
-  .info-item.autoplay-info {
-    background-color: rgba(11, 168, 74, 0.1);
-    border-color: var(--primary-color);
-  }
-  
-  .info-label {
-    display: block;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: 5px;
-  }
-  
-  .info-value {
-    display: block;
-    font-size: 16px;
-    font-weight: bold;
-    color: var(--primary-color);
-  }
-  
-  /* Кнопка спина */
+  /* Кнопка спина - теперь первая */
   .spin-section {
     margin-bottom: 20px;
   }
   
   .spin-button {
     width: 100%;
-    padding: 18px 20px;
+    padding: 20px 20px;
     background: linear-gradient(135deg, var(--primary-color) 0%, #0c9740 100%);
     border: none;
     border-radius: 12px;
     color: white;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -182,10 +60,88 @@
     animation: spinIcon 1s linear infinite;
   }
   
-  /* Автоигра */
+  /* Секция ставки - теперь вторая */
+  .bet-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .bet-control {
+    margin-bottom: 15px;
+  }
+  
+  .bet-control label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+  }
+  
+  .bet-input-container {
+    position: relative;
+  }
+  
+  .bet-control input {
+    width: 100%;
+    padding: 14px 15px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 18px;
+    text-align: center;
+    transition: all 0.2s ease;
+    font-weight: 600;
+  }
+  
+  .bet-control input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(11, 168, 74, 0.2);
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .bet-control input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Быстрые ставки */
+  .quick-bets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  
+  .quick-bet-btn {
+    padding: 10px 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .quick-bet-btn:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .quick-bet-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* Автоигра - теперь третья */
   .autoplay-section {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 20px;
     margin-bottom: 20px;
   }
   
@@ -242,7 +198,7 @@
   }
   
   .toggle-text {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
   }
   
@@ -318,35 +274,149 @@
     line-height: 1.4;
   }
   
-  /* Дополнительные кнопки */
-  .additional-controls {
+  .autoplay-status {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background-color: rgba(11, 168, 74, 0.1);
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 500;
+    color: var(--primary-color);
+  }
+  
+  /* Таблица выплат - теперь четвертая */
+  .payout-table {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .payout-table h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: var(--primary-color);
+    text-align: center;
+    font-weight: 600;
+  }
+  
+  .payout-rules {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .payout-rule {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+  }
+  
+  .rule-text {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .rule-multiplier {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--primary-color);
+  }
+  
+  .payout-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  
+  .payout-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .payout-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .payout-symbol {
+    font-size: 18px;
+    margin-bottom: 4px;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+  }
+  
+  .payout-multiplier {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--primary-color);
+  }
+  
+  .payout-note {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    font-style: italic;
+  }
+  
+  /* Статистика - теперь пятая */
+  .game-stats {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .game-stats h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: var(--primary-color);
+    text-align: center;
+    font-weight: 600;
+  }
+  
+  .stats-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 15px;
   }
   
-  .control-btn {
-    padding: 10px 15px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    color: white;
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    text-align: center;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 5px;
+  }
+  
+  .stat-value {
     font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    font-weight: bold;
   }
   
-  .control-btn:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
+  .stat-value.positive {
+    color: var(--primary-color);
   }
   
-  .control-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .stat-value.negative {
+    color: #ff3b30;
   }
   
   /* Анимации */
@@ -390,21 +460,20 @@
       gap: 10px;
     }
     
-    .win-info {
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    
-    .win-info.has-autoplay {
-      grid-template-columns: 1fr;
-    }
-    
     .spin-button {
-      padding: 16px 20px;
-      font-size: 16px;
+      padding: 18px 20px;
+      font-size: 18px;
     }
     
     .count-buttons {
       grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .payout-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .stats-container {
+      grid-template-columns: 1fr;
     }
   }

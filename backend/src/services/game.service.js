@@ -190,6 +190,203 @@ class GameService {
   }
   
   /**
+ * Играть в слоты
+ * @param {Object} userData - Данные пользователя
+ * @param {Object} gameData - Данные игры
+ * @returns {Object} - Результат игры
+ */
+async playSlots(userData, gameData) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
+  try {
+    const { userId, telegramId } = userData;
+    const { betAmount } = gameData;
+    
+    // Найдем пользователя
+    const user = await User.findOne(
+      userId ? { _id: userId } : { telegramId }
+    ).session(session);
+    
+    if (!user) {
+      throw new Error('Пользователь не найден');
+    }
+    
+    if (user.isBlocked) {
+      throw new Error('Ваш аккаунт заблокирован');
+    }
+    
+    // Проверяем достаточно ли средств
+    if (user.balance < betAmount) {
+      throw new Error('Недостаточно средств');
+    }
+    
+    if (betAmount <= 0) {
+      throw new Error('Сумма ставки должна быть положительной');
+    }
+    
+    // Символы слотов с весами и выплатами
+    const SLOT_SYMBOLS = [
+      { symbol: '🍒', weight: 25, payout: 2 },
+      { symbol: '🍋', weight: 20, payout: 3 },
+      { symbol: '🍊', weight: 15, payout: 4 },
+      { symbol: '🍇', weight: 12, payout: 5 },
+      { symbol: '🔔', weight: 8, payout: 8 },
+      { symbol: '💎', weight: 5, payout: 15 },
+      { symbol: '⭐', weight: 3, payout: 25 },
+      { symbol: '🎰', weight: 2, payout: 50 }
+    ];
+    
+    // Функция генерации символа
+    const generateSymbol = () => {
+      const totalWeight = SLOT_SYMBOLS.reduce((sum, s) => sum + s.weight, 0);
+      let random = Math.random() * totalWeight;
+      
+      for (const symbolData of SLOT_SYMBOLS) {
+        random -= symbolData.weight;
+        if (random <= 0) {
+          return symbolData;
+        }
+      }
+      
+      return SLOT_SYMBOLS[0];
+    };
+    
+    // Генерируем барабаны (3x3)
+    const reels = [
+      [generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol],
+      [generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol],
+      [generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol]
+    ];
+    
+    // Проверяем выигрышные линии
+    const winningLines = [];
+    const winningSymbols = [];
+    let totalMultiplier = 0;
+    
+    // Горизонтальные линии
+    for (let row = 0; row < 3; row++) {
+      const symbol = reels[0][row];
+      if (reels[1][row] === symbol && reels[2][row] === symbol) {
+        const symbolData = SLOT_SYMBOLS.find(s => s.symbol === symbol);
+        if (symbolData) {
+          winningLines.push([`0-${row}`, `1-${row}`, `2-${row}`]);
+          winningSymbols.push(symbol);
+          totalMultiplier += symbolData.payout;
+        }
+      }
+    }
+    
+    // Диагональные линии
+    const diagonal1 = reels[0][0];
+    if (reels[1][1] === diagonal1 && reels[2][2] === diagonal1) {
+      const symbolData = SLOT_SYMBOLS.find(s => s.symbol === diagonal1);
+      if (symbolData) {
+        winningLines.push(['0-0', '1-1', '2-2']);
+        winningSymbols.push(diagonal1);
+        totalMultiplier += symbolData.payout;
+      }
+    }
+    
+    const diagonal2 = reels[0][2];
+    if (reels[1][1] === diagonal2 && reels[2][0] === diagonal2) {
+      const symbolData = SLOT_SYMBOLS.find(s => s.symbol === diagonal2);
+      if (symbolData) {
+        winningLines.push(['0-2', '1-1', '2-0']);
+        winningSymbols.push(diagonal2);
+        totalMultiplier += symbolData.payout;
+      }
+    }
+    
+    // Определяем выигрыш
+    const win = totalMultiplier > 0;
+    const winAmount = win ? betAmount * totalMultiplier : 0;
+    const profit = win ? winAmount - betAmount : -betAmount;
+    
+    // Баланс до и после
+    const balanceBefore = user.balance;
+    const balanceAfter = balanceBefore + profit;
+    
+    // Обновляем баланс пользователя
+    user.balance = balanceAfter;
+    user.totalWagered += betAmount;
+    if (win) {
+      user.totalWon += winAmount;
+    }
+    user.lastActivity = new Date();
+    await user.save({ session });
+    
+    // Создаем запись об игре
+    const game = new Game({
+      user: user._id,
+      gameType: 'slots',
+      bet: betAmount,
+      multiplier: totalMultiplier || 0,
+      result: {
+        reels,
+        winningLines,
+        winningSymbols,
+        totalMultiplier,
+        win
+      },
+      win,
+      profit,
+      balanceBefore,
+      balanceAfter,
+      status: 'completed'
+    });
+    
+    await game.save({ session });
+    
+    // Создаем транзакцию для ставки
+    const betTransaction = new Transaction({
+      user: user._id,
+      type: 'bet',
+      amount: -betAmount,
+      game: game._id,
+      description: 'Ставка в игре "Слоты"',
+      balanceBefore,
+      balanceAfter: balanceBefore - betAmount
+    });
+    
+    await betTransaction.save({ session });
+    
+    // Если был выигрыш, создаем транзакцию для выигрыша
+    if (win) {
+      const winTransaction = new Transaction({
+        user: user._id,
+        type: 'win',
+        amount: winAmount,
+        game: game._id,
+        description: `Выигрыш в игре "Слоты" (x${totalMultiplier})`,
+        balanceBefore: balanceBefore - betAmount,
+        balanceAfter
+      });
+      
+      await winTransaction.save({ session });
+    }
+    
+    await session.commitTransaction();
+    
+    // Возвращаем данные для клиента
+    return {
+      reels,
+      winningLines,
+      winningSymbols,
+      win,
+      profit,
+      multiplier: totalMultiplier,
+      balanceAfter
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+}
+
+  /**
    * Начать игру в мины
    * @param {Object} userData - Данные пользователя
    * @param {Object} gameData - Данные игры

@@ -10,7 +10,7 @@ const gameSchema = new Schema({
   },
   gameType: {
     type: String,
-    enum: ['coin', 'mines', 'crash', 'slots'],
+    enum: ['coin', 'mines', 'crash', 'slots'], // Добавили 'slots'
     required: true
   },
   bet: {

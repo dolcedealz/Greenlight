@@ -24,7 +24,7 @@ const SlotMachine = ({
   loading,
   gameStats 
 }) => {
-  // ИСПРАВЛЕНО: Состояние барабанов - начинаем с пустых символов
+  // Состояние барабанов - начинаем с пустых символов
   const [reels, setReels] = useState(() => {
     return [
       ['🍒', '🍋', '🍊', '🍇'],
@@ -61,7 +61,7 @@ const SlotMachine = ({
     return SLOT_SYMBOLS[0].symbol;
   }, []);
   
-  // ИСПРАВЛЕНО: Очистка и запуск анимации при начале спина
+  // Очистка и запуск анимации при начале спина
   useEffect(() => {
     if (isSpinning && !isAnimating) {
       console.log('СЛОТЫ ФРОНТ: Спин начался - запускаем анимацию');
@@ -138,7 +138,7 @@ const SlotMachine = ({
     }
   }, [isSpinning, isAnimating, getRandomSymbol]);
   
-  // ИСПРАВЛЕНО: Обработка результата с сервера
+  // Обработка результата с сервера
   useEffect(() => {
     // Проверяем, что:
     // 1. Есть новый результат
@@ -197,7 +197,7 @@ const SlotMachine = ({
     };
   }, []);
   
-  // ИСПРАВЛЕНО: Функция для определения класса ячейки
+  // Функция для определения класса ячейки
   const getCellClass = useCallback((reelIndex, rowIndex) => {
     const baseClass = 'slot-cell';
     const position = `${reelIndex}-${rowIndex}`;
@@ -236,25 +236,24 @@ const SlotMachine = ({
           ))}
         </div>
         
-        {/* Линии выплат для 4x4 поля */}
+        {/* Линии выплат для 4x4 поля - ТОЛЬКО горизонтальные и диагональные */}
         <div className="paylines">
-          {/* Горизонтальные линии */}
+          {/* Горизонтальные линии - ОСТАВЛЯЕМ */}
           <div className="payline horizontal line-1"></div>
           <div className="payline horizontal line-2"></div>
           <div className="payline horizontal line-3"></div>
           <div className="payline horizontal line-4"></div>
-          {/* Вертикальные линии */}
-          <div className="payline vertical line-5"></div>
-          <div className="payline vertical line-6"></div>
-          <div className="payline vertical line-7"></div>
-          <div className="payline vertical line-8"></div>
-          {/* Диагональные линии */}
+          
+          {/* УБИРАЕМ ВСЕ ВЕРТИКАЛЬНЫЕ ЛИНИИ */}
+          {/* Вертикальные линии полностью удалены */}
+          
+          {/* Диагональные линии - ОСТАВЛЯЕМ */}
           <div className="payline diagonal line-9"></div>
           <div className="payline diagonal line-10"></div>
         </div>
       </div>
       
-      {/* ИСПРАВЛЕНО: Информация о результате */}
+      {/* Информация о результате */}
       {showingResult && lastResult && lastResultRef.current === lastResult && !isSpinning && !isAnimating && (
         <div className="last-spin-info">
           {lastResult.win ? (

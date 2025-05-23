@@ -39,8 +39,8 @@ const SlotGame = ({
       const response = await gameApi.playSlots(betAmount);
       const data = response.data.data;
       
-      // Имитируем время вращения барабанов (3 секунды)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Имитируем время вращения барабанов (2.5 секунды для 4x4)
+      await new Promise(resolve => setTimeout(resolve, 2500));
       
       // Обновляем результат
       setLastResult({
@@ -101,11 +101,11 @@ const SlotGame = ({
       return;
     }
     
-    // Планируем следующий спин через 2 секунды
+    // Планируем следующий спин через 1.5 секунды
     if (autoplayRemaining > 1 && betAmount <= balance) {
       const timeoutId = setTimeout(() => {
         performAutoplay();
-      }, 2000);
+      }, 1500);
       setAutoplayTimeoutId(timeoutId);
     } else {
       setAutoplay(false);
@@ -159,6 +159,7 @@ const SlotGame = ({
         lastResult={lastResult}
         autoplay={autoplay}
         loading={loading}
+        gameStats={gameStats}
       />
       
       <SlotControls 
@@ -173,6 +174,7 @@ const SlotGame = ({
         setAutoplayCount={setAutoplayCount}
         loading={loading}
         autoplayRemaining={autoplayRemaining}
+        gameStats={gameStats}
       />
     </>
   );

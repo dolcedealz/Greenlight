@@ -7,7 +7,7 @@
     padding: 20px;
     box-shadow: var(--shadow);
     width: 100%;
-    max-width: 600px;
+    max-width: 500px;
     margin: 0 auto;
   }
   
@@ -26,7 +26,7 @@
   
   .slot-reels {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr); /* Изменено с 5 на 4 */
     gap: 10px;
     position: relative;
     z-index: 2;
@@ -68,7 +68,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 60px;
+    height: 70px; /* Увеличена высота для 4x4 */
     background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
     border-bottom: 1px solid #333;
     transition: all 0.3s ease;
@@ -99,7 +99,7 @@
   }
   
   .slot-symbol {
-    font-size: 32px;
+    font-size: 36px; /* Увеличен размер для 4x4 */
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     transition: transform 0.3s ease;
     filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
@@ -113,7 +113,7 @@
     filter: drop-shadow(0 0 15px var(--primary-color));
   }
   
-  /* Линии выплат для 5x5 поля */
+  /* Линии выплат для 4x4 поля */
   .paylines {
     position: absolute;
     top: 0;
@@ -136,7 +136,7 @@
     animation: paylinePulse 1s ease-in-out infinite alternate;
   }
   
-  /* Горизонтальные линии для 5x5 */
+  /* Горизонтальные линии для 4x4 */
   .payline.horizontal {
     height: 3px;
     left: 20px;
@@ -144,100 +144,59 @@
   }
   
   .payline.horizontal.line-1 {
-    top: 50px; /* Первая строка */
+    top: 55px; /* Первая строка */
   }
   
   .payline.horizontal.line-2 {
-    top: 110px; /* Вторая строка */
+    top: 125px; /* Вторая строка */
   }
   
   .payline.horizontal.line-3 {
-    top: 170px; /* Третья строка */
+    top: 195px; /* Третья строка */
   }
   
   .payline.horizontal.line-4 {
-    top: 230px; /* Четвертая строка */
+    top: 265px; /* Четвертая строка */
   }
   
-  .payline.horizontal.line-5 {
-    top: 290px; /* Пятая строка */
+  /* Вертикальные линии для 4x4 */
+  .payline.vertical {
+    width: 3px;
+    height: 280px;
+    top: 20px;
   }
   
-  /* Диагональные линии для 5x5 */
+  .payline.vertical.line-5 {
+    left: 60px; /* Первая колонка */
+  }
+  
+  .payline.vertical.line-6 {
+    left: 140px; /* Вторая колонка */
+  }
+  
+  .payline.vertical.line-7 {
+    left: 220px; /* Третья колонка */
+  }
+  
+  .payline.vertical.line-8 {
+    left: 300px; /* Четвертая колонка */
+  }
+  
+  /* Диагональные линии для 4x4 */
   .payline.diagonal {
     width: 3px;
-    height: 350px;
+    height: 280px;
     left: 50%;
     top: 20px;
     transform-origin: top center;
   }
   
-  .payline.diagonal.line-6 {
-    transform: translateX(-50%) rotate(18deg); /* Главная диагональ */
+  .payline.diagonal.line-9 {
+    transform: translateX(-50%) rotate(17deg); /* Главная диагональ */
   }
   
-  .payline.diagonal.line-7 {
-    transform: translateX(-50%) rotate(-18deg); /* Побочная диагональ */
-  }
-  
-  /* Таблица выплат */
-  .payout-table {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .payout-table h4 {
-    margin: 0 0 15px 0;
-    font-size: 16px;
-    color: var(--primary-color);
-    text-align: center;
-    font-weight: 600;
-  }
-  
-  .payout-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-  
-  .payout-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 10px 8px;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .payout-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-  
-  .payout-symbol {
-    font-size: 20px;
-    margin-bottom: 5px;
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
-  }
-  
-  .payout-multiplier {
-    font-size: 12px;
-    font-weight: bold;
-    color: var(--primary-color);
-  }
-  
-  .payout-note {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-    text-align: center;
-    font-style: italic;
+  .payline.diagonal.line-10 {
+    transform: translateX(-50%) rotate(-17deg); /* Побочная диагональ */
   }
   
   /* Информация о последнем спине */
@@ -367,7 +326,7 @@
   }
   
   /* Адаптивность для мобильных устройств */
-  @media (max-width: 600px) {
+  @media (max-width: 500px) {
     .slot-machine {
       padding: 15px;
       max-width: 100%;
@@ -382,28 +341,11 @@
     }
     
     .slot-cell {
-      height: 45px;
+      height: 55px;
     }
     
     .slot-symbol {
-      font-size: 24px;
-    }
-    
-    .payout-grid {
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-    
-    .payout-symbol {
-      font-size: 16px;
-    }
-    
-    .payout-multiplier {
-      font-size: 10px;
-    }
-    
-    .payout-item {
-      padding: 8px 6px;
+      font-size: 28px;
     }
     
     .winning-symbol {
@@ -417,15 +359,11 @@
     }
     
     .slot-cell {
-      height: 35px;
+      height: 45px;
     }
     
     .slot-symbol {
-      font-size: 18px;
-    }
-    
-    .payout-grid {
-      grid-template-columns: repeat(2, 1fr);
+      font-size: 24px;
     }
     
     .winning-symbol {

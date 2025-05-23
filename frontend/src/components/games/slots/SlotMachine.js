@@ -21,16 +21,17 @@ const SlotMachine = ({
   betAmount,
   lastResult,
   autoplay,
-  loading 
+  loading,
+  gameStats 
 }) => {
+  // Изменяем начальное состояние на 4x4
   const [reels, setReels] = useState([
-    ['🍒', '🍋', '🍊', '🍇', '🔔'],
-    ['🍒', '🍋', '🍊', '🍇', '🔔'],
-    ['🍒', '🍋', '🍊', '🍇', '🔔'],
-    ['🍒', '🍋', '🍊', '🍇', '🔔'],
-    ['🍒', '🍋', '🍊', '🍇', '🔔']
+    ['🍒', '🍋', '🍊', '🍇'],
+    ['🍒', '🍋', '🍊', '🍇'],
+    ['🍒', '🍋', '🍊', '🍇'],
+    ['🍒', '🍋', '🍊', '🍇']
   ]);
-  const [animatingReels, setAnimatingReels] = useState([false, false, false, false, false]);
+  const [animatingReels, setAnimatingReels] = useState([false, false, false, false]);
   const [winningLines, setWinningLines] = useState([]);
   
   // Функция для генерации случайного символа для анимации
@@ -52,7 +53,7 @@ const SlotMachine = ({
   useEffect(() => {
     if (lastResult && lastResult.reels) {
       // Останавливаем анимацию и показываем результат
-      setAnimatingReels([false, false, false, false, false]);
+      setAnimatingReels([false, false, false, false]);
       setReels(lastResult.reels);
       setWinningLines(lastResult.winningLines || []);
       
@@ -65,13 +66,13 @@ const SlotMachine = ({
     }
   }, [lastResult]);
   
-  // Эффект для анимации вращения
+  // Эффект для анимации вращения (обновлен для 4 барабанов)
   useEffect(() => {
     if (isSpinning) {
       setWinningLines([]);
       
       // Запускаем анимацию для каждого барабана с задержкой
-      const delays = [0, 200, 400, 600, 800];
+      const delays = [0, 200, 400, 600];
       
       delays.forEach((delay, index) => {
         setTimeout(() => {
@@ -86,7 +87,6 @@ const SlotMachine = ({
             setReels(prev => {
               const newReels = [...prev];
               newReels[index] = [
-                getRandomSymbol(),
                 getRandomSymbol(),
                 getRandomSymbol(),
                 getRandomSymbol(),
@@ -124,6 +124,7 @@ const SlotMachine = ({
   
   return (
     <div className="slot-machine">
+      {/* Игровое поле 4x4 */}
       <div className="slot-display">
         <div className="slot-reels">
           {reels.map((reel, reelIndex) => (
@@ -144,33 +145,21 @@ const SlotMachine = ({
           ))}
         </div>
         
-        {/* Линии выплат для 5x5 поля */}
+        {/* Линии выплат для 4x4 поля */}
         <div className="paylines">
           {/* Горизонтальные линии */}
           <div className="payline horizontal line-1"></div>
           <div className="payline horizontal line-2"></div>
           <div className="payline horizontal line-3"></div>
           <div className="payline horizontal line-4"></div>
-          <div className="payline horizontal line-5"></div>
+          {/* Вертикальные линии */}
+          <div className="payline vertical line-5"></div>
+          <div className="payline vertical line-6"></div>
+          <div className="payline vertical line-7"></div>
+          <div className="payline vertical line-8"></div>
           {/* Диагональные линии */}
-          <div className="payline diagonal line-6"></div>
-          <div className="payline diagonal line-7"></div>
-        </div>
-      </div>
-      
-      {/* Таблица выплат */}
-      <div className="payout-table">
-        <h4>Таблица выплат (коэффициент от ставки)</h4>
-        <div className="payout-grid">
-          {SLOT_SYMBOLS.map((symbolData, index) => (
-            <div key={index} className="payout-item">
-              <span className="payout-symbol">{symbolData.symbol}</span>
-              <span className="payout-multiplier">×{symbolData.payout}</span>
-            </div>
-          ))}
-        </div>
-        <div className="payout-note">
-          * Выигрыш при 5 одинаковых символах в линию
+          <div className="payline diagonal line-9"></div>
+          <div className="payline diagonal line-10"></div>
         </div>
       </div>
       

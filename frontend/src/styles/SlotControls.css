@@ -108,38 +108,48 @@
     cursor: not-allowed;
   }
   
-  /* Быстрые ставки - ОБНОВЛЕНЫ */
+  /* ИСПРАВЛЕНО: Быстрые ставки - увеличены в ширину в 3 раза */
   .quick-bets {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px; /* Увеличен gap */
+    display: flex;
+    flex-direction: column; /* Изменено на колонку для увеличения ширины */
+    gap: 15px; /* Увеличен gap между строками */
   }
   
   .quick-bet-btn {
-    padding: 14px 16px; /* Увеличен padding */
+    width: 100%; /* Кнопки занимают всю ширину */
+    padding: 18px 20px; /* Увеличен padding */
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px; /* Увеличен border-radius */
+    border-radius: 10px; /* Увеличен border-radius */
     color: white;
-    font-size: 16px; /* Увеличен font-size */
-    font-weight: 600; /* Увеличен font-weight */
+    font-size: 20px; /* Увеличен font-size */
+    font-weight: 700; /* Увеличен font-weight */
     cursor: pointer;
     transition: all 0.2s ease;
-    min-height: 50px; /* Добавлена минимальная высота */
+    min-height: 60px; /* Увеличена минимальная высота */
+    text-transform: uppercase; /* Добавлен верхний регистр для акцента */
+    letter-spacing: 1px; /* Добавлен межбуквенный интервал */
   }
   
   /* Дополнительный класс для увеличенных кнопок */
   .quick-bet-btn.large {
-    padding: 16px 18px;
-    font-size: 18px;
-    font-weight: 700;
-    min-height: 55px;
+    padding: 20px 22px;
+    font-size: 22px;
+    font-weight: 800;
+    min-height: 65px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
   
   .quick-bet-btn:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    border-color: var(--primary-color);
+  }
+  
+  .quick-bet-btn:active:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
   }
   
   .quick-bet-btn:disabled {
@@ -464,11 +474,6 @@
       padding: 15px;
     }
     
-    .quick-bets {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-    
     .spin-button {
       padding: 18px 20px;
       font-size: 18px;
@@ -486,9 +491,18 @@
       grid-template-columns: 1fr;
     }
     
+    /* Для мобильных кнопки чуть меньше, но все равно большие */
     .quick-bet-btn, .quick-bet-btn.large {
-      padding: 12px 14px;
-      font-size: 14px;
-      min-height: 45px;
+      padding: 16px 18px;
+      font-size: 18px;
+      min-height: 55px;
+    }
+  }
+  
+  @media (max-width: 400px) {
+    .quick-bet-btn, .quick-bet-btn.large {
+      padding: 14px 16px;
+      font-size: 16px;
+      min-height: 50px;
     }
   }

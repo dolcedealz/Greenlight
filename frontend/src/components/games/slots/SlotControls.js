@@ -39,7 +39,7 @@ const SlotControls = ({
     }
   };
   
-  // Быстрые ставки - ОБНОВЛЕНО: 1% 5% 10% MAX
+  // ИСПРАВЛЕНО: Быстрые ставки - только 1% и 5%
   const handleQuickBet = (multiplier) => {
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
@@ -103,7 +103,7 @@ const SlotControls = ({
           </div>
         </div>
         
-        {/* ОБНОВЛЕННЫЕ КНОПКИ: 1% 5% 10% MAX в 2x2 сетке */}
+        {/* ИСПРАВЛЕНО: Только 2 кнопки - 1% и 5% в столбик */}
         <div className="quick-bets">
           <button 
             onClick={() => handleQuickBet(0.01)} 
@@ -118,20 +118,6 @@ const SlotControls = ({
             className="quick-bet-btn large"
           >
             5%
-          </button>
-          <button 
-            onClick={() => handleQuickBet(0.1)} 
-            disabled={isSpinning || loading || autoplay}
-            className="quick-bet-btn large"
-          >
-            10%
-          </button>
-          <button 
-            onClick={() => handleQuickBet(1)} 
-            disabled={isSpinning || loading || autoplay}
-            className="quick-bet-btn large"
-          >
-            MAX
           </button>
         </div>
       </div>
@@ -193,7 +179,7 @@ const SlotControls = ({
         )}
       </div>
       
-      {/* ОБНОВЛЕННАЯ Таблица выплат */}
+      {/* Таблица выплат */}
       <div className="payout-table">
         <h4>Таблица выплат</h4>
         <div className="payout-rules">

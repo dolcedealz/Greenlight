@@ -44,6 +44,42 @@ class GameController {
   }
   
   /**
+ * Играть в слоты
+ * @param {Object} req - Запрос Express
+ * @param {Object} res - Ответ Express
+ */
+async playSlots(req, res) {
+  try {
+    const { betAmount } = req.body;
+    
+    // Получаем информацию о пользователе из запроса
+    const userData = {
+      userId: req.user._id,
+      telegramId: req.user.telegramId
+    };
+    
+    // Данные игры
+    const gameData = {
+      betAmount: parseFloat(betAmount)
+    };
+    
+    // Играем в слоты
+    const result = await gameService.playSlots(userData, gameData);
+    
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error(`Ошибка в playSlots: ${error.message}`, error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
+  /**
    * Играть в мины
    * @param {Object} req - Запрос Express
    * @param {Object} res - Ответ Express

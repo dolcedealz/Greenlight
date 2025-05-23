@@ -8,19 +8,19 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
-  /* Кнопка спина - теперь первая */
+  /* ИСПРАВЛЕНО: Кнопка спина - уменьшена высота */
   .spin-section {
     margin-bottom: 20px;
   }
   
   .spin-button {
     width: 100%;
-    padding: 20px 20px;
+    padding: 15px 20px; /* ИСПРАВЛЕНО: уменьшен padding с 20px до 15px */
     background: linear-gradient(135deg, var(--primary-color) 0%, #0c9740 100%);
     border: none;
     border-radius: 12px;
     color: white;
-    font-size: 20px;
+    font-size: 18px; /* ИСПРАВЛЕНО: уменьшен font-size с 20px до 18px */
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -108,35 +108,36 @@
     cursor: not-allowed;
   }
   
-  /* ИСПРАВЛЕНО: Быстрые ставки - увеличены в ширину в 3 раза */
+  /* ИСПРАВЛЕНО: Быстрые ставки - 2 кнопки в ряду, 2 ряда */
   .quick-bets {
-    display: flex;
-    flex-direction: column; /* Изменено на колонку для увеличения ширины */
-    gap: 15px; /* Увеличен gap между строками */
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* ИСПРАВЛЕНО: 2 колонки вместо 1 */
+    grid-template-rows: 1fr 1fr; /* ИСПРАВЛЕНО: 2 ряда */
+    gap: 12px; /* ИСПРАВЛЕНО: уменьшен gap */
   }
   
   .quick-bet-btn {
-    width: 100%; /* Кнопки занимают всю ширину */
-    padding: 18px 20px; /* Увеличен padding */
+    width: 100%;
+    padding: 16px 18px; /* ИСПРАВЛЕНО: немного уменьшен padding */
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px; /* Увеличен border-radius */
+    border-radius: 10px;
     color: white;
-    font-size: 20px; /* Увеличен font-size */
-    font-weight: 700; /* Увеличен font-weight */
+    font-size: 18px; /* ИСПРАВЛЕНО: уменьшен font-size */
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-height: 60px; /* Увеличена минимальная высота */
-    text-transform: uppercase; /* Добавлен верхний регистр для акцента */
-    letter-spacing: 1px; /* Добавлен межбуквенный интервал */
+    min-height: 55px; /* ИСПРАВЛЕНО: уменьшена минимальная высота */
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
   
   /* Дополнительный класс для увеличенных кнопок */
   .quick-bet-btn.large {
-    padding: 20px 22px;
-    font-size: 22px;
+    padding: 18px 20px; /* ИСПРАВЛЕНО: немного уменьшен padding */
+    font-size: 20px; /* ИСПРАВЛЕНО: уменьшен font-size */
     font-weight: 800;
-    min-height: 65px;
+    min-height: 60px; /* ИСПРАВЛЕНО: уменьшена высота */
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
   
@@ -475,8 +476,8 @@
     }
     
     .spin-button {
-      padding: 18px 20px;
-      font-size: 18px;
+      padding: 14px 18px; /* ИСПРАВЛЕНО: уменьшен padding для мобильных */
+      font-size: 16px; /* ИСПРАВЛЕНО: уменьшен font-size для мобильных */
     }
     
     .count-buttons {
@@ -493,16 +494,16 @@
     
     /* Для мобильных кнопки чуть меньше, но все равно большие */
     .quick-bet-btn, .quick-bet-btn.large {
-      padding: 16px 18px;
-      font-size: 18px;
-      min-height: 55px;
+      padding: 14px 16px; /* ИСПРАВЛЕНО: уменьшен padding */
+      font-size: 16px; /* ИСПРАВЛЕНО: уменьшен font-size */
+      min-height: 50px; /* ИСПРАВЛЕНО: уменьшена высота */
     }
   }
   
   @media (max-width: 400px) {
     .quick-bet-btn, .quick-bet-btn.large {
-      padding: 14px 16px;
-      font-size: 16px;
-      min-height: 50px;
+      padding: 12px 14px;
+      font-size: 14px;
+      min-height: 45px;
     }
   }

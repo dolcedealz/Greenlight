@@ -24,7 +24,7 @@ const SlotMachine = ({
   loading,
   gameStats 
 }) => {
-  // ОБНОВЛЕНО: состояние барабанов сохраняется между играми
+  // Состояние барабанов сохраняется между играми
   const [reels, setReels] = useState(() => {
     // Инициализация случайными символами
     return [
@@ -37,7 +37,8 @@ const SlotMachine = ({
   
   const [animatingReels, setAnimatingReels] = useState([false, false, false, false]);
   const [winningLines, setWinningLines] = useState([]);
-  const [finalResult, setFinalResult] = useState(null); // НОВОЕ: хранит финальный результат
+  const [finalResult, setFinalResult] = useState(null);
+  const [currentGameId, setCurrentGameId] = useState(null); // НОВОЕ: отслеживаем ID текущей игры
   
   // Функция для генерации случайного символа для анимации
   const getRandomSymbol = useCallback(() => {
@@ -54,24 +55,36 @@ const SlotMachine = ({
     return SLOT_SYMBOLS[0].symbol;
   }, []);
   
-  // ИСПРАВЛЕНО: результат устанавливается сразу и не меняется
+  // ИСПРАВЛЕНО: правильная обработка нового результата
   useEffect(() => {
     if (lastResult && lastResult.reels) {
       console.log('Получен результат с сервера:', lastResult.reels);
       
-      // Сохраняем финальный результат
-      setFinalResult(lastResult);
+      // НОВОЕ: создаем уникальный ID для каждой игры
+      const gameId = Date.now() + Math.random();
+      setCurrentGameId(gameId);
       
-      // НЕ устанавливаем результат сразу, ждем окончания анимации
+      // Сохраняем финальный результат
+      setFinalResult({ ...lastResult, gameId });
+      
+      // ИСПРАВЛЕНО: немедленно очищаем выигрышные линии при новом результате
       setWinningLines([]);
     }
   }, [lastResult]);
   
-  // ИСПРАВЛЕНО: анимация с правильной установкой результата
+  // ИСПРАВЛЕНО: очистка выигрышных линий при начале спина
   useEffect(() => {
-    if (isSpinning && finalResult) {
-      setWinningLines([]);
-      
+    if (isSpinning) {
+      console.log('Спин начался - очищаем выигрышные линии');
+      setWinningLines([]); // Немедленно очищаем при начале спина
+      setFinalResult(null); // Очищаем предыдущий результат
+      setCurrentGameId(null); // Сбрасываем ID игры
+    }
+  }, [isSpinning]);
+  
+  // Анимация с правильной установкой результата
+  useEffect(() => {
+    if (isSpinning && finalResult && finalResult.gameId === currentGameId) {
       // Запускаем анимацию для каждого барабана с задержкой
       const delays = [0, 200, 400, 600];
       
@@ -101,45 +114,50 @@ const SlotMachine = ({
           setTimeout(() => {
             clearInterval(interval);
             
-            // ИСПРАВЛЕНО: устанавливаем ФИНАЛЬНЫЙ результат с сервера
-            setReels(prev => {
-              const newReels = [...prev];
-              newReels[index] = finalResult.reels[index];
-              return newReels;
-            });
-            
-            setAnimatingReels(prev => {
-              const newState = [...prev];
-              newState[index] = false;
-              return newState;
-            });
-            
-            // Если это последний барабан, показываем выигрышные линии
-            if (index === delays.length - 1) {
-              setTimeout(() => {
-                if (finalResult.winningLines && finalResult.winningLines.length > 0) {
-                  setWinningLines(finalResult.winningLines);
-                  
-                  // Убираем подсветку через 3 секунды
-                  setTimeout(() => {
-                    setWinningLines([]);
-                  }, 3000);
-                }
-              }, 300);
+            // Проверяем, что мы все еще работаем с тем же результатом
+            if (finalResult.gameId === currentGameId) {
+              // Устанавливаем ФИНАЛЬНЫЙ результат с сервера
+              setReels(prev => {
+                const newReels = [...prev];
+                newReels[index] = finalResult.reels[index];
+                return newReels;
+              });
+              
+              setAnimatingReels(prev => {
+                const newState = [...prev];
+                newState[index] = false;
+                return newState;
+              });
+              
+              // Если это последний барабан, показываем выигрышные линии
+              if (index === delays.length - 1) {
+                setTimeout(() => {
+                  // ИСПРАВЛЕНО: проверяем, что это все еще та же игра
+                  if (finalResult.gameId === currentGameId && finalResult.winningLines && finalResult.winningLines.length > 0) {
+                    console.log('Устанавливаем выигрышные линии для игры:', finalResult.gameId);
+                    setWinningLines(finalResult.winningLines);
+                    
+                    // Убираем подсветку через 3 секунды
+                    setTimeout(() => {
+                      // ИСПРАВЛЕНО: проверяем ID игры перед очисткой
+                      setWinningLines(prev => {
+                        // Очищаем только если это все еще та же игра
+                        if (finalResult.gameId === currentGameId) {
+                          console.log('Очищаем выигрышные линии для игры:', finalResult.gameId);
+                          return [];
+                        }
+                        return prev;
+                      });
+                    }, 3000);
+                  }
+                }, 300);
+              }
             }
           }, 2000 + delay);
         }, delay);
       });
     }
-  }, [isSpinning, finalResult, getRandomSymbol]);
-  
-  // НОВЫЙ ЭФФЕКТ: очистка состояния при новой игре
-  useEffect(() => {
-    if (isSpinning && !finalResult) {
-      // Новая игра началась, но результат еще не получен
-      setWinningLines([]);
-    }
-  }, [isSpinning, finalResult]);
+  }, [isSpinning, finalResult, currentGameId, getRandomSymbol]);
   
   // Функция для получения класса ячейки
   const getCellClass = useCallback((reelIndex, rowIndex) => {
@@ -195,7 +213,7 @@ const SlotMachine = ({
       </div>
       
       {/* Информация о последнем спине */}
-      {finalResult && !isSpinning && (
+      {finalResult && !isSpinning && finalResult.gameId === currentGameId && (
         <div className="last-spin-info">
           {finalResult.win ? (
             <div className="win-display">

@@ -26,7 +26,7 @@
   
   .slot-reels {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* Изменено с 5 на 4 */
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     position: relative;
     z-index: 2;
@@ -68,7 +68,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 70px; /* Увеличена высота для 4x4 */
+    height: 70px;
     background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
     border-bottom: 1px solid #333;
     transition: all 0.3s ease;
@@ -99,7 +99,7 @@
   }
   
   .slot-symbol {
-    font-size: 36px; /* Увеличен размер для 4x4 */
+    font-size: 36px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     transition: transform 0.3s ease;
     filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
@@ -113,7 +113,7 @@
     filter: drop-shadow(0 0 15px var(--primary-color));
   }
   
-  /* Линии выплат для 4x4 поля */
+  /* Линии выплат для 4x4 поля - ТОЛЬКО горизонтальные и диагональные */
   .paylines {
     position: absolute;
     top: 0;
@@ -136,7 +136,7 @@
     animation: paylinePulse 1s ease-in-out infinite alternate;
   }
   
-  /* Горизонтальные линии для 4x4 */
+  /* Горизонтальные линии для 4x4 - ОСТАВЛЯЕМ */
   .payline.horizontal {
     height: 3px;
     left: 20px;
@@ -159,30 +159,10 @@
     top: 265px; /* Четвертая строка */
   }
   
-  /* Вертикальные линии для 4x4 */
-  .payline.vertical {
-    width: 3px;
-    height: 280px;
-    top: 20px;
-  }
+  /* УБИРАЕМ ВСЕ ВЕРТИКАЛЬНЫЕ ЛИНИИ */
+  /* Блок с вертикальными линиями полностью удален */
   
-  .payline.vertical.line-5 {
-    left: 60px; /* Первая колонка */
-  }
-  
-  .payline.vertical.line-6 {
-    left: 140px; /* Вторая колонка */
-  }
-  
-  .payline.vertical.line-7 {
-    left: 220px; /* Третья колонка */
-  }
-  
-  .payline.vertical.line-8 {
-    left: 300px; /* Четвертая колонка */
-  }
-  
-  /* Диагональные линии для 4x4 */
+  /* Диагональные линии для 4x4 - ОСТАВЛЯЕМ */
   .payline.diagonal {
     width: 3px;
     height: 280px;

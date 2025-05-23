@@ -24,15 +24,20 @@ const SlotMachine = ({
   loading,
   gameStats 
 }) => {
-  // Изменяем начальное состояние на 4x4
-  const [reels, setReels] = useState([
-    ['🍒', '🍋', '🍊', '🍇'],
-    ['🍒', '🍋', '🍊', '🍇'],
-    ['🍒', '🍋', '🍊', '🍇'],
-    ['🍒', '🍋', '🍊', '🍇']
-  ]);
+  // ОБНОВЛЕНО: состояние барабанов сохраняется между играми
+  const [reels, setReels] = useState(() => {
+    // Инициализация случайными символами
+    return [
+      ['🍒', '🍋', '🍊', '🍇'],
+      ['🍒', '🍋', '🍊', '🍇'],
+      ['🍒', '🍋', '🍊', '🍇'],
+      ['🍒', '🍋', '🍊', '🍇']
+    ];
+  });
+  
   const [animatingReels, setAnimatingReels] = useState([false, false, false, false]);
   const [winningLines, setWinningLines] = useState([]);
+  const [finalResult, setFinalResult] = useState(null); // НОВОЕ: хранит финальный результат
   
   // Функция для генерации случайного символа для анимации
   const getRandomSymbol = useCallback(() => {
@@ -49,26 +54,22 @@ const SlotMachine = ({
     return SLOT_SYMBOLS[0].symbol;
   }, []);
   
-  // Эффект для обработки результата игры
+  // ИСПРАВЛЕНО: результат устанавливается сразу и не меняется
   useEffect(() => {
     if (lastResult && lastResult.reels) {
-      // Останавливаем анимацию и показываем результат
-      setAnimatingReels([false, false, false, false]);
-      setReels(lastResult.reels);
-      setWinningLines(lastResult.winningLines || []);
+      console.log('Получен результат с сервера:', lastResult.reels);
       
-      // Если есть выигрыш, подсвечиваем выигрышные линии
-      if (lastResult.winningLines && lastResult.winningLines.length > 0) {
-        setTimeout(() => {
-          setWinningLines([]);
-        }, 3000);
-      }
+      // Сохраняем финальный результат
+      setFinalResult(lastResult);
+      
+      // НЕ устанавливаем результат сразу, ждем окончания анимации
+      setWinningLines([]);
     }
   }, [lastResult]);
   
-  // Эффект для анимации вращения (обновлен для 4 барабанов)
+  // ИСПРАВЛЕНО: анимация с правильной установкой результата
   useEffect(() => {
-    if (isSpinning) {
+    if (isSpinning && finalResult) {
       setWinningLines([]);
       
       // Запускаем анимацию для каждого барабана с задержкой
@@ -99,16 +100,46 @@ const SlotMachine = ({
           // Останавливаем анимацию через 2 секунды + задержка
           setTimeout(() => {
             clearInterval(interval);
+            
+            // ИСПРАВЛЕНО: устанавливаем ФИНАЛЬНЫЙ результат с сервера
+            setReels(prev => {
+              const newReels = [...prev];
+              newReels[index] = finalResult.reels[index];
+              return newReels;
+            });
+            
             setAnimatingReels(prev => {
               const newState = [...prev];
               newState[index] = false;
               return newState;
             });
+            
+            // Если это последний барабан, показываем выигрышные линии
+            if (index === delays.length - 1) {
+              setTimeout(() => {
+                if (finalResult.winningLines && finalResult.winningLines.length > 0) {
+                  setWinningLines(finalResult.winningLines);
+                  
+                  // Убираем подсветку через 3 секунды
+                  setTimeout(() => {
+                    setWinningLines([]);
+                  }, 3000);
+                }
+              }, 300);
+            }
           }, 2000 + delay);
         }, delay);
       });
     }
-  }, [isSpinning, getRandomSymbol]);
+  }, [isSpinning, finalResult, getRandomSymbol]);
+  
+  // НОВЫЙ ЭФФЕКТ: очистка состояния при новой игре
+  useEffect(() => {
+    if (isSpinning && !finalResult) {
+      // Новая игра началась, но результат еще не получен
+      setWinningLines([]);
+    }
+  }, [isSpinning, finalResult]);
   
   // Функция для получения класса ячейки
   const getCellClass = useCallback((reelIndex, rowIndex) => {
@@ -164,22 +195,22 @@ const SlotMachine = ({
       </div>
       
       {/* Информация о последнем спине */}
-      {lastResult && (
+      {finalResult && !isSpinning && (
         <div className="last-spin-info">
-          {lastResult.win ? (
+          {finalResult.win ? (
             <div className="win-display">
               <span className="win-text">ВЫИГРЫШ!</span>
-              <span className="win-amount">+{lastResult.winAmount?.toFixed(2)} USDT</span>
-              {lastResult.winningSymbols && (
+              <span className="win-amount">+{(Math.abs(finalResult.profit) || 0).toFixed(2)} USDT</span>
+              {finalResult.winningSymbols && (
                 <div className="winning-symbols">
-                  {lastResult.winningSymbols.map((symbol, index) => (
+                  {finalResult.winningSymbols.map((symbol, index) => (
                     <span key={index} className="winning-symbol">{symbol}</span>
                   ))}
                 </div>
               )}
-              {lastResult.winningLines && lastResult.winningLines.length > 0 && (
+              {finalResult.winningLines && finalResult.winningLines.length > 0 && (
                 <div className="winning-lines-count">
-                  Выигрышных линий: {lastResult.winningLines.length}
+                  Выигрышных линий: {finalResult.winningLines.length}
                 </div>
               )}
             </div>

@@ -58,13 +58,18 @@
     0 2px 4px rgba(0, 0, 0, 0.3);
   position: relative;
   transform-origin: center;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Анимация вращения барабанов */
+/* УЛУЧШЕННАЯ анимация вращения барабанов */
 .slot-reel.spinning {
-  animation: reelSpin 0.1s linear infinite;
-  transform: scaleY(1.02);
+  animation: reelSpinImproved 0.08s linear infinite;
+  transform: scaleY(1.03);
+  border-color: rgba(11, 168, 74, 0.5);
+  box-shadow: 
+    inset 0 4px 8px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 0 15px rgba(11, 168, 74, 0.3);
 }
 
 .slot-reel.spinning::before {
@@ -76,12 +81,12 @@
   bottom: 0;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    transparent 20%,
-    transparent 80%,
-    rgba(255, 255, 255, 0.15) 100%
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 30%,
+    transparent 70%,
+    rgba(255, 255, 255, 0.2) 100%
   );
-  animation: reelBlur 0.15s ease-in-out infinite;
+  animation: reelBlurImproved 0.12s ease-in-out infinite;
   z-index: 10;
 }
 
@@ -95,20 +100,26 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(11, 168, 74, 0.3) 50%,
+    rgba(11, 168, 74, 0.4) 50%,
     transparent 100%
   );
-  animation: reelGlow 0.2s ease-in-out infinite;
+  animation: reelGlowImproved 0.15s ease-in-out infinite;
   z-index: 11;
 }
 
-/* Фазы вращения */
+/* НОВАЯ анимация фазы замедления */
 .slot-reel.stopping {
-  animation: reelSlow 0.3s ease-out;
+  animation: reelSlowDown 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  border-color: rgba(11, 168, 74, 0.7);
 }
 
 .slot-reel.stopped {
-  animation: reelStop 0.2s ease-out;
+  animation: reelFinalStop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  border-color: var(--primary-color);
+  box-shadow: 
+    inset 0 4px 8px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(11, 168, 74, 0.4);
 }
 
 .slot-cell {
@@ -118,7 +129,7 @@
   height: 70px;
   background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #2a2a2a 100%);
   border-bottom: 2px solid #333;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
@@ -132,19 +143,19 @@
   border-radius: 7px 7px 0 0;
 }
 
-/* Выигрышные ячейки */
+/* Выигрышные ячейки с улучшенной анимацией */
 .slot-cell.winning {
   background: linear-gradient(135deg, 
-    rgba(11, 168, 74, 0.4) 0%, 
-    rgba(11, 168, 74, 0.2) 50%, 
-    rgba(11, 168, 74, 0.4) 100%);
+    rgba(11, 168, 74, 0.5) 0%, 
+    rgba(11, 168, 74, 0.3) 50%, 
+    rgba(11, 168, 74, 0.5) 100%);
   border: 3px solid var(--primary-color);
   border-radius: 8px !important;
   animation: winningCelebration 1.2s ease-in-out infinite;
   z-index: 5;
   box-shadow: 
-    0 0 20px rgba(11, 168, 74, 0.6),
-    inset 0 0 15px rgba(11, 168, 74, 0.3);
+    0 0 25px rgba(11, 168, 74, 0.7),
+    inset 0 0 20px rgba(11, 168, 74, 0.4);
 }
 
 .slot-cell.winning::before {
@@ -358,43 +369,91 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Анимации */
-@keyframes reelSpin {
-  0%, 100% { transform: translateY(0) scaleY(1.02); }
-  25% { transform: translateY(-2px) scaleY(1.03); }
-  75% { transform: translateY(2px) scaleY(1.01); }
+/* НОВЫЕ улучшенные анимации */
+@keyframes reelSpinImproved {
+  0%, 100% { 
+    transform: translateY(0) scaleY(1.03); 
+    filter: blur(0px);
+  }
+  25% { 
+    transform: translateY(-3px) scaleY(1.04); 
+    filter: blur(0.5px);
+  }
+  75% { 
+    transform: translateY(3px) scaleY(1.02); 
+    filter: blur(0.5px);
+  }
 }
 
-@keyframes reelBlur {
-  0% { transform: translateY(-100%); opacity: 0; }
-  50% { opacity: 1; }
-  100% { transform: translateY(100%); opacity: 0; }
+@keyframes reelBlurImproved {
+  0% { 
+    transform: translateY(-120%); 
+    opacity: 0; 
+  }
+  50% { 
+    opacity: 1; 
+  }
+  100% { 
+    transform: translateY(120%); 
+    opacity: 0; 
+  }
 }
 
-@keyframes reelGlow {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+@keyframes reelGlowImproved {
+  0% { 
+    transform: translateX(-120%); 
+    opacity: 0.3;
+  }
+  50% { 
+    opacity: 0.7;
+  }
+  100% { 
+    transform: translateX(120%); 
+    opacity: 0.3;
+  }
 }
 
-@keyframes reelSlow {
-  0% { transform: scaleY(1.02); }
-  100% { transform: scaleY(1); }
+@keyframes reelSlowDown {
+  0% { 
+    transform: scaleY(1.03); 
+    border-color: rgba(11, 168, 74, 0.5);
+  }
+  50% { 
+    transform: scaleY(1.01); 
+    border-color: rgba(11, 168, 74, 0.6);
+  }
+  100% { 
+    transform: scaleY(1); 
+    border-color: rgba(11, 168, 74, 0.7);
+  }
 }
 
-@keyframes reelStop {
-  0% { transform: scaleY(1.01); }
-  50% { transform: scaleY(0.98); }
-  100% { transform: scaleY(1); }
+@keyframes reelFinalStop {
+  0% { 
+    transform: scaleY(1); 
+    border-color: rgba(11, 168, 74, 0.7);
+  }
+  30% { 
+    transform: scaleY(0.97); 
+    border-color: var(--primary-color);
+  }
+  60% { 
+    transform: scaleY(1.03); 
+  }
+  100% { 
+    transform: scaleY(1); 
+    border-color: var(--primary-color);
+  }
 }
 
 @keyframes winningCelebration {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 20px rgba(11, 168, 74, 0.6);
+    box-shadow: 0 0 25px rgba(11, 168, 74, 0.7);
   }
   50% {
     transform: scale(1.02);
-    box-shadow: 0 0 30px rgba(11, 168, 74, 0.8);
+    box-shadow: 0 0 35px rgba(11, 168, 74, 0.9);
   }
 }
 

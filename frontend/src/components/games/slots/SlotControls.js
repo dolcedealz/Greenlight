@@ -41,6 +41,8 @@ const SlotControls = ({
   
   // Быстрые ставки
   const handleQuickBet = (multiplier) => {
+    if (isSpinning || loading || autoplay) return; // БЛОКИРУЕМ при спине
+    
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
@@ -53,11 +55,13 @@ const SlotControls = ({
   
   // Обработчик автоигры
   const handleAutoplayToggle = () => {
+    if (isSpinning || loading) return; // БЛОКИРУЕМ при спине
     setAutoplay(!autoplay);
   };
   
   // Обработчик изменения количества автоспинов
   const handleAutoplayCountChange = (count) => {
+    if (isSpinning || loading || autoplay) return; // БЛОКИРУЕМ при спине
     setAutoplayCount(count);
   };
   
@@ -88,7 +92,7 @@ const SlotControls = ({
             </span>
           ) : autoplay ? (
             <span className="spin-text">
-              🤖 АВТОИГРА АКТИВНА
+              🤖 АВТОИГРА АКТИВНА ({autoplayRemaining} осталось)
             </span>
           ) : (
             <span className="spin-text">

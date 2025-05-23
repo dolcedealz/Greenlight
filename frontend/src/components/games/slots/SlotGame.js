@@ -23,7 +23,7 @@ const SlotGame = ({
   const [autoplayRemaining, setAutoplayRemaining] = useState(0);
   const [autoplayTimeoutId, setAutoplayTimeoutId] = useState(null);
   
-  // Функция для выполнения спина
+  // ИСПРАВЛЕНО: функция для выполнения спина
   const performSpin = useCallback(async () => {
     if (betAmount <= 0 || betAmount > balance || loading) {
       return false;
@@ -32,39 +32,43 @@ const SlotGame = ({
     try {
       setLoading(true);
       setIsSpinning(true);
-      setLastResult(null);
       setError(null);
+      
+      // ИСПРАВЛЕНО: очищаем предыдущий результат ПЕРЕД запросом
+      setLastResult(null);
       
       // Отправляем запрос на сервер
       const response = await gameApi.playSlots(betAmount);
       const data = response.data.data;
       
-      // Имитируем время вращения барабанов (2.5 секунды для 4x4)
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      console.log('Результат с сервера:', data);
       
-      // Обновляем результат
+      // ИСПРАВЛЕНО: устанавливаем результат немедленно
       setLastResult({
         reels: data.reels,
         winningLines: data.winningLines,
         win: data.win,
-        winAmount: data.win ? Math.abs(data.profit) : 0,
+        profit: data.profit,
         winningSymbols: data.winningSymbols || []
       });
       
-      // Обновляем баланс
-      if (data.balanceAfter !== undefined) {
-        setBalance(data.balanceAfter);
-      }
-      
-      // Отображаем результат игры
-      setGameResult({
-        win: data.win,
-        amount: data.win ? Math.abs(data.profit) : betAmount,
-        newBalance: data.balanceAfter
-      });
-      
-      setIsSpinning(false);
-      setLoading(false);
+      // Ждем окончания анимации (2.5 секунды для 4x4)
+      setTimeout(() => {
+        // Обновляем баланс
+        if (data.balanceAfter !== undefined) {
+          setBalance(data.balanceAfter);
+        }
+        
+        // Отображаем результат игры
+        setGameResult({
+          win: data.win,
+          amount: data.win ? Math.abs(data.profit) : betAmount,
+          newBalance: data.balanceAfter
+        });
+        
+        setIsSpinning(false);
+        setLoading(false);
+      }, 2800); // Время анимации + небольшая задержка
       
       return data.win;
     } catch (err) {
@@ -72,6 +76,7 @@ const SlotGame = ({
       setError(err.response?.data?.message || 'Произошла ошибка при игре');
       setIsSpinning(false);
       setLoading(false);
+      setLastResult(null); // Очищаем результат при ошибке
       return false;
     }
   }, [betAmount, balance, setBalance, setError, setGameResult]);
@@ -95,7 +100,7 @@ const SlotGame = ({
     setAutoplayRemaining(prev => prev - 1);
     
     // Если выиграли большую сумму (больше 10x), останавливаем автоигру
-    if (won && lastResult && lastResult.winAmount > betAmount * 10) {
+    if (won && lastResult && Math.abs(lastResult.profit) > betAmount * 10) {
       setAutoplay(false);
       setAutoplayRemaining(0);
       return;

@@ -108,29 +108,38 @@
     cursor: not-allowed;
   }
   
-  /* Быстрые ставки */
+  /* Быстрые ставки - ОБНОВЛЕНЫ */
   .quick-bets {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    gap: 12px; /* Увеличен gap */
   }
   
   .quick-bet-btn {
-    padding: 10px 12px;
+    padding: 14px 16px; /* Увеличен padding */
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
+    border-radius: 8px; /* Увеличен border-radius */
     color: white;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 16px; /* Увеличен font-size */
+    font-weight: 600; /* Увеличен font-weight */
     cursor: pointer;
     transition: all 0.2s ease;
+    min-height: 50px; /* Добавлена минимальная высота */
+  }
+  
+  /* Дополнительный класс для увеличенных кнопок */
+  .quick-bet-btn.large {
+    padding: 16px 18px;
+    font-size: 18px;
+    font-weight: 700;
+    min-height: 55px;
   }
   
   .quick-bet-btn:hover:not(:disabled) {
     background-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   .quick-bet-btn:disabled {
@@ -475,5 +484,11 @@
     
     .stats-container {
       grid-template-columns: 1fr;
+    }
+    
+    .quick-bet-btn, .quick-bet-btn.large {
+      padding: 12px 14px;
+      font-size: 14px;
+      min-height: 45px;
     }
   }

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
 
-// Символы слотов только с эмодзи (убираем PNG)
+// Символы слотов только с эмодзи
 const SLOT_SYMBOLS = [
   { symbol: 'cherry', name: 'cherry', weight: 25, payout: 4, emoji: '🍒' },
   { symbol: 'lemon', name: 'lemon', weight: 20, payout: 6, emoji: '🍋' },
@@ -37,13 +37,14 @@ const SlotMachine = ({
   const [animatingReels, setAnimatingReels] = useState([false, false, false, false]);
   const [winningLines, setWinningLines] = useState([]);
   const [showingResult, setShowingResult] = useState(false);
-  const [spinPhase, setSpinPhase] = useState('idle'); // 'idle', 'spinning', 'stopping', 'stopped'
+  const [spinPhase, setSpinPhase] = useState('idle');
   
-  // Рефы
+  // Рефы для управления анимацией
   const animationIntervals = useRef([]);
   const animationTimeouts = useRef([]);
   const lastResultRef = useRef(null);
-  const spinStartTime = useRef(null);
+  const finalResultRef = useRef(null);
+  const isStoppingRef = useRef(false);
   
   // Получить данные символа
   const getSymbolData = useCallback((symbolName) => {
@@ -78,38 +79,95 @@ const SlotMachine = ({
     animationTimeouts.current = [];
   }, []);
   
+  // Функция для плавной остановки барабана на нужном символе
+  const stopReelWithResult = useCallback((reelIndex, targetColumn, delay) => {
+    const timeout = setTimeout(() => {
+      console.log(`СЛОТЫ: Останавливаем барабан ${reelIndex} на символах:`, targetColumn);
+      
+      // Останавливаем интервал для этого барабана
+      if (animationIntervals.current[reelIndex]) {
+        clearInterval(animationIntervals.current[reelIndex]);
+        animationIntervals.current[reelIndex] = null;
+      }
+      
+      // Устанавливаем финальные символы для этого барабана
+      setReels(prevReels => {
+        const newReels = [...prevReels];
+        newReels[reelIndex] = [...targetColumn];
+        return newReels;
+      });
+      
+      // Отключаем анимацию для барабана
+      setAnimatingReels(prev => {
+        const newState = [...prev];
+        newState[reelIndex] = false;
+        return newState;
+      });
+      
+      // Если это последний барабан
+      if (reelIndex === 3) {
+        console.log('СЛОТЫ: Все барабаны остановлены');
+        setIsAnimating(false);
+        setSpinPhase('stopped');
+        isStoppingRef.current = false;
+        
+        // Показываем результат через короткую задержку
+        setTimeout(() => {
+          setShowingResult(true);
+          
+          if (finalResultRef.current && finalResultRef.current.winningLines && finalResultRef.current.winningLines.length > 0) {
+            setTimeout(() => {
+              setWinningLines([...finalResultRef.current.winningLines]);
+              
+              // Убираем подсветку через 4 секунды
+              setTimeout(() => {
+                setWinningLines([]);
+              }, 4000);
+            }, 300);
+          }
+        }, 200);
+      }
+    }, delay);
+    
+    animationTimeouts.current.push(timeout);
+  }, []);
+  
   // Запуск анимации при начале спина
   useEffect(() => {
     if (isSpinning && !isAnimating) {
       console.log('СЛОТЫ: Запуск анимации');
       
-      // Очищаем предыдущие анимации
+      // Очищаем предыдущие анимации и состояния
       clearAnimations();
-      
-      // Сбрасываем состояния
       setWinningLines([]);
       setShowingResult(false);
       setIsAnimating(true);
       setSpinPhase('spinning');
       setAnimatingReels([true, true, true, true]);
-      spinStartTime.current = Date.now();
+      isStoppingRef.current = false;
+      finalResultRef.current = null;
       
-      // Запускаем анимацию быстрой смены символов с ускорением
+      // Запускаем анимацию быстрой смены символов
       const intervals = [];
       
       for (let reelIndex = 0; reelIndex < 4; reelIndex++) {
-        let spinSpeed = 60; // Начальная скорость
+        let spinSpeed = 80;
         
         const interval = setInterval(() => {
+          // Не обновляем барабан если уже начался процесс остановки
+          if (isStoppingRef.current) {
+            return;
+          }
+          
           setReels(prevReels => {
             const newReels = [...prevReels];
             newReels[reelIndex] = Array(4).fill().map(() => getRandomSymbol());
             return newReels;
           });
           
-          // Ускоряем вращение
-          if (spinSpeed > 30) {
-            spinSpeed -= 2;
+          // Постепенно ускоряем вращение
+          if (spinSpeed > 40) {
+            spinSpeed -= 1;
           }
         }, spinSpeed);
         
@@ -117,93 +175,33 @@ const SlotMachine = ({
       }
       
       animationIntervals.current = intervals;
-      
-      // Фаза замедления
-      const slowdownTimeout = setTimeout(() => {
-        setSpinPhase('stopping');
-        
-        // Замедляем все барабаны
-        animationIntervals.current.forEach((interval, index) => {
-          if (interval) {
-            clearInterval(interval);
-            
-            // Создаем новый интервал с медленной скоростью
-            const slowInterval = setInterval(() => {
-              setReels(prevReels => {
-                const newReels = [...prevReels];
-                newReels[index] = Array(4).fill().map(() => getRandomSymbol());
-                return newReels;
-              });
-            }, 150); // Медленное вращение
-            
-            animationIntervals.current[index] = slowInterval;
-          }
-        });
-      }, 1000);
-      
-      animationTimeouts.current.push(slowdownTimeout);
-      
-      // Останавливаем барабаны поочередно с задержкой
-      const stopDelays = [1800, 2000, 2200, 2400]; // Увеличенные задержки
-      
-      stopDelays.forEach((delay, index) => {
-        const timeout = setTimeout(() => {
-          // Останавливаем интервал для этого барабана
-          if (animationIntervals.current[index]) {
-            clearInterval(animationIntervals.current[index]);
-            animationIntervals.current[index] = null;
-          }
-          
-          // Отключаем анимацию для барабана с эффектом "подпрыгивания"
-          setAnimatingReels(prev => {
-            const newState = [...prev];
-            newState[index] = false;
-            return newState;
-          });
-          
-          // Если это последний барабан
-          if (index === 3) {
-            setIsAnimating(false);
-            setSpinPhase('stopped');
-          }
-        }, delay);
-        
-        animationTimeouts.current.push(timeout);
-      });
     }
-  }, [isSpinning, isAnimating, getRandomSymbol, clearAnimations]);
+  }, [isSpinning, isAnimating, getRandomSymbol, clearAnimations, stopReelWithResult]);
   
-  // Обработка результата с сервера
+  // Обработка результата с сервера - КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
   useEffect(() => {
     if (lastResult && 
         lastResult !== lastResultRef.current && 
         lastResult.reels && 
-        !isAnimating && 
-        !isSpinning) {
+        isAnimating && 
+        !isStoppingRef.current) {
       
-      console.log('СЛОТЫ: Устанавливаем результат с сервера:', lastResult);
+      console.log('СЛОТЫ: Получен результат с сервера, начинаем остановку:', lastResult);
       
       lastResultRef.current = lastResult;
+      finalResultRef.current = lastResult;
+      isStoppingRef.current = true;
       
-      // Устанавливаем барабаны из результата с анимацией
-      setTimeout(() => {
-        setReels([...lastResult.reels]);
-        setShowingResult(true);
-        
-        // Показываем выигрышные линии с задержкой
-        if (lastResult.winningLines && lastResult.winningLines.length > 0) {
-          setTimeout(() => {
-            setWinningLines([...lastResult.winningLines]);
-            
-            // Убираем подсветку через 4 секунды
-            setTimeout(() => {
-              setWinningLines([]);
-            }, 4000);
-          }, 300);
-        }
-      }, 200);
+      setSpinPhase('stopping');
+      
+      // Останавливаем барабаны поочередно с правильными символами
+      const stopDelays = [500, 700, 900, 1100]; // Более короткие задержки
+      
+      lastResult.reels.forEach((targetColumn, reelIndex) => {
+        stopReelWithResult(reelIndex, targetColumn, stopDelays[reelIndex]);
+      });
     }
-  }, [lastResult, isAnimating, isSpinning]);
+  }, [lastResult, isAnimating, stopReelWithResult]);
   
   // Очистка при размонтировании
   useEffect(() => {
@@ -227,7 +225,7 @@ const SlotMachine = ({
     return baseClass;
   }, [winningLines]);
   
-  // Компонент символа (только эмодзи)
+  // Компонент символа
   const SymbolComponent = React.memo(({ symbolName }) => {
     const symbolData = getSymbolData(symbolName);
     return <span className="slot-symbol">{symbolData.emoji}</span>;
@@ -271,15 +269,15 @@ const SlotMachine = ({
       </div>
       
       {/* Информация о результате */}
-      {showingResult && lastResult && !isSpinning && !isAnimating && (
+      {showingResult && finalResultRef.current && !isSpinning && !isAnimating && (
         <div className="last-spin-info">
-          {lastResult.win ? (
+          {finalResultRef.current.win ? (
             <div className="win-display">
               <span className="win-text">💰 ВЫИГРЫШ! 💰</span>
-              <span className="win-amount">+{(Math.abs(lastResult.profit) || 0).toFixed(2)} USDT</span>
-              {lastResult.winningSymbols && lastResult.winningSymbols.length > 0 && (
+              <span className="win-amount">+{(Math.abs(finalResultRef.current.profit) || 0).toFixed(2)} USDT</span>
+              {finalResultRef.current.winningSymbols && finalResultRef.current.winningSymbols.length > 0 && (
                 <div className="winning-symbols">
-                  {lastResult.winningSymbols.map((symbolName, index) => {
+                  {finalResultRef.current.winningSymbols.map((symbolName, index) => {
                     const symbolData = getSymbolData(symbolName);
                     return (
                       <span key={index} className="winning-symbol">
@@ -289,9 +287,9 @@ const SlotMachine = ({
                   })}
                 </div>
               )}
-              {lastResult.winningLines && lastResult.winningLines.length > 0 && (
+              {finalResultRef.current.winningLines && finalResultRef.current.winningLines.length > 0 && (
                 <div className="winning-lines-count">
-                  🎯 Выигрышных линий: {lastResult.winningLines.length} | Множитель: ×{(lastResult.multiplier || 0).toFixed(2)}
+                  🎯 Выигрышных линий: {finalResultRef.current.winningLines.length} | Множитель: ×{(finalResultRef.current.multiplier || 0).toFixed(2)}
                 </div>
               )}
             </div>

@@ -20,7 +20,7 @@ const SlotControls = ({
   
   // Рассчитываем максимальный возможный выигрыш
   useEffect(() => {
-    const jackpotMultiplier = 50; // Максимальный множитель для 🎰
+    const jackpotMultiplier = 100; // Максимальный множитель для 🎰 (увеличен с 50 до 100)
     setMaxWin(betAmount * jackpotMultiplier);
   }, [betAmount]);
   
@@ -39,7 +39,7 @@ const SlotControls = ({
     }
   };
   
-  // ИСПРАВЛЕНО: Быстрые ставки - только 1% и 5%
+  // Быстрые ставки - только 1% и 5%
   const handleQuickBet = (multiplier) => {
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
@@ -103,7 +103,7 @@ const SlotControls = ({
           </div>
         </div>
         
-        {/* ИСПРАВЛЕНО: Только 2 кнопки - 1% и 5% в столбик */}
+        {/* Только 2 кнопки - 1% и 5% в столбик */}
         <div className="quick-bets">
           <button 
             onClick={() => handleQuickBet(0.01)} 
@@ -179,7 +179,7 @@ const SlotControls = ({
         )}
       </div>
       
-      {/* Таблица выплат */}
+      {/* Таблица выплат - ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ */}
       <div className="payout-table">
         <h4>Таблица выплат</h4>
         <div className="payout-rules">
@@ -194,14 +194,14 @@ const SlotControls = ({
         </div>
         <div className="payout-grid">
           {[
-            { symbol: '🍒', payout: 2, threeInRow: 1 },
-            { symbol: '🍋', payout: 3, threeInRow: 1.5 },
-            { symbol: '🍊', payout: 4, threeInRow: 2 },
-            { symbol: '🍇', payout: 5, threeInRow: 2.5 },
-            { symbol: '🔔', payout: 8, threeInRow: 4 },
-            { symbol: '💎', payout: 15, threeInRow: 7.5 },
-            { symbol: '⭐', payout: 25, threeInRow: 12.5 },
-            { symbol: '🎰', payout: 50, threeInRow: 25 }
+            { symbol: '🍒', payout: 4, threeInRow: 2 },      // Увеличено с 2 до 4
+            { symbol: '🍋', payout: 6, threeInRow: 3 },      // Увеличено с 3 до 6
+            { symbol: '🍊', payout: 8, threeInRow: 4 },      // Увеличено с 4 до 8
+            { symbol: '🍇', payout: 12, threeInRow: 6 },     // Увеличено с 5 до 12
+            { symbol: '🔔', payout: 18, threeInRow: 9 },     // Увеличено с 8 до 18
+            { symbol: '💎', payout: 30, threeInRow: 15 },    // Увеличено с 15 до 30
+            { symbol: '⭐', payout: 50, threeInRow: 25 },    // Увеличено с 25 до 50
+            { symbol: '🎰', payout: 100, threeInRow: 50 }    // Увеличено с 50 до 100
           ].map((symbolData, index) => (
             <div key={index} className="payout-item">
               <span className="payout-symbol">{symbolData.symbol}</span>

@@ -24,11 +24,13 @@ const SlotMachine = ({
   loading 
 }) => {
   const [reels, setReels] = useState([
-    ['🍒', '🍋', '🍊'],
-    ['🍒', '🍋', '🍊'],
-    ['🍒', '🍋', '🍊']
+    ['🍒', '🍋', '🍊', '🍇', '🔔'],
+    ['🍒', '🍋', '🍊', '🍇', '🔔'],
+    ['🍒', '🍋', '🍊', '🍇', '🔔'],
+    ['🍒', '🍋', '🍊', '🍇', '🔔'],
+    ['🍒', '🍋', '🍊', '🍇', '🔔']
   ]);
-  const [animatingReels, setAnimatingReels] = useState([false, false, false]);
+  const [animatingReels, setAnimatingReels] = useState([false, false, false, false, false]);
   const [winningLines, setWinningLines] = useState([]);
   
   // Функция для генерации случайного символа для анимации
@@ -50,7 +52,7 @@ const SlotMachine = ({
   useEffect(() => {
     if (lastResult && lastResult.reels) {
       // Останавливаем анимацию и показываем результат
-      setAnimatingReels([false, false, false]);
+      setAnimatingReels([false, false, false, false, false]);
       setReels(lastResult.reels);
       setWinningLines(lastResult.winningLines || []);
       
@@ -69,7 +71,7 @@ const SlotMachine = ({
       setWinningLines([]);
       
       // Запускаем анимацию для каждого барабана с задержкой
-      const delays = [0, 300, 600];
+      const delays = [0, 200, 400, 600, 800];
       
       delays.forEach((delay, index) => {
         setTimeout(() => {
@@ -86,6 +88,8 @@ const SlotMachine = ({
               newReels[index] = [
                 getRandomSymbol(),
                 getRandomSymbol(),
+                getRandomSymbol(),
+                getRandomSymbol(),
                 getRandomSymbol()
               ];
               return newReels;
@@ -100,7 +104,7 @@ const SlotMachine = ({
               newState[index] = false;
               return newState;
             });
-          }, 2000);
+          }, 2000 + delay);
         }, delay);
       });
     }
@@ -140,13 +144,17 @@ const SlotMachine = ({
           ))}
         </div>
         
-        {/* Линии выплат */}
+        {/* Линии выплат для 5x5 поля */}
         <div className="paylines">
+          {/* Горизонтальные линии */}
           <div className="payline horizontal line-1"></div>
           <div className="payline horizontal line-2"></div>
           <div className="payline horizontal line-3"></div>
-          <div className="payline diagonal line-4"></div>
-          <div className="payline diagonal line-5"></div>
+          <div className="payline horizontal line-4"></div>
+          <div className="payline horizontal line-5"></div>
+          {/* Диагональные линии */}
+          <div className="payline diagonal line-6"></div>
+          <div className="payline diagonal line-7"></div>
         </div>
       </div>
       
@@ -162,7 +170,7 @@ const SlotMachine = ({
           ))}
         </div>
         <div className="payout-note">
-          * Выигрыш при 3 одинаковых символах в линию
+          * Выигрыш при 5 одинаковых символах в линию
         </div>
       </div>
       
@@ -178,6 +186,11 @@ const SlotMachine = ({
                   {lastResult.winningSymbols.map((symbol, index) => (
                     <span key={index} className="winning-symbol">{symbol}</span>
                   ))}
+                </div>
+              )}
+              {lastResult.winningLines && lastResult.winningLines.length > 0 && (
+                <div className="winning-lines-count">
+                  Выигрышных линий: {lastResult.winningLines.length}
                 </div>
               )}
             </div>

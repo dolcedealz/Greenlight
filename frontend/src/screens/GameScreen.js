@@ -233,35 +233,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
               </div>
             )}
             
-            {gameStats && (
-              <div className="game-stats">
-                <h3>Ваша статистика</h3>
-                <div className="stats-container">
-                  <div className="stat-item">
-                    <span className="stat-label">Всего игр:</span>
-                    <span className="stat-value">{gameStats.totalGames}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Победы:</span>
-                    <span className="stat-value">{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Ставки:</span>
-                    <span className="stat-value">{gameStats.totalBet?.toFixed(2) || 0} USDT</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Выигрыши:</span>
-                    <span className="stat-value">{gameStats.totalWin?.toFixed(2) || 0} USDT</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Профит:</span>
-                    <span className={`stat-value ${(gameStats.totalWin - gameStats.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
-                      {((gameStats.totalWin || 0) - (gameStats.totalLoss || 0)).toFixed(2)} USDT
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* УБИРАЕМ ДУБЛИРОВАНИЕ СТАТИСТИКИ - статистика теперь только в SlotControls */}
           </div>
         );
         

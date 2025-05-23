@@ -12,6 +12,12 @@ router.post('/coin/play',
   gameController.playCoinFlip
 );
 
+// Маршрут для игры "Слоты"
+router.post('/slots/play', 
+  telegramAuthMiddleware, 
+  gameController.playSlots
+);
+
 // Маршруты для игры "Мины"
 router.post('/mines/play', 
   telegramAuthMiddleware, 

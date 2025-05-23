@@ -189,10 +189,8 @@ class GameService {
     }
   }
   
-// backend/src/services/game.service.js (только функция playSlots, остальное без изменений)
-
 /**
- * Играть в слоты (ИСПРАВЛЕННАЯ версия для 4x4)
+ * Играть в слоты (ИСПРАВЛЕННАЯ версия для 4x4 - ТОЛЬКО горизонтальные и диагональные линии)
  * @param {Object} userData - Данные пользователя
  * @param {Object} gameData - Данные игры
  * @returns {Object} - Результат игры
@@ -227,7 +225,7 @@ async playSlots(userData, gameData) {
       throw new Error('Сумма ставки должна быть положительной');
     }
     
-    // ИСПРАВЛЕНО: Символы слотов с правильными коэффициентами
+    // Символы слотов с правильными коэффициентами
     const SLOT_SYMBOLS = [
       { symbol: '🍒', weight: 25, payout: 2 },
       { symbol: '🍋', weight: 20, payout: 3 },
@@ -254,7 +252,7 @@ async playSlots(userData, gameData) {
       return SLOT_SYMBOLS[0];
     };
     
-    // ИСПРАВЛЕНО: Генерируем барабаны в правильном формате [колонка][строка]
+    // Генерируем барабаны в правильном формате [колонка][строка]
     const reels = [];
     for (let col = 0; col < 4; col++) {
       const column = [];
@@ -266,7 +264,7 @@ async playSlots(userData, gameData) {
     
     console.log('СЛОТЫ: Сгенерированные барабаны:', JSON.stringify(reels, null, 2));
     
-    // ИСПРАВЛЕНО: Проверяем выигрышные линии для 4x4 поля
+    // ИСПРАВЛЕНО: Проверяем выигрышные линии ТОЛЬКО горизонтальные и диагональные (БЕЗ вертикальных)
     const winningLines = [];
     const winningSymbols = [];
     let totalMultiplier = 0;
@@ -290,7 +288,7 @@ async playSlots(userData, gameData) {
       }
     };
     
-    // ИСПРАВЛЕНО: Горизонтальные линии (строки)
+    // ГОРИЗОНТАЛЬНЫЕ ЛИНИИ (строки) - ОСТАВЛЯЕМ
     for (let row = 0; row < 4; row++) {
       const firstSymbol = reels[0][row];
       let consecutiveCount = 1;
@@ -310,27 +308,10 @@ async playSlots(userData, gameData) {
       }
     }
     
-    // ИСПРАВЛЕНО: Вертикальные линии (колонки)
-    for (let col = 0; col < 4; col++) {
-      const firstSymbol = reels[col][0];
-      let consecutiveCount = 1;
-      const positions = [`${col}-0`];
-      
-      for (let row = 1; row < 4; row++) {
-        if (reels[col][row] === firstSymbol) {
-          consecutiveCount++;
-          positions.push(`${col}-${row}`);
-        } else {
-          break;
-        }
-      }
-      
-      if (consecutiveCount >= 3) {
-        addWinningLine(positions, firstSymbol, consecutiveCount);
-      }
-    }
+    // ВЕРТИКАЛЬНЫЕ ЛИНИИ (колонки) - УБИРАЕМ ПОЛНОСТЬЮ
+    // Этот блок кода удален
     
-    // ИСПРАВЛЕНО: Главная диагональ (сверху-слева вниз-вправо)
+    // ГЛАВНАЯ ДИАГОНАЛЬ (сверху-слева вниз-вправо) - ОСТАВЛЯЕМ
     const diagonal1Symbol = reels[0][0];
     let diagonal1Count = 1;
     const diagonal1Positions = ['0-0'];
@@ -348,7 +329,7 @@ async playSlots(userData, gameData) {
       addWinningLine(diagonal1Positions, diagonal1Symbol, diagonal1Count);
     }
     
-    // ИСПРАВЛЕНО: Побочная диагональ (сверху-справа вниз-влево)
+    // ПОБОЧНАЯ ДИАГОНАЛЬ (сверху-справа вниз-влево) - ОСТАВЛЯЕМ
     const diagonal2Symbol = reels[0][3];
     let diagonal2Count = 1;
     const diagonal2Positions = ['0-3'];
@@ -366,7 +347,7 @@ async playSlots(userData, gameData) {
       addWinningLine(diagonal2Positions, diagonal2Symbol, diagonal2Count);
     }
     
-    console.log('СЛОТЫ: Выигрышные линии:', JSON.stringify(winningLines, null, 2));
+    console.log('СЛОТЫ: Выигрышные линии (только горизонтальные и диагональные):', JSON.stringify(winningLines, null, 2));
     console.log('СЛОТЫ: Общий множитель:', totalMultiplier);
     
     // Определяем выигрыш

@@ -1,0 +1,410 @@
+/* frontend/src/styles/SlotControls.css */
+.slot-controls {
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    margin-top: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Секция ставки */
+  .bet-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .bet-control {
+    margin-bottom: 15px;
+  }
+  
+  .bet-control label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+  }
+  
+  .bet-input-container {
+    position: relative;
+  }
+  
+  .bet-control input {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 18px;
+    text-align: center;
+    transition: all 0.2s ease;
+    font-weight: 600;
+  }
+  
+  .bet-control input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(11, 168, 74, 0.2);
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .bet-control input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Быстрые ставки */
+  .quick-bets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  
+  .quick-bet-btn {
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .quick-bet-btn:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .quick-bet-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* Информация о выигрыше */
+  .win-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .win-info.has-autoplay {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  
+  .info-item {
+    padding: 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+  }
+  
+  .info-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .info-item.autoplay-info {
+    background-color: rgba(11, 168, 74, 0.1);
+    border-color: var(--primary-color);
+  }
+  
+  .info-label {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 5px;
+  }
+  
+  .info-value {
+    display: block;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--primary-color);
+  }
+  
+  /* Кнопка спина */
+  .spin-section {
+    margin-bottom: 20px;
+  }
+  
+  .spin-button {
+    width: 100%;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #0c9740 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .spin-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(11, 168, 74, 0.3);
+  }
+  
+  .spin-button:disabled {
+    background: linear-gradient(135deg, #666 0%, #555 100%);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .spin-button.spinning {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    animation: spinButtonPulse 1s ease-in-out infinite alternate;
+  }
+  
+  .spin-button.autoplay-active {
+    background: linear-gradient(135deg, #007acc 0%, #0056b3 100%);
+  }
+  
+  .spin-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .spinning-text .spinner {
+    animation: spinIcon 1s linear infinite;
+  }
+  
+  /* Автоигра */
+  .autoplay-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .autoplay-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .toggle-switch {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 10px;
+  }
+  
+  .toggle-switch input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+  
+  .toggle-slider {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 24px;
+    transition: all 0.3s ease;
+  }
+  
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+  
+  input:checked + .toggle-slider {
+    background-color: var(--primary-color);
+  }
+  
+  input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+  }
+  
+  .toggle-text {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  .stop-autoplay-btn {
+    padding: 6px 12px;
+    background-color: #ff3b30;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .stop-autoplay-btn:hover {
+    background-color: #d70015;
+  }
+  
+  /* Настройки автоигры */
+  .autoplay-settings {
+    animation: slideDown 0.3s ease;
+  }
+  
+  .autoplay-count {
+    margin-bottom: 10px;
+  }
+  
+  .autoplay-count label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .count-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  
+  .count-btn {
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .count-btn.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  .count-btn:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .count-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .autoplay-info {
+    margin-top: 10px;
+  }
+  
+  .autoplay-info small {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  /* Дополнительные кнопки */
+  .additional-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+  }
+  
+  .control-btn {
+    padding: 10px 15px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .control-btn:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+  }
+  
+  .control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* Анимации */
+  @keyframes spinButtonPulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.4);
+    }
+    100% {
+      box-shadow: 0 0 0 10px rgba(255, 107, 53, 0);
+    }
+  }
+  
+  @keyframes spinIcon {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  @keyframes slideDown {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Адаптивность */
+  @media (max-width: 500px) {
+    .slot-controls {
+      padding: 15px;
+    }
+    
+    .quick-bets {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    
+    .win-info {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    
+    .win-info.has-autoplay {
+      grid-template-columns: 1fr;
+    }
+    
+    .spin-button {
+      padding: 16px 20px;
+      font-size: 16px;
+    }
+    
+    .count-buttons {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }

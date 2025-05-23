@@ -2,16 +2,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
 
-// Символы слотов с весами и выплатами
+// ОБНОВЛЕННЫЕ символы слотов с УВЕЛИЧЕННЫМИ коэффициентами
 const SLOT_SYMBOLS = [
-  { symbol: '🍒', name: 'cherry', weight: 25, payout: 2 },
-  { symbol: '🍋', name: 'lemon', weight: 20, payout: 3 },
-  { symbol: '🍊', name: 'orange', weight: 15, payout: 4 },
-  { symbol: '🍇', name: 'grape', weight: 12, payout: 5 },
-  { symbol: '🔔', name: 'bell', weight: 8, payout: 8 },
-  { symbol: '💎', name: 'diamond', weight: 5, payout: 15 },
-  { symbol: '⭐', name: 'star', weight: 3, payout: 25 },
-  { symbol: '🎰', name: 'jackpot', weight: 2, payout: 50 }
+  { symbol: '🍒', name: 'cherry', weight: 25, payout: 4 },   // было 2, стало 4
+  { symbol: '🍋', name: 'lemon', weight: 20, payout: 6 },    // было 3, стало 6
+  { symbol: '🍊', name: 'orange', weight: 15, payout: 8 },   // было 4, стало 8
+  { symbol: '🍇', name: 'grape', weight: 12, payout: 12 },   // было 5, стало 12
+  { symbol: '🔔', name: 'bell', weight: 8, payout: 18 },     // было 8, стало 18
+  { symbol: '💎', name: 'diamond', weight: 5, payout: 30 },  // было 15, стало 30
+  { symbol: '⭐', name: 'star', weight: 3, payout: 50 },     // было 25, стало 50
+  { symbol: '🎰', name: 'jackpot', weight: 2, payout: 100 }  // было 50, стало 100
 ];
 
 const SlotMachine = ({ 

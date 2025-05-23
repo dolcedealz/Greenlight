@@ -369,17 +369,33 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
-  .payout-symbol {
-    font-size: 18px;
-    margin-bottom: 4px;
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
-  }
-  
-  .payout-multiplier {
-    font-size: 11px;
-    font-weight: bold;
-    color: var(--primary-color);
-  }
+  /* frontend/src/styles/SlotControls.css - Добавляем стили для PNG в таблице выплат */
+
+/* ... весь остальной CSS остается без изменений ... */
+
+/* НОВЫЕ СТИЛИ ДЛЯ PNG В ТАБЛИЦЕ ВЫПЛАТ */
+.payout-symbol-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+}
+
+/* Оставляем fallback для эмодзи */
+.payout-symbol {
+  font-size: 18px;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+}
+
+.payout-multiplier {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+/* ... остальной CSS без изменений ... */
   
   .payout-note {
     font-size: 12px;
@@ -490,6 +506,8 @@
     .stats-container {
       grid-template-columns: 1fr;
     }
+
+    /* frontend/src/styles/SlotControls.css - Добавляем стили для PNG в таблице выплат */
     
     /* Для мобильных кнопки чуть меньше, но все равно большие */
     .quick-bet-btn, .quick-bet-btn.large {

@@ -22,7 +22,8 @@ const SlotMachine = ({
   lastResult,
   autoplay,
   loading,
-  gameStats 
+  gameStats,
+  onAnimationComplete // НОВЫЙ PROP для уведомления о завершении анимации
 }) => {
   // Начальное состояние барабанов
   const [reels, setReels] = useState(() => [
@@ -45,6 +46,7 @@ const SlotMachine = ({
   const lastResultRef = useRef(null);
   const finalResultRef = useRef(null);
   const isStoppingRef = useRef(false);
+  const animationCompleteRef = useRef(false);
   
   // Получить данные символа
   const getSymbolData = useCallback((symbolName) => {
@@ -68,16 +70,37 @@ const SlotMachine = ({
   
   // Очистка таймаутов и интервалов
   const clearAnimations = useCallback(() => {
-    animationIntervals.current.forEach(interval => {
-      if (interval) clearInterval(interval);
+    console.log('СЛОТЫ: Очищаем все анимации');
+    
+    animationIntervals.current.forEach((interval, index) => {
+      if (interval) {
+        clearInterval(interval);
+        console.log(`СЛОТЫ: Очищен интервал ${index}`);
+      }
     });
     animationIntervals.current = [];
     
-    animationTimeouts.current.forEach(timeout => {
-      if (timeout) clearTimeout(timeout);
+    animationTimeouts.current.forEach((timeout, index) => {
+      if (timeout) {
+        clearTimeout(timeout);
+        console.log(`СЛОТЫ: Очищен таймаут ${index}`);
+      }
     });
     animationTimeouts.current = [];
   }, []);
+  
+  // НОВАЯ функция для полной остановки анимации
+  const stopAllAnimations = useCallback(() => {
+    console.log('СЛОТЫ: Принудительная остановка всех анимаций');
+    
+    clearAnimations();
+    setIsAnimating(false);
+    setAnimatingReels([false, false, false, false]);
+    setSpinPhase('stopped');
+    isStoppingRef.current = false;
+    animationCompleteRef.current = true;
+    
+  }, [clearAnimations]);
   
   // Функция для плавной остановки барабана на нужном символе
   const stopReelWithResult = useCallback((reelIndex, targetColumn, delay) => {
@@ -107,9 +130,17 @@ const SlotMachine = ({
       // Если это последний барабан
       if (reelIndex === 3) {
         console.log('СЛОТЫ: Все барабаны остановлены');
+        
+        // Завершаем анимацию
         setIsAnimating(false);
         setSpinPhase('stopped');
         isStoppingRef.current = false;
+        animationCompleteRef.current = true;
+        
+        // Уведомляем родительский компонент о завершении анимации
+        if (onAnimationComplete) {
+          onAnimationComplete();
+        }
         
         // Показываем результат через короткую задержку
         setTimeout(() => {
@@ -130,14 +161,14 @@ const SlotMachine = ({
     }, delay);
     
     animationTimeouts.current.push(timeout);
-  }, []);
+  }, [onAnimationComplete]);
   
-  // Запуск анимации при начале спина
+  // Сброс состояния при начале нового спина
   useEffect(() => {
-    if (isSpinning && !isAnimating) {
-      console.log('СЛОТЫ: Запуск анимации');
+    if (isSpinning && !isAnimating && !animationCompleteRef.current) {
+      console.log('СЛОТЫ: Запуск новой анимации');
       
-      // Очищаем предыдущие анимации и состояния
+      // Сбрасываем все состояния
       clearAnimations();
       setWinningLines([]);
       setShowingResult(false);
@@ -146,16 +177,16 @@ const SlotMachine = ({
       setAnimatingReels([true, true, true, true]);
       isStoppingRef.current = false;
       finalResultRef.current = null;
+      lastResultRef.current = null;
+      animationCompleteRef.current = false;
       
       // Запускаем анимацию быстрой смены символов
       const intervals = [];
       
       for (let reelIndex = 0; reelIndex < 4; reelIndex++) {
-        let spinSpeed = 80;
-        
         const interval = setInterval(() => {
           // Не обновляем барабан если уже начался процесс остановки
-          if (isStoppingRef.current) {
+          if (isStoppingRef.current || animationCompleteRef.current) {
             return;
           }
           
@@ -164,12 +195,7 @@ const SlotMachine = ({
             newReels[reelIndex] = Array(4).fill().map(() => getRandomSymbol());
             return newReels;
           });
-          
-          // Постепенно ускоряем вращение
-          if (spinSpeed > 40) {
-            spinSpeed -= 1;
-          }
-        }, spinSpeed);
+        }, 100); // Фиксированная скорость
         
         intervals.push(interval);
       }
@@ -178,13 +204,14 @@ const SlotMachine = ({
     }
   }, [isSpinning, isAnimating, getRandomSymbol, clearAnimations, stopReelWithResult]);
   
-  // Обработка результата с сервера - КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
+  // ИСПРАВЛЕННАЯ обработка результата с сервера
   useEffect(() => {
     if (lastResult && 
         lastResult !== lastResultRef.current && 
         lastResult.reels && 
         isAnimating && 
-        !isStoppingRef.current) {
+        !isStoppingRef.current &&
+        !animationCompleteRef.current) {
       
       console.log('СЛОТЫ: Получен результат с сервера, начинаем остановку:', lastResult);
       
@@ -195,7 +222,7 @@ const SlotMachine = ({
       setSpinPhase('stopping');
       
       // Останавливаем барабаны поочередно с правильными символами
-      const stopDelays = [500, 700, 900, 1100]; // Более короткие задержки
+      const stopDelays = [400, 600, 800, 1000];
       
       lastResult.reels.forEach((targetColumn, reelIndex) => {
         stopReelWithResult(reelIndex, targetColumn, stopDelays[reelIndex]);
@@ -203,9 +230,30 @@ const SlotMachine = ({
     }
   }, [lastResult, isAnimating, stopReelWithResult]);
   
+  // Сброс состояния анимации при остановке спина
+  useEffect(() => {
+    if (!isSpinning && animationCompleteRef.current) {
+      console.log('СЛОТЫ: Спин завершен, сбрасываем флаг анимации');
+      animationCompleteRef.current = false;
+    }
+  }, [isSpinning]);
+  
+  // Аварийная остановка анимации
+  useEffect(() => {
+    if (!isSpinning && isAnimating) {
+      console.log('СЛОТЫ: Аварийная остановка анимации');
+      const emergencyTimeout = setTimeout(() => {
+        stopAllAnimations();
+      }, 500);
+      
+      return () => clearTimeout(emergencyTimeout);
+    }
+  }, [isSpinning, isAnimating, stopAllAnimations]);
+  
   // Очистка при размонтировании
   useEffect(() => {
     return () => {
+      console.log('СЛОТЫ: Размонтирование компонента, очищаем все');
       clearAnimations();
     };
   }, [clearAnimations]);

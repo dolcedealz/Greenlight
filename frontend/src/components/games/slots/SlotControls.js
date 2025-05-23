@@ -20,7 +20,7 @@ const SlotControls = ({
   
   // Рассчитываем максимальный возможный выигрыш
   useEffect(() => {
-    const jackpotMultiplier = 100; // Максимальный множитель для 🎰 (увеличен с 50 до 100)
+    const jackpotMultiplier = 100; // Максимальный множитель для jackpot
     setMaxWin(betAmount * jackpotMultiplier);
   }, [betAmount]);
   
@@ -179,7 +179,7 @@ const SlotControls = ({
         )}
       </div>
       
-      {/* Таблица выплат - ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ */}
+      {/* Таблица выплат с PNG изображениями */}
       <div className="payout-table">
         <h4>Таблица выплат</h4>
         <div className="payout-rules">
@@ -194,17 +194,34 @@ const SlotControls = ({
         </div>
         <div className="payout-grid">
           {[
-            { symbol: '🍒', payout: 4, threeInRow: 2 },      // Увеличено с 2 до 4
-            { symbol: '🍋', payout: 6, threeInRow: 3 },      // Увеличено с 3 до 6
-            { symbol: '🍊', payout: 8, threeInRow: 4 },      // Увеличено с 4 до 8
-            { symbol: '🍇', payout: 12, threeInRow: 6 },     // Увеличено с 5 до 12
-            { symbol: '🔔', payout: 18, threeInRow: 9 },     // Увеличено с 8 до 18
-            { symbol: '💎', payout: 30, threeInRow: 15 },    // Увеличено с 15 до 30
-            { symbol: '⭐', payout: 50, threeInRow: 25 },    // Увеличено с 25 до 50
-            { symbol: '🎰', payout: 100, threeInRow: 50 }    // Увеличено с 50 до 100
+            { symbol: 'cherry', payout: 4, threeInRow: 2, img: '/assets/images/slots/cherry final png.png' },
+            { symbol: 'lemon', payout: 6, threeInRow: 3, img: '/assets/images/slots/lemon final png.png' },
+            { symbol: 'persik', payout: 8, threeInRow: 4, img: '/assets/images/slots/persik final png.png' },
+            { symbol: 'grape', payout: 12, threeInRow: 6, img: '/assets/images/slots/grape final png.png' },
+            { symbol: 'bell', payout: 18, threeInRow: 9, img: '/assets/images/slots/bell final png.png' },
+            { symbol: 'diamond', payout: 30, threeInRow: 15, img: '/assets/images/slots/diamond final png.png' },
+            { symbol: 'star', payout: 50, threeInRow: 25, img: '/assets/images/slots/star final png.png' },
+            { symbol: 'jackpot', payout: 100, threeInRow: 50, img: '/assets/images/slots/jackpot final png.png' }
           ].map((symbolData, index) => (
             <div key={index} className="payout-item">
-              <span className="payout-symbol">{symbolData.symbol}</span>
+              <img 
+                src={symbolData.img} 
+                alt={symbolData.symbol}
+                className="payout-symbol-img"
+                onError={(e) => {
+                  const fallbackEmojis = {
+                    'cherry': '🍒',
+                    'lemon': '🍋',
+                    'persik': '🍑',
+                    'grape': '🍇',
+                    'bell': '🔔',
+                    'diamond': '💎',
+                    'star': '⭐',
+                    'jackpot': '🎰'
+                  };
+                  e.target.outerHTML = `<span class="payout-symbol">${fallbackEmojis[symbolData.symbol] || '🍒'}</span>`;
+                }}
+              />
               <span className="payout-multiplier">4×{symbolData.payout} | 3×{symbolData.threeInRow}</span>
             </div>
           ))}

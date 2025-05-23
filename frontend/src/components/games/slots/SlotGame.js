@@ -49,19 +49,19 @@ const SlotGame = ({
         throw new Error('Сервер вернул некорректные данные барабанов');
       }
       
-      // Ждем завершения анимации (2.5 секунды)
+      // ИЗМЕНЕНИЕ: Сразу передаем результат в SlotMachine для остановки анимации
+      setLastResult({
+        reels: data.reels,
+        winningLines: data.winningLines || [],
+        win: data.win,
+        profit: data.profit,
+        multiplier: data.multiplier || 0,
+        winningSymbols: data.winningSymbols || []
+      });
+      
+      // ИЗМЕНЕНИЕ: Уменьшаем время ожидания, так как анимация теперь быстрее
       setTimeout(() => {
-        console.log('СЛОТЫ: Анимация завершена, устанавливаем результат');
-        
-        // Устанавливаем результат
-        setLastResult({
-          reels: data.reels,
-          winningLines: data.winningLines || [],
-          win: data.win,
-          profit: data.profit,
-          multiplier: data.multiplier || 0,
-          winningSymbols: data.winningSymbols || []
-        });
+        console.log('СЛОТЫ: Анимация завершена');
         
         // Обновляем баланс
         if (data.balanceAfter !== undefined) {
@@ -69,7 +69,7 @@ const SlotGame = ({
           setBalance(data.balanceAfter);
         }
         
-        // Показываем результат
+        // Показываем результат в GameScreen
         setGameResult({
           win: data.win,
           amount: data.win ? Math.abs(data.profit) : betAmount,
@@ -81,7 +81,7 @@ const SlotGame = ({
         setLoading(false);
         
         console.log('СЛОТЫ: Спин полностью завершен');
-      }, 2500);
+      }, 1800); // ИЗМЕНЕНИЕ: Уменьшено с 2500 до 1800
       
       return data.win;
     } catch (err) {
@@ -126,7 +126,7 @@ const SlotGame = ({
     if (autoplayRemaining > 1 && betAmount <= balance) {
       const timeoutId = setTimeout(() => {
         performAutoplay();
-      }, 3000);
+      }, 2500); // ИЗМЕНЕНИЕ: Уменьшено время между автоспинами
       setAutoplayTimeoutId(timeoutId);
     } else {
       setAutoplay(false);

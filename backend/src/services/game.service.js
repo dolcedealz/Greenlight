@@ -192,7 +192,7 @@ class GameService {
 // backend/src/services/game.service.js (только функция playSlots, остальное без изменений)
 
 /**
- * Играть в слоты (обновленная версия для 4x4 с ИСПРАВЛЕННЫМИ коэффициентами)
+ * Играть в слоты (ИСПРАВЛЕННАЯ версия для 4x4)
  * @param {Object} userData - Данные пользователя
  * @param {Object} gameData - Данные игры
  * @returns {Object} - Результат игры
@@ -229,14 +229,14 @@ async playSlots(userData, gameData) {
     
     // ИСПРАВЛЕНО: Символы слотов с правильными коэффициентами
     const SLOT_SYMBOLS = [
-      { symbol: '🍒', weight: 25, payout: 2 }, // 3 в ряд: 1, 4 в ряд: 2
-      { symbol: '🍋', weight: 20, payout: 3 }, // 3 в ряд: 1.5, 4 в ряд: 3
-      { symbol: '🍊', weight: 15, payout: 4 }, // 3 в ряд: 2, 4 в ряд: 4
-      { symbol: '🍇', weight: 12, payout: 5 }, // 3 в ряд: 2.5, 4 в ряд: 5
-      { symbol: '🔔', weight: 8, payout: 8 },  // 3 в ряд: 4, 4 в ряд: 8
-      { symbol: '💎', weight: 5, payout: 15 }, // 3 в ряд: 7.5, 4 в ряд: 15
-      { symbol: '⭐', weight: 3, payout: 25 }, // 3 в ряд: 12.5, 4 в ряд: 25
-      { symbol: '🎰', weight: 2, payout: 50 }  // 3 в ряд: 25, 4 в ряд: 50
+      { symbol: '🍒', weight: 25, payout: 2 },
+      { symbol: '🍋', weight: 20, payout: 3 },
+      { symbol: '🍊', weight: 15, payout: 4 },
+      { symbol: '🍇', weight: 12, payout: 5 },
+      { symbol: '🔔', weight: 8, payout: 8 },
+      { symbol: '💎', weight: 5, payout: 15 },
+      { symbol: '⭐', weight: 3, payout: 25 },
+      { symbol: '🎰', weight: 2, payout: 50 }
     ];
     
     // Функция генерации символа
@@ -254,152 +254,120 @@ async playSlots(userData, gameData) {
       return SLOT_SYMBOLS[0];
     };
     
-    // Генерируем барабаны (4x4)
-    const reels = [
-      [generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol],
-      [generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol],
-      [generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol],
-      [generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol, generateSymbol().symbol]
-    ];
+    // ИСПРАВЛЕНО: Генерируем барабаны в правильном формате [колонка][строка]
+    const reels = [];
+    for (let col = 0; col < 4; col++) {
+      const column = [];
+      for (let row = 0; row < 4; row++) {
+        column.push(generateSymbol().symbol);
+      }
+      reels.push(column);
+    }
     
-    // Проверяем выигрышные линии для 4x4 поля
+    console.log('СЛОТЫ: Сгенерированные барабаны:', JSON.stringify(reels, null, 2));
+    
+    // ИСПРАВЛЕНО: Проверяем выигрышные линии для 4x4 поля
     const winningLines = [];
     const winningSymbols = [];
     let totalMultiplier = 0;
     
-    // Горизонтальные линии (4 строки)
+    // Функция для добавления выигрышной линии
+    const addWinningLine = (positions, symbol, consecutiveCount) => {
+      const symbolData = SLOT_SYMBOLS.find(s => s.symbol === symbol);
+      if (!symbolData) return;
+      
+      winningLines.push(positions);
+      if (!winningSymbols.includes(symbol)) {
+        winningSymbols.push(symbol);
+      }
+      
+      if (consecutiveCount === 3) {
+        totalMultiplier += symbolData.payout / 2;
+        console.log(`СЛОТЫ: Выигрышная линия 3 в ряд (${symbol}): +${symbolData.payout / 2}x`);
+      } else if (consecutiveCount === 4) {
+        totalMultiplier += symbolData.payout;
+        console.log(`СЛОТЫ: Выигрышная линия 4 в ряд (${symbol}): +${symbolData.payout}x`);
+      }
+    };
+    
+    // ИСПРАВЛЕНО: Горизонтальные линии (строки)
     for (let row = 0; row < 4; row++) {
-      const symbol = reels[0][row];
+      const firstSymbol = reels[0][row];
       let consecutiveCount = 1;
+      const positions = [`0-${row}`];
       
-      // Проверяем подряд идущие символы
       for (let col = 1; col < 4; col++) {
-        if (reels[col][row] === symbol) {
+        if (reels[col][row] === firstSymbol) {
           consecutiveCount++;
+          positions.push(`${col}-${row}`);
         } else {
           break;
         }
       }
       
-      // ИСПРАВЛЕНО: Разные коэффициенты для 3 и 4 в ряд
       if (consecutiveCount >= 3) {
-        const symbolData = SLOT_SYMBOLS.find(s => s.symbol === symbol);
-        if (symbolData) {
-          const linePositions = [];
-          for (let col = 0; col < consecutiveCount; col++) {
-            linePositions.push(`${col}-${row}`);
-          }
-          winningLines.push(linePositions);
-          winningSymbols.push(symbol);
-          
-          if (consecutiveCount === 3) {
-            // ИСПРАВЛЕНО: для 3 в ряд коэффициент в 2 раза меньше
-            totalMultiplier += symbolData.payout / 2;
-          } else if (consecutiveCount === 4) {
-            // Для 4 в ряд - полный коэффициент символа
-            totalMultiplier += symbolData.payout;
-          }
-        }
+        addWinningLine(positions, firstSymbol, consecutiveCount);
       }
     }
     
-    // Вертикальные линии (4 колонки)
+    // ИСПРАВЛЕНО: Вертикальные линии (колонки)
     for (let col = 0; col < 4; col++) {
-      const symbol = reels[col][0];
+      const firstSymbol = reels[col][0];
       let consecutiveCount = 1;
+      const positions = [`${col}-0`];
       
-      // Проверяем подряд идущие символы
       for (let row = 1; row < 4; row++) {
-        if (reels[col][row] === symbol) {
+        if (reels[col][row] === firstSymbol) {
           consecutiveCount++;
+          positions.push(`${col}-${row}`);
         } else {
           break;
         }
       }
       
-      // ИСПРАВЛЕНО: Разные коэффициенты для 3 и 4 в ряд
       if (consecutiveCount >= 3) {
-        const symbolData = SLOT_SYMBOLS.find(s => s.symbol === symbol);
-        if (symbolData) {
-          const linePositions = [];
-          for (let row = 0; row < consecutiveCount; row++) {
-            linePositions.push(`${col}-${row}`);
-          }
-          winningLines.push(linePositions);
-          winningSymbols.push(symbol);
-          
-          if (consecutiveCount === 3) {
-            // ИСПРАВЛЕНО: для 3 в ряд коэффициент в 2 раза меньше
-            totalMultiplier += symbolData.payout / 2;
-          } else if (consecutiveCount === 4) {
-            // Для 4 в ряд - полный коэффициент символа
-            totalMultiplier += symbolData.payout;
-          }
-        }
+        addWinningLine(positions, firstSymbol, consecutiveCount);
       }
     }
     
-    // Главная диагональ (сверху-слева вниз-вправо)
-    const diagonal1 = reels[0][0];
+    // ИСПРАВЛЕНО: Главная диагональ (сверху-слева вниз-вправо)
+    const diagonal1Symbol = reels[0][0];
     let diagonal1Count = 1;
+    const diagonal1Positions = ['0-0'];
+    
     for (let i = 1; i < 4; i++) {
-      if (reels[i][i] === diagonal1) {
+      if (reels[i][i] === diagonal1Symbol) {
         diagonal1Count++;
+        diagonal1Positions.push(`${i}-${i}`);
       } else {
         break;
       }
     }
     
     if (diagonal1Count >= 3) {
-      const symbolData = SLOT_SYMBOLS.find(s => s.symbol === diagonal1);
-      if (symbolData) {
-        const linePositions = [];
-        for (let i = 0; i < diagonal1Count; i++) {
-          linePositions.push(`${i}-${i}`);
-        }
-        winningLines.push(linePositions);
-        winningSymbols.push(diagonal1);
-        
-        if (diagonal1Count === 3) {
-          // ИСПРАВЛЕНО: для 3 в ряд коэффициент в 2 раза меньше
-          totalMultiplier += symbolData.payout / 2;
-        } else if (diagonal1Count === 4) {
-          // Для 4 в ряд - полный коэффициент символа
-          totalMultiplier += symbolData.payout;
-        }
-      }
+      addWinningLine(diagonal1Positions, diagonal1Symbol, diagonal1Count);
     }
     
-    // Побочная диагональ (сверху-справа вниз-влево)
-    const diagonal2 = reels[0][3];
+    // ИСПРАВЛЕНО: Побочная диагональ (сверху-справа вниз-влево)
+    const diagonal2Symbol = reels[0][3];
     let diagonal2Count = 1;
+    const diagonal2Positions = ['0-3'];
+    
     for (let i = 1; i < 4; i++) {
-      if (reels[i][3 - i] === diagonal2) {
+      if (reels[i][3 - i] === diagonal2Symbol) {
         diagonal2Count++;
+        diagonal2Positions.push(`${i}-${3 - i}`);
       } else {
         break;
       }
     }
     
     if (diagonal2Count >= 3) {
-      const symbolData = SLOT_SYMBOLS.find(s => s.symbol === diagonal2);
-      if (symbolData) {
-        const linePositions = [];
-        for (let i = 0; i < diagonal2Count; i++) {
-          linePositions.push(`${i}-${3 - i}`);
-        }
-        winningLines.push(linePositions);
-        winningSymbols.push(diagonal2);
-        
-        if (diagonal2Count === 3) {
-          // ИСПРАВЛЕНО: для 3 в ряд коэффициент в 2 раза меньше
-          totalMultiplier += symbolData.payout / 2;
-        } else if (diagonal2Count === 4) {
-          // Для 4 в ряд - полный коэффициент символа
-          totalMultiplier += symbolData.payout;
-        }
-      }
+      addWinningLine(diagonal2Positions, diagonal2Symbol, diagonal2Count);
     }
+    
+    console.log('СЛОТЫ: Выигрышные линии:', JSON.stringify(winningLines, null, 2));
+    console.log('СЛОТЫ: Общий множитель:', totalMultiplier);
     
     // Определяем выигрыш
     const win = totalMultiplier > 0;
@@ -461,7 +429,7 @@ async playSlots(userData, gameData) {
         type: 'win',
         amount: winAmount,
         game: game._id,
-        description: `Выигрыш в игре "Слоты" (x${totalMultiplier})`,
+        description: `Выигрыш в игре "Слоты" (x${totalMultiplier.toFixed(2)})`,
         balanceBefore: balanceBefore - betAmount,
         balanceAfter
       });
@@ -470,6 +438,16 @@ async playSlots(userData, gameData) {
     }
     
     await session.commitTransaction();
+    
+    console.log('СЛОТЫ: Финальный результат:', {
+      reels,
+      winningLines,
+      winningSymbols,
+      win,
+      profit,
+      multiplier: totalMultiplier,
+      balanceAfter
+    });
     
     // Возвращаем данные для клиента
     return {

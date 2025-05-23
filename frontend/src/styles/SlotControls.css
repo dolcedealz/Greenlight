@@ -8,19 +8,19 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
-  /* ИСПРАВЛЕНО: Кнопка спина - уменьшена высота */
+  /* Кнопка спина */
   .spin-section {
     margin-bottom: 20px;
   }
   
   .spin-button {
     width: 100%;
-    padding: 15px 20px; /* ИСПРАВЛЕНО: уменьшен padding с 20px до 15px */
+    padding: 15px 20px;
     background: linear-gradient(135deg, var(--primary-color) 0%, #0c9740 100%);
     border: none;
     border-radius: 12px;
     color: white;
-    font-size: 18px; /* ИСПРАВЛЕНО: уменьшен font-size с 20px до 18px */
+    font-size: 18px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -60,7 +60,7 @@
     animation: spinIcon 1s linear infinite;
   }
   
-  /* Секция ставки - теперь вторая */
+  /* Секция ставки */
   .bet-section {
     margin-bottom: 20px;
     padding-bottom: 20px;
@@ -108,36 +108,35 @@
     cursor: not-allowed;
   }
   
-  /* ИСПРАВЛЕНО: Быстрые ставки - 2 кнопки в ряду, 2 ряда */
+  /* ИСПРАВЛЕНО: Быстрые ставки - 1 колонка для 2 кнопок */
   .quick-bets {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* ИСПРАВЛЕНО: 2 колонки вместо 1 */
-    grid-template-rows: 1fr 1fr; /* ИСПРАВЛЕНО: 2 ряда */
-    gap: 12px; /* ИСПРАВЛЕНО: уменьшен gap */
+    grid-template-columns: 1fr; /* ИСПРАВЛЕНО: 1 колонка вместо 2 */
+    gap: 12px;
   }
   
   .quick-bet-btn {
     width: 100%;
-    padding: 16px 18px; /* ИСПРАВЛЕНО: немного уменьшен padding */
+    padding: 16px 18px;
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 10px;
     color: white;
-    font-size: 18px; /* ИСПРАВЛЕНО: уменьшен font-size */
+    font-size: 18px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-height: 55px; /* ИСПРАВЛЕНО: уменьшена минимальная высота */
+    min-height: 55px;
     text-transform: uppercase;
     letter-spacing: 1px;
   }
   
   /* Дополнительный класс для увеличенных кнопок */
   .quick-bet-btn.large {
-    padding: 18px 20px; /* ИСПРАВЛЕНО: немного уменьшен padding */
-    font-size: 20px; /* ИСПРАВЛЕНО: уменьшен font-size */
+    padding: 18px 20px;
+    font-size: 20px;
     font-weight: 800;
-    min-height: 60px; /* ИСПРАВЛЕНО: уменьшена высота */
+    min-height: 60px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
   
@@ -158,7 +157,7 @@
     cursor: not-allowed;
   }
   
-  /* Автоигра - теперь третья */
+  /* Автоигра */
   .autoplay-section {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 20px;
@@ -305,7 +304,7 @@
     color: var(--primary-color);
   }
   
-  /* Таблица выплат - теперь четвертая */
+  /* Таблица выплат */
   .payout-table {
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
@@ -389,7 +388,7 @@
     font-style: italic;
   }
   
-  /* Статистика - теперь пятая */
+  /* Статистика */
   .game-stats {
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
@@ -476,8 +475,8 @@
     }
     
     .spin-button {
-      padding: 14px 18px; /* ИСПРАВЛЕНО: уменьшен padding для мобильных */
-      font-size: 16px; /* ИСПРАВЛЕНО: уменьшен font-size для мобильных */
+      padding: 14px 18px;
+      font-size: 16px;
     }
     
     .count-buttons {
@@ -494,9 +493,9 @@
     
     /* Для мобильных кнопки чуть меньше, но все равно большие */
     .quick-bet-btn, .quick-bet-btn.large {
-      padding: 14px 16px; /* ИСПРАВЛЕНО: уменьшен padding */
-      font-size: 16px; /* ИСПРАВЛЕНО: уменьшен font-size */
-      min-height: 50px; /* ИСПРАВЛЕНО: уменьшена высота */
+      padding: 14px 16px;
+      font-size: 16px;
+      min-height: 50px;
     }
   }
   

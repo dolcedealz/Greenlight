@@ -1,5 +1,5 @@
 // frontend/src/components/games/slots/SlotMachine.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
 
 // Символы слотов с весами и выплатами
@@ -38,7 +38,8 @@ const SlotMachine = ({
   const [animatingReels, setAnimatingReels] = useState([false, false, false, false]);
   const [winningLines, setWinningLines] = useState([]);
   const [finalResult, setFinalResult] = useState(null);
-  const [currentGameId, setCurrentGameId] = useState(null); // НОВОЕ: отслеживаем ID текущей игры
+  const lastResultRef = useRef(null); // Используем ref для отслеживания изменений
+  const winningTimeoutRef = useRef(null); // Ref для таймаута очистки выигрышей
   
   // Функция для генерации случайного символа для анимации
   const getRandomSymbol = useCallback(() => {
@@ -55,41 +56,51 @@ const SlotMachine = ({
     return SLOT_SYMBOLS[0].symbol;
   }, []);
   
-  // ИСПРАВЛЕНО: правильная обработка нового результата
-  useEffect(() => {
-    if (lastResult && lastResult.reels) {
-      console.log('Получен результат с сервера:', lastResult.reels);
-      
-      // НОВОЕ: создаем уникальный ID для каждой игры
-      const gameId = Date.now() + Math.random();
-      setCurrentGameId(gameId);
-      
-      // Сохраняем финальный результат
-      setFinalResult({ ...lastResult, gameId });
-      
-      // ИСПРАВЛЕНО: немедленно очищаем выигрышные линии при новом результате
-      setWinningLines([]);
-    }
-  }, [lastResult]);
-  
-  // ИСПРАВЛЕНО: очистка выигрышных линий при начале спина
+  // ИСПРАВЛЕНО: Очистка состояния при начале нового спина
   useEffect(() => {
     if (isSpinning) {
-      console.log('Спин начался - очищаем выигрышные линии');
-      setWinningLines([]); // Немедленно очищаем при начале спина
-      setFinalResult(null); // Очищаем предыдущий результат
-      setCurrentGameId(null); // Сбрасываем ID игры
+      console.log('Спин начался - очищаем все состояние');
+      
+      // Очищаем таймаут выигрышных линий
+      if (winningTimeoutRef.current) {
+        clearTimeout(winningTimeoutRef.current);
+        winningTimeoutRef.current = null;
+      }
+      
+      // Немедленно очищаем выигрышные линии
+      setWinningLines([]);
+      setFinalResult(null);
+      lastResultRef.current = null;
     }
   }, [isSpinning]);
   
-  // Анимация с правильной установкой результата
+  // ИСПРАВЛЕНО: Обработка нового результата
   useEffect(() => {
-    if (isSpinning && finalResult && finalResult.gameId === currentGameId) {
+    // Проверяем, что результат действительно новый
+    if (lastResult && lastResult !== lastResultRef.current && lastResult.reels) {
+      console.log('Получен НОВЫЙ результат с сервера:', lastResult);
+      
+      // Сохраняем ссылку на текущий результат
+      lastResultRef.current = lastResult;
+      
+      // Сохраняем финальный результат
+      setFinalResult({ ...lastResult });
+    }
+  }, [lastResult]);
+  
+  // ИСПРАВЛЕНО: Анимация с правильной логикой
+  useEffect(() => {
+    if (isSpinning && finalResult && finalResult === lastResultRef.current) {
+      console.log('Запускаем анимацию для результата:', finalResult);
+      
       // Запускаем анимацию для каждого барабана с задержкой
       const delays = [0, 200, 400, 600];
       
       delays.forEach((delay, index) => {
         setTimeout(() => {
+          // Проверяем, что спин все еще активен
+          if (!isSpinning) return;
+          
           setAnimatingReels(prev => {
             const newState = [...prev];
             newState[index] = true;
@@ -114,8 +125,8 @@ const SlotMachine = ({
           setTimeout(() => {
             clearInterval(interval);
             
-            // Проверяем, что мы все еще работаем с тем же результатом
-            if (finalResult.gameId === currentGameId) {
+            // Проверяем, что результат все еще актуален
+            if (finalResult === lastResultRef.current) {
               // Устанавливаем ФИНАЛЬНЫЙ результат с сервера
               setReels(prev => {
                 const newReels = [...prev];
@@ -132,22 +143,16 @@ const SlotMachine = ({
               // Если это последний барабан, показываем выигрышные линии
               if (index === delays.length - 1) {
                 setTimeout(() => {
-                  // ИСПРАВЛЕНО: проверяем, что это все еще та же игра
-                  if (finalResult.gameId === currentGameId && finalResult.winningLines && finalResult.winningLines.length > 0) {
-                    console.log('Устанавливаем выигрышные линии для игры:', finalResult.gameId);
+                  // ИСПРАВЛЕНО: проверяем актуальность результата
+                  if (finalResult === lastResultRef.current && finalResult.winningLines && finalResult.winningLines.length > 0) {
+                    console.log('Устанавливаем выигрышные линии');
                     setWinningLines(finalResult.winningLines);
                     
                     // Убираем подсветку через 3 секунды
-                    setTimeout(() => {
-                      // ИСПРАВЛЕНО: проверяем ID игры перед очисткой
-                      setWinningLines(prev => {
-                        // Очищаем только если это все еще та же игра
-                        if (finalResult.gameId === currentGameId) {
-                          console.log('Очищаем выигрышные линии для игры:', finalResult.gameId);
-                          return [];
-                        }
-                        return prev;
-                      });
+                    winningTimeoutRef.current = setTimeout(() => {
+                      console.log('Очищаем выигрышные линии через таймаут');
+                      setWinningLines([]);
+                      winningTimeoutRef.current = null;
                     }, 3000);
                   }
                 }, 300);
@@ -157,14 +162,24 @@ const SlotMachine = ({
         }, delay);
       });
     }
-  }, [isSpinning, finalResult, currentGameId, getRandomSymbol]);
+  }, [isSpinning, finalResult, getRandomSymbol]);
+  
+  // Очистка таймаутов при размонтировании
+  useEffect(() => {
+    return () => {
+      if (winningTimeoutRef.current) {
+        clearTimeout(winningTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Функция для получения класса ячейки
   const getCellClass = useCallback((reelIndex, rowIndex) => {
     const baseClass = 'slot-cell';
     const position = `${reelIndex}-${rowIndex}`;
     
-    if (winningLines.some(line => line.includes(position))) {
+    // ИСПРАВЛЕНО: показываем выигрышные только если есть актуальные линии
+    if (winningLines.length > 0 && winningLines.some(line => line.includes(position))) {
       return `${baseClass} winning`;
     }
     
@@ -213,7 +228,7 @@ const SlotMachine = ({
       </div>
       
       {/* Информация о последнем спине */}
-      {finalResult && !isSpinning && finalResult.gameId === currentGameId && (
+      {finalResult && !isSpinning && finalResult === lastResultRef.current && (
         <div className="last-spin-info">
           {finalResult.win ? (
             <div className="win-display">

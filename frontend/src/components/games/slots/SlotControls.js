@@ -103,7 +103,7 @@ const SlotControls = ({
           </div>
         </div>
         
-        {/* ОБНОВЛЕННЫЕ КНОПКИ: 1% 5% 10% MAX */}
+        {/* ОБНОВЛЕННЫЕ КНОПКИ: 1% 5% 10% MAX в 2x2 сетке */}
         <div className="quick-bets">
           <button 
             onClick={() => handleQuickBet(0.01)} 
@@ -193,38 +193,38 @@ const SlotControls = ({
         )}
       </div>
       
-      {/* Таблица выплат */}
+      {/* ОБНОВЛЕННАЯ Таблица выплат */}
       <div className="payout-table">
         <h4>Таблица выплат</h4>
         <div className="payout-rules">
           <div className="payout-rule">
             <span className="rule-text">3 в ряд</span>
-            <span className="rule-multiplier">×1.5</span>
+            <span className="rule-multiplier">×(половина коэффициента)</span>
           </div>
           <div className="payout-rule">
             <span className="rule-text">4 в ряд</span>
-            <span className="rule-multiplier">×(коэффициент символа)</span>
+            <span className="rule-multiplier">×(полный коэффициент)</span>
           </div>
         </div>
         <div className="payout-grid">
           {[
-            { symbol: '🍒', payout: 2 },
-            { symbol: '🍋', payout: 3 },
-            { symbol: '🍊', payout: 4 },
-            { symbol: '🍇', payout: 5 },
-            { symbol: '🔔', payout: 8 },
-            { symbol: '💎', payout: 15 },
-            { symbol: '⭐', payout: 25 },
-            { symbol: '🎰', payout: 50 }
+            { symbol: '🍒', payout: 2, threeInRow: 1 },
+            { symbol: '🍋', payout: 3, threeInRow: 1.5 },
+            { symbol: '🍊', payout: 4, threeInRow: 2 },
+            { symbol: '🍇', payout: 5, threeInRow: 2.5 },
+            { symbol: '🔔', payout: 8, threeInRow: 4 },
+            { symbol: '💎', payout: 15, threeInRow: 7.5 },
+            { symbol: '⭐', payout: 25, threeInRow: 12.5 },
+            { symbol: '🎰', payout: 50, threeInRow: 25 }
           ].map((symbolData, index) => (
             <div key={index} className="payout-item">
               <span className="payout-symbol">{symbolData.symbol}</span>
-              <span className="payout-multiplier">×{symbolData.payout}</span>
+              <span className="payout-multiplier">4×{symbolData.payout} | 3×{symbolData.threeInRow}</span>
             </div>
           ))}
         </div>
         <div className="payout-note">
-          * Выигрыш при 4 одинаковых символах в линию
+          * Первое число - выигрыш за 4 в ряд, второе - за 3 в ряд
         </div>
       </div>
       

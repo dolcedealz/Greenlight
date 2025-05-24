@@ -155,8 +155,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.stroke();
       
       // Прогресс круга
-      if (timeToStart > 0 && timeToStart <= 7) { // ИЗМЕНЕНО: с 1 на 7
-        const progress = (7 - timeToStart) / 7; // ИЗМЕНЕНО: с 1 на 7
+      if (timeToStart > 0 && timeToStart <= 7) {
+        const progress = (7 - timeToStart) / 7;
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius - 2, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * progress));
         ctx.strokeStyle = '#0ba84a';
@@ -194,29 +194,33 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
     };
     
-    // Состояние полета - ИСПРАВЛЕННЫЙ АЛГОРИТМ ЛИНИИ
+    // Состояние полета
     const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
       const now = Date.now();
       
-      // ИСПРАВЛЕНО: Новый алгоритм для изгибающейся линии
-      const timeElapsed = pointsRef.current.length * 0.008; // 8ms между точками
+      // Новый алгоритм для плавной кривой
+      const timeElapsed = pointsRef.current.length * 0.01;
       
-      // Логарифмическая функция для плавного изгиба
-      const logBase = 1.5;
-      const timeScale = 0.8;
-      const multScale = 0.15;
+      // X координата: более плавная прогрессия по времени
+      const xProgress = Math.sqrt(timeElapsed * 2 + (currentMultiplier - 1) * 0.5);
+      const x = padding + Math.min(xProgress * 30, width - 20);
       
-      // X координата: логарифмическая функция времени и множителя
-      const xProgress = Math.log(1 + timeElapsed * timeScale + (currentMultiplier - 1) * multScale) / Math.log(logBase);
-      const x = padding + Math.min(xProgress * 45, width - 20); // Масштабируем под ширину
+      // Y координата: ограничиваем рост после 6x
+      let yProgress;
+      if (currentMultiplier <= 6) {
+        yProgress = Math.log(currentMultiplier) / Math.log(6);
+      } else {
+        const baseProgress = 1;
+        const additionalProgress = Math.log(currentMultiplier - 5) / Math.log(20);
+        yProgress = baseProgress + additionalProgress * 0.3;
+      }
       
-      // Y координата: обратная логарифмическая функция множителя
-      const yProgress = Math.log(currentMultiplier) / Math.log(10); // логарифм по основанию 10
-      const y = padding + height - (yProgress * height * 0.8); // 80% высоты для множителя до 10x
+      yProgress = Math.min(yProgress, 1.4);
+      const y = padding + height - (yProgress * height * 0.7);
       
       const point = {
-        x: Math.max(padding, x),
-        y: Math.max(padding, Math.min(y, padding + height)),
+        x: Math.max(padding, Math.min(x, padding + width - 10)),
+        y: Math.max(padding + 10, Math.min(y, padding + height - 10)),
         multiplier: currentMultiplier,
         time: now
       };
@@ -224,8 +228,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       pointsRef.current.push(point);
       
       // Ограничиваем количество точек
-      if (pointsRef.current.length > 2000) {
-        pointsRef.current = pointsRef.current.slice(-1500);
+      if (pointsRef.current.length > 1500) {
+        pointsRef.current = pointsRef.current.slice(-1000);
       }
       
       // Рисуем линию графика
@@ -246,28 +250,24 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
         ctx.lineJoin = 'round';
         ctx.setLineDash([]);
         
-        // ИСПРАВЛЕНО: Рисуем плавную кривую
+        // Рисуем плавную кривую
         ctx.beginPath();
         ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
         
-        // Используем quadraticCurveTo для более плавной линии
         for (let i = 1; i < pointsRef.current.length - 1; i++) {
           const current = pointsRef.current[i];
           const next = pointsRef.current[i + 1];
           
           if (next) {
-            const controlX = (current.x + next.x) / 2;
-            const controlY = (current.y + next.y) / 2;
-            ctx.quadraticCurveTo(current.x, current.y, controlX, controlY);
+            const controlX1 = current.x + (next.x - current.x) * 0.3;
+            const controlY1 = current.y;
+            const controlX2 = current.x + (next.x - current.x) * 0.7;
+            const controlY2 = next.y;
+            
+            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, next.x, next.y);
           } else {
             ctx.lineTo(current.x, current.y);
           }
-        }
-        
-        // Добавляем последнюю точку
-        if (pointsRef.current.length > 1) {
-          const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-          ctx.lineTo(lastPoint.x, lastPoint.y);
         }
         
         ctx.stroke();
@@ -281,24 +281,22 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
         ctx.beginPath();
         ctx.moveTo(padding, padding + height);
         
-        // Повторяем кривую для заливки
-        for (let i = 0; i < pointsRef.current.length - 1; i++) {
-          const current = pointsRef.current[i];
-          const next = pointsRef.current[i + 1];
-          
-          if (next) {
-            const controlX = (current.x + next.x) / 2;
-            const controlY = (current.y + next.y) / 2;
-            if (i === 0) {
-              ctx.lineTo(current.x, current.y);
-            }
-            ctx.quadraticCurveTo(current.x, current.y, controlX, controlY);
+        pointsRef.current.forEach((point, i) => {
+          if (i === 0) {
+            ctx.lineTo(point.x, point.y);
+          } else {
+            const prev = pointsRef.current[i - 1];
+            const controlX1 = prev.x + (point.x - prev.x) * 0.3;
+            const controlY1 = prev.y;
+            const controlX2 = prev.x + (point.x - prev.x) * 0.7;
+            const controlY2 = point.y;
+            
+            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, point.x, point.y);
           }
-        }
+        });
         
         if (pointsRef.current.length > 0) {
           const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-          ctx.lineTo(lastPoint.x, lastPoint.y);
           ctx.lineTo(lastPoint.x, padding + height);
         }
         
@@ -345,23 +343,20 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
         ctx.beginPath();
         ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
         
-        // Рисуем кривую красным цветом
         for (let i = 1; i < pointsRef.current.length - 1; i++) {
           const current = pointsRef.current[i];
           const next = pointsRef.current[i + 1];
           
           if (next) {
-            const controlX = (current.x + next.x) / 2;
-            const controlY = (current.y + next.y) / 2;
-            ctx.quadraticCurveTo(current.x, current.y, controlX, controlY);
+            const controlX1 = current.x + (next.x - current.x) * 0.3;
+            const controlY1 = current.y;
+            const controlX2 = current.x + (next.x - current.x) * 0.7;
+            const controlY2 = next.y;
+            
+            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, next.x, next.y);
           } else {
             ctx.lineTo(current.x, current.y);
           }
-        }
-        
-        if (pointsRef.current.length > 0) {
-          const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-          ctx.lineTo(lastPoint.x, lastPoint.y);
         }
         
         ctx.stroke();
@@ -375,23 +370,22 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
         ctx.beginPath();
         ctx.moveTo(padding, padding + height);
         
-        for (let i = 0; i < pointsRef.current.length - 1; i++) {
-          const current = pointsRef.current[i];
-          const next = pointsRef.current[i + 1];
-          
-          if (next) {
-            const controlX = (current.x + next.x) / 2;
-            const controlY = (current.y + next.y) / 2;
-            if (i === 0) {
-              ctx.lineTo(current.x, current.y);
-            }
-            ctx.quadraticCurveTo(current.x, current.y, controlX, controlY);
+        pointsRef.current.forEach((point, i) => {
+          if (i === 0) {
+            ctx.lineTo(point.x, point.y);
+          } else {
+            const prev = pointsRef.current[i - 1];
+            const controlX1 = prev.x + (point.x - prev.x) * 0.3;
+            const controlY1 = prev.y;
+            const controlX2 = prev.x + (point.x - prev.x) * 0.7;
+            const controlY2 = point.y;
+            
+            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, point.x, point.y);
           }
-        }
+        });
         
         if (pointsRef.current.length > 0) {
           const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-          ctx.lineTo(lastPoint.x, lastPoint.y);
           ctx.lineTo(lastPoint.x, padding + height);
         }
         
@@ -456,7 +450,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
   }, [gameState]);
   
   return (
-    <div className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''}`}>
+    <div className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''}`} data-state={gameState}>
       <canvas 
         ref={canvasRef}
         className="crash-graph-canvas"

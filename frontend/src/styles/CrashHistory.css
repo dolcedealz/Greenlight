@@ -1,0 +1,320 @@
+/* frontend/src/styles/CrashHistory.css */
+.crash-history {
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    height: 400px;
+  }
+  
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .history-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0;
+  }
+  
+  .history-count {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 12px;
+  }
+  
+  .history-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+  
+  .history-content::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .history-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .history-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+  
+  .no-history {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  .no-history-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+  }
+  
+  .no-history-text {
+    font-size: 14px;
+    text-align: center;
+  }
+  
+  /* Компактный вид */
+  .history-compact {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .compact-title {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+  }
+  
+  .compact-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  
+  .compact-item {
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  
+  .compact-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .compact-item.very-low {
+    background-color: rgba(255, 59, 48, 0.2);
+    border-color: rgba(255, 59, 48, 0.3);
+  }
+  
+  .compact-item.low {
+    background-color: rgba(255, 149, 0, 0.2);
+    border-color: rgba(255, 149, 0, 0.3);
+  }
+  
+  .compact-item.medium {
+    background-color: rgba(255, 204, 0, 0.2);
+    border-color: rgba(255, 204, 0, 0.3);
+  }
+  
+  .compact-item.high {
+    background-color: rgba(52, 199, 89, 0.2);
+    border-color: rgba(52, 199, 89, 0.3);
+  }
+  
+  .compact-item.very-high {
+    background-color: rgba(11, 168, 74, 0.2);
+    border-color: rgba(11, 168, 74, 0.3);
+  }
+  
+  /* Детальный список */
+  .history-detailed {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .history-item {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+  
+  .history-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .round-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .round-id {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .round-time {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  .round-result {
+    margin-bottom: 8px;
+  }
+  
+  .crash-multiplier {
+    font-size: 20px;
+    font-weight: bold;
+  }
+  
+  .crash-multiplier.very-low {
+    color: #ff3b30;
+  }
+  
+  .crash-multiplier.low {
+    color: #ff9500;
+  }
+  
+  .crash-multiplier.medium {
+    color: #ffcc00;
+  }
+  
+  .crash-multiplier.high {
+    color: #34c759;
+  }
+  
+  .crash-multiplier.very-high {
+    color: #0ba84a;
+  }
+  
+  .round-stats {
+    display: flex;
+    gap: 16px;
+  }
+  
+  .stat {
+    display: flex;
+    gap: 4px;
+    font-size: 12px;
+  }
+  
+  .stat-label {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .stat-value {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+  }
+  
+  /* Статистика по истории */
+  .history-stats {
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .stats-title {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  .stat-item {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 8px 10px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .stat-item .stat-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  
+  .stat-item .stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+  }
+  
+  /* Адаптивность */
+  @media (max-width: 768px) {
+    .crash-history {
+      height: 350px;
+      padding: 12px;
+    }
+    
+    .history-title {
+      font-size: 15px;
+    }
+    
+    .compact-item {
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+    
+    .history-item {
+      padding: 10px;
+    }
+    
+    .crash-multiplier {
+      font-size: 18px;
+    }
+    
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .crash-history {
+      height: 300px;
+      padding: 10px;
+    }
+    
+    .history-header {
+      margin-bottom: 10px;
+    }
+    
+    .history-title {
+      font-size: 14px;
+    }
+    
+    .compact-list {
+      gap: 4px;
+    }
+    
+    .history-item {
+      padding: 8px;
+    }
+    
+    .round-stats {
+      gap: 12px;
+    }
+    
+    .stat {
+      font-size: 11px;
+    }
+  }

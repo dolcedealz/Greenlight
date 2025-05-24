@@ -7,8 +7,127 @@
     background-color: var(--background-color);
     min-height: 100vh;
     padding-bottom: 80px;
-    /* Быстрые переходы для ускоренной игры */
     transition: all 0.2s ease;
+  }
+  
+  /* Кнопка под графиком */
+  .crash-main-action-btn {
+    width: 100%;
+    padding: 16px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .crash-main-action-btn.bet {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #0c9740 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(11, 168, 74, 0.4);
+    animation: betButtonPulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes betButtonPulse {
+    0%, 100% {
+      box-shadow: 0 4px 15px rgba(11, 168, 74, 0.4);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 6px 20px rgba(11, 168, 74, 0.6);
+      transform: scale(1.02);
+    }
+  }
+  
+  .crash-main-action-btn.bet:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(11, 168, 74, 0.5);
+  }
+  
+  .crash-main-action-btn.cashout {
+    background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%);
+    color: #000;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+    animation: cashoutPulse 0.8s ease-in-out infinite;
+  }
+  
+  @keyframes cashoutPulse {
+    0%, 100% {
+      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 6px 25px rgba(255, 193, 7, 0.7);
+      transform: scale(1.03);
+    }
+  }
+  
+  .crash-main-action-btn.cashout:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 8px 30px rgba(255, 193, 7, 0.6);
+  }
+  
+  .crash-main-action-btn.placed {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    animation: placedButtonGlow 2s ease-in-out infinite;
+  }
+  
+  @keyframes placedButtonGlow {
+    0%, 100% {
+      box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+    }
+    50% {
+      box-shadow: 0 4px 12px rgba(108, 117, 125, 0.5);
+    }
+  }
+  
+  .crash-main-action-btn.won {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    animation: wonButtonCelebration 1s ease-in-out infinite;
+  }
+  
+  @keyframes wonButtonCelebration {
+    0%, 100% {
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.5);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 6px 20px rgba(40, 167, 69, 0.7);
+      transform: scale(1.02);
+    }
+  }
+  
+  .crash-main-action-btn.lost {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    animation: lostButtonShake 0.5s ease-in-out;
+  }
+  
+  @keyframes lostButtonShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+  
+  .crash-main-action-btn.loading,
+  .crash-main-action-btn.disabled,
+  .crash-main-action-btn.waiting {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: rgba(255, 255, 255, 0.8);
+    cursor: not-allowed;
+    animation: none;
+  }
+  
+  .crash-main-action-btn:disabled {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
   
   /* Анимация загрузки всей игры */
@@ -77,7 +196,6 @@
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-top: 10px;
-    /* Анимация появления панелей */
     animation: panelsSlideIn 0.5s ease;
   }
   
@@ -138,20 +256,6 @@
     transition: all 0.2s ease;
   }
   
-  /* Специальные эффекты для быстрой игры */
-  .crash-game.fast-mode {
-    animation: fastModeIndicator 3s ease-in-out infinite;
-  }
-  
-  @keyframes fastModeIndicator {
-    0%, 100% {
-      border-left: 3px solid transparent;
-    }
-    50% {
-      border-left: 3px solid rgba(11, 168, 74, 0.5);
-    }
-  }
-  
   /* Индикатор активности игры */
   .crash-game::before {
     content: '';
@@ -185,18 +289,16 @@
   
   /* Оптимизации производительности */
   .crash-game * {
-    /* Включаем аппаратное ускорение для важных элементов */
     will-change: auto;
   }
   
   .crash-game .crash-graph-container,
-  .crash-game .main-action-btn,
-  .crash-game .status-dot {
+  .crash-game .crash-main-action-btn {
     will-change: transform, opacity;
     transform: translateZ(0);
   }
   
-  /* Адаптивность для быстрой игры */
+  /* Адаптивность */
   @media (max-width: 768px) {
     .crash-game {
       padding: 10px;
@@ -208,7 +310,11 @@
       gap: 10px;
     }
     
-    /* Упрощаем анимации на мобильных */
+    .crash-main-action-btn {
+      padding: 14px 18px;
+      font-size: 16px;
+    }
+    
     .crash-game[data-game-state="waiting"],
     .crash-game[data-game-state="flying"] {
       animation-duration: 2s;
@@ -230,7 +336,11 @@
       gap: 8px;
     }
     
-    /* Отключаем тяжелые эффекты на слабых устройствах */
+    .crash-main-action-btn {
+      padding: 12px 16px;
+      font-size: 15px;
+    }
+    
     .crash-game::before {
       display: none;
     }
@@ -283,8 +393,8 @@
     .crash-game[data-game-state="crashed"],
     .crash-game.high-multiplier,
     .crash-game.legendary-multiplier,
-    .crash-game.fast-mode,
-    .crash-info-panels {
+    .crash-info-panels,
+    .crash-main-action-btn {
       animation: none;
     }
     
@@ -351,8 +461,6 @@
   
   /* Финальные оптимизации */
   .crash-game {
-    /* Оптимизация перерисовки */
     contain: layout style paint;
-    /* Изоляция стекинга */
     isolation: isolate;
   }

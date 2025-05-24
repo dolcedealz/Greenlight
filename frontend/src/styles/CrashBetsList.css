@@ -8,12 +8,14 @@
     display: flex;
     flex-direction: column;
     height: 400px;
-    /* Анимация для быстрой игры */
     transition: all 0.3s ease;
+    overflow: hidden; /* ИСПРАВЛЕНО: предотвращаем выход за границы */
+    min-width: 0; /* ИСПРАВЛЕНО: позволяем контейнеру сжиматься */
   }
   
   .bets-header {
     margin-bottom: 15px;
+    flex-shrink: 0; /* ИСПРАВЛЕНО: заголовок не сжимается */
   }
   
   .bets-tabs {
@@ -21,8 +23,8 @@
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     padding: 4px;
-    /* Плавная анимация переключения */
     transition: all 0.2s ease;
+    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение в табах */
   }
   
   .tab-btn {
@@ -36,14 +38,15 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    /* Добавляем эмодзи анимацию */
     position: relative;
+    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим текст в кнопках */
+    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение */
+    text-overflow: ellipsis; /* ИСПРАВЛЕНО: показываем многоточие */
   }
   
   .tab-btn.active {
     background-color: var(--primary-color);
     color: white;
-    /* Пульсация для активной вкладки */
     animation: activeTabPulse 2s ease-in-out infinite;
   }
   
@@ -64,10 +67,11 @@
   .bets-content {
     flex: 1;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: hidden; /* ИСПРАВЛЕНО: только вертикальный скролл */
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
     margin-bottom: 15px;
+    min-height: 0; /* ИСПРАВЛЕНО: позволяем контенту сжиматься */
   }
   
   .bets-content::-webkit-scrollbar {
@@ -90,7 +94,6 @@
     justify-content: center;
     height: 200px;
     color: rgba(255, 255, 255, 0.5);
-    /* Анимация для пустого состояния */
     animation: noBetsFloat 3s ease-in-out infinite;
   }
   
@@ -107,7 +110,6 @@
     font-size: 48px;
     margin-bottom: 10px;
     opacity: 0.5;
-    /* Вращение иконки */
     animation: iconRotate 4s linear infinite;
   }
   
@@ -122,12 +124,14 @@
   
   .no-bets-text {
     font-size: 14px;
+    text-align: center;
   }
   
   .bets-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    overflow: hidden; /* ИСПРАВЛЕНО: предотвращаем выход за границы */
   }
   
   .bet-item {
@@ -139,8 +143,10 @@
     border-radius: 8px;
     transition: all 0.2s ease;
     border: 1px solid transparent;
-    /* Анимация появления для быстрой игры */
     animation: betItemSlideIn 0.3s ease;
+    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение в элементах */
+    min-width: 0; /* ИСПРАВЛЕНО: позволяем элементам сжиматься */
+    gap: 8px; /* ИСПРАВЛЕНО: добавляем отступ между частями */
   }
   
   @keyframes betItemSlideIn {
@@ -163,7 +169,6 @@
   .bet-item.current-user {
     background-color: rgba(11, 168, 74, 0.1);
     border-color: rgba(11, 168, 74, 0.3);
-    /* Специальная анимация для пользователя */
     animation: currentUserGlow 2s ease-in-out infinite;
   }
   
@@ -183,7 +188,8 @@
     align-items: center;
     gap: 8px;
     flex: 1;
-    min-width: 0;
+    min-width: 0; /* ИСПРАВЛЕНО: позволяем пользовательской части сжиматься */
+    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение */
   }
   
   .user-avatar {
@@ -196,8 +202,7 @@
     font-weight: bold;
     font-size: 12px;
     color: white;
-    flex-shrink: 0;
-    /* Анимация пульсации аватара */
+    flex-shrink: 0; /* ИСПРАВЛЕНО: аватар не сжимается */
     animation: avatarPulse 3s ease-in-out infinite;
   }
   
@@ -214,9 +219,11 @@
     font-size: 14px;
     color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение имени */
+    text-overflow: ellipsis; /* ИСПРАВЛЕНО: показываем многоточие */
     font-weight: 500;
+    flex: 1; /* ИСПРАВЛЕНО: позволяем имени занимать доступное место */
+    min-width: 0; /* ИСПРАВЛЕНО: позволяем имени сжиматься */
   }
   
   .you-label {
@@ -224,8 +231,9 @@
     color: var(--primary-color);
     margin-left: 4px;
     font-weight: 600;
-    /* Мигание для метки "Вы" */
     animation: youLabelBlink 2s ease-in-out infinite;
+    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим метку */
+    flex-shrink: 0; /* ИСПРАВЛЕНО: метка не сжимается */
   }
   
   @keyframes youLabelBlink {
@@ -241,22 +249,24 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0; /* ИСПРАВЛЕНО: детали ставки не сжимаются */
   }
   
   .bet-amount {
     font-size: 14px;
     font-weight: 600;
     color: white;
+    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим сумму */
   }
   
   .bet-auto {
     font-size: 12px;
+    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим тип ставки */
   }
   
   .auto-cashout {
     color: #ffc107;
     font-weight: 500;
-    /* Анимация для автовывода */
     animation: autoCashoutGlow 1.5s ease-in-out infinite;
   }
   
@@ -278,14 +288,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0; /* ИСПРАВЛЕНО: информация о кешауте не сжимается */
   }
   
   .cashout-multiplier {
     font-size: 14px;
     font-weight: 600;
     color: #ffc107;
-    /* Анимация множителя при кешауте */
     animation: cashoutMultiplierCelebrate 1s ease-in-out infinite;
+    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим множитель */
   }
   
   @keyframes cashoutMultiplierCelebrate {
@@ -303,8 +314,8 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--primary-color);
-    /* Анимация суммы выигрыша */
     animation: winAmountSpark 2s ease-in-out infinite;
+    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим сумму выигрыша */
   }
   
   @keyframes winAmountSpark {
@@ -324,26 +335,36 @@
     padding: 12px 0;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 10px;
+    flex-shrink: 0; /* ИСПРАВЛЕНО: статистика не сжимается */
+    gap: 10px; /* ИСПРАВЛЕНО: добавляем отступ между элементами */
+    overflow: hidden; /* ИСПРАВЛЕНО: предотвращаем выход за границы */
   }
   
   .stat-item {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-width: 0; /* ИСПРАВЛЕНО: позволяем элементам статистики сжиматься */
+    flex: 1; /* ИСПРАВЛЕНО: равномерно распределяем пространство */
   }
   
   .stat-label {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
+    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим лейблы */
+    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение */
+    text-overflow: ellipsis; /* ИСПРАВЛЕНО: показываем многоточие */
   }
   
   .stat-value {
     font-size: 14px;
     font-weight: 600;
     color: white;
-    /* Анимация для значений статистики */
     animation: statValueUpdate 0.5s ease;
+    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим значения */
+    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение */
+    text-overflow: ellipsis; /* ИСПРАВЛЕНО: показываем многоточие */
   }
   
   @keyframes statValueUpdate {
@@ -357,27 +378,30 @@
     }
   }
   
-  /* Статус игры - УЛУЧШЕННЫЙ */
+  /* Статус игры */
   .game-status {
     padding: 8px 12px;
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
+    flex-shrink: 0; /* ИСПРАВЛЕНО: статус не сжимается */
+    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение */
   }
   
   .status-indicator {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0; /* ИСПРАВЛЕНО: позволяем индикатору сжиматься */
   }
   
   .status-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    /* Быстрая пульсация для ускоренной игры */
     animation: statusPulseFast 1s ease-in-out infinite;
+    flex-shrink: 0; /* ИСПРАВЛЕНО: точка не сжимается */
   }
   
   @keyframes statusPulseFast {
@@ -399,7 +423,6 @@
   .status-dot[data-state="flying"] {
     background-color: var(--primary-color);
     box-shadow: 0 0 10px rgba(11, 168, 74, 0.5);
-    /* Особо быстрая анимация для полета */
     animation: flyingDotPulse 0.6s ease-in-out infinite;
   }
   
@@ -419,7 +442,6 @@
   .status-dot[data-state="crashed"] {
     background-color: #ff3b30;
     box-shadow: 0 0 10px rgba(255, 59, 48, 0.5);
-    /* Мигание для краха */
     animation: crashedDotFlash 0.3s ease-in-out 5;
   }
   
@@ -436,9 +458,13 @@
     font-size: 14px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим текст статуса */
+    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение */
+    text-overflow: ellipsis; /* ИСПРАВЛЕНО: показываем многоточие */
+    flex: 1; /* ИСПРАВЛЕНО: позволяем тексту занимать доступное место */
   }
   
-  /* Адаптивность для быстрой игры */
+  /* Адаптивность */
   @media (max-width: 768px) {
     .crash-bets-list {
       height: 350px;
@@ -447,6 +473,17 @@
     
     .bet-item {
       padding: 8px 10px;
+      flex-wrap: wrap; /* ИСПРАВЛЕНО: переносим элементы на новую строку */
+      gap: 6px;
+    }
+    
+    .bet-user {
+      flex: 1;
+      min-width: 120px; /* ИСПРАВЛЕНО: минимальная ширина для имени */
+    }
+    
+    .bet-details {
+      gap: 8px;
     }
     
     .user-avatar {
@@ -463,13 +500,14 @@
       font-size: 13px;
     }
     
-    /* Уменьшаем интенсивность анимации на мобильных */
-    .bet-item.current-user {
-      animation-duration: 3s;
+    .bets-stats {
+      flex-direction: column; /* ИСПРАВЛЕНО: вертикальное расположение статистики */
+      gap: 8px;
     }
     
-    .status-dot {
-      animation-duration: 1.5s;
+    .stat-item {
+      flex-direction: row; /* ИСПРАВЛЕНО: горизонтальное расположение лейбла и значения */
+      justify-content: space-between;
     }
   }
   
@@ -490,33 +528,25 @@
     
     .bet-item {
       padding: 6px 8px;
+      flex-direction: column; /* ИСПРАВЛЕНО: вертикальное расположение на очень маленьких экранах */
+      align-items: stretch;
+    }
+    
+    .bet-user {
+      justify-content: flex-start;
     }
     
     .bet-details {
-      gap: 8px;
+      justify-content: space-between;
+      width: 100%;
     }
     
     .bets-stats {
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    .stat-item {
-      flex-direction: row;
-      justify-content: space-between;
-    }
-    
-    /* Отключаем некоторые анимации для слабых устройств */
-    .no-bets-icon {
-      animation: none;
-    }
-    
-    .user-avatar {
-      animation: none;
+      gap: 6px;
     }
   }
   
-  /* Для пользователей с предпочтением уменьшенного движения */
+  /* Эффекты для пользователей с предпочтением уменьшенного движения */
   @media (prefers-reduced-motion: reduce) {
     .crash-bets-list,
     .tab-btn.active,

@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const routes = require('./routes');
+const webhookRoutes = require('./routes/webhook.routes');
 const { errorMiddleware } = require('./middleware');
 
 const app = express();
@@ -19,7 +20,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Подключение маршрутов API
+// Подключение webhook маршрутов (БЕЗ префикса /api)
+app.use('/webhooks', webhookRoutes);
+
+// Подключение основных маршрутов API
 app.use('/api', routes);
 
 // Базовый маршрут
@@ -27,7 +31,12 @@ app.get('/', (req, res) => {
   res.status(200).json({
     message: 'Greenlight Casino API',
     version: '1.0.0',
-    status: 'online'
+    status: 'online',
+    endpoints: {
+      api: '/api/*',
+      webhooks: '/webhooks/*',
+      health: '/api/health'
+    }
   });
 });
 

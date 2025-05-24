@@ -36,12 +36,15 @@ const CrashControls = ({
   
   // Быстрые ставки
   const handleQuickBet = (multiplier) => {
+    if (gameState !== 'waiting' || hasBet || loading) return;
+    
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
   
   // Быстрые значения автовывода
   const handleQuickAutoCashOut = (value) => {
+    if (gameState === 'flying' && hasBet) return;
     setAutoCashOut(value);
   };
   
@@ -55,7 +58,13 @@ const CrashControls = ({
   
   // Статус кнопки
   const getButtonStatus = () => {
-    if (loading) return { text: 'Загрузка...', disabled: true, className: 'loading' };
+    if (loading) {
+      return { 
+        text: 'Загрузка...', 
+        disabled: true, 
+        className: 'loading' 
+      };
+    }
     
     if (gameState === 'waiting') {
       if (hasBet) {
@@ -65,23 +74,41 @@ const CrashControls = ({
           className: 'placed' 
         };
       }
+      
+      if (betAmount <= 0) {
+        return { 
+          text: 'Введите ставку', 
+          disabled: true, 
+          className: 'disabled' 
+        };
+      }
+      
+      if (betAmount > balance) {
+        return { 
+          text: 'Недостаточно средств', 
+          disabled: true, 
+          className: 'disabled' 
+        };
+      }
+      
       return { 
-        text: betAmount > 0 ? `Поставить ${betAmount} USDT` : 'Введите ставку', 
-        disabled: betAmount <= 0 || betAmount > balance, 
+        text: `Поставить ${betAmount} USDT`, 
+        disabled: false, 
         className: 'bet' 
       };
     }
     
     if (gameState === 'flying') {
       if (hasBet && !cashedOut) {
+        const winAmount = (userBet.amount * currentMultiplier).toFixed(2);
         return { 
-          text: `Забрать ${getPotentialWin()} USDT`, 
+          text: `Забрать ${winAmount} USDT`, 
           disabled: false, 
           className: 'cashout' 
         };
       }
       return { 
-        text: 'Раунд идет', 
+        text: 'Раунд идет...', 
         disabled: true, 
         className: 'disabled' 
       };
@@ -89,15 +116,16 @@ const CrashControls = ({
     
     if (gameState === 'crashed') {
       if (hasBet && cashedOut) {
+        const winAmount = userBet?.winAmount?.toFixed(2) || '0.00';
         return { 
-          text: `Выиграли ${userBet?.winAmount?.toFixed(2)} USDT`, 
+          text: `Выиграли ${winAmount} USDT`, 
           disabled: true, 
           className: 'won' 
         };
       }
       if (hasBet && !cashedOut) {
         return { 
-          text: `Проиграли ${userBet?.amount} USDT`, 
+          text: `Проиграли ${userBet?.amount || 0} USDT`, 
           disabled: true, 
           className: 'lost' 
         };
@@ -109,10 +137,20 @@ const CrashControls = ({
       };
     }
     
-    return { text: 'Ждите...', disabled: true, className: 'disabled' };
+    return { 
+      text: 'Ждите...', 
+      disabled: true, 
+      className: 'disabled' 
+    };
   };
   
   const buttonStatus = getButtonStatus();
+  
+  // Можно ли изменять ставку
+  const canEditBet = gameState === 'waiting' && !hasBet && !loading;
+  
+  // Можно ли изменять автовывод
+  const canEditAutoCashOut = (gameState === 'waiting' || gameState === 'crashed') && !loading;
   
   return (
     <div className="crash-controls">
@@ -132,7 +170,7 @@ const CrashControls = ({
               step="0.1"
               value={betAmount}
               onChange={handleBetAmountChange}
-              disabled={gameState !== 'waiting' || hasBet || loading}
+              disabled={!canEditBet}
               className="amount-input"
               placeholder="0.00"
             />
@@ -142,28 +180,28 @@ const CrashControls = ({
           <div className="quick-buttons">
             <button 
               onClick={() => handleQuickBet(0.1)} 
-              disabled={gameState !== 'waiting' || hasBet || loading}
+              disabled={!canEditBet}
               className="quick-btn"
             >
               10%
             </button>
             <button 
               onClick={() => handleQuickBet(0.25)} 
-              disabled={gameState !== 'waiting' || hasBet || loading}
+              disabled={!canEditBet}
               className="quick-btn"
             >
               25%
             </button>
             <button 
               onClick={() => handleQuickBet(0.5)} 
-              disabled={gameState !== 'waiting' || hasBet || loading}
+              disabled={!canEditBet}
               className="quick-btn"
             >
               50%
             </button>
             <button 
               onClick={() => handleQuickBet(1)} 
-              disabled={gameState !== 'waiting' || hasBet || loading}
+              disabled={!canEditBet}
               className="quick-btn"
             >
               MAX
@@ -175,7 +213,12 @@ const CrashControls = ({
         <div className="control-panel auto-panel">
           <div className="panel-header">
             <span className="panel-title">Автовывод</span>
-            <span className="potential-win">Выигрыш: {getPotentialWin()} USDT</span>
+            <span className="potential-win">
+              {gameState === 'flying' && hasBet && !cashedOut 
+                ? `Текущий: ${getPotentialWin()} USDT`
+                : `При ${autoCashOut}x: ${getPotentialWin()} USDT`
+              }
+            </span>
           </div>
           
           <div className="input-group">
@@ -185,7 +228,7 @@ const CrashControls = ({
               step="0.01"
               value={autoCashOut}
               onChange={handleAutoCashOutChange}
-              disabled={gameState === 'flying' && hasBet}
+              disabled={!canEditAutoCashOut}
               className="multiplier-input"
               placeholder="2.00"
             />
@@ -195,28 +238,28 @@ const CrashControls = ({
           <div className="quick-buttons">
             <button 
               onClick={() => handleQuickAutoCashOut(1.5)} 
-              disabled={gameState === 'flying' && hasBet}
+              disabled={!canEditAutoCashOut}
               className="quick-btn"
             >
               1.5x
             </button>
             <button 
               onClick={() => handleQuickAutoCashOut(2)} 
-              disabled={gameState === 'flying' && hasBet}
+              disabled={!canEditAutoCashOut}
               className="quick-btn"
             >
               2x
             </button>
             <button 
               onClick={() => handleQuickAutoCashOut(5)} 
-              disabled={gameState === 'flying' && hasBet}
+              disabled={!canEditAutoCashOut}
               className="quick-btn"
             >
               5x
             </button>
             <button 
               onClick={() => handleQuickAutoCashOut(10)} 
-              disabled={gameState === 'flying' && hasBet}
+              disabled={!canEditAutoCashOut}
               className="quick-btn"
             >
               10x
@@ -241,20 +284,57 @@ const CrashControls = ({
             <span>Ваша ставка:</span>
             <span className="bet-amount">{userBet.amount} USDT</span>
           </div>
+          
           {gameState === 'flying' && !cashedOut && (
             <div className="bet-info-row">
               <span>Текущий выигрыш:</span>
               <span className="current-win">{getPotentialWin()} USDT</span>
             </div>
           )}
-          {userBet.autoCashOut > 0 && (
+          
+          {gameState === 'flying' && !cashedOut && (
             <div className="bet-info-row">
-              <span>Автовывод:</span>
+              <span>Прибыль:</span>
+              <span className="current-win">
+                +{(parseFloat(getPotentialWin()) - userBet.amount).toFixed(2)} USDT
+              </span>
+            </div>
+          )}
+          
+          {userBet.autoCashOut > 0 && !cashedOut && (
+            <div className="bet-info-row">
+              <span>Автовывод при:</span>
               <span className="auto-cashout">{userBet.autoCashOut}x</span>
+            </div>
+          )}
+          
+          {cashedOut && (
+            <div className="bet-info-row">
+              <span>Выведено при:</span>
+              <span className="auto-cashout">{currentMultiplier.toFixed(2)}x</span>
             </div>
           )}
         </div>
       )}
+      
+      {/* Информация о состоянии игры */}
+      <div className="game-state-info">
+        <div className="state-indicator">
+          <span className="state-label">Состояние:</span>
+          <span className={`state-value ${gameState}`}>
+            {gameState === 'waiting' && '⏳ Прием ставок'}
+            {gameState === 'flying' && '🚀 Полет'}
+            {gameState === 'crashed' && '💥 Краш'}
+          </span>
+        </div>
+        
+        {gameState === 'flying' && (
+          <div className="multiplier-info">
+            <span className="multiplier-label">Множитель:</span>
+            <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

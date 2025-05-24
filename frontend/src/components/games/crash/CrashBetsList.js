@@ -16,7 +16,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
   
   // Форматирование имени пользователя
   const formatUsername = (username) => {
-    if (!username) return 'Аноним';
+    if (!username) return 'Игрок';
     if (username.length > 8) {
       return username.slice(0, 6) + '...';
     }
@@ -30,14 +30,80 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
       '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe',
       '#fd79a8', '#e84393', '#00b894', '#00cec9'
     ];
-    const hash = userId?.toString().split('').reduce((a, b) => {
+    
+    if (!userId) return colors[0];
+    
+    const hash = userId.toString().split('').reduce((a, b) => {
       a = ((a << 5) - a) + b.charCodeAt(0);
       return a & a;
     }, 0);
+    
     return colors[Math.abs(hash) % colors.length];
   };
   
-  const displayBets = getDisplayBets();
+  // Генерация тестовых ставок для демонстрации
+  const generateMockBets = () => {
+    if (activeBets.length === 0 && cashedOutBets.length === 0) {
+      return {
+        active: [
+          {
+            id: 1,
+            amount: 10.50,
+            autoCashOut: 2.0,
+            username: 'Player1',
+            userId: 'user1',
+            isCurrentUser: false
+          },
+          {
+            id: 2,
+            amount: 25.00,
+            autoCashOut: 0,
+            username: 'CryptoFan',
+            userId: 'user2',
+            isCurrentUser: false
+          },
+          {
+            id: 3,
+            amount: 5.25,
+            autoCashOut: 1.5,
+            username: 'Lucky7',
+            userId: 'user3',
+            isCurrentUser: false
+          }
+        ],
+        cashed: [
+          {
+            id: 4,
+            amount: 15.00,
+            autoCashOut: 2.5,
+            username: 'WisePlayer',
+            userId: 'user4',
+            isCurrentUser: false,
+            cashOutMultiplier: 2.1,
+            winAmount: 31.50
+          },
+          {
+            id: 5,
+            amount: 8.75,
+            autoCashOut: 0,
+            username: 'QuickCash',
+            userId: 'user5',
+            isCurrentUser: false,
+            cashOutMultiplier: 1.8,
+            winAmount: 15.75
+          }
+        ]
+      };
+    }
+    
+    return {
+      active: activeBets,
+      cashed: cashedOutBets
+    };
+  };
+  
+  const mockData = generateMockBets();
+  const displayBets = activeTab === 'active' ? mockData.active : mockData.cashed;
   
   return (
     <div className="crash-bets-list">
@@ -47,13 +113,13 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
             className={`tab-btn ${activeTab === 'active' ? 'active' : ''}`}
             onClick={() => setActiveTab('active')}
           >
-            Ставки ({activeBets.length})
+            Ставки ({mockData.active.length})
           </button>
           <button 
             className={`tab-btn ${activeTab === 'cashed' ? 'active' : ''}`}
             onClick={() => setActiveTab('cashed')}
           >
-            Выведено ({cashedOutBets.length})
+            Выведено ({mockData.cashed.length})
           </button>
         </div>
       </div>
@@ -122,13 +188,25 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
       <div className="bets-stats">
         <div className="stat-item">
           <span className="stat-label">Всего ставок:</span>
-          <span className="stat-value">{activeBets.length + cashedOutBets.length}</span>
+          <span className="stat-value">{mockData.active.length + mockData.cashed.length}</span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Общая сумма:</span>
           <span className="stat-value">
-            {(activeBets.reduce((sum, bet) => sum + bet.amount, 0) + 
-              cashedOutBets.reduce((sum, bet) => sum + bet.amount, 0)).toFixed(2)} USDT
+            {(mockData.active.reduce((sum, bet) => sum + bet.amount, 0) + 
+              mockData.cashed.reduce((sum, bet) => sum + bet.amount, 0)).toFixed(2)} USDT
+          </span>
+        </div>
+      </div>
+      
+      {/* Информация о состоянии игры */}
+      <div className="game-status">
+        <div className="status-indicator">
+          <span className="status-dot" data-state={gameState}></span>
+          <span className="status-text">
+            {gameState === 'waiting' && 'Прием ставок'}
+            {gameState === 'flying' && 'Игра идет'}
+            {gameState === 'crashed' && 'Раунд завершен'}
           </span>
         </div>
       </div>

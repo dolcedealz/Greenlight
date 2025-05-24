@@ -1,3 +1,5 @@
+// ===== 1. bot/src/handlers/callback.handler.js =====
+
 // callback.handler.js
 const { Markup } = require('telegraf');
 const config = require('../config');
@@ -8,11 +10,15 @@ const apiService = require('../services/api.service');
  * @param {Object} bot - Экземпляр бота Telegraf
  */
 function registerCallbackHandlers(bot) {
-  // Обработка действий пополнения баланса
-  bot.action(/deposit:(\d+|custom)/, async (ctx) => {
+  // ИСПРАВЛЕНО: Более специфичные регулярные выражения для избежания конфликтов
+  
+  // Обработка действий пополнения баланса - СТРОГО только числа или 'custom'
+  bot.action(/^deposit:(\d+|custom)$/, async (ctx) => {
     try {
       // Получаем сумму из callback data
       const amount = ctx.match[1];
+      
+      console.log(`ДЕПОЗИТ: Обработка callback deposit:${amount}`);
       
       if (amount === 'custom') {
         // Запрашиваем у пользователя ввод суммы
@@ -23,6 +29,8 @@ function registerCallbackHandlers(bot) {
       
       // Валидация суммы
       const amountFloat = parseFloat(amount);
+      console.log(`ДЕПОЗИТ: Parsed amount = ${amountFloat}`);
+      
       if (isNaN(amountFloat) || amountFloat <= 0) {
         await ctx.reply('❌ Некорректная сумма для пополнения');
         return;
@@ -41,16 +49,16 @@ function registerCallbackHandlers(bot) {
       // Показываем индикатор загрузки
       await ctx.answerCbQuery('⏳ Создаем счет для оплаты...');
       
-      console.log(`Создание депозита через API для пользователя ${ctx.from.id} на сумму ${amountFloat} USDT`);
+      console.log(`ДЕПОЗИТ: Создание депозита через API для пользователя ${ctx.from.id} на сумму ${amountFloat} USDT`);
       
       try {
-        // НОВЫЙ ПОДХОД: Создаем депозит через API backend'а
+        // Создаем депозит через API backend'а
         const depositData = await apiService.createDeposit(ctx.from, amountFloat, {
           source: 'bot',
           description: `Пополнение через Telegram бот на ${amountFloat} USDT`
         });
         
-        console.log(`Депозит создан через API:`, depositData);
+        console.log(`ДЕПОЗИТ: Депозит создан через API:`, depositData);
         
         // Отправляем пользователю ссылку на оплату
         await ctx.reply(
@@ -62,15 +70,15 @@ function registerCallbackHandlers(bot) {
           `Нажмите на кнопку ниже для оплаты:`,
           Markup.inlineKeyboard([
             [Markup.button.url('💳 Оплатить', depositData.payUrl)],
-            [Markup.button.callback('📋 Статус платежа', `check_deposit:${depositData.depositId}`)]
+            [Markup.button.callback('📋 Статус платежа', `check_deposit_status:${depositData.depositId}`)]
           ])
         );
         
       } catch (apiError) {
-        console.error('Ошибка API при создании депозита:', apiError);
+        console.error('ДЕПОЗИТ: Ошибка API при создании депозита:', apiError);
         
         // Fallback: используем старый метод через прямое обращение к CryptoBot
-        console.log('Fallback: создаем инвойс напрямую через CryptoBot');
+        console.log('ДЕПОЗИТ: Fallback: создаем инвойс напрямую через CryptoBot');
         
         const paymentService = require('../services/payment.service');
         const invoice = await paymentService.createInvoice(ctx.from.id, amountFloat);
@@ -79,7 +87,7 @@ function registerCallbackHandlers(bot) {
           throw new Error('Неверные данные инвойса от CryptoBot');
         }
         
-        console.log(`Fallback инвойс создан: ${invoice.invoice_id}`);
+        console.log(`ДЕПОЗИТ: Fallback инвойс создан: ${invoice.invoice_id}`);
         
         // Отправляем пользователю ссылку на оплату (fallback режим)
         await ctx.reply(
@@ -91,13 +99,13 @@ function registerCallbackHandlers(bot) {
           `Нажмите на кнопку ниже для оплаты:`,
           Markup.inlineKeyboard([
             [Markup.button.url('💳 Оплатить', invoice.pay_url)],
-            [Markup.button.callback('📋 Статус платежа', `check_payment:${invoice.invoice_id}`)]
+            [Markup.button.callback('📋 Статус платежа', `check_payment_fallback:${invoice.invoice_id}`)]
           ])
         );
       }
       
     } catch (error) {
-      console.error('Ошибка при обработке действия пополнения:', error);
+      console.error('ДЕПОЗИТ: Ошибка при обработке действия пополнения:', error);
       
       // Более информативные сообщения об ошибках
       let errorMessage = 'Произошла ошибка при создании счета для оплаты. Пожалуйста, попробуйте еще раз.';
@@ -121,14 +129,14 @@ function registerCallbackHandlers(bot) {
     }
   });
   
-  // Обработка проверки статуса депозита (новый метод через API)
-  bot.action(/check_deposit:(.+)/, async (ctx) => {
+  // ИСПРАВЛЕНО: Более специфичный паттерн для проверки статуса депозита
+  bot.action(/^check_deposit_status:([0-9a-fA-F]{24})$/, async (ctx) => {
     try {
       const depositId = ctx.match[1];
       
-      await ctx.answerCbQuery('⏳ Проверяем статус депозита...');
+      console.log(`СТАТУС: Проверка статуса депозита: ${depositId}`);
       
-      console.log(`Проверка статуса депозита через API: ${depositId}`);
+      await ctx.answerCbQuery('⏳ Проверяем статус депозита...');
       
       const depositInfo = await apiService.getDepositStatus(ctx.from, depositId);
       
@@ -162,22 +170,20 @@ function registerCallbackHandlers(bot) {
       );
       
     } catch (error) {
-      console.error('Ошибка при проверке статуса депозита через API:', error);
-      
-      // Fallback на старый метод
+      console.error('СТАТУС: Ошибка при проверке статуса депозита через API:', error);
       await ctx.reply('❌ Не удалось проверить статус депозита через API');
       await ctx.answerCbQuery('❌ Ошибка проверки');
     }
   });
   
-  // Обработка проверки статуса платежа (старый метод для совместимости)
-  bot.action(/check_payment:(.+)/, async (ctx) => {
+  // ИСПРАВЛЕНО: Fallback для старых депозитов с другим паттерном
+  bot.action(/^check_payment_fallback:(\d+)$/, async (ctx) => {
     try {
       const invoiceId = ctx.match[1];
       
-      await ctx.answerCbQuery('⏳ Проверяем статус платежа...');
+      console.log(`СТАТУС FALLBACK: Проверка статуса платежа: ${invoiceId}`);
       
-      console.log(`Проверка статуса платежа (fallback): ${invoiceId}`);
+      await ctx.answerCbQuery('⏳ Проверяем статус платежа...');
       
       const paymentService = require('../services/payment.service');
       const invoiceData = await paymentService.checkInvoice(invoiceId);
@@ -218,7 +224,7 @@ function registerCallbackHandlers(bot) {
       );
       
     } catch (error) {
-      console.error('Ошибка при проверке статуса платежа:', error);
+      console.error('СТАТУС FALLBACK: Ошибка при проверке статуса платежа:', error);
       await ctx.reply('❌ Не удалось проверить статус платежа');
       await ctx.answerCbQuery('❌ Ошибка проверки');
     }

@@ -92,60 +92,91 @@ class PaymentController {
   }
 
   /**
-   * Обработка webhook от CryptoBot
+   * Обработка webhook от CryptoBot - ИСПРАВЛЕНО с улучшенным логированием
    * @param {Object} req - Запрос Express
    * @param {Object} res - Ответ Express
    */
   async processWebhook(req, res) {
     try {
-      console.log('Получен webhook от CryptoBot:', JSON.stringify(req.body, null, 2));
-      console.log('Headers:', req.headers);
+      console.log('=== WEBHOOK ПОЛУЧЕН ОТ CRYPTOBOT ===');
+      console.log('URL:', req.originalUrl);
+      console.log('Method:', req.method);
+      console.log('Headers:', JSON.stringify(req.headers, null, 2));
+      console.log('Raw Body:', JSON.stringify(req.body, null, 2));
+      console.log('==========================================');
       
       const webhookData = req.body;
       const signature = req.headers['crypto-pay-api-signature'];
       
-      // Базовая валидация данных webhook - ИСПРАВЛЕНО
-      if (!webhookData || !webhookData.payload || !webhookData.payload.invoice_id) {
-        console.warn('Некорректный webhook: отсутствует payload.invoice_id');
-        console.log('Структура webhook:', JSON.stringify(webhookData, null, 2));
+      // ИСПРАВЛЕНО: Более гибкая валидация структуры webhook
+      // CryptoBot может отправлять разные форматы данных
+      let payloadData = null;
+      
+      if (webhookData && webhookData.payload) {
+        // Формат: { update_type: "invoice_paid", payload: { ... } }
+        payloadData = webhookData.payload;
+        console.log('WEBHOOK: Обнаружен формат с payload');
+      } else if (webhookData && webhookData.invoice_id) {
+        // Формат: прямо данные инвойса { invoice_id: ..., status: ... }
+        payloadData = webhookData;
+        console.log('WEBHOOK: Обнаружен прямой формат данных');
+      } else {
+        console.warn('WEBHOOK: Некорректная структура данных');
+        console.log('WEBHOOK: Ожидается либо { payload: {...} } либо { invoice_id: ... }');
         return res.status(400).json({
           success: false,
           message: 'Некорректные данные webhook'
         });
       }
       
-      // Проверяем тип события
-      if (webhookData.update_type !== 'invoice_paid') {
-        console.log(`Игнорируем webhook типа: ${webhookData.update_type}`);
+      // Проверяем наличие обязательных полей в payload
+      if (!payloadData.invoice_id) {
+        console.warn('WEBHOOK: Отсутствует invoice_id в данных');
+        return res.status(400).json({
+          success: false,
+          message: 'Отсутствует invoice_id'
+        });
+      }
+      
+      // Проверяем тип события (если присутствует)
+      if (webhookData.update_type && webhookData.update_type !== 'invoice_paid') {
+        console.log(`WEBHOOK: Игнорируем событие типа: ${webhookData.update_type}`);
         return res.status(200).json({
           success: true,
           message: `Событие ${webhookData.update_type} обработано`
         });
       }
       
-      console.log(`Обрабатываем оплаченный инвойс: ${webhookData.payload.invoice_id}`);
+      console.log(`WEBHOOK: Обрабатываем инвойс: ${payloadData.invoice_id}`);
+      console.log(`WEBHOOK: Статус инвойса: ${payloadData.status}`);
+      console.log(`WEBHOOK: Сумма: ${payloadData.amount} ${payloadData.asset}`);
       
       // Обрабатываем webhook через сервис - передаем payload
-      const result = await paymentService.processWebhook(webhookData.payload, signature);
+      const result = await paymentService.processWebhook(payloadData, signature);
       
       if (result.success) {
-        console.log(`Webhook успешно обработан: ${result.message}`);
+        console.log(`WEBHOOK: Успешно обработан - ${result.message}`);
         
         // Если депозит был успешно обработан, можем отправить уведомление пользователю
         if (result.userId && result.amount) {
-          // Здесь можно добавить отправку уведомления через Telegram Bot
-          console.log(`Пользователь ${result.userId} пополнил баланс на ${result.amount} USDT`);
+          console.log(`WEBHOOK: Пользователь ${result.userId} пополнил баланс на ${result.amount} USDT`);
+          
+          // TODO: Здесь можно добавить отправку уведомления через Telegram Bot
+          // await notifyUserAboutDeposit(result.userId, result.amount);
         }
+      } else {
+        console.warn(`WEBHOOK: Ошибка обработки - ${result.message}`);
       }
       
       // Всегда возвращаем успешный ответ CryptoBot, чтобы они не повторяли webhook
       res.status(200).json({
         success: true,
-        message: result.message
+        message: result.message || 'Webhook обработан'
       });
       
     } catch (error) {
-      console.error('Ошибка обработки webhook:', error);
+      console.error('WEBHOOK: Критическая ошибка обработки:', error);
+      console.error('WEBHOOK: Stack trace:', error.stack);
       
       // Возвращаем ошибку CryptoBot только в критических случаях
       if (error.message.includes('Неверная подпись')) {
@@ -278,6 +309,8 @@ class PaymentController {
       const { depositId } = req.params;
       const userId = req.user._id;
       
+      console.log(`API: Проверка статуса депозита ${depositId} для пользователя ${userId}`);
+      
       const depositInfo = await paymentService.getDepositInfo(depositId);
       
       // Проверяем принадлежность депозита пользователю
@@ -291,10 +324,13 @@ class PaymentController {
       res.status(200).json({
         success: true,
         data: {
+          id: depositInfo.id,
+          amount: depositInfo.amount,
           status: depositInfo.status,
           isPaid: depositInfo.status === 'paid',
           isExpired: depositInfo.isExpired,
-          paidAt: depositInfo.paidAt
+          paidAt: depositInfo.paidAt,
+          createdAt: depositInfo.createdAt
         }
       });
       

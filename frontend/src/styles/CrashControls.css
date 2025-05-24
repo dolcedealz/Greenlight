@@ -19,6 +19,12 @@
     border-radius: 12px;
     padding: 16px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .control-panel:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
   }
   
   .panel-header {
@@ -32,12 +38,29 @@
     font-size: 16px;
     font-weight: 600;
     color: var(--primary-color);
+    /* Анимация для заголовков быстрой игры */
+    animation: panelTitleGlow 2s ease-in-out infinite;
+  }
+  
+  @keyframes panelTitleGlow {
+    0%, 100% {
+      text-shadow: 0 0 5px rgba(11, 168, 74, 0.3);
+    }
+    50% {
+      text-shadow: 0 0 10px rgba(11, 168, 74, 0.6);
+    }
   }
   
   .balance-info,
   .potential-win {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+  }
+  
+  .potential-win {
+    color: var(--primary-color);
+    font-weight: 600;
   }
   
   .input-group {
@@ -56,7 +79,7 @@
     font-size: 18px;
     font-weight: 600;
     text-align: center;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
   }
   
   .amount-input:focus,
@@ -65,6 +88,8 @@
     outline: none;
     box-shadow: 0 0 0 2px rgba(11, 168, 74, 0.2);
     background-color: rgba(255, 255, 255, 0.15);
+    /* Более яркое свечение для быстрой игры */
+    box-shadow: 0 0 0 2px rgba(11, 168, 74, 0.4), 0 0 10px rgba(11, 168, 74, 0.2);
   }
   
   .amount-input:disabled,
@@ -105,7 +130,9 @@
   .quick-btn:hover:not(:disabled) {
     background-color: rgba(255, 255, 255, 0.2);
     border-color: var(--primary-color);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    /* Быстрая анимация для ускоренной игры */
+    box-shadow: 0 4px 8px rgba(11, 168, 74, 0.2);
   }
   
   .quick-btn:disabled {
@@ -113,7 +140,7 @@
     cursor: not-allowed;
   }
   
-  /* Основная кнопка действия */
+  /* Основная кнопка действия - УСКОРЕННАЯ */
   .main-action-btn {
     width: 100%;
     padding: 16px 20px;
@@ -122,48 +149,104 @@
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease; /* Быстрее transition */
     position: relative;
     overflow: hidden;
     margin-bottom: 15px;
+    /* Добавляем базовое свечение */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
   
   .main-action-btn.bet {
     background: linear-gradient(135deg, var(--primary-color) 0%, #0c9740 100%);
     color: white;
-    box-shadow: 0 4px 15px rgba(11, 168, 74, 0.3);
+    box-shadow: 0 4px 15px rgba(11, 168, 74, 0.4);
+    /* Пульсация для быстрой игры */
+    animation: betButtonPulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes betButtonPulse {
+    0%, 100% {
+      box-shadow: 0 4px 15px rgba(11, 168, 74, 0.4);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 6px 20px rgba(11, 168, 74, 0.6);
+      transform: scale(1.02);
+    }
   }
   
   .main-action-btn.bet:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(11, 168, 74, 0.4);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(11, 168, 74, 0.5);
   }
   
   .main-action-btn.cashout {
     background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%);
     color: #000;
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
-    animation: cashoutPulse 1s ease-in-out infinite;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+    /* Быстрая пульсация для кешаута */
+    animation: cashoutPulseFast 0.8s ease-in-out infinite;
+  }
+  
+  @keyframes cashoutPulseFast {
+    0%, 100% {
+      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 6px 25px rgba(255, 193, 7, 0.7);
+      transform: scale(1.03);
+    }
   }
   
   .main-action-btn.cashout:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 193, 7, 0.5);
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 8px 30px rgba(255, 193, 7, 0.6);
   }
   
   .main-action-btn.placed {
     background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
     color: white;
+    animation: placedButtonGlow 2s ease-in-out infinite;
+  }
+  
+  @keyframes placedButtonGlow {
+    0%, 100% {
+      box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+    }
+    50% {
+      box-shadow: 0 4px 12px rgba(108, 117, 125, 0.5);
+    }
   }
   
   .main-action-btn.won {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
     color: white;
+    animation: wonButtonCelebration 1s ease-in-out infinite;
+  }
+  
+  @keyframes wonButtonCelebration {
+    0%, 100% {
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.5);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 6px 20px rgba(40, 167, 69, 0.7);
+      transform: scale(1.02);
+    }
   }
   
   .main-action-btn.lost {
     background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
     color: white;
+    animation: lostButtonShake 0.5s ease-in-out;
+  }
+  
+  @keyframes lostButtonShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
   }
   
   .main-action-btn.loading,
@@ -172,20 +255,33 @@
     background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
     color: rgba(255, 255, 255, 0.8);
     cursor: not-allowed;
+    animation: none;
   }
   
   .main-action-btn:disabled {
     transform: none;
-    box-shadow: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
   
-  /* Информация о текущей ставке */
+  /* Информация о текущей ставке - УЛУЧШЕННАЯ */
   .current-bet-info {
     margin-bottom: 15px;
     padding: 12px;
-    background-color: rgba(11, 168, 74, 0.1);
+    background: linear-gradient(135deg, rgba(11, 168, 74, 0.1) 0%, rgba(52, 199, 89, 0.1) 100%);
     border: 1px solid rgba(11, 168, 74, 0.3);
     border-radius: 8px;
+    animation: betInfoGlow 2s ease-in-out infinite;
+  }
+  
+  @keyframes betInfoGlow {
+    0%, 100% {
+      border-color: rgba(11, 168, 74, 0.3);
+      box-shadow: 0 0 5px rgba(11, 168, 74, 0.1);
+    }
+    50% {
+      border-color: rgba(11, 168, 74, 0.5);
+      box-shadow: 0 0 15px rgba(11, 168, 74, 0.2);
+    }
   }
   
   .bet-info-row {
@@ -202,6 +298,7 @@
   .bet-info-row span:first-child {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
   }
   
   .bet-amount,
@@ -209,13 +306,26 @@
   .auto-cashout {
     font-weight: bold;
     color: var(--primary-color);
+    font-size: 14px;
   }
   
   .current-win {
-    animation: winAmountPulse 1.5s ease-in-out infinite;
+    /* Быстрая анимация для текущего выигрыша */
+    animation: winAmountPulseFast 1s ease-in-out infinite;
   }
   
-  /* Информация о состоянии игры */
+  @keyframes winAmountPulseFast {
+    0%, 100% {
+      color: var(--primary-color);
+      text-shadow: 0 0 5px rgba(11, 168, 74, 0.3);
+    }
+    50% {
+      color: #4ade80;
+      text-shadow: 0 0 10px rgba(11, 168, 74, 0.6);
+    }
+  }
+  
+  /* Информация о состоянии игры - УСКОРЕННАЯ */
   .game-state-info {
     padding: 12px;
     background-color: rgba(255, 255, 255, 0.05);
@@ -240,6 +350,7 @@
   .multiplier-label {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
   }
   
   .state-value {
@@ -249,53 +360,25 @@
   
   .state-value.waiting {
     color: #ffc107;
+    animation: waitingStatePulse 1s ease-in-out infinite;
+  }
+  
+  @keyframes waitingStatePulse {
+    0%, 100% {
+      opacity: 0.8;
+    }
+    50% {
+      opacity: 1;
+    }
   }
   
   .state-value.flying {
     color: var(--primary-color);
-    animation: flyingPulse 1s ease-in-out infinite;
+    /* Быстрая анимация для состояния полета */
+    animation: flyingStatePulseFast 0.6s ease-in-out infinite;
   }
   
-  .state-value.crashed {
-    color: #ff3b30;
-  }
-  
-  .multiplier-value {
-    font-weight: bold;
-    font-size: 16px;
-    color: var(--primary-color);
-    animation: multiplierGlow 1s ease-in-out infinite;
-  }
-  
-  /* Анимации */
-  @keyframes cashoutPulse {
-    0%, 100% {
-      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
-    }
-    50% {
-      box-shadow: 0 4px 25px rgba(255, 193, 7, 0.6);
-    }
-  }
-  
-  @keyframes winAmountPulse {
-    0%, 100% {
-      color: var(--primary-color);
-    }
-    50% {
-      color: #4ade80;
-    }
-  }
-  
-  @keyframes flyingPulse {
-    0%, 100% {
-      color: var(--primary-color);
-    }
-    50% {
-      color: #4ade80;
-    }
-  }
-  
-  @keyframes multiplierGlow {
+  @keyframes flyingStatePulseFast {
     0%, 100% {
       color: var(--primary-color);
       text-shadow: 0 0 5px rgba(11, 168, 74, 0.5);
@@ -303,6 +386,41 @@
     50% {
       color: #4ade80;
       text-shadow: 0 0 10px rgba(11, 168, 74, 0.8);
+    }
+  }
+  
+  .state-value.crashed {
+    color: #ff3b30;
+    animation: crashedStateFlash 0.3s ease-in-out 3;
+  }
+  
+  @keyframes crashedStateFlash {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  .multiplier-value {
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--primary-color);
+    /* Очень быстрая анимация множителя */
+    animation: multiplierGlowFast 0.8s ease-in-out infinite;
+  }
+  
+  @keyframes multiplierGlowFast {
+    0%, 100% {
+      color: var(--primary-color);
+      text-shadow: 0 0 5px rgba(11, 168, 74, 0.5);
+      transform: scale(1);
+    }
+    50% {
+      color: #4ade80;
+      text-shadow: 0 0 15px rgba(11, 168, 74, 0.8);
+      transform: scale(1.05);
     }
   }
   

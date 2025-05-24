@@ -2,11 +2,13 @@
 import React, { useRef, useEffect, useState } from 'react';
 import '../../../styles/CrashGraph.css';
 
-const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
+const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const pointsRef = useRef([]);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const lastGameStateRef = useRef(gameState);
+  const lastRoundIdRef = useRef(roundId);
   
   // Обновление размеров canvas
   useEffect(() => {
@@ -26,6 +28,24 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
     
     return () => window.removeEventListener('resize', updateSize);
   }, []);
+  
+  // Очистка точек при смене раунда или переходе в ожидание
+  useEffect(() => {
+    if (gameState === 'waiting' || roundId !== lastRoundIdRef.current) {
+      console.log('Очищаем точки графика для нового раунда');
+      pointsRef.current = [];
+      lastRoundIdRef.current = roundId;
+    }
+    lastGameStateRef.current = gameState;
+  }, [gameState, roundId]);
+  
+  // Остановка анимации при смене состояния
+  useEffect(() => {
+    if (gameState !== 'flying' && animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+  }, [gameState]);
   
   // Основная функция рисования
   useEffect(() => {
@@ -127,9 +147,6 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
     
     // Состояние ожидания с обратным отсчетом
     const drawWaitingState = (ctx, width, height, timeToStart) => {
-      // Очищаем точки при переходе в состояние ожидания
-      pointsRef.current = [];
-      
       // Фон градиент для ожидания
       const waitingGradient = ctx.createRadialGradient(
         width / 2, height / 2, 0,
@@ -196,9 +213,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
     
     // Состояние полета
     const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
-      const now = Date.now();
-      
-      // Новый алгоритм для плавной кривой
+      // Добавляем новую точку только если игра активна
       const timeElapsed = pointsRef.current.length * 0.01;
       
       // X координата: более плавная прогрессия по времени
@@ -222,7 +237,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
         x: Math.max(padding, Math.min(x, padding + width - 10)),
         y: Math.max(padding + 10, Math.min(y, padding + height - 10)),
         multiplier: currentMultiplier,
-        time: now
+        time: Date.now()
       };
       
       pointsRef.current.push(point);
@@ -395,7 +410,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       
       // Анимация взрыва
       const time = Date.now() / 1000;
-      const explosionRadius = Math.sin(time * 105) * 25 + 60;
+      const explosionRadius = Math.sin(time * 10) * 25 + 60;
       
       // Красный взрыв в центре
       const explosionGradient = ctx.createRadialGradient(
@@ -428,8 +443,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
     
     draw();
     
-    // Анимация для состояния полета или краха с высокой частотой
-    if (gameState === 'flying' || gameState === 'crashed') {
+    // Анимация только для состояния полета
+    if (gameState === 'flying') {
       animationRef.current = requestAnimationFrame(() => {
         draw();
       });
@@ -438,16 +453,10 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
       }
     };
   }, [multiplier, gameState, crashPoint, timeToStart, canvasSize]);
-  
-  // Сброс точек при смене состояния игры на ожидание
-  useEffect(() => {
-    if (gameState === 'waiting') {
-      pointsRef.current = [];
-    }
-  }, [gameState]);
   
   return (
     <div className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''}`} data-state={gameState}>

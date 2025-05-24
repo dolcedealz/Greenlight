@@ -17,10 +17,19 @@ const CrashControls = ({
   currentMultiplier
 }) => {
   
-  // Обработчик изменения ставки
+  // ИСПРАВЛЕНИЕ 2: Исправленный обработчик изменения ставки
   const handleBetAmountChange = (e) => {
-    const value = parseFloat(e.target.value) || 0;
-    if (value >= 0 && value <= balance) {
+    const inputValue = e.target.value;
+    
+    // Разрешаем пустое значение для полной очистки поля
+    if (inputValue === '') {
+      setBetAmount('');
+      return;
+    }
+    
+    const value = parseFloat(inputValue);
+    // Проверяем, что значение корректное и в пределах баланса
+    if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
     }
   };
@@ -222,7 +231,7 @@ const CrashControls = ({
         <div className="state-indicator">
           <span className="state-label">Состояние:</span>
           <span className={`state-value ${gameState}`}>
-            {gameState === 'waiting' && '⏳ Прием ставок (7 сек)'} {/* ИЗМЕНЕНО: с 1 сек на 7 сек */}
+            {gameState === 'waiting' && '⏳ Прием ставок (7 сек)'}
             {gameState === 'flying' && '🚀 Полет'}
             {gameState === 'crashed' && '💥 Краш (0.3 сек до нового)'}
           </span>

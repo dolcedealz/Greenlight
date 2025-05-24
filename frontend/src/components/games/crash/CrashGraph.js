@@ -65,7 +65,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
     }
   }, [gameState]);
   
-  // Основная функция рисования
+  // Основная функция рисования - УБРАЛИ userCashedOut из зависимостей
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || canvasSize.width === 0) return;
@@ -221,9 +221,10 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
       ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
     };
     
-    // ИСПРАВЛЕНО: Состояние полета - точки добавляются НЕЗАВИСИМО от всего
+    // ИСПРАВЛЕНО: Состояние полета - график ВСЕГДА продолжает расти
     const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
       // КРИТИЧЕСКИ ВАЖНО: Добавляем точку при каждом кадре во время полета
+      // НЕЗАВИСИМО от статуса кешаута пользователя
       if (gameStartTimeRef.current && currentMultiplier >= 1.0) {
         const realTimeElapsed = (Date.now() - gameStartTimeRef.current) / 1000;
         
@@ -244,7 +245,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
           time: Date.now()
         };
         
-        // Добавляем точку ВСЕГДА
+        // Добавляем точку ВСЕГДА, невзирая на кешаут
         pointsRef.current.push(newPoint);
         
         // Ограничиваем массив для производительности
@@ -255,7 +256,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
       
       // Рисуем линию графика если есть точки
       if (pointsRef.current.length > 1) {
-        // Линия всегда зеленая, независимо от кешаута
+        // Линия ВСЕГДА зеленая, кешаут не влияет на цвет графика
         ctx.strokeStyle = '#0ba84a';
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
@@ -292,7 +293,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
         ctx.closePath();
         ctx.fill();
         
-        // Точка на конце
+        // Точка на конце - всегда отображается
         const lastPoint = pointsRef.current[pointsRef.current.length - 1];
         ctx.beginPath();
         ctx.arc(lastPoint.x, lastPoint.y, 6, 0, 2 * Math.PI);
@@ -303,7 +304,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
         ctx.stroke();
       }
       
-      // Текущий множитель
+      // Текущий множитель - всегда отображается
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 64px Arial';
       ctx.textAlign = 'center';
@@ -321,15 +322,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
         ctx.shadowBlur = 0;
       }
       
-      // Показываем статус кешаута
-      if (userCashedOut) {
-        ctx.fillStyle = 'rgba(255, 193, 7, 0.9)';
-        ctx.font = 'bold 24px Arial';
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-        ctx.strokeText('ВЫ ВЫВЕЛИ СТАВКУ', canvas.width / 2, 140);
-        ctx.fillText('ВЫ ВЫВЕЛИ СТАВКУ', canvas.width / 2, 140);
-      }
+      // УБРАЛИ отображение статуса кешаута, чтобы не мешать графику
+      // График должен лететь независимо от действий пользователя
     };
     
     // Состояние краха
@@ -416,7 +410,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
         animationRef.current = null;
       }
     };
-  }, [multiplier, gameState, crashPoint, timeToStart, canvasSize, userCashedOut]);
+  }, [multiplier, gameState, crashPoint, timeToStart, canvasSize]); // УБРАЛИ userCashedOut!
   
   return (
     <div className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''}`} data-state={gameState}>

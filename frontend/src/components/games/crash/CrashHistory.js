@@ -32,13 +32,13 @@ const CrashHistory = ({ history }) => {
     });
   };
   
-  // Генерация тестовых данных истории для сверхбыстрой игры
+  // Генерация тестовых данных истории
   const getDisplayHistory = () => {
     if (history && history.length > 0) {
       return history;
     }
     
-    // Тестовые данные для демонстрации СВЕРХБЫСТРОЙ игры
+    // Тестовые данные для демонстрации
     return [
       {
         roundId: 1008,
@@ -132,7 +132,7 @@ const CrashHistory = ({ history }) => {
   return (
     <div className="crash-history">
       <div className="history-header">
-        <h3 className="history-title">⚡ История (сверхбыстрая игра)</h3>
+        <h3 className="history-title">История</h3>
         {displayHistory.length > 0 && (
           <span className="history-count">{displayHistory.length} раундов</span>
         )}
@@ -148,7 +148,7 @@ const CrashHistory = ({ history }) => {
           <>
             {/* Компактный вид - последние 10 раундов в одной строке */}
             <div className="history-compact">
-              <div className="compact-title">🔥 Последние раунды (каждые ~1.3 сек):</div>
+              <div className="compact-title">Последние раунды:</div>
               <div className="compact-list">
                 {displayHistory.slice(0, 12).map((round, index) => (
                   <div
@@ -198,10 +198,10 @@ const CrashHistory = ({ history }) => {
         )}
       </div>
       
-      {/* Статистика по истории для сверхбыстрой игры */}
+      {/* Статистика по истории */}
       {displayHistory.length > 0 && (
         <div className="history-stats">
-          <div className="stats-title">📊 Статистика последних {displayHistory.length} раундов (сверхбыстрая игра):</div>
+          <div className="stats-title">📊 Статистика последних {displayHistory.length} раундов:</div>
           <div className="stats-grid">
             <div className="stat-item">
               <span className="stat-label">Средний краш:</span>
@@ -238,13 +238,6 @@ const CrashHistory = ({ history }) => {
               <span className="stat-value">
                 {Math.round((displayHistory.filter(round => round.crashPoint >= 5).length / displayHistory.length) * 100)}%
               </span>
-            </div>
-          </div>
-          
-          {/* Дополнительная информация о скорости игры */}
-          <div className="speed-info">
-            <div className="speed-indicator">
-              ⚡ Сверхбыстрая игра: раунд каждые ~1.3 секунды (1 сек ожидание + ~0.3 сек игра)
             </div>
           </div>
         </div>

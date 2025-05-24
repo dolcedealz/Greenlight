@@ -34,14 +34,15 @@ const CrashGame = ({
   const [cashedOutBets, setCashedOutBets] = useState([]);
   const [history, setHistory] = useState([]);
   
-  // Рефы для таймеров
+  // Рефы для таймеров и состояния
   const gameTimerRef = useRef(null);
   const multiplierTimerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const isCrashedRef = useRef(false);
+  const roundIdRef = useRef(0);
   
   // Генерация краш-поинта (реальная логика должна быть на сервере)
   const generateCrashPoint = useCallback(() => {
-    // Простая формула для демо (на продакшене должно быть на сервере)
     const random = Math.random();
     if (random < 0.33) return 1.0 + Math.random() * 0.5; // 1.0-1.5x (33%)
     if (random < 0.66) return 1.5 + Math.random() * 1.5; // 1.5-3.0x (33%)
@@ -57,10 +58,6 @@ const CrashGame = ({
     try {
       setLoading(true);
       
-      // Здесь должен быть API вызов
-      // const response = await gameApi.placeCrashBet(betAmount, autoCashOut);
-      
-      // Временная симуляция
       setBalance(prev => prev - betAmount);
       setHasBet(true);
       setCashedOut(false);
@@ -69,7 +66,6 @@ const CrashGame = ({
         autoCashOut: autoCashOut
       });
       
-      // Добавляем ставку в список активных
       setActiveBets(prev => [...prev, {
         id: Date.now(),
         amount: betAmount,
@@ -89,23 +85,18 @@ const CrashGame = ({
   
   // Ручной кешаут
   const cashOut = useCallback(async () => {
-    if (gameState !== 'flying' || !hasBet || cashedOut || loading) {
+    if (gameState !== 'flying' || !hasBet || cashedOut || loading || isCrashedRef.current) {
       return;
     }
     
     try {
       setLoading(true);
       
-      // Здесь должен быть API вызов
-      // const response = await gameApi.crashCashOut(roundId);
-      
-      // Временная симуляция
       const winAmount = userBet.amount * currentMultiplier;
       setBalance(prev => prev + winAmount);
       setCashedOut(true);
       setUserCashOutMultiplier(currentMultiplier);
       
-      // Перемещаем ставку в выведенные
       setActiveBets(prev => prev.filter(bet => !bet.isCurrentUser));
       setCashedOutBets(prev => [...prev, {
         id: Date.now(),
@@ -118,7 +109,6 @@ const CrashGame = ({
         winAmount: winAmount
       }]);
       
-      // Показываем результат
       setGameResult({
         win: true,
         amount: winAmount - userBet.amount,
@@ -135,14 +125,38 @@ const CrashGame = ({
   
   // Автоматический кешаут
   useEffect(() => {
-    if (gameState === 'flying' && hasBet && !cashedOut && userBet?.autoCashOut > 0 && currentMultiplier >= userBet.autoCashOut) {
+    if (gameState === 'flying' && 
+        hasBet && 
+        !cashedOut && 
+        !isCrashedRef.current &&
+        userBet?.autoCashOut > 0 && 
+        currentMultiplier >= userBet.autoCashOut) {
       cashOut();
     }
   }, [gameState, hasBet, cashedOut, userBet, currentMultiplier, cashOut]);
   
+  // Очистка всех таймеров
+  const clearAllTimers = useCallback(() => {
+    if (gameTimerRef.current) {
+      clearInterval(gameTimerRef.current);
+      gameTimerRef.current = null;
+    }
+    if (multiplierTimerRef.current) {
+      clearInterval(multiplierTimerRef.current);
+      multiplierTimerRef.current = null;
+    }
+  }, []);
+  
   // Запуск нового раунда
   const startNewRound = useCallback(() => {
     console.log('Запуск нового раунда');
+    
+    // Очищаем все таймеры
+    clearAllTimers();
+    
+    // Сбрасываем флаги
+    isCrashedRef.current = false;
+    roundIdRef.current += 1;
     
     // Генерируем новый краш-поинт
     const newCrashPoint = generateCrashPoint();
@@ -159,18 +173,26 @@ const CrashGame = ({
     
     // Запускаем таймер множителя
     multiplierTimerRef.current = setInterval(() => {
+      // Проверяем, что игра еще не завершилась
+      if (isCrashedRef.current) {
+        return;
+      }
+      
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
-      const newMultiplier = 1.00 + elapsed * 0.1; // Рост на 0.1 каждую секунду
+      const newMultiplier = 1.00 + elapsed * 0.1;
       
       if (newMultiplier >= newCrashPoint) {
-        // Краш!
+        // КРАШ! Останавливаем все
+        isCrashedRef.current = true;
+        clearInterval(multiplierTimerRef.current);
+        multiplierTimerRef.current = null;
+        
         setCurrentMultiplier(newCrashPoint);
         setGameState('crashed');
-        clearInterval(multiplierTimerRef.current);
         
         // Добавляем в историю
         setHistory(prev => [{
-          roundId: Date.now(),
+          roundId: roundIdRef.current,
           crashPoint: newCrashPoint,
           timestamp: Date.now(),
           totalBets: Math.floor(Math.random() * 10) + 1,
@@ -200,6 +222,7 @@ const CrashGame = ({
             setTimeToStart(prev => {
               if (prev <= 1) {
                 clearInterval(gameTimerRef.current);
+                gameTimerRef.current = null;
                 startNewRound();
                 return 0;
               }
@@ -210,16 +233,19 @@ const CrashGame = ({
       } else {
         setCurrentMultiplier(newMultiplier);
       }
-    }, 100); // Обновляем каждые 100мс
-  }, [generateCrashPoint, hasBet, cashedOut, userBet, balance, setGameResult]);
+    }, 100);
+  }, [generateCrashPoint, hasBet, cashedOut, userBet, balance, setGameResult, clearAllTimers]);
   
   // Инициализация игры
   useEffect(() => {
+    roundIdRef.current = 0;
+    
     // Запускаем первый таймер ожидания
     gameTimerRef.current = setInterval(() => {
       setTimeToStart(prev => {
         if (prev <= 1) {
           clearInterval(gameTimerRef.current);
+          gameTimerRef.current = null;
           startNewRound();
           return 0;
         }
@@ -228,18 +254,16 @@ const CrashGame = ({
     }, 1000);
     
     return () => {
-      if (gameTimerRef.current) clearInterval(gameTimerRef.current);
-      if (multiplierTimerRef.current) clearInterval(multiplierTimerRef.current);
+      clearAllTimers();
     };
-  }, [startNewRound]);
+  }, [startNewRound, clearAllTimers]);
   
   // Очистка таймеров при размонтировании
   useEffect(() => {
     return () => {
-      if (gameTimerRef.current) clearInterval(gameTimerRef.current);
-      if (multiplierTimerRef.current) clearInterval(multiplierTimerRef.current);
+      clearAllTimers();
     };
-  }, []);
+  }, [clearAllTimers]);
   
   // Получение текста для главной кнопки
   const getMainButtonText = () => {
@@ -255,7 +279,7 @@ const CrashGame = ({
         return `Вывести (${(userBet.amount * currentMultiplier).toFixed(2)} USDT)`;
       case 'crashed':
         if (hasBet && !cashedOut) return 'Проигрыш';
-        if (hasBet && cashedOut) return `Выиграш ${userCashOutMultiplier.toFixed(2)}x`;
+        if (hasBet && cashedOut) return `Выигрыш ${userCashOutMultiplier.toFixed(2)}x`;
         return 'Раунд завершен';
       default:
         return 'Ошибка состояния';
@@ -307,6 +331,7 @@ const CrashGame = ({
         gameState={gameState}
         crashPoint={crashPoint}
         timeToStart={timeToStart}
+        roundId={roundIdRef.current}
       />
       
       {/* Главная кнопка действия */}

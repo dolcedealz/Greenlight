@@ -17,7 +17,7 @@ const CrashControls = ({
   currentMultiplier
 }) => {
   
-  // ИСПРАВЛЕНИЕ 2: Исправленный обработчик изменения ставки
+  // ИСПРАВЛЕНИЕ: Корректный обработчик изменения ставки
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
     
@@ -56,11 +56,13 @@ const CrashControls = ({
     setAutoCashOut(value);
   };
   
-  // Получение потенциального выигрыша
+  // ИСПРАВЛЕНО: Получение потенциального выигрыша
   const getPotentialWin = () => {
     if (gameState === 'flying' && hasBet && !cashedOut) {
+      // Если игра идет и у пользователя есть ставка - показываем текущий возможный выигрыш
       return (userBet.amount * currentMultiplier).toFixed(2);
     }
+    // Иначе показываем потенциальный выигрыш при автовыводе
     return (betAmount * autoCashOut).toFixed(2);
   };
   
@@ -186,7 +188,7 @@ const CrashControls = ({
         </div>
       </div>
       
-      {/* Информация о текущей ставке */}
+      {/* ИСПРАВЛЕНО: Информация о текущей ставке - показывает правильный статус */}
       {hasBet && userBet && (
         <div className="current-bet-info">
           <div className="bet-info-row">
@@ -194,6 +196,7 @@ const CrashControls = ({
             <span className="bet-amount">{userBet.amount} USDT</span>
           </div>
           
+          {/* Показываем текущий выигрыш только если игра идет и не вывели */}
           {gameState === 'flying' && !cashedOut && (
             <div className="bet-info-row">
               <span>🚀 Текущий выигрыш:</span>
@@ -201,6 +204,7 @@ const CrashControls = ({
             </div>
           )}
           
+          {/* Показываем прибыль только если игра идет и не вывели */}
           {gameState === 'flying' && !cashedOut && (
             <div className="bet-info-row">
               <span>💎 Прибыль:</span>
@@ -210,6 +214,7 @@ const CrashControls = ({
             </div>
           )}
           
+          {/* Показываем автовывод только если не вывели */}
           {userBet.autoCashOut > 0 && !cashedOut && (
             <div className="bet-info-row">
               <span>🎯 Автовывод при:</span>
@@ -217,11 +222,22 @@ const CrashControls = ({
             </div>
           )}
           
+          {/* НОВОЕ: Показываем информацию о выводе если уже вывели */}
           {cashedOut && userCashOutMultiplier && (
-            <div className="bet-info-row">
-              <span>✅ Выведено при:</span>
-              <span className="auto-cashout">{userCashOutMultiplier.toFixed(2)}x</span>
-            </div>
+            <>
+              <div className="bet-info-row">
+                <span>✅ Выведено при:</span>
+                <span className="auto-cashout">{userCashOutMultiplier.toFixed(2)}x</span>
+              </div>
+              <div className="bet-info-row">
+                <span>💰 Получено:</span>
+                <span className="current-win">{(userBet.amount * userCashOutMultiplier).toFixed(2)} USDT</span>
+              </div>
+              <div className="bet-info-row">
+                <span>🎉 Прибыль:</span>
+                <span className="current-win">+{(userBet.amount * userCashOutMultiplier - userBet.amount).toFixed(2)} USDT</span>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -237,9 +253,18 @@ const CrashControls = ({
           </span>
         </div>
         
+        {/* ИСПРАВЛЕНО: Показываем множитель всегда во время полета */}
         {gameState === 'flying' && (
           <div className="multiplier-info">
             <span className="multiplier-label">🔥 Множитель:</span>
+            <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
+          </div>
+        )}
+        
+        {/* НОВОЕ: Показываем дополнительную информацию если пользователь уже вывел */}
+        {gameState === 'flying' && cashedOut && (
+          <div className="multiplier-info">
+            <span className="multiplier-label">📊 Игра продолжается для других:</span>
             <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
           </div>
         )}

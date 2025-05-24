@@ -83,7 +83,7 @@ const CrashGame = ({
     }
   }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, setBalance, setError]);
   
-  // Ручной кешаут
+  // ИСПРАВЛЕНИЕ 3: Ручной кешаут НЕ останавливает игру для всех
   const cashOut = useCallback(async () => {
     if (gameState !== 'flying' || !hasBet || cashedOut || loading || isCrashedRef.current) {
       return;
@@ -97,7 +97,10 @@ const CrashGame = ({
       setCashedOut(true);
       setUserCashOutMultiplier(currentMultiplier);
       
+      // Убираем ставку пользователя из активных
       setActiveBets(prev => prev.filter(bet => !bet.isCurrentUser));
+      
+      // Добавляем в список выведенных ставок
       setCashedOutBets(prev => [...prev, {
         id: Date.now(),
         amount: userBet.amount,
@@ -116,6 +119,10 @@ const CrashGame = ({
       });
       
       setLoading(false);
+      
+      // ВАЖНО: НЕ останавливаем игру! Игра продолжается для других игроков
+      // Убрали логику, которая останавливала multiplierTimerRef
+      
     } catch (err) {
       console.error('Ошибка кешаута:', err);
       setError(err.response?.data?.message || 'Ошибка вывода ставки');

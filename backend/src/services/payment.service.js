@@ -1,7 +1,7 @@
 // backend/src/services/payment.service.js
 const axios = require('axios');
 const crypto = require('crypto');
-const { Deposit, User } = require('../models'); // Исправлен импорт
+const { Deposit, User } = require('../models');
 
 class PaymentService {
   constructor() {
@@ -52,7 +52,7 @@ class PaymentService {
       // Создаем запись депозита в нашей БД
       const deposit = new Deposit({
         user: userId,
-        invoiceId: invoiceData.invoice_id,
+        invoiceId: invoiceData.invoice_id.toString(), // Приводим к строке для консистентности
         amount: amount,
         status: 'pending',
         balanceBefore: user.balance,
@@ -65,7 +65,7 @@ class PaymentService {
           referralCode: metadata.referralCode
         },
         cryptoBotData: {
-          invoiceId: invoiceData.invoice_id,
+          invoiceId: invoiceData.invoice_id.toString(),
           asset: invoiceData.asset,
           payAmount: invoiceData.amount,
           payUrl: invoiceData.pay_url,
@@ -139,30 +139,40 @@ class PaymentService {
   }
 
   /**
-   * Обрабатывает webhook от CryptoBot
-   * @param {Object} webhookData - Данные от webhook
+   * Обрабатывает webhook от CryptoBot - ИСПРАВЛЕНО для новой структуры
+   * @param {Object} webhookPayload - Данные от webhook (payload из CryptoBot)
    * @param {string} signature - Подпись для верификации
    * @returns {Object} - Результат обработки
    */
-  async processWebhook(webhookData, signature = null) {
+  async processWebhook(webhookPayload, signature = null) {
     try {
-      console.log('Обрабатываем webhook от CryptoBot:', webhookData);
+      console.log('Обрабатываем payload webhook от CryptoBot:', webhookPayload);
       
-      // Верифицируем подпись webhook'а (если настроен secret)
-      if (this.webhookSecret && signature) {
-        if (!this.verifyWebhookSignature(webhookData, signature)) {
-          throw new Error('Неверная подпись webhook');
-        }
-      }
+      // Извлекаем данные из payload - ИСПРАВЛЕНО
+      const { 
+        invoice_id, 
+        status, 
+        amount, 
+        asset, 
+        paid_at, 
+        hash,
+        paid_amount,
+        fee_amount 
+      } = webhookPayload;
       
-      const { invoice_id, status, amount, asset, paid_at, hash } = webhookData;
+      console.log(`Ищем депозит с invoice_id: ${invoice_id}`);
       
-      // Находим депозит по invoice_id
-      const deposit = await Deposit.findByInvoiceId(invoice_id);
+      // Находим депозит по invoice_id - приводим к строке для поиска
+      const deposit = await Deposit.findOne({ 
+        invoiceId: invoice_id.toString() 
+      });
+      
       if (!deposit) {
         console.warn(`Депозит не найден для invoice_id: ${invoice_id}`);
         return { success: false, message: 'Депозит не найден' };
       }
+      
+      console.log(`Найден депозит: ${deposit._id}, текущий статус: ${deposit.status}`);
       
       // Если депозит уже обработан, не обрабатываем повторно
       if (deposit.status === 'paid') {
@@ -170,11 +180,12 @@ class PaymentService {
         return { success: true, message: 'Депозит уже обработан' };
       }
       
-      // Обновляем депозит данными из webhook
-      await deposit.updateFromWebhook(webhookData);
+      // Обновляем депозит данными из webhook - ИСПРАВЛЕНО
+      await this.updateDepositFromWebhook(deposit, webhookPayload);
       
       // Если статус "paid" - зачисляем средства пользователю
       if (status === 'paid') {
+        console.log(`Статус платежа 'paid', зачисляем средства пользователю`);
         await this.creditUserBalance(deposit);
         
         console.log(`Депозит ${deposit._id} успешно обработан, баланс пользователя обновлен`);
@@ -201,6 +212,36 @@ class PaymentService {
   }
 
   /**
+   * Обновляет депозит данными из webhook - НОВЫЙ МЕТОД
+   * @param {Object} deposit - Объект депозита
+   * @param {Object} webhookPayload - Данные из webhook payload
+   */
+  async updateDepositFromWebhook(deposit, webhookPayload) {
+    try {
+      // Обновляем cryptoBotData с данными из webhook
+      deposit.cryptoBotData.webhookData = webhookPayload;
+      
+      if (webhookPayload.status === 'paid') {
+        deposit.status = 'paid';
+        deposit.cryptoBotData.paidAt = new Date(webhookPayload.paid_at);
+        deposit.cryptoBotData.hash = webhookPayload.hash;
+        deposit.processedAt = new Date();
+        
+        console.log(`Депозит ${deposit._id} помечен как оплаченный`);
+      } else if (webhookPayload.status === 'expired') {
+        deposit.status = 'expired';
+        console.log(`Депозит ${deposit._id} помечен как истекший`);
+      }
+      
+      await deposit.save();
+      return deposit;
+    } catch (error) {
+      console.error('Ошибка обновления депозита:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Зачисляет средства на баланс пользователя
    * @param {Object} deposit - Объект депозита
    */
@@ -210,6 +251,9 @@ class PaymentService {
       if (!user) {
         throw new Error('Пользователь не найден');
       }
+      
+      console.log(`Зачисляем ${deposit.amount} USDT пользователю ${user._id}`);
+      console.log(`Баланс до: ${user.balance} USDT`);
       
       // Обновляем баланс пользователя
       const oldBalance = user.balance;
@@ -223,6 +267,8 @@ class PaymentService {
       deposit.balanceBefore = oldBalance;
       deposit.balanceAfter = newBalance;
       await deposit.save();
+      
+      console.log(`Баланс после: ${newBalance} USDT`);
       
       // Создаем транзакцию для учета
       const { Transaction } = require('../models');

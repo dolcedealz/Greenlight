@@ -98,23 +98,35 @@ class PaymentController {
    */
   async processWebhook(req, res) {
     try {
-      console.log('Получен webhook от CryptoBot:', req.body);
+      console.log('Получен webhook от CryptoBot:', JSON.stringify(req.body, null, 2));
       console.log('Headers:', req.headers);
       
       const webhookData = req.body;
       const signature = req.headers['crypto-pay-api-signature'];
       
-      // Базовая валидация данных webhook
-      if (!webhookData || !webhookData.invoice_id) {
-        console.warn('Некорректный webhook: отсутствует invoice_id');
+      // Базовая валидация данных webhook - ИСПРАВЛЕНО
+      if (!webhookData || !webhookData.payload || !webhookData.payload.invoice_id) {
+        console.warn('Некорректный webhook: отсутствует payload.invoice_id');
+        console.log('Структура webhook:', JSON.stringify(webhookData, null, 2));
         return res.status(400).json({
           success: false,
           message: 'Некорректные данные webhook'
         });
       }
       
-      // Обрабатываем webhook через сервис
-      const result = await paymentService.processWebhook(webhookData, signature);
+      // Проверяем тип события
+      if (webhookData.update_type !== 'invoice_paid') {
+        console.log(`Игнорируем webhook типа: ${webhookData.update_type}`);
+        return res.status(200).json({
+          success: true,
+          message: `Событие ${webhookData.update_type} обработано`
+        });
+      }
+      
+      console.log(`Обрабатываем оплаченный инвойс: ${webhookData.payload.invoice_id}`);
+      
+      // Обрабатываем webhook через сервис - передаем payload
+      const result = await paymentService.processWebhook(webhookData.payload, signature);
       
       if (result.success) {
         console.log(`Webhook успешно обработан: ${result.message}`);
@@ -122,7 +134,7 @@ class PaymentController {
         // Если депозит был успешно обработан, можем отправить уведомление пользователю
         if (result.userId && result.amount) {
           // Здесь можно добавить отправку уведомления через Telegram Bot
-          // await notificationService.sendDepositConfirmation(result.userId, result.amount);
+          console.log(`Пользователь ${result.userId} пополнил баланс на ${result.amount} USDT`);
         }
       }
       

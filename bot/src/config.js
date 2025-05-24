@@ -1,4 +1,4 @@
-// config.js
+// bot/src/config.js
 require('dotenv').config();
 
 const config = {
@@ -13,6 +13,7 @@ const config = {
     { command: 'help', description: 'Показать справку' },
     { command: 'play', description: 'Играть в казино' },
     { command: 'profile', description: 'Мой профиль' },
+    { command: 'balance', description: 'Проверить баланс' }, // НОВАЯ КОМАНДА
     { command: 'deposit', description: 'Пополнить баланс' },
     { command: 'withdraw', description: 'Вывести средства' },
     { command: 'referral', description: 'Реферальная программа' }
@@ -27,7 +28,7 @@ const config = {
   // Текст сообщений
   messages: {
     welcome: 'Добро пожаловать в Greenlight Casino!\n\nЗдесь вы можете играть в различные игры, делать ставки на события и многое другое. Используйте кнопки ниже для навигации.',
-    help: 'Greenlight Casino - это платформа для азартных игр в Telegram.\n\nДоступные команды:\n/start - Запустить бота\n/play - Играть в казино\n/profile - Мой профиль\n/deposit - Пополнить баланс\n/withdraw - Вывести средства\n/referral - Реферальная программа\n/help - Показать это сообщение',
+    help: 'Greenlight Casino - это платформа для азартных игр в Telegram.\n\nДоступные команды:\n/start - Запустить бота\n/play - Играть в казино\n/profile - Мой профиль\n/balance - Проверить баланс\n/deposit - Пополнить баланс\n/withdraw - Вывести средства\n/referral - Реферальная программа\n/help - Показать это сообщение',
     deposit: 'Выберите сумму и валюту для пополнения:',
     withdraw: 'Введите сумму для вывода и адрес кошелька.',
     referral: 'Приглашайте друзей и получайте 10% от их депозитов!\n\nВаша реферальная ссылка: ',

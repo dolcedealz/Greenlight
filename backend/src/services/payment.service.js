@@ -33,13 +33,16 @@ class PaymentService {
    */
   async createDeposit(userId, amount, metadata = {}) {
     try {
-      console.log(`Создаем депозит для пользователя ${userId} на сумму ${amount} USDT`);
+      console.log(`PAYMENT: Создаем депозит для пользователя ${userId} на сумму ${amount} USDT`);
       
       // Проверяем пользователя
       const user = await User.findById(userId);
       if (!user) {
         throw new Error('Пользователь не найден');
       }
+      
+      console.log(`PAYMENT: Пользователь найден: ${user.firstName} ${user.lastName} (${user.telegramId})`);
+      console.log(`PAYMENT: Текущий баланс: ${user.balance} USDT`);
       
       // Валидация суммы
       if (amount < 0.01 || amount > 10000) {
@@ -78,7 +81,7 @@ class PaymentService {
       
       await deposit.save();
       
-      console.log(`Депозит создан: ID=${deposit._id}, InvoiceId=${invoiceData.invoice_id}`);
+      console.log(`PAYMENT: Депозит создан в БД: ID=${deposit._id}, InvoiceId=${invoiceData.invoice_id}`);
       
       return {
         depositId: deposit._id,
@@ -91,7 +94,7 @@ class PaymentService {
       };
       
     } catch (error) {
-      console.error('Ошибка создания депозита:', error);
+      console.error('PAYMENT: Ошибка создания депозита:', error);
       throw error;
     }
   }
@@ -117,7 +120,7 @@ class PaymentService {
         expires_in: 3600 // 1 час на оплату
       };
       
-      console.log('Отправляем запрос в CryptoBot:', payload);
+      console.log('PAYMENT: Отправляем запрос в CryptoBot:', payload);
       
       const response = await this.api.post('/createInvoice', payload);
       
@@ -125,13 +128,13 @@ class PaymentService {
         throw new Error(`CryptoBot API Error: ${response.data.error?.name || 'Unknown error'}`);
       }
       
-      console.log('Ответ от CryptoBot:', response.data.result);
+      console.log('PAYMENT: Ответ от CryptoBot:', response.data.result);
       
       return response.data.result;
       
     } catch (error) {
       if (error.response) {
-        console.error('CryptoBot API Error:', error.response.data);
+        console.error('PAYMENT: CryptoBot API Error:', error.response.data);
         throw new Error(`CryptoBot API Error: ${error.response.data.error?.name || error.response.statusText}`);
       }
       throw error;
@@ -143,12 +146,12 @@ class PaymentService {
    * @param {string} hiddenMessage - Скрытое сообщение от CryptoBot
    * @returns {number|null} - Telegram ID или null
    */
-  extractTelegramIdFromHiddenMessage(hiddenMessage) {
+  extractUserIdFromHiddenMessage(hiddenMessage) {
     if (!hiddenMessage) return null;
     
-    // Пытаемся извлечь ID из формата "Пополнение для пользователя #123456"
-    const match = hiddenMessage.match(/#(\d+)/);
-    return match ? parseInt(match[1], 10) : null;
+    // Пытаемся извлечь userId из формата "Депозит для пользователя 612a3b4c5d6e7f8910111213"
+    const match = hiddenMessage.match(/Депозит для пользователя ([a-f0-9]{24})/);
+    return match ? match[1] : null;
   }
 
   /**
@@ -158,27 +161,27 @@ class PaymentService {
    */
   async createFallbackDeposit(webhookPayload) {
     try {
-      console.log('Создаем fallback депозит для потерянного платежа');
+      console.log('PAYMENT: Создаем fallback депозит для потерянного платежа');
       
-      // Извлекаем Telegram ID из hidden_message
-      const telegramId = this.extractTelegramIdFromHiddenMessage(webhookPayload.hidden_message);
+      // Извлекаем userId из hidden_message
+      const userId = this.extractUserIdFromHiddenMessage(webhookPayload.hidden_message);
       
-      if (!telegramId) {
-        console.warn('Не удалось извлечь Telegram ID из hidden_message:', webhookPayload.hidden_message);
+      if (!userId) {
+        console.warn('PAYMENT: Не удалось извлечь userId из hidden_message:', webhookPayload.hidden_message);
         return null;
       }
       
-      console.log(`Найден Telegram ID в hidden_message: ${telegramId}`);
+      console.log(`PAYMENT: Найден userId в hidden_message: ${userId}`);
       
-      // Ищем пользователя по Telegram ID
-      const user = await User.findOne({ telegramId });
+      // Ищем пользователя по userId
+      const user = await User.findById(userId);
       
       if (!user) {
-        console.warn(`Пользователь с Telegram ID ${telegramId} не найден`);
+        console.warn(`PAYMENT: Пользователь с userId ${userId} не найден`);
         return null;
       }
       
-      console.log(`Найден пользователь: ${user._id} (${user.firstName} ${user.lastName})`);
+      console.log(`PAYMENT: Найден пользователь: ${user._id} (${user.firstName} ${user.lastName})`);
       
       // Создаем fallback депозит
       const deposit = new Deposit({
@@ -208,24 +211,24 @@ class PaymentService {
       
       await deposit.save();
       
-      console.log(`Fallback депозит создан: ${deposit._id}`);
+      console.log(`PAYMENT: Fallback депозит создан: ${deposit._id}`);
       return deposit;
       
     } catch (error) {
-      console.error('Ошибка создания fallback депозита:', error);
+      console.error('PAYMENT: Ошибка создания fallback депозита:', error);
       return null;
     }
   }
 
   /**
-   * Обрабатывает webhook от CryptoBot - УЛУЧШЕНО с fallback механизмом
+   * Обрабатывает webhook от CryptoBot - ИСПРАВЛЕНО с fallback механизмом
    * @param {Object} webhookPayload - Данные от webhook (payload из CryptoBot)
    * @param {string} signature - Подпись для верификации
    * @returns {Object} - Результат обработки
    */
   async processWebhook(webhookPayload, signature = null) {
     try {
-      console.log('Обрабатываем payload webhook от CryptoBot:', webhookPayload);
+      console.log('PAYMENT: Обрабатываем payload webhook от CryptoBot:', webhookPayload);
       
       // Извлекаем данные из payload
       const { 
@@ -239,7 +242,7 @@ class PaymentService {
         fee_amount 
       } = webhookPayload;
       
-      console.log(`Ищем депозит с invoice_id: ${invoice_id}`);
+      console.log(`PAYMENT: Ищем депозит с invoice_id: ${invoice_id}`);
       
       // Находим депозит по invoice_id - приводим к строке для поиска
       let deposit = await Deposit.findOne({ 
@@ -248,24 +251,24 @@ class PaymentService {
       
       // НОВЫЙ FALLBACK МЕХАНИЗМ
       if (!deposit) {
-        console.warn(`Депозит не найден для invoice_id: ${invoice_id}`);
-        console.log('Пытаемся создать fallback депозит...');
+        console.warn(`PAYMENT: Депозит не найден для invoice_id: ${invoice_id}`);
+        console.log('PAYMENT: Пытаемся создать fallback депозит...');
         
         deposit = await this.createFallbackDeposit(webhookPayload);
         
         if (!deposit) {
-          console.error('Не удалось создать fallback депозит');
+          console.error('PAYMENT: Не удалось создать fallback депозит');
           return { success: false, message: 'Депозит не найден и не удалось создать fallback' };
         }
         
-        console.log(`Fallback депозит создан успешно: ${deposit._id}`);
+        console.log(`PAYMENT: Fallback депозит создан успешно: ${deposit._id}`);
       } else {
-        console.log(`Найден депозит: ${deposit._id}, текущий статус: ${deposit.status}`);
+        console.log(`PAYMENT: Найден депозит: ${deposit._id}, текущий статус: ${deposit.status}`);
       }
       
       // Если депозит уже обработан, не обрабатываем повторно
       if (deposit.status === 'paid') {
-        console.log(`Депозит ${deposit._id} уже обработан`);
+        console.log(`PAYMENT: Депозит ${deposit._id} уже обработан`);
         return { success: true, message: 'Депозит уже обработан' };
       }
       
@@ -274,10 +277,10 @@ class PaymentService {
       
       // Если статус "paid" - зачисляем средства пользователю
       if (status === 'paid') {
-        console.log(`Статус платежа 'paid', зачисляем средства пользователю`);
+        console.log(`PAYMENT: Статус платежа 'paid', зачисляем средства пользователю`);
         await this.creditUserBalance(deposit);
         
-        console.log(`Депозит ${deposit._id} успешно обработан, баланс пользователя обновлен`);
+        console.log(`PAYMENT: Депозит ${deposit._id} успешно обработан, баланс пользователя обновлен`);
         
         return {
           success: true,
@@ -295,7 +298,7 @@ class PaymentService {
       };
       
     } catch (error) {
-      console.error('Ошибка обработки webhook:', error);
+      console.error('PAYMENT: Ошибка обработки webhook:', error);
       throw error;
     }
   }
@@ -307,6 +310,8 @@ class PaymentService {
    */
   async updateDepositFromWebhook(deposit, webhookPayload) {
     try {
+      console.log(`PAYMENT: Обновляем депозит ${deposit._id} данными из webhook`);
+      
       // Обновляем cryptoBotData с данными из webhook
       deposit.cryptoBotData.webhookData = webhookPayload;
       
@@ -316,16 +321,16 @@ class PaymentService {
         deposit.cryptoBotData.hash = webhookPayload.hash;
         deposit.processedAt = new Date();
         
-        console.log(`Депозит ${deposit._id} помечен как оплаченный`);
+        console.log(`PAYMENT: Депозит ${deposit._id} помечен как оплаченный`);
       } else if (webhookPayload.status === 'expired') {
         deposit.status = 'expired';
-        console.log(`Депозит ${deposit._id} помечен как истекший`);
+        console.log(`PAYMENT: Депозит ${deposit._id} помечен как истекший`);
       }
       
       await deposit.save();
       return deposit;
     } catch (error) {
-      console.error('Ошибка обновления депозита:', error);
+      console.error('PAYMENT: Ошибка обновления депозита:', error);
       throw error;
     }
   }
@@ -341,8 +346,8 @@ class PaymentService {
         throw new Error('Пользователь не найден');
       }
       
-      console.log(`Зачисляем ${deposit.amount} USDT пользователю ${user._id}`);
-      console.log(`Баланс до: ${user.balance} USDT`);
+      console.log(`PAYMENT: Зачисляем ${deposit.amount} USDT пользователю ${user._id}`);
+      console.log(`PAYMENT: Баланс до: ${user.balance} USDT`);
       
       // Обновляем баланс пользователя
       const oldBalance = user.balance;
@@ -357,7 +362,7 @@ class PaymentService {
       deposit.balanceAfter = newBalance;
       await deposit.save();
       
-      console.log(`Баланс после: ${newBalance} USDT`);
+      console.log(`PAYMENT: Баланс после: ${newBalance} USDT`);
       
       // Создаем транзакцию для учета
       const { Transaction } = require('../models');
@@ -378,10 +383,11 @@ class PaymentService {
       
       await transaction.save();
       
-      console.log(`Баланс пользователя ${user._id} обновлен: ${oldBalance} -> ${newBalance} USDT`);
+      console.log(`PAYMENT: Баланс пользователя ${user._id} обновлен: ${oldBalance} -> ${newBalance} USDT`);
+      console.log(`PAYMENT: Транзакция создана: ${transaction._id}`);
       
     } catch (error) {
-      console.error('Ошибка зачисления средств:', error);
+      console.error('PAYMENT: Ошибка зачисления средств:', error);
       throw error;
     }
   }
@@ -404,7 +410,7 @@ class PaymentService {
       
       return signature === expectedSignature;
     } catch (error) {
-      console.error('Ошибка верификации подписи:', error);
+      console.error('PAYMENT: Ошибка верификации подписи:', error);
       return false;
     }
   }
@@ -416,10 +422,14 @@ class PaymentService {
    */
   async getDepositInfo(depositId) {
     try {
+      console.log(`PAYMENT: Получаем информацию о депозите ${depositId}`);
+      
       const deposit = await Deposit.findById(depositId).populate('user', 'telegramId username firstName lastName');
       if (!deposit) {
         throw new Error('Депозит не найден');
       }
+      
+      console.log(`PAYMENT: Депозит найден: статус=${deposit.status}, сумма=${deposit.amount}`);
       
       return {
         id: deposit._id,
@@ -433,7 +443,7 @@ class PaymentService {
         user: deposit.user
       };
     } catch (error) {
-      console.error('Ошибка получения информации о депозите:', error);
+      console.error('PAYMENT: Ошибка получения информации о депозите:', error);
       throw error;
     }
   }
@@ -446,6 +456,8 @@ class PaymentService {
    */
   async getUserDeposits(userId, params = {}) {
     try {
+      console.log(`PAYMENT: Получаем историю депозитов для пользователя ${userId}`);
+      
       const { limit = 20, skip = 0, status } = params;
       
       const query = { user: userId };
@@ -459,6 +471,8 @@ class PaymentService {
         .skip(Number(skip));
       
       const total = await Deposit.countDocuments(query);
+      
+      console.log(`PAYMENT: Найдено ${deposits.length} депозитов из ${total} общих`);
       
       return {
         deposits: deposits.map(deposit => ({
@@ -474,7 +488,7 @@ class PaymentService {
         totalPages: Math.ceil(total / limit)
       };
     } catch (error) {
-      console.error('Ошибка получения истории депозитов:', error);
+      console.error('PAYMENT: Ошибка получения истории депозитов:', error);
       throw error;
     }
   }

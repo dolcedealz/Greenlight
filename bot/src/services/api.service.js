@@ -1,4 +1,4 @@
-// api.service.js
+// bot/src/services/api.service.js
 const axios = require('axios');
 const config = require('../config');
 
@@ -45,15 +45,19 @@ class ApiService {
    */
   async createOrUpdateUser(telegramUser, referralCode = null) {
     try {
+      console.log(`API: Создание/обновление пользователя ${telegramUser.id}`);
+      
       const data = {
         user: telegramUser,
         referralCode
       };
       
       const response = await this.api.post('/users/auth', data);
+      
+      console.log(`API: Пользователь ${telegramUser.id} успешно создан/обновлен`);
       return response.data.data;
     } catch (error) {
-      console.error('Ошибка при создании/обновлении пользователя:', error);
+      console.error('API: Ошибка при создании/обновлении пользователя:', error.response?.data || error.message);
       throw error;
     }
   }
@@ -83,20 +87,16 @@ class ApiService {
       const headers = this.createTelegramAuthHeaders(telegramUser);
       
       console.log('API: Отправляем запрос на создание депозита:', depositData);
-      console.log('API: Заголовки аутентификации:', headers);
       
       const response = await this.api.post('/payments/deposits', depositData, { headers });
       
-      console.log('API: Депозит создан успешно:', response.data);
+      console.log('API: Депозит создан успешно');
       
       return response.data.data;
     } catch (error) {
-      console.error('API: Ошибка при создании депозита:', error);
+      console.error('API: Ошибка при создании депозита:', error.response?.data || error.message);
       
       if (error.response) {
-        console.error('API: Статус ответа:', error.response.status);
-        console.error('API: Данные ответа:', error.response.data);
-        
         // Пробрасываем ошибку с понятным сообщением
         const errorMessage = error.response.data?.message || 'Ошибка API при создании депозита';
         throw new Error(errorMessage);
@@ -107,7 +107,7 @@ class ApiService {
   }
   
   /**
-   * Получает статус депозита
+   * Получает статус депозита - ИСПРАВЛЕНО с улучшенной обработкой ошибок
    * @param {Object} telegramUser - Данные пользователя из Telegram
    * @param {string} depositId - ID депозита
    * @returns {Object} - Статус депозита
@@ -116,20 +116,36 @@ class ApiService {
     try {
       console.log(`API: Проверяем статус депозита ${depositId} для пользователя ${telegramUser.id}`);
       
+      // Валидация depositId - должен быть MongoDB ObjectId
+      if (!depositId || !depositId.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error('Некорректный ID депозита');
+      }
+      
       // Добавляем заголовки аутентификации
       const headers = this.createTelegramAuthHeaders(telegramUser);
       
       const response = await this.api.get(`/payments/deposits/${depositId}/status`, { headers });
       
-      console.log('API: Статус депозита получен:', response.data);
+      console.log('API: Статус депозита получен:', response.data.data);
       
       return response.data.data;
     } catch (error) {
-      console.error('API: Ошибка при получении статуса депозита:', error);
+      console.error('API: Ошибка при получении статуса депозита:', error.response?.data || error.message);
       
       if (error.response) {
         console.error('API: Статус ответа:', error.response.status);
-        console.error('API: Данные ответа:', error.response.data);
+        
+        // Более детальная обработка ошибок
+        if (error.response.status === 404) {
+          throw new Error('Депозит не найден');
+        } else if (error.response.status === 403) {
+          throw new Error('Доступ к депозиту запрещен');
+        } else if (error.response.status === 401) {
+          throw new Error('Ошибка аутентификации пользователя');
+        } else {
+          const message = error.response.data?.message || 'Ошибка получения статуса депозита';
+          throw new Error(message);
+        }
       }
       
       throw error;
@@ -146,51 +162,130 @@ class ApiService {
     try {
       console.log(`API: Получаем информацию о депозите ${depositId} для пользователя ${telegramUser.id}`);
       
+      // Валидация depositId
+      if (!depositId || !depositId.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error('Некорректный ID депозита');
+      }
+      
       // Добавляем заголовки аутентификации
       const headers = this.createTelegramAuthHeaders(telegramUser);
       
       const response = await this.api.get(`/payments/deposits/${depositId}`, { headers });
       
-      console.log('API: Информация о депозите получена:', response.data);
+      console.log('API: Информация о депозите получена');
       
       return response.data.data;
     } catch (error) {
-      console.error('API: Ошибка при получении информации о депозите:', error);
+      console.error('API: Ошибка при получении информации о депозите:', error.response?.data || error.message);
+      
+      if (error.response) {
+        if (error.response.status === 404) {
+          throw new Error('Депозит не найден');
+        } else if (error.response.status === 403) {
+          throw new Error('Доступ к депозиту запрещен');
+        }
+      }
+      
+      throw error;
+    }
+  }
+  
+  /**
+   * Получает историю депозитов пользователя
+   * @param {Object} telegramUser - Данные пользователя из Telegram
+   * @param {Object} params - Параметры запроса
+   * @returns {Object} - История депозитов
+   */
+  async getUserDeposits(telegramUser, params = {}) {
+    try {
+      console.log(`API: Получаем историю депозитов для пользователя ${telegramUser.id}`);
+      
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.get('/payments/deposits', { 
+        headers,
+        params
+      });
+      
+      console.log('API: История депозитов получена');
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('API: Ошибка при получении истории депозитов:', error.response?.data || error.message);
       throw error;
     }
   }
   
   /**
    * Получает баланс пользователя
-   * @param {number} telegramId - ID пользователя Telegram
+   * @param {Object} telegramUser - Данные пользователя из Telegram
    * @returns {number} - Баланс пользователя
    */
-  async getUserBalance(telegramId) {
+  async getUserBalance(telegramUser) {
     try {
-      // В реальном приложении здесь должен быть запрос к API
-      // через механизм авторизации
-      const mockBalance = 1000.50; // Заглушка
-      return mockBalance;
+      console.log(`API: Получаем баланс пользователя ${telegramUser.id}`);
+      
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.get('/users/balance', { headers });
+      
+      console.log(`API: Баланс пользователя: ${response.data.data.balance} USDT`);
+      
+      return response.data.data.balance;
     } catch (error) {
-      console.error('Ошибка при получении баланса:', error);
+      console.error('API: Ошибка при получении баланса:', error.response?.data || error.message);
+      
+      // Возвращаем 0 в случае ошибки, чтобы не ломать интерфейс
+      console.log('API: Возвращаем баланс 0 из-за ошибки');
+      return 0;
+    }
+  }
+  
+  /**
+   * Получает профиль пользователя
+   * @param {Object} telegramUser - Данные пользователя из Telegram
+   * @returns {Object} - Профиль пользователя
+   */
+  async getUserProfile(telegramUser) {
+    try {
+      console.log(`API: Получаем профиль пользователя ${telegramUser.id}`);
+      
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.get('/users/profile', { headers });
+      
+      console.log('API: Профиль пользователя получен');
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('API: Ошибка при получении профиля:', error.response?.data || error.message);
       throw error;
     }
   }
   
   /**
    * Получает реферальный код пользователя
-   * @param {number} telegramId - ID пользователя Telegram
+   * @param {Object} telegramUser - Данные пользователя из Telegram
    * @returns {string} - Реферальный код
    */
-  async getUserReferralCode(telegramId) {
+  async getUserReferralCode(telegramUser) {
     try {
-      // В реальном приложении здесь должен быть запрос к API
-      // через механизм авторизации
-      const mockReferralCode = 'ABC123'; // Заглушка
-      return mockReferralCode;
+      console.log(`API: Получаем реферальный код пользователя ${telegramUser.id}`);
+      
+      const profile = await this.getUserProfile(telegramUser);
+      
+      const referralCode = profile.referralCode;
+      console.log(`API: Реферальный код: ${referralCode}`);
+      
+      return referralCode;
     } catch (error) {
-      console.error('Ошибка при получении реферального кода:', error);
-      throw error;
+      console.error('API: Ошибка при получении реферального кода:', error.response?.data || error.message);
+      
+      // Возвращаем заглушку в случае ошибки
+      return 'ERROR';
     }
   }
   
@@ -200,16 +295,58 @@ class ApiService {
    */
   async checkApiHealth() {
     try {
+      console.log('API: Проверяем доступность API...');
+      
       const response = await this.api.get('/health');
-      return response.data.success === true;
+      
+      const isHealthy = response.data.success === true;
+      console.log(`API: Статус здоровья - ${isHealthy ? 'OK' : 'ERROR'}`);
+      
+      return isHealthy;
     } catch (error) {
-      console.error('API недоступен:', error.message);
+      console.error('API: API недоступен:', error.message);
       return false;
     }
   }
+  
+  /**
+   * Проверяет доступность платежного API
+   * @returns {boolean} - true если платежный API доступен
+   */
+  async checkPaymentApiHealth() {
+    try {
+      console.log('API: Проверяем доступность платежного API...');
+      
+      const response = await this.api.get('/payments/health');
+      
+      const isHealthy = response.data.success === true;
+      console.log(`API: Платежный API - ${isHealthy ? 'OK' : 'ERROR'}`);
+      
+      return isHealthy;
+    } catch (error) {
+      console.error('API: Платежный API недоступен:', error.message);
+      return false;
+    }
+  }
+  
+  /**
+   * Полная проверка всех API сервисов
+   * @returns {Object} - Статус всех сервисов
+   */
+  async fullHealthCheck() {
+    const results = {
+      api: await this.checkApiHealth(),
+      payments: await this.checkPaymentApiHealth(),
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('API: Полная проверка здоровья:', results);
+    
+    return results;
+  }
 }
 
-// Экспортируем экземпляр сервиса
+// Экспортируем singleton instance
 const apiService = new ApiService();
 
 module.exports = apiService;

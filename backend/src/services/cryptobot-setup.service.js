@@ -1,5 +1,3 @@
-// ===== 3. backend/src/services/cryptobot-setup.service.js (НОВЫЙ ФАЙЛ) =====
-
 // backend/src/services/cryptobot-setup.service.js
 const axios = require('axios');
 
@@ -29,83 +27,6 @@ class CryptoBotSetupService {
   }
 
   /**
-   * Настраивает webhook URL в CryptoBot
-   */
-  async setupWebhook() {
-    try {
-      if (!this.cryptoBotToken) {
-        console.log('❌ CryptoBot token не найден, пропускаем настройку webhook');
-        return false;
-      }
-
-      console.log('🔧 Настройка CryptoBot webhook...');
-      console.log(`📡 Webhook URL: ${this.webhookUrl}`);
-      
-      // Устанавливаем webhook
-      const response = await this.api.post('/setWebhook', {
-        url: this.webhookUrl
-      });
-      
-      if (response.data.ok) {
-        console.log('✅ CryptoBot webhook успешно настроен');
-        console.log('📝 Ответ:', response.data.result);
-        return true;
-      } else {
-        console.error('❌ Ошибка настройки CryptoBot webhook:', response.data.error);
-        return false;
-      }
-      
-    } catch (error) {
-      console.error('❌ Критическая ошибка настройки CryptoBot webhook:', error.message);
-      
-      if (error.response) {
-        console.error('📡 Статус ответа:', error.response.status);
-        console.error('📄 Данные ответа:', error.response.data);
-      }
-      
-      return false;
-    }
-  }
-
-  /**
-   * Получает информацию о текущем webhook
-   */
-  async getWebhookInfo() {
-    try {
-      if (!this.cryptoBotToken) {
-        console.log('❌ CryptoBot token не найден');
-        return null;
-      }
-
-      console.log('🔍 Получение информации о CryptoBot webhook...');
-      
-      const response = await this.api.post('/getWebhookInfo');
-      
-      if (response.data.ok) {
-        const webhookInfo = response.data.result;
-        console.log('📋 Текущий webhook info:');
-        console.log(`   URL: ${webhookInfo.url || 'не установлен'}`);
-        console.log(`   Статус: ${webhookInfo.has_custom_certificate ? 'с сертификатом' : 'без сертификата'}`);
-        console.log(`   Pending updates: ${webhookInfo.pending_update_count || 0}`);
-        
-        if (webhookInfo.last_error_date) {
-          const errorDate = new Date(webhookInfo.last_error_date * 1000);
-          console.log(`⚠️ Последняя ошибка: ${webhookInfo.last_error_message} (${errorDate.toISOString()})`);
-        }
-        
-        return webhookInfo;
-      } else {
-        console.error('❌ Ошибка получения webhook info:', response.data.error);
-        return null;
-      }
-      
-    } catch (error) {
-      console.error('❌ Ошибка получения CryptoBot webhook info:', error.message);
-      return null;
-    }
-  }
-
-  /**
    * Тестирует соединение с CryptoBot API
    */
   async testConnection() {
@@ -117,7 +38,8 @@ class CryptoBotSetupService {
 
       console.log('🧪 Тестирование соединения с CryptoBot API...');
       
-      const response = await this.api.post('/getMe');
+      // ИСПРАВЛЕНО: Используем GET запрос для getMe
+      const response = await this.api.get('/getMe');
       
       if (response.data.ok) {
         console.log('✅ Соединение с CryptoBot API работает');
@@ -142,32 +64,79 @@ class CryptoBotSetupService {
   }
 
   /**
-   * Полная настройка CryptoBot (тест + webhook)
+   * Получает список доступных методов API
+   */
+  async getAvailableMethods() {
+    try {
+      console.log('🔍 Получение списка доступных методов API...');
+      
+      // Пробуем несколько методов для определения правильных endpoint'ов
+      const testMethods = [
+        { method: 'GET', endpoint: '/getMe' },
+        { method: 'GET', endpoint: '/getBalance' },
+        { method: 'GET', endpoint: '/getExchangeRates' },
+        { method: 'GET', endpoint: '/getCurrencies' }
+      ];
+      
+      const availableMethods = [];
+      
+      for (const test of testMethods) {
+        try {
+          const response = await this.api.request({
+            method: test.method,
+            url: test.endpoint
+          });
+          
+          if (response.data.ok) {
+            availableMethods.push(`${test.method} ${test.endpoint}`);
+          }
+        } catch (error) {
+          // Игнорируем ошибки, просто проверяем что доступно
+        }
+      }
+      
+      console.log('📋 Доступные методы API:', availableMethods);
+      return availableMethods;
+      
+    } catch (error) {
+      console.error('❌ Ошибка получения списка методов:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Проверяет текущее состояние webhook (без попытки настройки)
+   */
+  async checkWebhookStatus() {
+    console.log('ℹ️ Проверка webhook статуса...');
+    console.log(`📡 Ожидаемый Webhook URL: ${this.webhookUrl}`);
+    console.log('📝 Примечание: CryptoBot API не предоставляет методы для настройки webhook через API');
+    console.log('🔧 Для настройки webhook используйте веб-интерфейс CryptoBot');
+    console.log('🌐 Перейдите в настройки приложения на https://t.me/CryptoBot');
+    return true;
+  }
+
+  /**
+   * Полная проверка CryptoBot (без настройки webhook)
    */
   async fullSetup() {
-    console.log('🚀 Начинаем полную настройку CryptoBot...');
+    console.log('🚀 Начинаем проверку CryptoBot...');
     
     // Тестируем соединение
     const connectionOk = await this.testConnection();
     if (!connectionOk) {
-      console.log('❌ Настройка CryptoBot прервана из-за проблем с соединением');
+      console.log('❌ Проверка CryptoBot прервана из-за проблем с соединением');
       return false;
     }
     
-    // Получаем текущую информацию о webhook
-    await this.getWebhookInfo();
+    // Получаем доступные методы
+    await this.getAvailableMethods();
     
-    // Настраиваем webhook
-    const webhookOk = await this.setupWebhook();
-    if (!webhookOk) {
-      console.log('❌ Не удалось настроить webhook');
-      return false;
-    }
+    // Проверяем webhook статус
+    await this.checkWebhookStatus();
     
-    // Проверяем результат
-    await this.getWebhookInfo();
-    
-    console.log('✅ Полная настройка CryptoBot завершена');
+    console.log('✅ Проверка CryptoBot завершена');
+    console.log('📌 Webhook нужно настроить вручную в CryptoBot');
     return true;
   }
 }

@@ -14,6 +14,7 @@ const CrashControls = ({
   hasBet,
   cashedOut,
   userBet,
+  userCashOutMultiplier, // НОВОЕ: получаем множитель вывода
   loading,
   currentMultiplier
 }) => {
@@ -308,10 +309,11 @@ const CrashControls = ({
             </div>
           )}
           
-          {cashedOut && (
+          {/* ИСПРАВЛЕНО: показываем множитель вывода вместо текущего */}
+          {cashedOut && userCashOutMultiplier && (
             <div className="bet-info-row">
               <span>✅ Выведено при:</span>
-              <span className="auto-cashout">{currentMultiplier.toFixed(2)}x</span>
+              <span className="auto-cashout">{userCashOutMultiplier.toFixed(2)}x</span>
             </div>
           )}
         </div>
@@ -322,9 +324,9 @@ const CrashControls = ({
         <div className="state-indicator">
           <span className="state-label">Состояние:</span>
           <span className={`state-value ${gameState}`}>
-            {gameState === 'waiting' && '⏳ Прием ставок (5 сек)'}
-            {gameState === 'flying' && '🚀 Быстрый полет'}
-            {gameState === 'crashed' && '💥 Краш (2 сек до нового)'}
+            {gameState === 'waiting' && '⏳ Прием ставок (1 сек)'}
+            {gameState === 'flying' && '🚀 Сверхбыстрый полет'}
+            {gameState === 'crashed' && '💥 Краш (0.3 сек до нового)'}
           </span>
         </div>
         

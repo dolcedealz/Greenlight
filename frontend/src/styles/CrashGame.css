@@ -8,6 +8,7 @@
     min-height: 100vh;
     padding-bottom: 80px;
     transition: all 0.2s ease;
+    overflow-x: hidden; /* ИСПРАВЛЕНО: предотвращаем горизонтальный скролл */
   }
   
   /* Кнопка под графиком */
@@ -190,13 +191,15 @@
     }
   }
   
-  /* Контейнер информационных панелей - ИЗМЕНЕНО: неравные пропорции */
+  /* Контейнер информационных панелей - ИСПРАВЛЕНО: правильные пропорции */
   .crash-info-panels {
     display: grid;
-    grid-template-columns: 0.7fr 0.6fr; /* ИЗМЕНЕНО: уменьшили ширину панелей */
+    grid-template-columns: 0.55fr 0.45fr; /* ИСПРАВЛЕНО: сумма = 1fr */
     gap: 15px;
     margin-top: 10px;
     animation: panelsSlideIn 0.5s ease;
+    overflow: hidden; /* ИСПРАВЛЕНО: предотвращаем выход за границы */
+    width: 100%; /* ИСПРАВЛЕНО: явно задаем ширину */
   }
   
   @keyframes panelsSlideIn {
@@ -254,6 +257,8 @@
   
   .crash-game .crash-info-panels > * {
     transition: all 0.2s ease;
+    overflow: hidden; /* ИСПРАВЛЕНО: предотвращаем выход за границы */
+    min-width: 0; /* ИСПРАВЛЕНО: позволяем элементам сжиматься */
   }
   
   /* Индикатор активности игры */

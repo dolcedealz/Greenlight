@@ -7,16 +7,196 @@
     background-color: var(--background-color);
     min-height: 100vh;
     padding-bottom: 80px;
+    /* Быстрые переходы для ускоренной игры */
+    transition: all 0.2s ease;
   }
   
+  /* Анимация загрузки всей игры */
+  .crash-game.loading {
+    animation: gameLoadingPulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes gameLoadingPulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.95;
+    }
+  }
+  
+  /* Состояния игры */
+  .crash-game[data-game-state="waiting"] {
+    animation: gameWaitingGlow 2s ease-in-out infinite;
+  }
+  
+  @keyframes gameWaitingGlow {
+    0%, 100% {
+      background-color: var(--background-color);
+    }
+    50% {
+      background-color: rgba(18, 18, 18, 1);
+    }
+  }
+  
+  .crash-game[data-game-state="flying"] {
+    animation: gameFlyingIntensity 1s ease-in-out infinite;
+  }
+  
+  @keyframes gameFlyingIntensity {
+    0%, 100% {
+      background-color: var(--background-color);
+    }
+    50% {
+      background-color: rgba(11, 168, 74, 0.02);
+    }
+  }
+  
+  .crash-game[data-game-state="crashed"] {
+    animation: gameCrashedShake 0.5s ease-in-out;
+  }
+  
+  @keyframes gameCrashedShake {
+    0%, 100% {
+      transform: translateX(0);
+      background-color: var(--background-color);
+    }
+    25% {
+      transform: translateX(-1px);
+      background-color: rgba(255, 59, 48, 0.02);
+    }
+    75% {
+      transform: translateX(1px);
+      background-color: rgba(255, 59, 48, 0.02);
+    }
+  }
+  
+  /* Контейнер информационных панелей */
   .crash-info-panels {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-top: 10px;
+    /* Анимация появления панелей */
+    animation: panelsSlideIn 0.5s ease;
   }
   
-  /* Адаптивность */
+  @keyframes panelsSlideIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Специальные эффекты для высоких множителей */
+  .crash-game.high-multiplier {
+    animation: highMultiplierGameEffect 0.8s ease-in-out infinite;
+  }
+  
+  @keyframes highMultiplierGameEffect {
+    0%, 100% {
+      background-color: var(--background-color);
+      box-shadow: inset 0 0 0 rgba(11, 168, 74, 0);
+    }
+    50% {
+      background-color: rgba(11, 168, 74, 0.03);
+      box-shadow: inset 0 0 50px rgba(11, 168, 74, 0.1);
+    }
+  }
+  
+  .crash-game.legendary-multiplier {
+    animation: legendaryMultiplierGameEffect 0.6s ease-in-out infinite;
+  }
+  
+  @keyframes legendaryMultiplierGameEffect {
+    0%, 100% {
+      background-color: var(--background-color);
+      box-shadow: inset 0 0 0 rgba(11, 168, 74, 0);
+      transform: scale(1);
+    }
+    50% {
+      background-color: rgba(11, 168, 74, 0.05);
+      box-shadow: inset 0 0 100px rgba(11, 168, 74, 0.2);
+      transform: scale(1.001);
+    }
+  }
+  
+  /* Эффекты переходов между состояниями */
+  .crash-game .crash-graph-container {
+    transition: all 0.3s ease;
+  }
+  
+  .crash-game .crash-controls {
+    transition: all 0.2s ease;
+  }
+  
+  .crash-game .crash-info-panels > * {
+    transition: all 0.2s ease;
+  }
+  
+  /* Специальные эффекты для быстрой игры */
+  .crash-game.fast-mode {
+    animation: fastModeIndicator 3s ease-in-out infinite;
+  }
+  
+  @keyframes fastModeIndicator {
+    0%, 100% {
+      border-left: 3px solid transparent;
+    }
+    50% {
+      border-left: 3px solid rgba(11, 168, 74, 0.5);
+    }
+  }
+  
+  /* Индикатор активности игры */
+  .crash-game::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      var(--primary-color) 50%, 
+      transparent 100%);
+    opacity: 0;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+  }
+  
+  .crash-game[data-game-state="flying"]::before {
+    opacity: 1;
+    animation: gameActivityIndicator 1s ease-in-out infinite;
+  }
+  
+  @keyframes gameActivityIndicator {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  /* Оптимизации производительности */
+  .crash-game * {
+    /* Включаем аппаратное ускорение для важных элементов */
+    will-change: auto;
+  }
+  
+  .crash-game .crash-graph-container,
+  .crash-game .main-action-btn,
+  .crash-game .status-dot {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+  }
+  
+  /* Адаптивность для быстрой игры */
   @media (max-width: 768px) {
     .crash-game {
       padding: 10px;
@@ -27,6 +207,17 @@
       grid-template-columns: 1fr;
       gap: 10px;
     }
+    
+    /* Упрощаем анимации на мобильных */
+    .crash-game[data-game-state="waiting"],
+    .crash-game[data-game-state="flying"] {
+      animation-duration: 2s;
+    }
+    
+    .crash-game.high-multiplier,
+    .crash-game.legendary-multiplier {
+      animation: none;
+    }
   }
   
   @media (max-width: 480px) {
@@ -34,4 +225,134 @@
       padding: 8px;
       gap: 12px;
     }
+    
+    .crash-info-panels {
+      gap: 8px;
+    }
+    
+    /* Отключаем тяжелые эффекты на слабых устройствах */
+    .crash-game::before {
+      display: none;
+    }
+    
+    .crash-game[data-game-state="crashed"] {
+      animation: none;
+    }
+  }
+  
+  /* Оптимизация для планшетов */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .crash-game {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .crash-info-panels {
+      gap: 20px;
+    }
+  }
+  
+  /* Большие экраны */
+  @media (min-width: 1024px) {
+    .crash-game {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .crash-info-panels {
+      gap: 25px;
+    }
+  }
+  
+  /* Темы и предпочтения пользователя */
+  @media (prefers-color-scheme: dark) {
+    .crash-game {
+      background-color: #0a0a0a;
+    }
+    
+    .crash-game[data-game-state="waiting"] {
+      background-color: #0a0a0a;
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    .crash-game,
+    .crash-game[data-game-state="waiting"],
+    .crash-game[data-game-state="flying"],
+    .crash-game[data-game-state="crashed"],
+    .crash-game.high-multiplier,
+    .crash-game.legendary-multiplier,
+    .crash-game.fast-mode,
+    .crash-info-panels {
+      animation: none;
+    }
+    
+    .crash-game::before {
+      display: none;
+    }
+    
+    .crash-game * {
+      transition: none;
+      will-change: auto;
+    }
+  }
+  
+  /* Контрастность для пользователей с нарушениями зрения */
+  @media (prefers-contrast: high) {
+    .crash-game {
+      border: 2px solid var(--primary-color);
+    }
+    
+    .crash-info-panels > * {
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+  }
+  
+  /* Дополнительные эффекты для современных браузеров */
+  @supports (backdrop-filter: blur(10px)) {
+    .crash-game[data-game-state="flying"] {
+      backdrop-filter: blur(0.5px);
+    }
+  }
+  
+  @supports (filter: hue-rotate(0deg)) {
+    .crash-game.legendary-multiplier {
+      filter: hue-rotate(0deg);
+      animation: legendaryHueShift 2s ease-in-out infinite;
+    }
+    
+    @keyframes legendaryHueShift {
+      0%, 100% {
+        filter: hue-rotate(0deg);
+      }
+      50% {
+        filter: hue-rotate(5deg);
+      }
+    }
+  }
+  
+  /* Загрузочные состояния */
+  .crash-game.initializing {
+    opacity: 0;
+    animation: gameInitialize 1s ease forwards;
+  }
+  
+  @keyframes gameInitialize {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Финальные оптимизации */
+  .crash-game {
+    /* Оптимизация перерисовки */
+    contain: layout style paint;
+    /* Изоляция стекинга */
+    isolation: isolate;
   }

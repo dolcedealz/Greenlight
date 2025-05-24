@@ -1,8 +1,7 @@
 // backend/src/services/payment.service.js
 const axios = require('axios');
 const crypto = require('crypto');
-const { Deposit } = require('../models');
-const { User } = require('../models');
+const { Deposit, User } = require('../models'); // Исправлен импорт
 
 class PaymentService {
   constructor() {
@@ -226,7 +225,7 @@ class PaymentService {
       await deposit.save();
       
       // Создаем транзакцию для учета
-      const Transaction = require('../models/transaction.model');
+      const { Transaction } = require('../models');
       const transaction = new Transaction({
         user: user._id,
         type: 'deposit',

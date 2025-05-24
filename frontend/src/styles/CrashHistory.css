@@ -22,6 +22,17 @@
     font-weight: 600;
     color: var(--primary-color);
     margin: 0;
+    /* Анимация для заголовка быстрой игры */
+    animation: titlePulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes titlePulse {
+    0%, 100% {
+      color: var(--primary-color);
+    }
+    50% {
+      color: #4ade80;
+    }
   }
   
   .history-count {
@@ -73,7 +84,7 @@
     text-align: center;
   }
   
-  /* Компактный вид */
+  /* Компактный вид - УСКОРЕННЫЙ */
   .history-compact {
     margin-bottom: 20px;
     padding-bottom: 15px;
@@ -82,74 +93,122 @@
   
   .compact-title {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.8);
     margin-bottom: 8px;
+    font-weight: 500;
   }
   
   .compact-list {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     flex-wrap: wrap;
+    animation: compactListUpdate 0.5s ease;
+  }
+  
+  @keyframes compactListUpdate {
+    0% {
+      opacity: 0.8;
+    }
+    100% {
+      opacity: 1;
+    }
   }
   
   .compact-item {
-    padding: 6px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.2s ease;
+    padding: 5px 8px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 700;
+    transition: all 0.3s ease;
     cursor: pointer;
     border: 1px solid transparent;
+    /* Анимация для быстрых обновлений */
+    animation: compactItemAppear 0.4s ease;
+  }
+  
+  @keyframes compactItemAppear {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
   
   .compact-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
   
   .compact-item.very-low {
     background-color: rgba(255, 59, 48, 0.2);
-    border-color: rgba(255, 59, 48, 0.3);
+    border-color: rgba(255, 59, 48, 0.4);
   }
   
   .compact-item.low {
     background-color: rgba(255, 149, 0, 0.2);
-    border-color: rgba(255, 149, 0, 0.3);
+    border-color: rgba(255, 149, 0, 0.4);
   }
   
   .compact-item.medium {
     background-color: rgba(255, 204, 0, 0.2);
-    border-color: rgba(255, 204, 0, 0.3);
+    border-color: rgba(255, 204, 0, 0.4);
   }
   
   .compact-item.high {
     background-color: rgba(52, 199, 89, 0.2);
-    border-color: rgba(52, 199, 89, 0.3);
+    border-color: rgba(52, 199, 89, 0.4);
   }
   
   .compact-item.very-high {
     background-color: rgba(11, 168, 74, 0.2);
-    border-color: rgba(11, 168, 74, 0.3);
+    border-color: rgba(11, 168, 74, 0.4);
+    animation: compactItemHighlight 1s ease-in-out infinite;
   }
   
-  /* Детальный список */
+  @keyframes compactItemHighlight {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(11, 168, 74, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(11, 168, 74, 0.6);
+    }
+  }
+  
+  /* Детальный список - УСКОРЕННЫЙ */
   .history-detailed {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
   
   .history-item {
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
-    padding: 12px;
-    transition: all 0.2s ease;
+    padding: 10px;
+    transition: all 0.3s ease;
     border: 1px solid transparent;
+    /* Анимация появления для быстрой игры */
+    animation: historyItemSlide 0.5s ease;
+  }
+  
+  @keyframes historyItemSlide {
+    0% {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
   
   .history-item:hover {
     background-color: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(3px);
   }
   
   .round-info {
@@ -160,13 +219,13 @@
   }
   
   .round-id {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
   }
   
   .round-time {
-    font-size: 12px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.5);
   }
   
@@ -175,12 +234,23 @@
   }
   
   .crash-multiplier {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
+    transition: all 0.3s ease;
   }
   
   .crash-multiplier.very-low {
     color: #ff3b30;
+    animation: multiplierDanger 1s ease-in-out infinite;
+  }
+  
+  @keyframes multiplierDanger {
+    0%, 100% {
+      text-shadow: 0 0 5px rgba(255, 59, 48, 0.5);
+    }
+    50% {
+      text-shadow: 0 0 10px rgba(255, 59, 48, 0.8);
+    }
   }
   
   .crash-multiplier.low {
@@ -193,10 +263,32 @@
   
   .crash-multiplier.high {
     color: #34c759;
+    animation: multiplierSuccess 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes multiplierSuccess {
+    0%, 100% {
+      text-shadow: 0 0 5px rgba(52, 199, 89, 0.5);
+    }
+    50% {
+      text-shadow: 0 0 15px rgba(52, 199, 89, 0.8);
+    }
   }
   
   .crash-multiplier.very-high {
     color: #0ba84a;
+    animation: multiplierLegendary 1s ease-in-out infinite;
+  }
+  
+  @keyframes multiplierLegendary {
+    0%, 100% {
+      text-shadow: 0 0 10px rgba(11, 168, 74, 0.8);
+      transform: scale(1);
+    }
+    50% {
+      text-shadow: 0 0 20px rgba(11, 168, 74, 1);
+      transform: scale(1.05);
+    }
   }
   
   .round-stats {
@@ -219,7 +311,7 @@
     font-weight: 500;
   }
   
-  /* Статистика по истории */
+  /* Статистика по истории - УЛУЧШЕННАЯ */
   .history-stats {
     padding-top: 12px;
     margin-top: 12px;
@@ -227,35 +319,69 @@
   }
   
   .stats-title {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
     margin-bottom: 8px;
+    font-weight: 500;
   }
   
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
   }
   
   .stat-item {
     background-color: rgba(255, 255, 255, 0.05);
-    padding: 8px 10px;
+    padding: 6px 8px;
     border-radius: 6px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
+    transition: all 0.2s ease;
+  }
+  
+  .stat-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
   }
   
   .stat-item .stat-label {
-    font-size: 11px;
+    font-size: 10px;
     color: rgba(255, 255, 255, 0.6);
   }
   
   .stat-item .stat-value {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: white;
+  }
+  
+  /* НОВЫЙ: Индикатор скорости игры */
+  .speed-info {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: linear-gradient(135deg, rgba(11, 168, 74, 0.1) 0%, rgba(52, 199, 89, 0.1) 100%);
+    border: 1px solid rgba(11, 168, 74, 0.3);
+    border-radius: 6px;
+  }
+  
+  .speed-indicator {
+    font-size: 11px;
+    color: var(--primary-color);
+    text-align: center;
+    font-weight: 500;
+    animation: speedIndicatorPulse 3s ease-in-out infinite;
+  }
+  
+  @keyframes speedIndicatorPulse {
+    0%, 100% {
+      opacity: 0.8;
+    }
+    50% {
+      opacity: 1;
+    }
   }
   
   /* Адаптивность */
@@ -270,21 +396,21 @@
     }
     
     .compact-item {
-      padding: 5px 8px;
-      font-size: 11px;
+      padding: 4px 6px;
+      font-size: 10px;
     }
     
     .history-item {
-      padding: 10px;
+      padding: 8px;
     }
     
     .crash-multiplier {
-      font-size: 18px;
+      font-size: 16px;
     }
     
     .stats-grid {
       grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
+      gap: 5px;
     }
   }
   
@@ -303,11 +429,16 @@
     }
     
     .compact-list {
-      gap: 4px;
+      gap: 3px;
+    }
+    
+    .compact-item {
+      padding: 3px 5px;
+      font-size: 9px;
     }
     
     .history-item {
-      padding: 8px;
+      padding: 6px;
     }
     
     .round-stats {
@@ -316,5 +447,13 @@
     
     .stat {
       font-size: 11px;
+    }
+    
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .speed-indicator {
+      font-size: 10px;
     }
   }

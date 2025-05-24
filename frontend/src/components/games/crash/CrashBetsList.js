@@ -41,56 +41,74 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
     return colors[Math.abs(hash) % colors.length];
   };
   
-  // Генерация тестовых ставок для демонстрации
+  // Генерация тестовых ставок для демонстрации быстрой игры
   const generateMockBets = () => {
     if (activeBets.length === 0 && cashedOutBets.length === 0) {
       return {
         active: [
           {
             id: 1,
-            amount: 10.50,
-            autoCashOut: 2.0,
-            username: 'Player1',
+            amount: 15.50,
+            autoCashOut: 1.8,
+            username: 'SpeedPlayer',
             userId: 'user1',
             isCurrentUser: false
           },
           {
             id: 2,
-            amount: 25.00,
+            amount: 32.00,
             autoCashOut: 0,
-            username: 'CryptoFan',
+            username: 'QuickCash',
             userId: 'user2',
             isCurrentUser: false
           },
           {
             id: 3,
-            amount: 5.25,
-            autoCashOut: 1.5,
-            username: 'Lucky7',
+            amount: 8.25,
+            autoCashOut: 1.3,
+            username: 'FastWin',
             userId: 'user3',
+            isCurrentUser: false
+          },
+          {
+            id: 4,
+            amount: 22.75,
+            autoCashOut: 2.5,
+            username: 'RocketMan',
+            userId: 'user4',
             isCurrentUser: false
           }
         ],
         cashed: [
           {
-            id: 4,
-            amount: 15.00,
-            autoCashOut: 2.5,
-            username: 'WisePlayer',
-            userId: 'user4',
-            isCurrentUser: false,
-            cashOutMultiplier: 2.1,
-            winAmount: 31.50
-          },
-          {
             id: 5,
-            amount: 8.75,
-            autoCashOut: 0,
-            username: 'QuickCash',
+            amount: 18.00,
+            autoCashOut: 2.1,
+            username: 'SmartPlayer',
             userId: 'user5',
             isCurrentUser: false,
-            cashOutMultiplier: 1.8,
-            winAmount: 15.75
+            cashOutMultiplier: 1.9,
+            winAmount: 34.20
+          },
+          {
+            id: 6,
+            amount: 12.50,
+            autoCashOut: 0,
+            username: 'LuckyOne',
+            userId: 'user6',
+            isCurrentUser: false,
+            cashOutMultiplier: 3.4,
+            winAmount: 42.50
+          },
+          {
+            id: 7,
+            amount: 7.25,
+            autoCashOut: 1.5,
+            username: 'FastCash',
+            userId: 'user7',
+            isCurrentUser: false,
+            cashOutMultiplier: 1.5,
+            winAmount: 10.88
           }
         ]
       };
@@ -113,13 +131,13 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
             className={`tab-btn ${activeTab === 'active' ? 'active' : ''}`}
             onClick={() => setActiveTab('active')}
           >
-            Ставки ({mockData.active.length})
+            ⚡ Ставки ({mockData.active.length})
           </button>
           <button 
             className={`tab-btn ${activeTab === 'cashed' ? 'active' : ''}`}
             onClick={() => setActiveTab('cashed')}
           >
-            Выведено ({mockData.cashed.length})
+            💰 Выведено ({mockData.cashed.length})
           </button>
         </div>
       </div>
@@ -162,7 +180,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
                       {bet.autoCashOut > 0 ? (
                         <span className="auto-cashout">@{bet.autoCashOut}x</span>
                       ) : (
-                        <span className="manual">Ручной</span>
+                        <span className="manual">⚡ Ручной</span>
                       )}
                     </div>
                   )}
@@ -170,7 +188,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
                   {activeTab === 'cashed' && bet.cashOutMultiplier && (
                     <div className="cashout-info">
                       <div className="cashout-multiplier">
-                        {bet.cashOutMultiplier.toFixed(2)}x
+                        🚀 {bet.cashOutMultiplier.toFixed(2)}x
                       </div>
                       <div className="win-amount">
                         +{bet.winAmount.toFixed(2)} USDT
@@ -187,11 +205,11 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
       {/* Статистика */}
       <div className="bets-stats">
         <div className="stat-item">
-          <span className="stat-label">Всего ставок:</span>
+          <span className="stat-label">⚡ Всего ставок:</span>
           <span className="stat-value">{mockData.active.length + mockData.cashed.length}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-label">Общая сумма:</span>
+          <span className="stat-label">💰 Общая сумма:</span>
           <span className="stat-value">
             {(mockData.active.reduce((sum, bet) => sum + bet.amount, 0) + 
               mockData.cashed.reduce((sum, bet) => sum + bet.amount, 0)).toFixed(2)} USDT
@@ -204,9 +222,9 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
         <div className="status-indicator">
           <span className="status-dot" data-state={gameState}></span>
           <span className="status-text">
-            {gameState === 'waiting' && 'Прием ставок'}
-            {gameState === 'flying' && 'Игра идет'}
-            {gameState === 'crashed' && 'Раунд завершен'}
+            {gameState === 'waiting' && '⏳ Прием ставок (5 сек)'}
+            {gameState === 'flying' && '🚀 Быстрый полет'}
+            {gameState === 'crashed' && '💥 Краш (новый через 2 сек)'}
           </span>
         </div>
       </div>

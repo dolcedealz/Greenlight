@@ -109,10 +109,10 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.font = '12px Arial';
       ctx.textAlign = 'center';
       
-      // Подписи по оси X (время) - ОБНОВЛЕНО для сверхбыстрой игры
+      // Подписи по оси X (время)
       for (let i = 0; i <= 5; i++) {
         const x = padding + (i * width / 5);
-        const time = i * 0.2; // секунды (сократили с 1 до 0.2)
+        const time = i * 0.2; // секунды
         ctx.fillText(`${time.toFixed(1)}s`, x, padding + height + 20);
       }
       
@@ -125,7 +125,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       }
     };
     
-    // Состояние ожидания с обратным отсчетом (ОБНОВЛЕНО для 1 секунды)
+    // Состояние ожидания с обратным отсчетом
     const drawWaitingState = (ctx, width, height, timeToStart) => {
       // Очищаем точки при переходе в состояние ожидания
       pointsRef.current = [];
@@ -154,7 +154,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.lineWidth = 4;
       ctx.stroke();
       
-      // Прогресс круга (1 секунда = полный круг)
+      // Прогресс круга
       if (timeToStart > 0 && timeToStart <= 1) {
         const progress = (1 - timeToStart) / 1;
         ctx.beginPath();
@@ -194,13 +194,13 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
     };
     
-    // Состояние полета (УСКОРЕННОЕ В 7 РАЗ)
+    // Состояние полета
     const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
       const now = Date.now();
       
-      // Добавляем текущую точку с намного большей частотой
-      const timeElapsed = pointsRef.current.length * 0.007; // 7ms между точками (было 50ms)
-      const x = padding + Math.min(timeElapsed * 280, width - 10); // 280 пикселей в секунду (было 40)
+      // Добавляем текущую точку с высокой частотой
+      const timeElapsed = pointsRef.current.length * 0.007; // 7ms между точками
+      const x = padding + Math.min(timeElapsed * 280, width - 10); // 280 пикселей в секунду
       const y = padding + height - ((currentMultiplier - 1) * height / 10); // До 10x помещается на график
       
       const point = {
@@ -213,10 +213,10 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       pointsRef.current.push(point);
       
       // Ограничиваем количество точек
-      if (pointsRef.current.length > 1400) { // Увеличили с 800 до 1400
+      if (pointsRef.current.length > 1400) {
         pointsRef.current.shift();
-        // Сдвигаем все точки влево намного быстрее
-        pointsRef.current.forEach(p => p.x -= 12); // Увеличили с 6 до 12
+        // Сдвигаем все точки влево
+        pointsRef.current.forEach(p => p.x -= 12);
       }
       
       // Рисуем линию графика
@@ -283,8 +283,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
       
       // Эффект мерцания при высоких множителях
-      if (currentMultiplier > 2) { // Уменьшили порог с 3 до 2
-        const glowIntensity = Math.min((currentMultiplier - 2) / 5, 1); // Скорректировали формулу
+      if (currentMultiplier > 2) {
+        const glowIntensity = Math.min((currentMultiplier - 2) / 5, 1);
         ctx.shadowColor = '#0ba84a';
         ctx.shadowBlur = 20 * glowIntensity;
         ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
@@ -331,9 +331,9 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
         ctx.fill();
       }
       
-      // Анимация взрыва - УСКОРЕННАЯ В 7 РАЗ
+      // Анимация взрыва
       const time = Date.now() / 1000;
-      const explosionRadius = Math.sin(time * 105) * 25 + 60; // Ускорили анимацию в 7 раз
+      const explosionRadius = Math.sin(time * 105) * 25 + 60;
       
       // Красный взрыв в центре
       const explosionGradient = ctx.createRadialGradient(

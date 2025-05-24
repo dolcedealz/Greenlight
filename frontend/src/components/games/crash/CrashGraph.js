@@ -109,10 +109,10 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.font = '12px Arial';
       ctx.textAlign = 'center';
       
-      // Подписи по оси X (время)
+      // Подписи по оси X (время) - ОБНОВЛЕНО для быстрой игры
       for (let i = 0; i <= 5; i++) {
         const x = padding + (i * width / 5);
-        const time = i * 2; // секунды
+        const time = i * 1; // секунды (сократили с 2 до 1)
         ctx.fillText(`${time}s`, x, padding + height + 20);
       }
       
@@ -125,7 +125,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       }
     };
     
-    // Состояние ожидания с обратным отсчетом
+    // Состояние ожидания с обратным отсчетом (ОБНОВЛЕНО для 5 секунд)
     const drawWaitingState = (ctx, width, height, timeToStart) => {
       // Очищаем точки при переходе в состояние ожидания
       pointsRef.current = [];
@@ -154,9 +154,9 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.lineWidth = 4;
       ctx.stroke();
       
-      // Прогресс круга (7 секунд = полный круг)
-      if (timeToStart > 0 && timeToStart <= 7) {
-        const progress = (7 - timeToStart) / 7;
+      // Прогресс круга (5 секунд = полный круг, вместо 7)
+      if (timeToStart > 0 && timeToStart <= 5) {
+        const progress = (5 - timeToStart) / 5;
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius - 2, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * progress));
         ctx.strokeStyle = '#0ba84a';
@@ -194,13 +194,13 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
     };
     
-    // Состояние полета
+    // Состояние полета (УСКОРЕННОЕ)
     const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
       const now = Date.now();
       
-      // Добавляем текущую точку
-      const timeElapsed = pointsRef.current.length * 0.1; // 100ms между точками
-      const x = padding + Math.min(timeElapsed * 20, width - 10); // 20 пикселей в секунду
+      // Добавляем текущую точку с большей частотой
+      const timeElapsed = pointsRef.current.length * 0.05; // 50ms между точками (вместо 100ms)
+      const x = padding + Math.min(timeElapsed * 40, width - 10); // 40 пикселей в секунду (вместо 20)
       const y = padding + height - ((currentMultiplier - 1) * height / 10); // До 10x помещается на график
       
       const point = {
@@ -213,10 +213,10 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       pointsRef.current.push(point);
       
       // Ограничиваем количество точек
-      if (pointsRef.current.length > 500) {
+      if (pointsRef.current.length > 800) { // Увеличили с 500 до 800
         pointsRef.current.shift();
-        // Сдвигаем все точки влево
-        pointsRef.current.forEach(p => p.x -= 4);
+        // Сдвигаем все точки влево быстрее
+        pointsRef.current.forEach(p => p.x -= 6); // Увеличили с 4 до 6
       }
       
       // Рисуем линию графика
@@ -283,8 +283,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
       
       // Эффект мерцания при высоких множителях
-      if (currentMultiplier > 5) {
-        const glowIntensity = Math.min((currentMultiplier - 5) / 10, 1);
+      if (currentMultiplier > 3) { // Уменьшили порог с 5 до 3
+        const glowIntensity = Math.min((currentMultiplier - 3) / 7, 1); // Скорректировали формулу
         ctx.shadowColor = '#0ba84a';
         ctx.shadowBlur = 20 * glowIntensity;
         ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
@@ -331,9 +331,9 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
         ctx.fill();
       }
       
-      // Анимация взрыва
+      // Анимация взрыва - УСКОРЕННАЯ
       const time = Date.now() / 1000;
-      const explosionRadius = Math.sin(time * 10) * 20 + 50;
+      const explosionRadius = Math.sin(time * 15) * 25 + 60; // Ускорили анимацию
       
       // Красный взрыв в центре
       const explosionGradient = ctx.createRadialGradient(
@@ -366,7 +366,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
     
     draw();
     
-    // Анимация для состояния полета или краха
+    // Анимация для состояния полета или краха с высокой частотой
     if (gameState === 'flying' || gameState === 'crashed') {
       animationRef.current = requestAnimationFrame(() => {
         draw();

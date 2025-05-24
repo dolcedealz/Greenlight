@@ -83,7 +83,7 @@ const CrashGame = ({
     }
   }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, setBalance, setError]);
   
-  // ИСПРАВЛЕНИЕ 3: Ручной кешаут НЕ останавливает игру для всех
+  // ИСПРАВЛЕНО: Кешаут НЕ влияет на игру других игроков
   const cashOut = useCallback(async () => {
     if (gameState !== 'flying' || !hasBet || cashedOut || loading || isCrashedRef.current) {
       return;
@@ -120,8 +120,10 @@ const CrashGame = ({
       
       setLoading(false);
       
-      // ВАЖНО: НЕ останавливаем игру! Игра продолжается для других игроков
-      // Убрали логику, которая останавливала multiplierTimerRef
+      // КРИТИЧЕСКИ ВАЖНО: НЕ останавливаем multiplierTimerRef!
+      // НЕ меняем gameState!
+      // НЕ сбрасываем currentMultiplier!
+      // Игра продолжается для других игроков!
       
     } catch (err) {
       console.error('Ошибка кешаута:', err);
@@ -174,7 +176,7 @@ const CrashGame = ({
     setGameState('flying');
     startTimeRef.current = Date.now();
     
-    // Очищаем списки ставок
+    // Очищаем списки ставок (НО НЕ при кешауте!)
     setActiveBets([]);
     setCashedOutBets([]);
     
@@ -238,6 +240,7 @@ const CrashGame = ({
           }, 1000);
         }, 3000);
       } else {
+        // ВАЖНО: Обновляем множитель НЕЗАВИСИМО от кешаута пользователя
         setCurrentMultiplier(newMultiplier);
       }
     }, 100);
@@ -339,6 +342,7 @@ const CrashGame = ({
         crashPoint={crashPoint}
         timeToStart={timeToStart}
         roundId={roundIdRef.current}
+        userCashedOut={cashedOut}
       />
       
       {/* Главная кнопка действия */}

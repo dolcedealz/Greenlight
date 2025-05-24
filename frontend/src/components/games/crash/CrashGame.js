@@ -83,7 +83,7 @@ const CrashGame = ({
     }
   }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, setBalance, setError]);
   
-  // ИСПРАВЛЕНО: Кешаут НЕ влияет на игру других игроков
+  // ИСПРАВЛЕНО: Кешаут НЕ влияет на игру - только меняет статус пользователя
   const cashOut = useCallback(async () => {
     if (gameState !== 'flying' || !hasBet || cashedOut || loading || isCrashedRef.current) {
       return;
@@ -120,10 +120,13 @@ const CrashGame = ({
       
       setLoading(false);
       
-      // КРИТИЧЕСКИ ВАЖНО: НЕ останавливаем multiplierTimerRef!
-      // НЕ меняем gameState!
-      // НЕ сбрасываем currentMultiplier!
-      // Игра продолжается для других игроков!
+      console.log('Пользователь вывел ставку, но игра продолжается для других');
+      
+      // КРИТИЧЕСКИ ВАЖНО: НЕ ТРОГАЕМ НИКАКИЕ ИГРОВЫЕ ТАЙМЕРЫ И СОСТОЯНИЯ!
+      // multiplierTimerRef продолжает работать
+      // gameState остается 'flying'  
+      // currentMultiplier продолжает расти
+      // График продолжает лететь
       
     } catch (err) {
       console.error('Ошибка кешаута:', err);
@@ -140,6 +143,7 @@ const CrashGame = ({
         !isCrashedRef.current &&
         userBet?.autoCashOut > 0 && 
         currentMultiplier >= userBet.autoCashOut) {
+      console.log('Автоматический кешаут при', currentMultiplier);
       cashOut();
     }
   }, [gameState, hasBet, cashedOut, userBet, currentMultiplier, cashOut]);
@@ -158,7 +162,7 @@ const CrashGame = ({
   
   // Запуск нового раунда
   const startNewRound = useCallback(() => {
-    console.log('Запуск нового раунда');
+    console.log('=== ЗАПУСК НОВОГО РАУНДА ===');
     
     // Очищаем все таймеры
     clearAllTimers();
@@ -170,13 +174,14 @@ const CrashGame = ({
     // Генерируем новый краш-поинт
     const newCrashPoint = generateCrashPoint();
     setCrashPoint(newCrashPoint);
+    console.log('Новый краш-поинт:', newCrashPoint);
     
-    // Сбрасываем состояние
+    // ВАЖНО: Сбрасываем состояние ТОЛЬКО для нового раунда
     setCurrentMultiplier(1.00);
     setGameState('flying');
     startTimeRef.current = Date.now();
     
-    // Очищаем списки ставок (НО НЕ при кешауте!)
+    // Очищаем списки ставок для нового раунда
     setActiveBets([]);
     setCashedOutBets([]);
     
@@ -192,6 +197,7 @@ const CrashGame = ({
       
       if (newMultiplier >= newCrashPoint) {
         // КРАШ! Останавливаем все
+        console.log('=== КРАШ при', newCrashPoint, '===');
         isCrashedRef.current = true;
         clearInterval(multiplierTimerRef.current);
         multiplierTimerRef.current = null;
@@ -219,6 +225,7 @@ const CrashGame = ({
         
         // Через 3 секунды запускаем новый таймер ожидания
         setTimeout(() => {
+          console.log('Переходим в режим ожидания следующего раунда');
           setGameState('waiting');
           setTimeToStart(7);
           setHasBet(false);
@@ -240,7 +247,7 @@ const CrashGame = ({
           }, 1000);
         }, 3000);
       } else {
-        // ВАЖНО: Обновляем множитель НЕЗАВИСИМО от кешаута пользователя
+        // ВАЖНО: Обновляем множитель НЕЗАВИСИМО от действий пользователя
         setCurrentMultiplier(newMultiplier);
       }
     }, 100);

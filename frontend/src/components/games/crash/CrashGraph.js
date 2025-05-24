@@ -7,8 +7,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
   const animationRef = useRef(null);
   const pointsRef = useRef([]);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const lastGameStateRef = useRef(gameState);
   const lastRoundIdRef = useRef(roundId);
+  const gameStartTimeRef = useRef(null);
   
   // Обновление размеров canvas
   useEffect(() => {
@@ -29,27 +29,29 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
     return () => window.removeEventListener('resize', updateSize);
   }, []);
   
-  // ИСПРАВЛЕНО: Очистка точек ТОЛЬКО при смене раунда, НЕ при кешауте пользователя
+  // ИСПРАВЛЕНО: Очистка точек только при смене раунда
   useEffect(() => {
-    // Очищаем точки только при реальной смене раунда или переходе в ожидание НОВОГО раунда
     const isNewRound = roundId !== lastRoundIdRef.current;
-    const isWaitingNewRound = gameState === 'waiting' && lastGameStateRef.current === 'crashed';
     
-    if (isNewRound || isWaitingNewRound) {
-      console.log('Очищаем точки графика для нового раунда', { 
-        isNewRound, 
-        isWaitingNewRound, 
-        currentRound: roundId, 
-        lastRound: lastRoundIdRef.current,
-        gameState,
-        lastGameState: lastGameStateRef.current
-      });
+    if (isNewRound) {
+      console.log('Новый раунд, очищаем график', { newRound: roundId, oldRound: lastRoundIdRef.current });
       pointsRef.current = [];
+      gameStartTimeRef.current = null;
       lastRoundIdRef.current = roundId;
     }
+  }, [roundId]);
+  
+  // Запоминаем время начала полета
+  useEffect(() => {
+    if (gameState === 'flying' && gameStartTimeRef.current === null) {
+      gameStartTimeRef.current = Date.now();
+      console.log('Начался полет, запоминаем время старта');
+    }
     
-    lastGameStateRef.current = gameState;
-  }, [gameState, roundId]);
+    if (gameState === 'waiting') {
+      gameStartTimeRef.current = null;
+    }
+  }, [gameState]);
   
   // Остановка анимации при смене состояния на не-flying
   useEffect(() => {
@@ -223,62 +225,58 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
       ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
     };
     
-    // ИСПРАВЛЕНО: Состояние полета - график НЕ сбрасывается при кешауте пользователя
+    // ИСПРАВЛЕНО: График продолжается независимо от кешаута пользователя
     const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
-      // Добавляем новую точку ВСЕГДА при активной игре, независимо от кешаута пользователя
-      const timeElapsed = pointsRef.current.length * 0.01;
-      
-      // График ускоряется с увеличением коэффициента
-      const accelerationFactor = 1 + (currentMultiplier - 1) * 0.2;
-      const baseXProgress = Math.sqrt(timeElapsed * 2);
-      const xProgress = baseXProgress * accelerationFactor;
-      const x = padding + Math.min(xProgress * 30, width - 20);
-      
-      // Y координата: ограничиваем рост после 6x
-      let yProgress;
-      if (currentMultiplier <= 6) {
-        yProgress = Math.log(currentMultiplier) / Math.log(6);
-      } else {
-        const baseProgress = 1;
-        const additionalProgress = Math.log(currentMultiplier - 5) / Math.log(20);
-        yProgress = baseProgress + additionalProgress * 0.3;
-      }
-      
-      yProgress = Math.min(yProgress, 1.4);
-      const y = padding + height - (yProgress * height * 0.7);
-      
-      const point = {
-        x: Math.max(padding, Math.min(x, padding + width - 10)),
-        y: Math.max(padding + 10, Math.min(y, padding + height - 10)),
-        multiplier: currentMultiplier,
-        time: Date.now()
-      };
-      
-      pointsRef.current.push(point);
-      
-      // Ограничиваем количество точек для производительности
-      if (pointsRef.current.length > 1500) {
-        pointsRef.current = pointsRef.current.slice(-1000);
+      // ВАЖНО: Добавляем точку независимо от статуса пользователя
+      if (gameStartTimeRef.current) {
+        const realTimeElapsed = (Date.now() - gameStartTimeRef.current) / 1000;
+        
+        // Вычисляем координаты на основе реального времени
+        const accelerationFactor = 1 + (currentMultiplier - 1) * 0.2;
+        const baseXProgress = Math.sqrt(realTimeElapsed * 2);
+        const xProgress = baseXProgress * accelerationFactor;
+        const x = padding + Math.min(xProgress * 30, width - 20);
+        
+        // Y координата: ограничиваем рост после 6x
+        let yProgress;
+        if (currentMultiplier <= 6) {
+          yProgress = Math.log(currentMultiplier) / Math.log(6);
+        } else {
+          const baseProgress = 1;
+          const additionalProgress = Math.log(currentMultiplier - 5) / Math.log(20);
+          yProgress = baseProgress + additionalProgress * 0.3;
+        }
+        
+        yProgress = Math.min(yProgress, 1.4);
+        const y = padding + height - (yProgress * height * 0.7);
+        
+        const point = {
+          x: Math.max(padding, Math.min(x, padding + width - 10)),
+          y: Math.max(padding + 10, Math.min(y, padding + height - 10)),
+          multiplier: currentMultiplier,
+          time: Date.now()
+        };
+        
+        pointsRef.current.push(point);
+        
+        // Ограничиваем количество точек для производительности
+        if (pointsRef.current.length > 1500) {
+          pointsRef.current = pointsRef.current.slice(-1000);
+        }
       }
       
       // Рисуем линию графика
       if (pointsRef.current.length > 1) {
-        // Цвет линии зависит от того, вывел ли пользователь ставку
+        // График ВСЕГДА остается ярким - кешаут не влияет на цвет
         const lineGradient = ctx.createLinearGradient(
           pointsRef.current[0].x, 
           pointsRef.current[0].y,
-          point.x, 
-          point.y
+          pointsRef.current[pointsRef.current.length - 1].x, 
+          pointsRef.current[pointsRef.current.length - 1].y
         );
         
-        // Если пользователь вывел ставку, делаем график более бледным для него
-        if (userCashedOut) {
-          lineGradient.addColorStop(0, 'rgba(11, 168, 74, 0.6)');
-          lineGradient.addColorStop(1, 'rgba(74, 222, 128, 0.6)');
-        } else {
-          lineGradient.addColorStop(0, '#0ba84a');
-          lineGradient.addColorStop(1, '#4ade80');
-        }
+        lineGradient.addColorStop(0, '#0ba84a');
+        lineGradient.addColorStop(1, '#4ade80');
         
         ctx.strokeStyle = lineGradient;
         ctx.lineWidth = 4;
@@ -310,13 +308,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
         
         // Заливка под линией
         const fillGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
-        if (userCashedOut) {
-          fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.15)');
-          fillGradient.addColorStop(1, 'rgba(11, 168, 74, 0.02)');
-        } else {
-          fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.3)');
-          fillGradient.addColorStop(1, 'rgba(11, 168, 74, 0.05)');
-        }
+        fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.3)');
+        fillGradient.addColorStop(1, 'rgba(11, 168, 74, 0.05)');
         
         ctx.fillStyle = fillGradient;
         ctx.beginPath();
@@ -345,17 +338,18 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
         ctx.fill();
         
         // Точка на конце линии
+        const lastPoint = pointsRef.current[pointsRef.current.length - 1];
         ctx.beginPath();
-        ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+        ctx.arc(lastPoint.x, lastPoint.y, 6, 0, 2 * Math.PI);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
-        ctx.strokeStyle = userCashedOut ? 'rgba(11, 168, 74, 0.6)' : '#0ba84a';
+        ctx.strokeStyle = '#0ba84a';
         ctx.lineWidth = 3;
         ctx.stroke();
       }
       
       // Текущий множитель
-      ctx.fillStyle = userCashedOut ? 'rgba(255, 255, 255, 0.7)' : '#ffffff';
+      ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 64px Arial';
       ctx.textAlign = 'center';
       ctx.strokeStyle = '#000000';
@@ -363,8 +357,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
       ctx.strokeText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
       ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
       
-      // Эффект мерцания при высоких множителях (только если пользователь не вывел ставку)
-      if (currentMultiplier > 2 && !userCashedOut) {
+      // Эффект мерцания при высоких множителях
+      if (currentMultiplier > 2) {
         const glowIntensity = Math.min((currentMultiplier - 2) / 5, 1);
         ctx.shadowColor = '#0ba84a';
         ctx.shadowBlur = 20 * glowIntensity;

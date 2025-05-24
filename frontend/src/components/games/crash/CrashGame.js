@@ -1,468 +1,353 @@
-// frontend/src/components/games/crash/CrashGraph.js
-import React, { useRef, useEffect, useState } from 'react';
-import '../../../styles/CrashGraph.css';
+// frontend/src/components/games/crash/CrashGame.js
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import CrashGraph from './CrashGraph';
+import CrashControls from './CrashControls';
+import CrashBetsList from './CrashBetsList';
+import CrashHistory from './CrashHistory';
+import { gameApi } from '../../../services';
+import '../../../styles/CrashGame.css';
 
-const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
-  const canvasRef = useRef(null);
-  const animationRef = useRef(null);
-  const pointsRef = useRef([]);
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+const CrashGame = ({ 
+  balance, 
+  setBalance, 
+  gameStats, 
+  setGameResult, 
+  setError 
+}) => {
+  // Состояние игры
+  const [gameState, setGameState] = useState('waiting'); // waiting, flying, crashed
+  const [currentMultiplier, setCurrentMultiplier] = useState(1.00);
+  const [timeToStart, setTimeToStart] = useState(7);
+  const [crashPoint, setCrashPoint] = useState(0);
+  const [loading, setLoading] = useState(false);
   
-  // Обновление размеров canvas
-  useEffect(() => {
-    const updateSize = () => {
-      const container = canvasRef.current?.parentElement;
-      if (container) {
-        const rect = container.getBoundingClientRect();
-        setCanvasSize({
-          width: Math.max(rect.width, 300),
-          height: Math.max(rect.height, 250)
-        });
-      }
-    };
-    
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    
-    return () => window.removeEventListener('resize', updateSize);
+  // Состояние ставки пользователя
+  const [betAmount, setBetAmount] = useState(10);
+  const [autoCashOut, setAutoCashOut] = useState(2.0);
+  const [hasBet, setHasBet] = useState(false);
+  const [cashedOut, setCashedOut] = useState(false);
+  const [userBet, setUserBet] = useState(null);
+  const [userCashOutMultiplier, setUserCashOutMultiplier] = useState(0);
+  
+  // Ставки других игроков (мок данные)
+  const [activeBets, setActiveBets] = useState([]);
+  const [cashedOutBets, setCashedOutBets] = useState([]);
+  const [history, setHistory] = useState([]);
+  
+  // Рефы для таймеров
+  const gameTimerRef = useRef(null);
+  const multiplierTimerRef = useRef(null);
+  const startTimeRef = useRef(null);
+  
+  // Генерация краш-поинта (реальная логика должна быть на сервере)
+  const generateCrashPoint = useCallback(() => {
+    // Простая формула для демо (на продакшене должно быть на сервере)
+    const random = Math.random();
+    if (random < 0.33) return 1.0 + Math.random() * 0.5; // 1.0-1.5x (33%)
+    if (random < 0.66) return 1.5 + Math.random() * 1.5; // 1.5-3.0x (33%)
+    return 3.0 + Math.random() * 7.0; // 3.0-10.0x (34%)
   }, []);
   
-  // Основная функция рисования
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || canvasSize.width === 0) return;
-    
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvasSize.width;
-    canvas.height = canvasSize.height;
-    
-    const draw = () => {
-      // Очищаем canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Настройки графика
-      const padding = 40;
-      const graphWidth = canvas.width - padding * 2;
-      const graphHeight = canvas.height - padding * 2;
-      
-      // Фон градиент
-      const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      bgGradient.addColorStop(0, '#0a0a0a');
-      bgGradient.addColorStop(1, '#1a1a1a');
-      ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Рисуем в зависимости от состояния игры
-      if (gameState === 'waiting') {
-        drawWaitingState(ctx, canvas.width, canvas.height, timeToStart);
-      } else if (gameState === 'flying') {
-        drawGrid(ctx, padding, graphWidth, graphHeight);
-        drawFlyingState(ctx, padding, graphWidth, graphHeight, multiplier);
-      } else if (gameState === 'crashed') {
-        drawGrid(ctx, padding, graphWidth, graphHeight);
-        drawCrashedState(ctx, padding, graphWidth, graphHeight, crashPoint);
-      }
-    };
-    
-    // Функция отрисовки сетки
-    const drawGrid = (ctx, padding, width, height) => {
-      ctx.strokeStyle = '#333333';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([]);
-      
-      // Вертикальные линии
-      for (let i = 0; i <= 10; i++) {
-        const x = padding + (i * width / 10);
-        ctx.beginPath();
-        ctx.moveTo(x, padding);
-        ctx.lineTo(x, padding + height);
-        ctx.stroke();
-      }
-      
-      // Горизонтальные линии
-      for (let i = 0; i <= 8; i++) {
-        const y = padding + (i * height / 8);
-        ctx.beginPath();
-        ctx.moveTo(padding, y);
-        ctx.lineTo(padding + width, y);
-        ctx.stroke();
-      }
-      
-      // Оси
-      ctx.strokeStyle = '#555555';
-      ctx.lineWidth = 2;
-      
-      // Ось X
-      ctx.beginPath();
-      ctx.moveTo(padding, padding + height);
-      ctx.lineTo(padding + width, padding + height);
-      ctx.stroke();
-      
-      // Ось Y
-      ctx.beginPath();
-      ctx.moveTo(padding, padding);
-      ctx.lineTo(padding, padding + height);
-      ctx.stroke();
-      
-      // Подписи осей
-      ctx.fillStyle = '#888888';
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'center';
-      
-      // Подписи по оси X (время)
-      for (let i = 0; i <= 5; i++) {
-        const x = padding + (i * width / 5);
-        const time = i * 0.2; // секунды
-        ctx.fillText(`${time.toFixed(1)}s`, x, padding + height + 20);
-      }
-      
-      // Подписи по оси Y (множитель)
-      ctx.textAlign = 'right';
-      for (let i = 0; i <= 4; i++) {
-        const y = padding + height - (i * height / 4);
-        const mult = 1 + i * 2; // множители 1x, 3x, 5x, 7x, 9x
-        ctx.fillText(`${mult}x`, padding - 10, y + 4);
-      }
-    };
-    
-    // Состояние ожидания с обратным отсчетом
-    const drawWaitingState = (ctx, width, height, timeToStart) => {
-      // Очищаем точки при переходе в состояние ожидания
-      pointsRef.current = [];
-      
-      // Фон градиент для ожидания
-      const waitingGradient = ctx.createRadialGradient(
-        width / 2, height / 2, 0,
-        width / 2, height / 2, Math.min(width, height) / 2
-      );
-      waitingGradient.addColorStop(0, 'rgba(11, 168, 74, 0.1)');
-      waitingGradient.addColorStop(1, 'rgba(11, 168, 74, 0.02)');
-      ctx.fillStyle = waitingGradient;
-      ctx.fillRect(0, 0, width, height);
-      
-      // Круг обратного отсчета
-      const centerX = width / 2;
-      const centerY = height / 2;
-      const radius = 80;
-      
-      // Фон круга
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fill();
-      ctx.strokeStyle = '#0ba84a';
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      
-      // Прогресс круга
-      if (timeToStart > 0 && timeToStart <= 7) {
-        const progress = (7 - timeToStart) / 7;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius - 2, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * progress));
-        ctx.strokeStyle = '#0ba84a';
-        ctx.lineWidth = 6;
-        ctx.stroke();
-      }
-      
-      // Основной текст
-      ctx.fillStyle = '#0ba84a';
-      ctx.font = 'bold 32px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('СТАВКИ', centerX, centerY - 15);
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 24px Arial';
-      ctx.fillText('ПРИНИМАЮТСЯ', centerX, centerY + 15);
-      
-      // Таймер
-      if (timeToStart > 0) {
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 48px Arial';
-        ctx.textAlign = 'center';
-        
-        // Тень для цифры
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 3;
-        ctx.strokeText(`${timeToStart}`, centerX, centerY + 80);
-        
-        ctx.fillText(`${timeToStart}`, centerX, centerY + 80);
-      }
-      
-      // Дополнительный текст
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.font = '16px Arial';
-      ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
-    };
-    
-    // Состояние полета - ИСПРАВЛЕННЫЙ алгоритм для предотвращения вертикального роста
-    const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
-      const now = Date.now();
-      
-      // ИСПРАВЛЕНО: Новый алгоритм для плавной кривой без вертикального роста
-      const timeElapsed = pointsRef.current.length * 0.01; // 10ms между точками
-      
-      // X координата: более плавная прогрессия по времени
-      const xProgress = Math.sqrt(timeElapsed * 2 + (currentMultiplier - 1) * 0.5);
-      const x = padding + Math.min(xProgress * 30, width - 20);
-      
-      // Y координата: ИСПРАВЛЕНО - ограничиваем рост после 6x
-      let yProgress;
-      if (currentMultiplier <= 6) {
-        // До 6x используем логарифмический рост
-        yProgress = Math.log(currentMultiplier) / Math.log(6); // логарифм к 6
-      } else {
-        // После 6x используем более медленный рост
-        const baseProgress = 1; // 100% для 6x
-        const additionalProgress = Math.log(currentMultiplier - 5) / Math.log(20); // медленный рост
-        yProgress = baseProgress + additionalProgress * 0.3; // максимум +30% высоты
-      }
-      
-      // Ограничиваем Y в пределах 90% высоты графика
-      yProgress = Math.min(yProgress, 1.4);
-      const y = padding + height - (yProgress * height * 0.7); // используем 70% высоты
-      
-      const point = {
-        x: Math.max(padding, Math.min(x, padding + width - 10)),
-        y: Math.max(padding + 10, Math.min(y, padding + height - 10)),
-        multiplier: currentMultiplier,
-        time: now
-      };
-      
-      pointsRef.current.push(point);
-      
-      // Ограничиваем количество точек
-      if (pointsRef.current.length > 1500) {
-        pointsRef.current = pointsRef.current.slice(-1000);
-      }
-      
-      // Рисуем линию графика
-      if (pointsRef.current.length > 1) {
-        // Градиент для линии
-        const lineGradient = ctx.createLinearGradient(
-          pointsRef.current[0].x, 
-          pointsRef.current[0].y,
-          point.x, 
-          point.y
-        );
-        lineGradient.addColorStop(0, '#0ba84a');
-        lineGradient.addColorStop(1, '#4ade80');
-        
-        ctx.strokeStyle = lineGradient;
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.setLineDash([]);
-        
-        // Рисуем плавную кривую
-        ctx.beginPath();
-        ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
-        
-        // Используем bezierCurveTo для очень плавной линии
-        for (let i = 1; i < pointsRef.current.length - 1; i++) {
-          const current = pointsRef.current[i];
-          const next = pointsRef.current[i + 1];
-          
-          if (next) {
-            const controlX1 = current.x + (next.x - current.x) * 0.3;
-            const controlY1 = current.y;
-            const controlX2 = current.x + (next.x - current.x) * 0.7;
-            const controlY2 = next.y;
-            
-            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, next.x, next.y);
-          } else {
-            ctx.lineTo(current.x, current.y);
-          }
-        }
-        
-        ctx.stroke();
-        
-        // Заливка под линией
-        const fillGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
-        fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.3)');
-        fillGradient.addColorStop(1, 'rgba(11, 168, 74, 0.05)');
-        
-        ctx.fillStyle = fillGradient;
-        ctx.beginPath();
-        ctx.moveTo(padding, padding + height);
-        
-        // Повторяем кривую для заливки
-        pointsRef.current.forEach((point, i) => {
-          if (i === 0) {
-            ctx.lineTo(point.x, point.y);
-          } else {
-            const prev = pointsRef.current[i - 1];
-            const controlX1 = prev.x + (point.x - prev.x) * 0.3;
-            const controlY1 = prev.y;
-            const controlX2 = prev.x + (point.x - prev.x) * 0.7;
-            const controlY2 = point.y;
-            
-            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, point.x, point.y);
-          }
-        });
-        
-        if (pointsRef.current.length > 0) {
-          const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-          ctx.lineTo(lastPoint.x, padding + height);
-        }
-        
-        ctx.closePath();
-        ctx.fill();
-        
-        // Точка на конце линии
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.strokeStyle = '#0ba84a';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
-      
-      // Текущий множитель
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 64px Arial';
-      ctx.textAlign = 'center';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
-      ctx.strokeText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
-      ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
-      
-      // Эффект мерцания при высоких множителях
-      if (currentMultiplier > 2) {
-        const glowIntensity = Math.min((currentMultiplier - 2) / 5, 1);
-        ctx.shadowColor = '#0ba84a';
-        ctx.shadowBlur = 20 * glowIntensity;
-        ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
-        ctx.shadowBlur = 0;
-      }
-    };
-    
-    // Состояние краха
-    const drawCrashedState = (ctx, padding, width, height, crashPoint) => {
-      // Рисуем последний график красным цветом
-      if (pointsRef.current.length > 1) {
-        ctx.strokeStyle = '#ff3b30';
-        ctx.lineWidth = 4;
-        ctx.setLineDash([]);
-        
-        ctx.beginPath();
-        ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
-        
-        // Рисуем кривую красным цветом
-        for (let i = 1; i < pointsRef.current.length - 1; i++) {
-          const current = pointsRef.current[i];
-          const next = pointsRef.current[i + 1];
-          
-          if (next) {
-            const controlX1 = current.x + (next.x - current.x) * 0.3;
-            const controlY1 = current.y;
-            const controlX2 = current.x + (next.x - current.x) * 0.7;
-            const controlY2 = next.y;
-            
-            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, next.x, next.y);
-          } else {
-            ctx.lineTo(current.x, current.y);
-          }
-        }
-        
-        ctx.stroke();
-        
-        // Красная заливка
-        const fillGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
-        fillGradient.addColorStop(0, 'rgba(255, 59, 48, 0.3)');
-        fillGradient.addColorStop(1, 'rgba(255, 59, 48, 0.05)');
-        
-        ctx.fillStyle = fillGradient;
-        ctx.beginPath();
-        ctx.moveTo(padding, padding + height);
-        
-        pointsRef.current.forEach((point, i) => {
-          if (i === 0) {
-            ctx.lineTo(point.x, point.y);
-          } else {
-            const prev = pointsRef.current[i - 1];
-            const controlX1 = prev.x + (point.x - prev.x) * 0.3;
-            const controlY1 = prev.y;
-            const controlX2 = prev.x + (point.x - prev.x) * 0.7;
-            const controlY2 = point.y;
-            
-            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, point.x, point.y);
-          }
-        });
-        
-        if (pointsRef.current.length > 0) {
-          const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-          ctx.lineTo(lastPoint.x, padding + height);
-        }
-        
-        ctx.closePath();
-        ctx.fill();
-      }
-      
-      // Анимация взрыва
-      const time = Date.now() / 1000;
-      const explosionRadius = Math.sin(time * 105) * 25 + 60;
-      
-      // Красный взрыв в центре
-      const explosionGradient = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2 - 20, 0,
-        canvas.width / 2, canvas.height / 2 - 20, explosionRadius
-      );
-      explosionGradient.addColorStop(0, 'rgba(255, 59, 48, 0.6)');
-      explosionGradient.addColorStop(1, 'rgba(255, 59, 48, 0.0)');
-      
-      ctx.fillStyle = explosionGradient;
-      ctx.beginPath();
-      ctx.arc(canvas.width / 2, canvas.height / 2 - 20, explosionRadius, 0, 2 * Math.PI);
-      ctx.fill();
-      
-      // Текст краха
-      ctx.fillStyle = '#ff3b30';
-      ctx.font = 'bold 48px Arial';
-      ctx.textAlign = 'center';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
-      ctx.strokeText('CRASHED', canvas.width / 2, canvas.height / 2 - 20);
-      ctx.fillText('CRASHED', canvas.width / 2, canvas.height / 2 - 20);
-      
-      // Множитель краха
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 32px Arial';
-      ctx.strokeText(`${crashPoint.toFixed(2)}x`, canvas.width / 2, canvas.height / 2 + 40);
-      ctx.fillText(`${crashPoint.toFixed(2)}x`, canvas.width / 2, canvas.height / 2 + 40);
-    };
-    
-    draw();
-    
-    // Анимация для состояния полета или краха с высокой частотой
-    if (gameState === 'flying' || gameState === 'crashed') {
-      animationRef.current = requestAnimationFrame(() => {
-        draw();
-      });
+  // Размещение ставки
+  const placeBet = useCallback(async () => {
+    if (gameState !== 'waiting' || hasBet || betAmount <= 0 || betAmount > balance || loading) {
+      return;
     }
+    
+    try {
+      setLoading(true);
+      
+      // Здесь должен быть API вызов
+      // const response = await gameApi.placeCrashBet(betAmount, autoCashOut);
+      
+      // Временная симуляция
+      setBalance(prev => prev - betAmount);
+      setHasBet(true);
+      setCashedOut(false);
+      setUserBet({
+        amount: betAmount,
+        autoCashOut: autoCashOut
+      });
+      
+      // Добавляем ставку в список активных
+      setActiveBets(prev => [...prev, {
+        id: Date.now(),
+        amount: betAmount,
+        autoCashOut: autoCashOut,
+        username: 'Вы',
+        userId: 'current-user',
+        isCurrentUser: true
+      }]);
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Ошибка размещения ставки:', err);
+      setError(err.response?.data?.message || 'Ошибка размещения ставки');
+      setLoading(false);
+    }
+  }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, setBalance, setError]);
+  
+  // Ручной кешаут
+  const cashOut = useCallback(async () => {
+    if (gameState !== 'flying' || !hasBet || cashedOut || loading) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Здесь должен быть API вызов
+      // const response = await gameApi.crashCashOut(roundId);
+      
+      // Временная симуляция
+      const winAmount = userBet.amount * currentMultiplier;
+      setBalance(prev => prev + winAmount);
+      setCashedOut(true);
+      setUserCashOutMultiplier(currentMultiplier);
+      
+      // Перемещаем ставку в выведенные
+      setActiveBets(prev => prev.filter(bet => !bet.isCurrentUser));
+      setCashedOutBets(prev => [...prev, {
+        id: Date.now(),
+        amount: userBet.amount,
+        autoCashOut: userBet.autoCashOut,
+        username: 'Вы',
+        userId: 'current-user',
+        isCurrentUser: true,
+        cashOutMultiplier: currentMultiplier,
+        winAmount: winAmount
+      }]);
+      
+      // Показываем результат
+      setGameResult({
+        win: true,
+        amount: winAmount - userBet.amount,
+        newBalance: balance + winAmount
+      });
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Ошибка кешаута:', err);
+      setError(err.response?.data?.message || 'Ошибка вывода ставки');
+      setLoading(false);
+    }
+  }, [gameState, hasBet, cashedOut, loading, currentMultiplier, userBet, balance, setBalance, setError, setGameResult]);
+  
+  // Автоматический кешаут
+  useEffect(() => {
+    if (gameState === 'flying' && hasBet && !cashedOut && userBet?.autoCashOut > 0 && currentMultiplier >= userBet.autoCashOut) {
+      cashOut();
+    }
+  }, [gameState, hasBet, cashedOut, userBet, currentMultiplier, cashOut]);
+  
+  // Запуск нового раунда
+  const startNewRound = useCallback(() => {
+    console.log('Запуск нового раунда');
+    
+    // Генерируем новый краш-поинт
+    const newCrashPoint = generateCrashPoint();
+    setCrashPoint(newCrashPoint);
+    
+    // Сбрасываем состояние
+    setCurrentMultiplier(1.00);
+    setGameState('flying');
+    startTimeRef.current = Date.now();
+    
+    // Очищаем списки ставок
+    setActiveBets([]);
+    setCashedOutBets([]);
+    
+    // Запускаем таймер множителя
+    multiplierTimerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      const newMultiplier = 1.00 + elapsed * 0.1; // Рост на 0.1 каждую секунду
+      
+      if (newMultiplier >= newCrashPoint) {
+        // Краш!
+        setCurrentMultiplier(newCrashPoint);
+        setGameState('crashed');
+        clearInterval(multiplierTimerRef.current);
+        
+        // Добавляем в историю
+        setHistory(prev => [{
+          roundId: Date.now(),
+          crashPoint: newCrashPoint,
+          timestamp: Date.now(),
+          totalBets: Math.floor(Math.random() * 10) + 1,
+          totalAmount: Math.random() * 500 + 50
+        }, ...prev.slice(0, 19)]);
+        
+        // Если у пользователя была ставка и он не вывел
+        if (hasBet && !cashedOut) {
+          setGameResult({
+            win: false,
+            amount: userBet.amount,
+            newBalance: balance
+          });
+        }
+        
+        // Через 3 секунды запускаем новый таймер ожидания
+        setTimeout(() => {
+          setGameState('waiting');
+          setTimeToStart(7);
+          setHasBet(false);
+          setCashedOut(false);
+          setUserBet(null);
+          setUserCashOutMultiplier(0);
+          
+          // Запускаем обратный отсчет
+          gameTimerRef.current = setInterval(() => {
+            setTimeToStart(prev => {
+              if (prev <= 1) {
+                clearInterval(gameTimerRef.current);
+                startNewRound();
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        }, 3000);
+      } else {
+        setCurrentMultiplier(newMultiplier);
+      }
+    }, 100); // Обновляем каждые 100мс
+  }, [generateCrashPoint, hasBet, cashedOut, userBet, balance, setGameResult]);
+  
+  // Инициализация игры
+  useEffect(() => {
+    // Запускаем первый таймер ожидания
+    gameTimerRef.current = setInterval(() => {
+      setTimeToStart(prev => {
+        if (prev <= 1) {
+          clearInterval(gameTimerRef.current);
+          startNewRound();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
     
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (gameTimerRef.current) clearInterval(gameTimerRef.current);
+      if (multiplierTimerRef.current) clearInterval(multiplierTimerRef.current);
     };
-  }, [multiplier, gameState, crashPoint, timeToStart, canvasSize]);
+  }, [startNewRound]);
   
-  // Сброс точек при смене состояния игры на ожидание
+  // Очистка таймеров при размонтировании
   useEffect(() => {
-    if (gameState === 'waiting') {
-      pointsRef.current = [];
+    return () => {
+      if (gameTimerRef.current) clearInterval(gameTimerRef.current);
+      if (multiplierTimerRef.current) clearInterval(multiplierTimerRef.current);
+    };
+  }, []);
+  
+  // Получение текста для главной кнопки
+  const getMainButtonText = () => {
+    if (loading) return 'Загрузка...';
+    
+    switch (gameState) {
+      case 'waiting':
+        if (hasBet) return `Ставка размещена (${userBet?.amount} USDT)`;
+        return `Поставить ${betAmount} USDT`;
+      case 'flying':
+        if (!hasBet) return 'Ставка не размещена';
+        if (cashedOut) return `Выведено при ${userCashOutMultiplier.toFixed(2)}x`;
+        return `Вывести (${(userBet.amount * currentMultiplier).toFixed(2)} USDT)`;
+      case 'crashed':
+        if (hasBet && !cashedOut) return 'Проигрыш';
+        if (hasBet && cashedOut) return `Выиграш ${userCashOutMultiplier.toFixed(2)}x`;
+        return 'Раунд завершен';
+      default:
+        return 'Ошибка состояния';
     }
-  }, [gameState]);
+  };
+  
+  // Получение класса для главной кнопки
+  const getMainButtonClass = () => {
+    if (loading) return 'loading';
+    
+    switch (gameState) {
+      case 'waiting':
+        if (hasBet) return 'placed';
+        return 'bet';
+      case 'flying':
+        if (!hasBet) return 'disabled';
+        if (cashedOut) return 'won';
+        return 'cashout';
+      case 'crashed':
+        if (hasBet && !cashedOut) return 'lost';
+        if (hasBet && cashedOut) return 'won';
+        return 'disabled';
+      default:
+        return 'disabled';
+    }
+  };
+  
+  // Обработчик главной кнопки
+  const handleMainButtonClick = () => {
+    if (loading) return;
+    
+    switch (gameState) {
+      case 'waiting':
+        if (!hasBet) placeBet();
+        break;
+      case 'flying':
+        if (hasBet && !cashedOut) cashOut();
+        break;
+      default:
+        break;
+    }
+  };
   
   return (
-    <div className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''}`}>
-      <canvas 
-        ref={canvasRef}
-        className="crash-graph-canvas"
+    <div className={`crash-game ${loading ? 'loading' : ''}`} data-game-state={gameState}>
+      {/* График */}
+      <CrashGraph 
+        multiplier={currentMultiplier}
+        gameState={gameState}
+        crashPoint={crashPoint}
+        timeToStart={timeToStart}
       />
+      
+      {/* Главная кнопка действия */}
+      <button 
+        className={`crash-main-action-btn ${getMainButtonClass()}`}
+        onClick={handleMainButtonClick}
+        disabled={loading || (gameState === 'waiting' && hasBet) || (gameState === 'flying' && (!hasBet || cashedOut)) || gameState === 'crashed'}
+      >
+        {getMainButtonText()}
+      </button>
+      
+      {/* Панель управления */}
+      <CrashControls 
+        betAmount={betAmount}
+        setBetAmount={setBetAmount}
+        autoCashOut={autoCashOut}
+        setAutoCashOut={setAutoCashOut}
+        balance={balance}
+        gameState={gameState}
+        hasBet={hasBet}
+        cashedOut={cashedOut}
+        userBet={userBet}
+        userCashOutMultiplier={userCashOutMultiplier}
+        loading={loading}
+        currentMultiplier={currentMultiplier}
+      />
+      
+      {/* Информационные панели */}
+      <div className="crash-info-panels">
+        <CrashBetsList 
+          activeBets={activeBets}
+          cashedOutBets={cashedOutBets}
+          gameState={gameState}
+        />
+        
+        <CrashHistory 
+          history={history}
+        />
+      </div>
     </div>
   );
 };
 
-export default CrashGraph;
+export default CrashGame;

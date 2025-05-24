@@ -162,6 +162,46 @@ playSlots: (betAmount) => {
   });
 },
 
+// frontend/src/services/api.js - ДОБАВИТЬ ЭТИ МЕТОДЫ К СУЩЕСТВУЮЩЕМУ gameApi
+// Добавьте эти методы в объект gameApi после существующих методов
+
+// В gameApi добавить:
+  
+  // Игра "Краш" - размещение ставки
+  placeCrashBet: (betAmount, autoCashOut = 0) => {
+    console.log('Игра "Краш" - размещение ставки:', { betAmount, autoCashOut });
+    
+    return api.post('/games/crash/bet', { 
+      betAmount, 
+      autoCashOut
+    });
+  },
+
+  // Игра "Краш" - вывод ставки
+  crashCashOut: (roundId) => {
+    console.log('Игра "Краш" - вывод ставки:', { roundId });
+    
+    return api.post('/games/crash/cashout', { 
+      roundId
+    });
+  },
+
+  // Получение текущего состояния игры Краш
+  getCrashGameState: () => {
+    console.log('Получение состояния игры Краш');
+    
+    return api.get('/games/crash/state');
+  },
+
+  // Получение истории раундов Краш
+  getCrashHistory: (limit = 50) => {
+    console.log('Получение истории раундов Краш');
+    
+    return api.get('/games/crash/history', { 
+      params: { limit } 
+    });
+  },
+  
   // Игра "Мины" - ОБНОВЛЕННАЯ ВЕРСИЯ
   playMines: (betAmount, minesCount, clientSeed = null) => {
     console.log('Запуск игры "Мины":', { betAmount, minesCount, clientSeed });

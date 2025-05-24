@@ -216,8 +216,11 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       // Добавляем новую точку только если игра активна
       const timeElapsed = pointsRef.current.length * 0.01;
       
-      // X координата: более плавная прогрессия по времени
-      const xProgress = Math.sqrt(timeElapsed * 2 + (currentMultiplier - 1) * 0.5);
+      // ИСПРАВЛЕНИЕ 1: График ускоряется с увеличением коэффициента
+      // X координата: ускоряется с ростом множителя
+      const accelerationFactor = 1 + (currentMultiplier - 1) * 0.2; // Ускорение на 20% за каждую единицу множителя
+      const baseXProgress = Math.sqrt(timeElapsed * 2);
+      const xProgress = baseXProgress * accelerationFactor;
       const x = padding + Math.min(xProgress * 30, width - 20);
       
       // Y координата: ограничиваем рост после 6x

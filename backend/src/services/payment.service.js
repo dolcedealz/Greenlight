@@ -139,7 +139,86 @@ class PaymentService {
   }
 
   /**
-   * Обрабатывает webhook от CryptoBot - ИСПРАВЛЕНО для новой структуры
+   * Извлекает Telegram ID из hidden_message
+   * @param {string} hiddenMessage - Скрытое сообщение от CryptoBot
+   * @returns {number|null} - Telegram ID или null
+   */
+  extractTelegramIdFromHiddenMessage(hiddenMessage) {
+    if (!hiddenMessage) return null;
+    
+    // Пытаемся извлечь ID из формата "Пополнение для пользователя #123456"
+    const match = hiddenMessage.match(/#(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+  }
+
+  /**
+   * Создает депозит "на лету" для потерянных платежей
+   * @param {Object} webhookPayload - Данные из webhook
+   * @returns {Object} - Созданный депозит или null
+   */
+  async createFallbackDeposit(webhookPayload) {
+    try {
+      console.log('Создаем fallback депозит для потерянного платежа');
+      
+      // Извлекаем Telegram ID из hidden_message
+      const telegramId = this.extractTelegramIdFromHiddenMessage(webhookPayload.hidden_message);
+      
+      if (!telegramId) {
+        console.warn('Не удалось извлечь Telegram ID из hidden_message:', webhookPayload.hidden_message);
+        return null;
+      }
+      
+      console.log(`Найден Telegram ID в hidden_message: ${telegramId}`);
+      
+      // Ищем пользователя по Telegram ID
+      const user = await User.findOne({ telegramId });
+      
+      if (!user) {
+        console.warn(`Пользователь с Telegram ID ${telegramId} не найден`);
+        return null;
+      }
+      
+      console.log(`Найден пользователь: ${user._id} (${user.firstName} ${user.lastName})`);
+      
+      // Создаем fallback депозит
+      const deposit = new Deposit({
+        user: user._id,
+        invoiceId: webhookPayload.invoice_id.toString(),
+        amount: parseFloat(webhookPayload.amount),
+        status: 'pending', // Начальный статус, будет обновлен далее
+        balanceBefore: user.balance,
+        balanceAfter: user.balance,
+        description: `Fallback депозит для инвойса ${webhookPayload.invoice_id}`,
+        metadata: {
+          source: 'fallback',
+          sessionId: null,
+          referralCode: null
+        },
+        cryptoBotData: {
+          invoiceId: webhookPayload.invoice_id.toString(),
+          asset: webhookPayload.asset,
+          payAmount: parseFloat(webhookPayload.amount),
+          payUrl: webhookPayload.pay_url,
+          createdAt: new Date(webhookPayload.created_at),
+          hash: webhookPayload.hash,
+          paidAt: webhookPayload.paid_at ? new Date(webhookPayload.paid_at) : null,
+          webhookData: webhookPayload
+        }
+      });
+      
+      await deposit.save();
+      
+      console.log(`Fallback депозит создан: ${deposit._id}`);
+      return deposit;
+      
+    } catch (error) {
+      console.error('Ошибка создания fallback депозита:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Обрабатывает webhook от CryptoBot - УЛУЧШЕНО с fallback механизмом
    * @param {Object} webhookPayload - Данные от webhook (payload из CryptoBot)
    * @param {string} signature - Подпись для верификации
    * @returns {Object} - Результат обработки
@@ -148,7 +227,7 @@ class PaymentService {
     try {
       console.log('Обрабатываем payload webhook от CryptoBot:', webhookPayload);
       
-      // Извлекаем данные из payload - ИСПРАВЛЕНО
+      // Извлекаем данные из payload
       const { 
         invoice_id, 
         status, 
@@ -163,16 +242,26 @@ class PaymentService {
       console.log(`Ищем депозит с invoice_id: ${invoice_id}`);
       
       // Находим депозит по invoice_id - приводим к строке для поиска
-      const deposit = await Deposit.findOne({ 
+      let deposit = await Deposit.findOne({ 
         invoiceId: invoice_id.toString() 
       });
       
+      // НОВЫЙ FALLBACK МЕХАНИЗМ
       if (!deposit) {
         console.warn(`Депозит не найден для invoice_id: ${invoice_id}`);
-        return { success: false, message: 'Депозит не найден' };
+        console.log('Пытаемся создать fallback депозит...');
+        
+        deposit = await this.createFallbackDeposit(webhookPayload);
+        
+        if (!deposit) {
+          console.error('Не удалось создать fallback депозит');
+          return { success: false, message: 'Депозит не найден и не удалось создать fallback' };
+        }
+        
+        console.log(`Fallback депозит создан успешно: ${deposit._id}`);
+      } else {
+        console.log(`Найден депозит: ${deposit._id}, текущий статус: ${deposit.status}`);
       }
-      
-      console.log(`Найден депозит: ${deposit._id}, текущий статус: ${deposit.status}`);
       
       // Если депозит уже обработан, не обрабатываем повторно
       if (deposit.status === 'paid') {
@@ -180,7 +269,7 @@ class PaymentService {
         return { success: true, message: 'Депозит уже обработан' };
       }
       
-      // Обновляем депозит данными из webhook - ИСПРАВЛЕНО
+      // Обновляем депозит данными из webhook
       await this.updateDepositFromWebhook(deposit, webhookPayload);
       
       // Если статус "paid" - зачисляем средства пользователю
@@ -212,7 +301,7 @@ class PaymentService {
   }
 
   /**
-   * Обновляет депозит данными из webhook - НОВЫЙ МЕТОД
+   * Обновляет депозит данными из webhook
    * @param {Object} deposit - Объект депозита
    * @param {Object} webhookPayload - Данные из webhook payload
    */

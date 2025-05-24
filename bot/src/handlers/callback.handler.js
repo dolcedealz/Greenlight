@@ -1,7 +1,7 @@
 // callback.handler.js
 const { Markup } = require('telegraf');
 const config = require('../config');
-const paymentService = require('../services/payment.service'); // Исправлен импорт
+const apiService = require('../services/api.service');
 
 /**
  * Обработчик callback запросов (нажатия на inline кнопки)
@@ -41,29 +41,60 @@ function registerCallbackHandlers(bot) {
       // Показываем индикатор загрузки
       await ctx.answerCbQuery('⏳ Создаем счет для оплаты...');
       
-      console.log(`Создание инвойса для пользователя ${ctx.from.id} на сумму ${amountFloat} USDT`);
+      console.log(`Создание депозита через API для пользователя ${ctx.from.id} на сумму ${amountFloat} USDT`);
       
-      // Создаем инвойс для оплаты
-      const invoice = await paymentService.createInvoice(ctx.from.id, amountFloat);
-      
-      if (!invoice || !invoice.pay_url) {
-        throw new Error('Неверные данные инвойса от CryptoBot');
+      try {
+        // НОВЫЙ ПОДХОД: Создаем депозит через API backend'а
+        const depositData = await apiService.createDeposit(ctx.from, amountFloat, {
+          source: 'bot',
+          description: `Пополнение через Telegram бот на ${amountFloat} USDT`
+        });
+        
+        console.log(`Депозит создан через API:`, depositData);
+        
+        // Отправляем пользователю ссылку на оплату
+        await ctx.reply(
+          `💰 Создан счет на пополнение баланса\n\n` +
+          `💵 Сумма: ${amountFloat} USDT\n` +
+          `🆔 ID депозита: ${depositData.depositId}\n` +
+          `🧾 ID инвойса: ${depositData.invoiceId}\n` +
+          `⏰ Срок действия: 1 час\n\n` +
+          `Нажмите на кнопку ниже для оплаты:`,
+          Markup.inlineKeyboard([
+            [Markup.button.url('💳 Оплатить', depositData.payUrl)],
+            [Markup.button.callback('📋 Статус платежа', `check_deposit:${depositData.depositId}`)]
+          ])
+        );
+        
+      } catch (apiError) {
+        console.error('Ошибка API при создании депозита:', apiError);
+        
+        // Fallback: используем старый метод через прямое обращение к CryptoBot
+        console.log('Fallback: создаем инвойс напрямую через CryptoBot');
+        
+        const paymentService = require('../services/payment.service');
+        const invoice = await paymentService.createInvoice(ctx.from.id, amountFloat);
+        
+        if (!invoice || !invoice.pay_url) {
+          throw new Error('Неверные данные инвойса от CryptoBot');
+        }
+        
+        console.log(`Fallback инвойс создан: ${invoice.invoice_id}`);
+        
+        // Отправляем пользователю ссылку на оплату (fallback режим)
+        await ctx.reply(
+          `💰 Создан счет на пополнение баланса (резервный режим)\n\n` +
+          `💵 Сумма: ${amountFloat} USDT\n` +
+          `🆔 ID счета: ${invoice.invoice_id}\n` +
+          `⏰ Срок действия: 1 час\n\n` +
+          `⚠️ Внимание: Средства будут зачислены после подтверждения администратором\n\n` +
+          `Нажмите на кнопку ниже для оплаты:`,
+          Markup.inlineKeyboard([
+            [Markup.button.url('💳 Оплатить', invoice.pay_url)],
+            [Markup.button.callback('📋 Статус платежа', `check_payment:${invoice.invoice_id}`)]
+          ])
+        );
       }
-      
-      console.log(`Инвойс создан успешно: ${invoice.invoice_id}`);
-      
-      // Отправляем пользователю ссылку на оплату
-      await ctx.reply(
-        `💰 Создан счет на пополнение баланса\n\n` +
-        `💵 Сумма: ${amountFloat} USDT\n` +
-        `🆔 ID счета: ${invoice.invoice_id}\n` +
-        `⏰ Срок действия: 1 час\n\n` +
-        `Нажмите на кнопку ниже для оплаты:`,
-        Markup.inlineKeyboard([
-          [Markup.button.url('💳 Оплатить', invoice.pay_url)],
-          [Markup.button.callback('📋 Статус платежа', `check_payment:${invoice.invoice_id}`)]
-        ])
-      );
       
     } catch (error) {
       console.error('Ошибка при обработке действия пополнения:', error);
@@ -75,6 +106,8 @@ function registerCallbackHandlers(bot) {
         errorMessage = '❌ Ошибка платежной системы. Попробуйте позже или обратитесь в поддержку.';
       } else if (error.message.includes('не настроен')) {
         errorMessage = '❌ Платежная система временно недоступна. Обратитесь в поддержку.';
+      } else if (error.message.includes('Пользователь не найден')) {
+        errorMessage = '❌ Ошибка профиля. Попробуйте команду /start';
       }
       
       await ctx.reply(errorMessage);
@@ -88,27 +121,22 @@ function registerCallbackHandlers(bot) {
     }
   });
   
-  // Обработка проверки статуса платежа
-  bot.action(/check_payment:(.+)/, async (ctx) => {
+  // Обработка проверки статуса депозита (новый метод через API)
+  bot.action(/check_deposit:(.+)/, async (ctx) => {
     try {
-      const invoiceId = ctx.match[1];
+      const depositId = ctx.match[1];
       
-      await ctx.answerCbQuery('⏳ Проверяем статус платежа...');
+      await ctx.answerCbQuery('⏳ Проверяем статус депозита...');
       
-      console.log(`Проверка статуса платежа: ${invoiceId}`);
+      console.log(`Проверка статуса депозита через API: ${depositId}`);
       
-      const invoiceData = await paymentService.checkInvoice(invoiceId);
-      
-      if (!invoiceData) {
-        await ctx.reply('❌ Счет не найден');
-        return;
-      }
+      const depositInfo = await apiService.getDepositStatus(ctx.from, depositId);
       
       let statusMessage = '';
       let statusEmoji = '';
       
-      switch (invoiceData.status) {
-        case 'active':
+      switch (depositInfo.status) {
+        case 'pending':
           statusEmoji = '⏳';
           statusMessage = 'Ожидает оплаты';
           break;
@@ -126,11 +154,67 @@ function registerCallbackHandlers(bot) {
       }
       
       await ctx.reply(
-        `📊 Статус платежа\n\n` +
+        `📊 Статус депозита\n\n` +
+        `🆔 ID: ${depositInfo.id}\n` +
+        `💵 Сумма: ${depositInfo.amount} USDT\n` +
+        `${statusEmoji} Статус: ${statusMessage}\n` +
+        `📅 Создан: ${new Date(depositInfo.createdAt).toLocaleString('ru-RU')}`
+      );
+      
+    } catch (error) {
+      console.error('Ошибка при проверке статуса депозита через API:', error);
+      
+      // Fallback на старый метод
+      await ctx.reply('❌ Не удалось проверить статус депозита через API');
+      await ctx.answerCbQuery('❌ Ошибка проверки');
+    }
+  });
+  
+  // Обработка проверки статуса платежа (старый метод для совместимости)
+  bot.action(/check_payment:(.+)/, async (ctx) => {
+    try {
+      const invoiceId = ctx.match[1];
+      
+      await ctx.answerCbQuery('⏳ Проверяем статус платежа...');
+      
+      console.log(`Проверка статуса платежа (fallback): ${invoiceId}`);
+      
+      const paymentService = require('../services/payment.service');
+      const invoiceData = await paymentService.checkInvoice(invoiceId);
+      
+      if (!invoiceData) {
+        await ctx.reply('❌ Счет не найден');
+        return;
+      }
+      
+      let statusMessage = '';
+      let statusEmoji = '';
+      
+      switch (invoiceData.status) {
+        case 'active':
+          statusEmoji = '⏳';
+          statusMessage = 'Ожидает оплаты';
+          break;
+        case 'paid':
+          statusEmoji = '✅';
+          statusMessage = 'Оплачен (требует ручного подтверждения)';
+          break;
+        case 'expired':
+          statusEmoji = '⏰';
+          statusMessage = 'Истек срок действия';
+          break;
+        default:
+          statusEmoji = '❓';
+          statusMessage = 'Неизвестный статус';
+      }
+      
+      await ctx.reply(
+        `📊 Статус платежа (резервный режим)\n\n` +
         `🆔 ID: ${invoiceData.invoice_id}\n` +
         `💵 Сумма: ${invoiceData.amount} ${invoiceData.asset}\n` +
         `${statusEmoji} Статус: ${statusMessage}\n` +
-        `📅 Создан: ${new Date(invoiceData.created_at).toLocaleString('ru-RU')}`
+        `📅 Создан: ${new Date(invoiceData.created_at).toLocaleString('ru-RU')}\n\n` +
+        `ℹ️ Если платеж оплачен, но средства не зачислены, обратитесь в поддержку`
       );
       
     } catch (error) {
@@ -139,8 +223,6 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('❌ Ошибка проверки');
     }
   });
-  
-  // Обработка других callback запросов можно добавить здесь
   
   return bot;
 }

@@ -41,7 +41,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
     return colors[Math.abs(hash) % colors.length];
   };
   
-  // Генерация тестовых ставок для демонстрации быстрой игры
+  // Генерация тестовых ставок для демонстрации
   const generateMockBets = () => {
     if (activeBets.length === 0 && cashedOutBets.length === 0) {
       return {
@@ -131,7 +131,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
             className={`tab-btn ${activeTab === 'active' ? 'active' : ''}`}
             onClick={() => setActiveTab('active')}
           >
-            ⚡ Ставки ({mockData.active.length})
+            Ставки ({mockData.active.length})
           </button>
           <button 
             className={`tab-btn ${activeTab === 'cashed' ? 'active' : ''}`}
@@ -180,7 +180,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
                       {bet.autoCashOut > 0 ? (
                         <span className="auto-cashout">@{bet.autoCashOut}x</span>
                       ) : (
-                        <span className="manual">⚡ Ручной</span>
+                        <span className="manual">Ручной</span>
                       )}
                     </div>
                   )}
@@ -205,7 +205,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
       {/* Статистика */}
       <div className="bets-stats">
         <div className="stat-item">
-          <span className="stat-label">⚡ Всего ставок:</span>
+          <span className="stat-label">Всего ставок:</span>
           <span className="stat-value">{mockData.active.length + mockData.cashed.length}</span>
         </div>
         <div className="stat-item">
@@ -222,9 +222,9 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
         <div className="status-indicator">
           <span className="status-dot" data-state={gameState}></span>
           <span className="status-text">
-            {gameState === 'waiting' && '⏳ Прием ставок (5 сек)'}
-            {gameState === 'flying' && '🚀 Быстрый полет'}
-            {gameState === 'crashed' && '💥 Краш (новый через 2 сек)'}
+            {gameState === 'waiting' && '⏳ Прием ставок (1 сек)'}
+            {gameState === 'flying' && '🚀 Полет'}
+            {gameState === 'crashed' && '💥 Краш (новый через 0.3 сек)'}
           </span>
         </div>
       </div>

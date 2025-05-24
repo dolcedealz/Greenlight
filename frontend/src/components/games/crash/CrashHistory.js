@@ -32,95 +32,95 @@ const CrashHistory = ({ history }) => {
     });
   };
   
-  // Генерация тестовых данных истории для быстрой игры
+  // Генерация тестовых данных истории для сверхбыстрой игры
   const getDisplayHistory = () => {
     if (history && history.length > 0) {
       return history;
     }
     
-    // Тестовые данные для демонстрации БЫСТРОЙ игры
+    // Тестовые данные для демонстрации СВЕРХБЫСТРОЙ игры
     return [
       {
         roundId: 1008,
         crashPoint: 1.85,
-        timestamp: Date.now() - 30000,
+        timestamp: Date.now() - 4000,
         totalBets: 4,
         totalAmount: 89.5
       },
       {
         roundId: 1007,
         crashPoint: 3.42,
-        timestamp: Date.now() - 45000,
+        timestamp: Date.now() - 8000,
         totalBets: 6,
         totalAmount: 156.3
       },
       {
         roundId: 1006,
         crashPoint: 1.12,
-        timestamp: Date.now() - 60000,
+        timestamp: Date.now() - 12000,
         totalBets: 2,
         totalAmount: 25.0
       },
       {
         roundId: 1005,
         crashPoint: 7.89,
-        timestamp: Date.now() - 75000,
+        timestamp: Date.now() - 16000,
         totalBets: 8,
         totalAmount: 203.7
       },
       {
         roundId: 1004,
         crashPoint: 2.45,
-        timestamp: Date.now() - 90000,
+        timestamp: Date.now() - 20000,
         totalBets: 5,
         totalAmount: 127.5
       },
       {
         roundId: 1003,
         crashPoint: 1.23,
-        timestamp: Date.now() - 105000,
+        timestamp: Date.now() - 24000,
         totalBets: 3,
         totalAmount: 45.2
       },
       {
         roundId: 1002,
         crashPoint: 15.67,
-        timestamp: Date.now() - 120000,
+        timestamp: Date.now() - 28000,
         totalBets: 4,
         totalAmount: 67.8
       },
       {
         roundId: 1001,
         crashPoint: 4.21,
-        timestamp: Date.now() - 135000,
+        timestamp: Date.now() - 32000,
         totalBets: 7,
         totalAmount: 189.4
       },
       {
         roundId: 1000,
         crashPoint: 1.05,
-        timestamp: Date.now() - 150000,
+        timestamp: Date.now() - 36000,
         totalBets: 2,
         totalAmount: 18.5
       },
       {
         roundId: 999,
         crashPoint: 8.91,
-        timestamp: Date.now() - 165000,
+        timestamp: Date.now() - 40000,
         totalBets: 7,
         totalAmount: 234.1
       },
       {
         roundId: 998,
         crashPoint: 2.78,
-        timestamp: Date.now() - 180000,
+        timestamp: Date.now() - 44000,
         totalBets: 5,
         totalAmount: 98.7
       },
       {
         roundId: 997,
         crashPoint: 1.67,
-        timestamp: Date.now() - 195000,
+        timestamp: Date.now() - 48000,
         totalBets: 4,
         totalAmount: 76.3
       }
@@ -132,7 +132,7 @@ const CrashHistory = ({ history }) => {
   return (
     <div className="crash-history">
       <div className="history-header">
-        <h3 className="history-title">⚡ История (быстрая игра)</h3>
+        <h3 className="history-title">⚡ История (сверхбыстрая игра)</h3>
         {displayHistory.length > 0 && (
           <span className="history-count">{displayHistory.length} раундов</span>
         )}
@@ -148,7 +148,7 @@ const CrashHistory = ({ history }) => {
           <>
             {/* Компактный вид - последние 10 раундов в одной строке */}
             <div className="history-compact">
-              <div className="compact-title">🔥 Последние раунды (каждые ~7 сек):</div>
+              <div className="compact-title">🔥 Последние раунды (каждые ~1.3 сек):</div>
               <div className="compact-list">
                 {displayHistory.slice(0, 12).map((round, index) => (
                   <div
@@ -198,10 +198,10 @@ const CrashHistory = ({ history }) => {
         )}
       </div>
       
-      {/* Статистика по истории для быстрой игры */}
+      {/* Статистика по истории для сверхбыстрой игры */}
       {displayHistory.length > 0 && (
         <div className="history-stats">
-          <div className="stats-title">📊 Статистика последних {displayHistory.length} раундов (быстрая игра):</div>
+          <div className="stats-title">📊 Статистика последних {displayHistory.length} раундов (сверхбыстрая игра):</div>
           <div className="stats-grid">
             <div className="stat-item">
               <span className="stat-label">Средний краш:</span>
@@ -244,7 +244,7 @@ const CrashHistory = ({ history }) => {
           {/* Дополнительная информация о скорости игры */}
           <div className="speed-info">
             <div className="speed-indicator">
-              ⚡ Быстрая игра: раунд каждые ~7 секунд (5 сек ожидание + ~2 сек игра)
+              ⚡ Сверхбыстрая игра: раунд каждые ~1.3 секунды (1 сек ожидание + ~0.3 сек игра)
             </div>
           </div>
         </div>

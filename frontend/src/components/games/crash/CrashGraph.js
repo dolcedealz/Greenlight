@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import '../../../styles/CrashGraph.css';
 
-const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId }) => {
+const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, userCashedOut }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const pointsRef = useRef([]);
@@ -29,17 +29,29 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
     return () => window.removeEventListener('resize', updateSize);
   }, []);
   
-  // Очистка точек при смене раунда или переходе в ожидание
+  // ИСПРАВЛЕНО: Очистка точек ТОЛЬКО при смене раунда, НЕ при кешауте пользователя
   useEffect(() => {
-    if (gameState === 'waiting' || roundId !== lastRoundIdRef.current) {
-      console.log('Очищаем точки графика для нового раунда');
+    // Очищаем точки только при реальной смене раунда или переходе в ожидание НОВОГО раунда
+    const isNewRound = roundId !== lastRoundIdRef.current;
+    const isWaitingNewRound = gameState === 'waiting' && lastGameStateRef.current === 'crashed';
+    
+    if (isNewRound || isWaitingNewRound) {
+      console.log('Очищаем точки графика для нового раунда', { 
+        isNewRound, 
+        isWaitingNewRound, 
+        currentRound: roundId, 
+        lastRound: lastRoundIdRef.current,
+        gameState,
+        lastGameState: lastGameStateRef.current
+      });
       pointsRef.current = [];
       lastRoundIdRef.current = roundId;
     }
+    
     lastGameStateRef.current = gameState;
   }, [gameState, roundId]);
   
-  // Остановка анимации при смене состояния
+  // Остановка анимации при смене состояния на не-flying
   useEffect(() => {
     if (gameState !== 'flying' && animationRef.current) {
       cancelAnimationFrame(animationRef.current);
@@ -211,14 +223,13 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
     };
     
-    // Состояние полета
+    // ИСПРАВЛЕНО: Состояние полета - график НЕ сбрасывается при кешауте пользователя
     const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
-      // Добавляем новую точку только если игра активна
+      // Добавляем новую точку ВСЕГДА при активной игре, независимо от кешаута пользователя
       const timeElapsed = pointsRef.current.length * 0.01;
       
-      // ИСПРАВЛЕНИЕ 1: График ускоряется с увеличением коэффициента
-      // X координата: ускоряется с ростом множителя
-      const accelerationFactor = 1 + (currentMultiplier - 1) * 0.2; // Ускорение на 20% за каждую единицу множителя
+      // График ускоряется с увеличением коэффициента
+      const accelerationFactor = 1 + (currentMultiplier - 1) * 0.2;
       const baseXProgress = Math.sqrt(timeElapsed * 2);
       const xProgress = baseXProgress * accelerationFactor;
       const x = padding + Math.min(xProgress * 30, width - 20);
@@ -245,22 +256,29 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       
       pointsRef.current.push(point);
       
-      // Ограничиваем количество точек
+      // Ограничиваем количество точек для производительности
       if (pointsRef.current.length > 1500) {
         pointsRef.current = pointsRef.current.slice(-1000);
       }
       
       // Рисуем линию графика
       if (pointsRef.current.length > 1) {
-        // Градиент для линии
+        // Цвет линии зависит от того, вывел ли пользователь ставку
         const lineGradient = ctx.createLinearGradient(
           pointsRef.current[0].x, 
           pointsRef.current[0].y,
           point.x, 
           point.y
         );
-        lineGradient.addColorStop(0, '#0ba84a');
-        lineGradient.addColorStop(1, '#4ade80');
+        
+        // Если пользователь вывел ставку, делаем график более бледным для него
+        if (userCashedOut) {
+          lineGradient.addColorStop(0, 'rgba(11, 168, 74, 0.6)');
+          lineGradient.addColorStop(1, 'rgba(74, 222, 128, 0.6)');
+        } else {
+          lineGradient.addColorStop(0, '#0ba84a');
+          lineGradient.addColorStop(1, '#4ade80');
+        }
         
         ctx.strokeStyle = lineGradient;
         ctx.lineWidth = 4;
@@ -292,8 +310,13 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
         
         // Заливка под линией
         const fillGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
-        fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.3)');
-        fillGradient.addColorStop(1, 'rgba(11, 168, 74, 0.05)');
+        if (userCashedOut) {
+          fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.15)');
+          fillGradient.addColorStop(1, 'rgba(11, 168, 74, 0.02)');
+        } else {
+          fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.3)');
+          fillGradient.addColorStop(1, 'rgba(11, 168, 74, 0.05)');
+        }
         
         ctx.fillStyle = fillGradient;
         ctx.beginPath();
@@ -326,13 +349,13 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
         ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
-        ctx.strokeStyle = '#0ba84a';
+        ctx.strokeStyle = userCashedOut ? 'rgba(11, 168, 74, 0.6)' : '#0ba84a';
         ctx.lineWidth = 3;
         ctx.stroke();
       }
       
       // Текущий множитель
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = userCashedOut ? 'rgba(255, 255, 255, 0.7)' : '#ffffff';
       ctx.font = 'bold 64px Arial';
       ctx.textAlign = 'center';
       ctx.strokeStyle = '#000000';
@@ -340,13 +363,20 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       ctx.strokeText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
       ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
       
-      // Эффект мерцания при высоких множителях
-      if (currentMultiplier > 2) {
+      // Эффект мерцания при высоких множителях (только если пользователь не вывел ставку)
+      if (currentMultiplier > 2 && !userCashedOut) {
         const glowIntensity = Math.min((currentMultiplier - 2) / 5, 1);
         ctx.shadowColor = '#0ba84a';
         ctx.shadowBlur = 20 * glowIntensity;
         ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
         ctx.shadowBlur = 0;
+      }
+      
+      // Если пользователь вывел ставку, показываем это
+      if (userCashedOut) {
+        ctx.fillStyle = 'rgba(255, 193, 7, 0.8)';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText('ВЫ ВЫВЕЛИ СТАВКУ', canvas.width / 2, 140);
       }
     };
     
@@ -459,7 +489,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
         animationRef.current = null;
       }
     };
-  }, [multiplier, gameState, crashPoint, timeToStart, canvasSize]);
+  }, [multiplier, gameState, crashPoint, timeToStart, canvasSize, userCashedOut]);
   
   return (
     <div className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''}`} data-state={gameState}>

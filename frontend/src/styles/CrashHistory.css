@@ -7,7 +7,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
-    height: 400px;
+    height: 500px; /* УВЕЛИЧЕНО: с 400px до 500px */
   }
   
   .history-header {
@@ -387,73 +387,73 @@
   /* Адаптивность */
   @media (max-width: 768px) {
     .crash-history {
-      height: 350px;
+      height: 450px; /* УВЕЛИЧЕНО: с 350px до 450px */
       padding: 12px;
     }
     
-    .history-title {
-      font-size: 15px;
+    /* Уменьшаем интенсивность анимации на мобильных */
+    .crash-history.loading {
+      animation-duration: 2s;
     }
     
-    .compact-item {
-      padding: 4px 6px;
-      font-size: 10px;
-    }
-    
-    .history-item {
-      padding: 8px;
-    }
-    
-    .crash-multiplier {
-      font-size: 16px;
-    }
-    
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 5px;
+    .crash-history[data-state="flying"] {
+      animation-duration: 1.2s;
     }
   }
   
   @media (max-width: 480px) {
     .crash-history {
-      height: 300px;
+      height: 380px; /* УВЕЛИЧЕНО: с 300px до 380px */
       padding: 10px;
     }
     
-    .history-header {
-      margin-bottom: 10px;
+    /* Еще больше упрощаем анимации */
+    .crash-history.high-multiplier,
+    .crash-history.legendary-multiplier {
+      animation-duration: 1s;
     }
     
-    .history-title {
-      font-size: 14px;
+    .crash-history[data-state="crashed"] {
+      animation-duration: 0.3s;
+    }
+  }
+  
+  /* Дополнительные эффекты для производительности */
+  .crash-history-canvas {
+    /* Включаем аппаратное ускорение */
+    will-change: transform;
+    transform: translateZ(0);
+  }
+  
+  /* Улучшенная поддержка для темных тем */
+  @media (prefers-color-scheme: dark) {
+    .crash-history {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+      border-color: #444;
     }
     
-    .compact-list {
-      gap: 3px;
+    .crash-history::before {
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
+    }
+  }
+  
+  /* Эффекты для пользователей с предпочтением уменьшенного движения */
+  @media (prefers-reduced-motion: reduce) {
+    .crash-history,
+    .crash-history.loading,
+    .crash-history[data-state="waiting"],
+    .crash-history[data-state="flying"],
+    .crash-history[data-state="crashed"],
+    .crash-history.high-multiplier,
+    .crash-history.legendary-multiplier {
+      animation: none;
     }
     
-    .compact-item {
-      padding: 3px 5px;
-      font-size: 9px;
+    .crash-history {
+      transition: none;
     }
     
-    .history-item {
-      padding: 6px;
-    }
-    
-    .round-stats {
-      gap: 12px;
-    }
-    
-    .stat {
-      font-size: 11px;
-    }
-    
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .speed-indicator {
-      font-size: 10px;
+    .crash-history-canvas {
+      transition: none;
     }
   }

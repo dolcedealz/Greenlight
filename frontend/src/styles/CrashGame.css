@@ -190,10 +190,10 @@
     }
   }
   
-  /* Контейнер информационных панелей */
+  /* Контейнер информационных панелей - ИЗМЕНЕНО: неравные пропорции */
   .crash-info-panels {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 0.7fr 0.6fr; /* ИЗМЕНЕНО: уменьшили ширину панелей */
     gap: 15px;
     margin-top: 10px;
     animation: panelsSlideIn 0.5s ease;
@@ -306,7 +306,7 @@
     }
     
     .crash-info-panels {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr; /* На мобильных одна колонка */
       gap: 10px;
     }
     

@@ -1,0 +1,37 @@
+/* frontend/src/styles/CrashGame.css */
+.crash-game {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 15px;
+    background-color: var(--background-color);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+  
+  .crash-info-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+  }
+  
+  /* Адаптивность */
+  @media (max-width: 768px) {
+    .crash-game {
+      padding: 10px;
+      gap: 15px;
+    }
+    
+    .crash-info-panels {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .crash-game {
+      padding: 8px;
+      gap: 12px;
+    }
+  }

@@ -42,7 +42,7 @@ const CrashControls = ({
     setBetAmount(quickBet);
   };
   
-  // Быстрые значения автовывода
+  // Быстрые значения автовывода (ОБНОВЛЕНО для быстрой игры)
   const handleQuickAutoCashOut = (value) => {
     if (gameState === 'flying' && hasBet) return;
     setAutoCashOut(value);
@@ -92,7 +92,7 @@ const CrashControls = ({
       }
       
       return { 
-        text: `Поставить ${betAmount} USDT`, 
+        text: `⚡ ПОСТАВИТЬ ${betAmount} USDT`, 
         disabled: false, 
         className: 'bet' 
       };
@@ -102,13 +102,13 @@ const CrashControls = ({
       if (hasBet && !cashedOut) {
         const winAmount = (userBet.amount * currentMultiplier).toFixed(2);
         return { 
-          text: `Забрать ${winAmount} USDT`, 
+          text: `🚀 ЗАБРАТЬ ${winAmount} USDT`, 
           disabled: false, 
           className: 'cashout' 
         };
       }
       return { 
-        text: 'Раунд идет...', 
+        text: '🔥 Раунд идет...', 
         disabled: true, 
         className: 'disabled' 
       };
@@ -118,20 +118,20 @@ const CrashControls = ({
       if (hasBet && cashedOut) {
         const winAmount = userBet?.winAmount?.toFixed(2) || '0.00';
         return { 
-          text: `Выиграли ${winAmount} USDT`, 
+          text: `✅ Выиграли ${winAmount} USDT`, 
           disabled: true, 
           className: 'won' 
         };
       }
       if (hasBet && !cashedOut) {
         return { 
-          text: `Проиграли ${userBet?.amount || 0} USDT`, 
+          text: `💥 Проиграли ${userBet?.amount || 0} USDT`, 
           disabled: true, 
           className: 'lost' 
         };
       }
       return { 
-        text: 'Ждите следующий раунд', 
+        text: '⏳ Новый раунд скоро...', 
         disabled: true, 
         className: 'waiting' 
       };
@@ -158,7 +158,7 @@ const CrashControls = ({
         {/* Левая панель - Ставка */}
         <div className="control-panel bet-panel">
           <div className="panel-header">
-            <span className="panel-title">Ставка</span>
+            <span className="panel-title">⚡ Ставка</span>
             <span className="balance-info">Баланс: {balance.toFixed(2)} USDT</span>
           </div>
           
@@ -212,7 +212,7 @@ const CrashControls = ({
         {/* Правая панель - Автовывод */}
         <div className="control-panel auto-panel">
           <div className="panel-header">
-            <span className="panel-title">Автовывод</span>
+            <span className="panel-title">🎯 Автовывод</span>
             <span className="potential-win">
               {gameState === 'flying' && hasBet && !cashedOut 
                 ? `Текущий: ${getPotentialWin()} USDT`
@@ -237,6 +237,13 @@ const CrashControls = ({
           
           <div className="quick-buttons">
             <button 
+              onClick={() => handleQuickAutoCashOut(1.25)} 
+              disabled={!canEditAutoCashOut}
+              className="quick-btn"
+            >
+              1.25x
+            </button>
+            <button 
               onClick={() => handleQuickAutoCashOut(1.5)} 
               disabled={!canEditAutoCashOut}
               className="quick-btn"
@@ -251,18 +258,11 @@ const CrashControls = ({
               2x
             </button>
             <button 
-              onClick={() => handleQuickAutoCashOut(5)} 
+              onClick={() => handleQuickAutoCashOut(3)} 
               disabled={!canEditAutoCashOut}
               className="quick-btn"
             >
-              5x
-            </button>
-            <button 
-              onClick={() => handleQuickAutoCashOut(10)} 
-              disabled={!canEditAutoCashOut}
-              className="quick-btn"
-            >
-              10x
+              3x
             </button>
           </div>
         </div>
@@ -281,20 +281,20 @@ const CrashControls = ({
       {hasBet && userBet && (
         <div className="current-bet-info">
           <div className="bet-info-row">
-            <span>Ваша ставка:</span>
+            <span>💰 Ваша ставка:</span>
             <span className="bet-amount">{userBet.amount} USDT</span>
           </div>
           
           {gameState === 'flying' && !cashedOut && (
             <div className="bet-info-row">
-              <span>Текущий выигрыш:</span>
+              <span>🚀 Текущий выигрыш:</span>
               <span className="current-win">{getPotentialWin()} USDT</span>
             </div>
           )}
           
           {gameState === 'flying' && !cashedOut && (
             <div className="bet-info-row">
-              <span>Прибыль:</span>
+              <span>💎 Прибыль:</span>
               <span className="current-win">
                 +{(parseFloat(getPotentialWin()) - userBet.amount).toFixed(2)} USDT
               </span>
@@ -303,14 +303,14 @@ const CrashControls = ({
           
           {userBet.autoCashOut > 0 && !cashedOut && (
             <div className="bet-info-row">
-              <span>Автовывод при:</span>
+              <span>🎯 Автовывод при:</span>
               <span className="auto-cashout">{userBet.autoCashOut}x</span>
             </div>
           )}
           
           {cashedOut && (
             <div className="bet-info-row">
-              <span>Выведено при:</span>
+              <span>✅ Выведено при:</span>
               <span className="auto-cashout">{currentMultiplier.toFixed(2)}x</span>
             </div>
           )}
@@ -322,15 +322,15 @@ const CrashControls = ({
         <div className="state-indicator">
           <span className="state-label">Состояние:</span>
           <span className={`state-value ${gameState}`}>
-            {gameState === 'waiting' && '⏳ Прием ставок'}
-            {gameState === 'flying' && '🚀 Полет'}
-            {gameState === 'crashed' && '💥 Краш'}
+            {gameState === 'waiting' && '⏳ Прием ставок (5 сек)'}
+            {gameState === 'flying' && '🚀 Быстрый полет'}
+            {gameState === 'crashed' && '💥 Краш (2 сек до нового)'}
           </span>
         </div>
         
         {gameState === 'flying' && (
           <div className="multiplier-info">
-            <span className="multiplier-label">Множитель:</span>
+            <span className="multiplier-label">🔥 Множитель:</span>
             <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
           </div>
         )}

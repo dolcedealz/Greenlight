@@ -32,69 +32,97 @@ const CrashHistory = ({ history }) => {
     });
   };
   
-  // Генерация тестовых данных истории, если история пуста
+  // Генерация тестовых данных истории для быстрой игры
   const getDisplayHistory = () => {
     if (history && history.length > 0) {
       return history;
     }
     
-    // Тестовые данные для демонстрации
+    // Тестовые данные для демонстрации БЫСТРОЙ игры
     return [
       {
-        roundId: 1001,
-        crashPoint: 2.45,
-        timestamp: Date.now() - 60000,
-        totalBets: 5,
-        totalAmount: 127.5
-      },
-      {
-        roundId: 1000,
-        crashPoint: 1.23,
-        timestamp: Date.now() - 120000,
-        totalBets: 3,
-        totalAmount: 45.2
-      },
-      {
-        roundId: 999,
-        crashPoint: 8.91,
-        timestamp: Date.now() - 180000,
-        totalBets: 7,
-        totalAmount: 89.1
-      },
-      {
-        roundId: 998,
-        crashPoint: 1.05,
-        timestamp: Date.now() - 240000,
-        totalBets: 2,
-        totalAmount: 25.0
-      },
-      {
-        roundId: 997,
-        crashPoint: 15.67,
-        timestamp: Date.now() - 300000,
+        roundId: 1008,
+        crashPoint: 1.85,
+        timestamp: Date.now() - 30000,
         totalBets: 4,
-        totalAmount: 67.8
+        totalAmount: 89.5
       },
       {
-        roundId: 996,
-        crashPoint: 3.21,
-        timestamp: Date.now() - 360000,
+        roundId: 1007,
+        crashPoint: 3.42,
+        timestamp: Date.now() - 45000,
         totalBets: 6,
         totalAmount: 156.3
       },
       {
-        roundId: 995,
-        crashPoint: 1.85,
-        timestamp: Date.now() - 420000,
+        roundId: 1006,
+        crashPoint: 1.12,
+        timestamp: Date.now() - 60000,
+        totalBets: 2,
+        totalAmount: 25.0
+      },
+      {
+        roundId: 1005,
+        crashPoint: 7.89,
+        timestamp: Date.now() - 75000,
         totalBets: 8,
         totalAmount: 203.7
       },
       {
-        roundId: 994,
-        crashPoint: 6.45,
-        timestamp: Date.now() - 480000,
+        roundId: 1004,
+        crashPoint: 2.45,
+        timestamp: Date.now() - 90000,
         totalBets: 5,
-        totalAmount: 112.9
+        totalAmount: 127.5
+      },
+      {
+        roundId: 1003,
+        crashPoint: 1.23,
+        timestamp: Date.now() - 105000,
+        totalBets: 3,
+        totalAmount: 45.2
+      },
+      {
+        roundId: 1002,
+        crashPoint: 15.67,
+        timestamp: Date.now() - 120000,
+        totalBets: 4,
+        totalAmount: 67.8
+      },
+      {
+        roundId: 1001,
+        crashPoint: 4.21,
+        timestamp: Date.now() - 135000,
+        totalBets: 7,
+        totalAmount: 189.4
+      },
+      {
+        roundId: 1000,
+        crashPoint: 1.05,
+        timestamp: Date.now() - 150000,
+        totalBets: 2,
+        totalAmount: 18.5
+      },
+      {
+        roundId: 999,
+        crashPoint: 8.91,
+        timestamp: Date.now() - 165000,
+        totalBets: 7,
+        totalAmount: 234.1
+      },
+      {
+        roundId: 998,
+        crashPoint: 2.78,
+        timestamp: Date.now() - 180000,
+        totalBets: 5,
+        totalAmount: 98.7
+      },
+      {
+        roundId: 997,
+        crashPoint: 1.67,
+        timestamp: Date.now() - 195000,
+        totalBets: 4,
+        totalAmount: 76.3
       }
     ];
   };
@@ -104,7 +132,7 @@ const CrashHistory = ({ history }) => {
   return (
     <div className="crash-history">
       <div className="history-header">
-        <h3 className="history-title">История раундов</h3>
+        <h3 className="history-title">⚡ История (быстрая игра)</h3>
         {displayHistory.length > 0 && (
           <span className="history-count">{displayHistory.length} раундов</span>
         )}
@@ -120,9 +148,9 @@ const CrashHistory = ({ history }) => {
           <>
             {/* Компактный вид - последние 10 раундов в одной строке */}
             <div className="history-compact">
-              <div className="compact-title">Последние раунды:</div>
+              <div className="compact-title">🔥 Последние раунды (каждые ~7 сек):</div>
               <div className="compact-list">
-                {displayHistory.slice(0, 10).map((round, index) => (
+                {displayHistory.slice(0, 12).map((round, index) => (
                   <div
                     key={round.roundId || index}
                     className={`compact-item ${getMultiplierClass(round.crashPoint)}`}
@@ -137,7 +165,7 @@ const CrashHistory = ({ history }) => {
             
             {/* Детальный список */}
             <div className="history-detailed">
-              {displayHistory.slice(0, 15).map((round, index) => (
+              {displayHistory.slice(0, 20).map((round, index) => (
                 <div key={round.roundId || index} className="history-item">
                   <div className="round-info">
                     <div className="round-id">#{round.roundId}</div>
@@ -149,7 +177,7 @@ const CrashHistory = ({ history }) => {
                       className={`crash-multiplier ${getMultiplierClass(round.crashPoint)}`}
                       style={{ color: getMultiplierColor(round.crashPoint) }}
                     >
-                      {round.crashPoint.toFixed(2)}x
+                      {round.crashPoint >= 10 ? '🚀' : round.crashPoint >= 5 ? '🔥' : round.crashPoint >= 2 ? '⚡' : '💥'} {round.crashPoint.toFixed(2)}x
                     </div>
                   </div>
                   
@@ -170,10 +198,10 @@ const CrashHistory = ({ history }) => {
         )}
       </div>
       
-      {/* Статистика по истории */}
+      {/* Статистика по истории для быстрой игры */}
       {displayHistory.length > 0 && (
         <div className="history-stats">
-          <div className="stats-title">Статистика последних {displayHistory.length} раундов:</div>
+          <div className="stats-title">📊 Статистика последних {displayHistory.length} раундов (быстрая игра):</div>
           <div className="stats-grid">
             <div className="stat-item">
               <span className="stat-label">Средний краш:</span>
@@ -184,13 +212,19 @@ const CrashHistory = ({ history }) => {
             <div className="stat-item">
               <span className="stat-label">Макс. краш:</span>
               <span className="stat-value">
-                {Math.max(...displayHistory.map(round => round.crashPoint)).toFixed(2)}x
+                🚀 {Math.max(...displayHistory.map(round => round.crashPoint)).toFixed(2)}x
               </span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Мин. краш:</span>
               <span className="stat-value">
-                {Math.min(...displayHistory.map(round => round.crashPoint)).toFixed(2)}x
+                💥 {Math.min(...displayHistory.map(round => round.crashPoint)).toFixed(2)}x
+              </span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">≥ 1.5x:</span>
+              <span className="stat-value">
+                {Math.round((displayHistory.filter(round => round.crashPoint >= 1.5).length / displayHistory.length) * 100)}%
               </span>
             </div>
             <div className="stat-item">
@@ -205,11 +239,12 @@ const CrashHistory = ({ history }) => {
                 {Math.round((displayHistory.filter(round => round.crashPoint >= 5).length / displayHistory.length) * 100)}%
               </span>
             </div>
-            <div className="stat-item">
-              <span className="stat-label">≥ 10x:</span>
-              <span className="stat-value">
-                {Math.round((displayHistory.filter(round => round.crashPoint >= 10).length / displayHistory.length) * 100)}%
-              </span>
+          </div>
+          
+          {/* Дополнительная информация о скорости игры */}
+          <div className="speed-info">
+            <div className="speed-indicator">
+              ⚡ Быстрая игра: раунд каждые ~7 секунд (5 сек ожидание + ~2 сек игра)
             </div>
           </div>
         </div>

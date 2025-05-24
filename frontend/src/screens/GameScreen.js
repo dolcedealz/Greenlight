@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { CoinFlip, CoinControls } from '../components/games/coin';
 import MinesGame from '../components/games/mines/MinesGame';
-import SlotGame from '../components/games/slots/SlotGame'; // Добавляем SlotGame
+import SlotGame from '../components/games/slots/SlotGame';
+import CrashGame from '../components/games/crash/CrashGame'; // ДОБАВЛЯЕМ ИМПОРТ
 import { Header } from '../components/layout';
 import { userApi, gameApi } from '../services';
 import '../styles/GameScreen.css';
@@ -232,8 +233,55 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
                 <p>{error}</p>
               </div>
             )}
+          </div>
+        );
+
+      case 'crash':
+        return (
+          <div className="game-container crash-game">
+            <CrashGame 
+              balance={balance}
+              setBalance={setBalance}
+              gameStats={gameStats}
+              setGameResult={setGameResult}
+              setError={setError}
+            />
             
-            {/* УБИРАЕМ ДУБЛИРОВАНИЕ СТАТИСТИКИ - статистика теперь только в SlotControls */}
+            {error && (
+              <div className="game-error">
+                <p>{error}</p>
+              </div>
+            )}
+            
+            {gameStats && (
+              <div className="game-stats">
+                <h3>Ваша статистика</h3>
+                <div className="stats-container">
+                  <div className="stat-item">
+                    <span className="stat-label">Всего игр:</span>
+                    <span className="stat-value">{gameStats.totalGames}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Победы:</span>
+                    <span className="stat-value">{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Ставки:</span>
+                    <span className="stat-value">{gameStats.totalBet?.toFixed(2) || 0} USDT</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Выигрыши:</span>
+                    <span className="stat-value">{gameStats.totalWin?.toFixed(2) || 0} USDT</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Профит:</span>
+                    <span className={`stat-value ${(gameStats.totalWin - gameStats.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
+                      {((gameStats.totalWin || 0) - (gameStats.totalLoss || 0)).toFixed(2)} USDT
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
         

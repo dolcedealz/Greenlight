@@ -19,7 +19,7 @@ const CrashGame = ({
   const [currentMultiplier, setCurrentMultiplier] = useState(1.00);
   const [crashPoint, setCrashPoint] = useState(null);
   const [roundId, setRoundId] = useState(1);
-  const [timeToStart, setTimeToStart] = useState(1);
+  const [timeToStart, setTimeToStart] = useState(7); // ИЗМЕНЕНО: с 1 на 7 секунд
   
   // Ставки и управление
   const [betAmount, setBetAmount] = useState(1);
@@ -123,7 +123,7 @@ const CrashGame = ({
     clearAllTimers();
     
     setGameState('waiting');
-    setTimeToStart(1);
+    setTimeToStart(7); // ИЗМЕНЕНО: с 1 на 7 секунд
     setCurrentMultiplier(1.00);
     setCrashPoint(null);
     
@@ -132,7 +132,7 @@ const CrashGame = ({
       setTimeToStart(prev => {
         console.log('КРАШ: Таймер:', prev - 1);
         
-        if (prev <= 1) {
+        if (prev <= 1) { // ИЗМЕНЕНО: оставляем проверку <= 1
           console.log('КРАШ: Таймер закончился, запускаем игру');
           clearInterval(waitingTimerRef.current);
           waitingTimerRef.current = null;

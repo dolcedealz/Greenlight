@@ -19,7 +19,7 @@ const CrashGame = ({
   const [currentMultiplier, setCurrentMultiplier] = useState(1.00);
   const [crashPoint, setCrashPoint] = useState(null);
   const [roundId, setRoundId] = useState(1);
-  const [timeToStart, setTimeToStart] = useState(5); // УМЕНЬШИЛИ с 7 до 5 секунд
+  const [timeToStart, setTimeToStart] = useState(1); // УСКОРЕНО: с 5 до 1 секунды
   
   // Ставки и управление
   const [betAmount, setBetAmount] = useState(1);
@@ -27,6 +27,7 @@ const CrashGame = ({
   const [hasBet, setHasBet] = useState(false);
   const [userBet, setUserBet] = useState(null);
   const [cashedOut, setCashedOut] = useState(false);
+  const [userCashOutMultiplier, setUserCashOutMultiplier] = useState(null); // НОВОЕ: сохраняем множитель вывода
   const [loading, setLoading] = useState(false);
   
   // История и статистика
@@ -92,11 +93,11 @@ const CrashGame = ({
       });
     }
     
-    // Запускаем новый цикл через 2 секунды (УМЕНЬШИЛИ с 3 до 2 секунд)
+    // Запускаем новый цикл через 285ms (УСКОРЕНО: с 2000 до 285ms)
     setTimeout(() => {
       console.log('КРАШ: Сброс и запуск нового цикла');
       resetForNewRound();
-    }, 2000);
+    }, 285);
   }, [roundId, activeBets, hasBet, cashedOut, userBet, balance, setGameResult, clearAllTimers]);
   
   // Сброс состояния для нового раунда
@@ -106,6 +107,7 @@ const CrashGame = ({
     setHasBet(false);
     setUserBet(null);
     setCashedOut(false);
+    setUserCashOutMultiplier(null); // НОВОЕ: сбрасываем множитель вывода
     setActiveBets([]);
     setCashedOutBets([]);
     setRoundId(prev => prev + 1);
@@ -114,14 +116,14 @@ const CrashGame = ({
     startWaitingPhase();
   }, []);
   
-  // Период ожидания (5 секунд вместо 7)
+  // Период ожидания (1 секунда вместо 5)
   const startWaitingPhase = useCallback(() => {
     console.log('КРАШ: Начало фазы ожидания');
     
     clearAllTimers();
     
     setGameState('waiting');
-    setTimeToStart(5); // УМЕНЬШИЛИ с 7 до 5 секунд
+    setTimeToStart(1); // УСКОРЕНО: с 5 до 1 секунды
     setCurrentMultiplier(1.00);
     setCrashPoint(null);
     
@@ -147,7 +149,7 @@ const CrashGame = ({
     }, 1000);
   }, [clearAllTimers]);
   
-  // Игровая фаза (полет) - УСКОРЕННАЯ
+  // Игровая фаза (полет) - УСКОРЕНА В 7 РАЗ
   const startFlyingPhase = useCallback(() => {
     console.log('КРАШ: Начало игровой фазы');
     
@@ -182,9 +184,9 @@ const CrashGame = ({
       
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
       
-      // УСКОРЕННАЯ экспоненциальная формула роста множителя
-      // Увеличили коэффициент с 0.00006 до 0.0008 (в 13+ раз быстрее)
-      const multiplier = Math.pow(Math.E, 0.0008 * elapsed * elapsed);
+      // УСКОРЕННАЯ В 7 РАЗ экспоненциальная формула роста множителя
+      // Увеличили коэффициент с 0.0008 до 0.0056 (в 7 раз быстрее)
+      const multiplier = Math.pow(Math.E, 0.0056 * elapsed * elapsed);
       const currentMult = Math.max(1.00, multiplier);
       
       setCurrentMultiplier(currentMult);
@@ -222,8 +224,8 @@ const CrashGame = ({
       
       console.log('КРАШ: Размещаем ставку', betAmount);
       
-      // Имитация API вызова (сократили время с 300 до 150 мс)
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Имитация API вызова (сократили время с 150 до 50 мс для ускорения)
+      await new Promise(resolve => setTimeout(resolve, 50));
       
       // Создаем ставку
       const newBet = {
@@ -263,6 +265,7 @@ const CrashGame = ({
       console.log('КРАШ: Выводим ставку, выигрыш:', winAmount.toFixed(2));
       
       setCashedOut(true);
+      setUserCashOutMultiplier(currentMultiplier); // НОВОЕ: сохраняем множитель вывода
       setBalance(prev => prev + winAmount);
       
       // Перемещаем ставку в выведенные
@@ -323,6 +326,7 @@ const CrashGame = ({
         hasBet={hasBet}
         cashedOut={cashedOut}
         userBet={userBet}
+        userCashOutMultiplier={userCashOutMultiplier} // НОВОЕ: передаем множитель вывода
         loading={loading}
         currentMultiplier={currentMultiplier}
       />

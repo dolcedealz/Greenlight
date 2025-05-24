@@ -127,7 +127,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
     
     // Состояние ожидания с обратным отсчетом
     const drawWaitingState = (ctx, width, height, timeToStart) => {
-      // Очищаем точки
+      // Очищаем точки при переходе в состояние ожидания
       pointsRef.current = [];
       
       // Фон градиент для ожидания
@@ -155,7 +155,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
       ctx.stroke();
       
       // Прогресс круга (7 секунд = полный круг)
-      if (timeToStart > 0) {
+      if (timeToStart > 0 && timeToStart <= 7) {
         const progress = (7 - timeToStart) / 7;
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius - 2, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * progress));
@@ -366,13 +366,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
     
     draw();
     
-    // Анимация для состояния полета
-    if (gameState === 'flying') {
-      animationRef.current = requestAnimationFrame(() => {
-        draw();
-      });
-    } else if (gameState === 'crashed') {
-      // Анимация взрыва
+    // Анимация для состояния полета или краха
+    if (gameState === 'flying' || gameState === 'crashed') {
       animationRef.current = requestAnimationFrame(() => {
         draw();
       });
@@ -385,7 +380,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
     };
   }, [multiplier, gameState, crashPoint, timeToStart, canvasSize]);
   
-  // Сброс точек при смене состояния игры
+  // Сброс точек при смене состояния игры на ожидание
   useEffect(() => {
     if (gameState === 'waiting') {
       pointsRef.current = [];
@@ -393,7 +388,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart }) => {
   }, [gameState]);
   
   return (
-    <div className="crash-graph-container">
+    <div className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''}`}>
       <canvas 
         ref={canvasRef}
         className="crash-graph-canvas"

@@ -19,7 +19,7 @@ const CrashGame = ({
   const [currentMultiplier, setCurrentMultiplier] = useState(1.00);
   const [crashPoint, setCrashPoint] = useState(null);
   const [roundId, setRoundId] = useState(1);
-  const [timeToStart, setTimeToStart] = useState(7);
+  const [timeToStart, setTimeToStart] = useState(5); // УМЕНЬШИЛИ с 7 до 5 секунд
   
   // Ставки и управление
   const [betAmount, setBetAmount] = useState(1);
@@ -92,11 +92,11 @@ const CrashGame = ({
       });
     }
     
-    // Запускаем новый цикл через 3 секунды
+    // Запускаем новый цикл через 2 секунды (УМЕНЬШИЛИ с 3 до 2 секунд)
     setTimeout(() => {
       console.log('КРАШ: Сброс и запуск нового цикла');
       resetForNewRound();
-    }, 3000);
+    }, 2000);
   }, [roundId, activeBets, hasBet, cashedOut, userBet, balance, setGameResult, clearAllTimers]);
   
   // Сброс состояния для нового раунда
@@ -114,14 +114,14 @@ const CrashGame = ({
     startWaitingPhase();
   }, []);
   
-  // Период ожидания (7 секунд)
+  // Период ожидания (5 секунд вместо 7)
   const startWaitingPhase = useCallback(() => {
     console.log('КРАШ: Начало фазы ожидания');
     
     clearAllTimers();
     
     setGameState('waiting');
-    setTimeToStart(7);
+    setTimeToStart(5); // УМЕНЬШИЛИ с 7 до 5 секунд
     setCurrentMultiplier(1.00);
     setCrashPoint(null);
     
@@ -147,7 +147,7 @@ const CrashGame = ({
     }, 1000);
   }, [clearAllTimers]);
   
-  // Игровая фаза (полет)
+  // Игровая фаза (полет) - УСКОРЕННАЯ
   const startFlyingPhase = useCallback(() => {
     console.log('КРАШ: Начало игровой фазы');
     
@@ -182,8 +182,9 @@ const CrashGame = ({
       
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
       
-      // Экспоненциальная формула роста множителя
-      const multiplier = Math.pow(Math.E, 0.00006 * elapsed * elapsed);
+      // УСКОРЕННАЯ экспоненциальная формула роста множителя
+      // Увеличили коэффициент с 0.00006 до 0.0008 (в 13+ раз быстрее)
+      const multiplier = Math.pow(Math.E, 0.0008 * elapsed * elapsed);
       const currentMult = Math.max(1.00, multiplier);
       
       setCurrentMultiplier(currentMult);
@@ -202,7 +203,7 @@ const CrashGame = ({
         return;
       }
       
-      // Продолжаем цикл
+      // Продолжаем цикл с более высокой частотой обновления
       gameLoopRef.current = requestAnimationFrame(gameLoop);
     };
     
@@ -221,8 +222,8 @@ const CrashGame = ({
       
       console.log('КРАШ: Размещаем ставку', betAmount);
       
-      // Имитация API вызова
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Имитация API вызова (сократили время с 300 до 150 мс)
+      await new Promise(resolve => setTimeout(resolve, 150));
       
       // Создаем ставку
       const newBet = {

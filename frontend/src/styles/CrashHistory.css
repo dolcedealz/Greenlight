@@ -7,7 +7,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
-    height: 500px; /* УВЕЛИЧЕНО: с 400px до 500px */
+    height: 600px; /* УВЕЛИЧЕНО: с 500px до 600px */
   }
   
   .history-header {
@@ -22,7 +22,6 @@
     font-weight: 600;
     color: var(--primary-color);
     margin: 0;
-    /* Анимация для заголовка быстрой игры */
     animation: titlePulse 2s ease-in-out infinite;
   }
   
@@ -84,7 +83,7 @@
     text-align: center;
   }
   
-  /* Компактный вид - УСКОРЕННЫЙ */
+  /* Компактный вид */
   .history-compact {
     margin-bottom: 20px;
     padding-bottom: 15px;
@@ -122,7 +121,6 @@
     transition: all 0.3s ease;
     cursor: pointer;
     border: 1px solid transparent;
-    /* Анимация для быстрых обновлений */
     animation: compactItemAppear 0.4s ease;
   }
   
@@ -177,7 +175,7 @@
     }
   }
   
-  /* Детальный список - УСКОРЕННЫЙ */
+  /* Детальный список */
   .history-detailed {
     display: flex;
     flex-direction: column;
@@ -190,7 +188,6 @@
     padding: 10px;
     transition: all 0.3s ease;
     border: 1px solid transparent;
-    /* Анимация появления для быстрой игры */
     animation: historyItemSlide 0.5s ease;
   }
   
@@ -311,7 +308,7 @@
     font-weight: 500;
   }
   
-  /* Статистика по истории - УЛУЧШЕННАЯ */
+  /* Статистика по истории */
   .history-stats {
     padding-top: 12px;
     margin-top: 12px;
@@ -358,40 +355,13 @@
     color: white;
   }
   
-  /* НОВЫЙ: Индикатор скорости игры */
-  .speed-info {
-    margin-top: 10px;
-    padding: 8px 10px;
-    background: linear-gradient(135deg, rgba(11, 168, 74, 0.1) 0%, rgba(52, 199, 89, 0.1) 100%);
-    border: 1px solid rgba(11, 168, 74, 0.3);
-    border-radius: 6px;
-  }
-  
-  .speed-indicator {
-    font-size: 11px;
-    color: var(--primary-color);
-    text-align: center;
-    font-weight: 500;
-    animation: speedIndicatorPulse 3s ease-in-out infinite;
-  }
-  
-  @keyframes speedIndicatorPulse {
-    0%, 100% {
-      opacity: 0.8;
-    }
-    50% {
-      opacity: 1;
-    }
-  }
-  
   /* Адаптивность */
   @media (max-width: 768px) {
     .crash-history {
-      height: 450px; /* УВЕЛИЧЕНО: с 350px до 450px */
+      height: 550px; /* УВЕЛИЧЕНО: с 450px до 550px */
       padding: 12px;
     }
     
-    /* Уменьшаем интенсивность анимации на мобильных */
     .crash-history.loading {
       animation-duration: 2s;
     }
@@ -403,11 +373,10 @@
   
   @media (max-width: 480px) {
     .crash-history {
-      height: 380px; /* УВЕЛИЧЕНО: с 300px до 380px */
+      height: 480px; /* УВЕЛИЧЕНО: с 380px до 480px */
       padding: 10px;
     }
     
-    /* Еще больше упрощаем анимации */
     .crash-history.high-multiplier,
     .crash-history.legendary-multiplier {
       animation-duration: 1s;
@@ -420,7 +389,6 @@
   
   /* Дополнительные эффекты для производительности */
   .crash-history-canvas {
-    /* Включаем аппаратное ускорение */
     will-change: transform;
     transform: translateZ(0);
   }

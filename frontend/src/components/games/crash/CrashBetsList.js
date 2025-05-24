@@ -222,7 +222,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
         <div className="status-indicator">
           <span className="status-dot" data-state={gameState}></span>
           <span className="status-text">
-            {gameState === 'waiting' && '⏳ Прием ставок (1 сек)'}
+            {gameState === 'waiting' && '⏳ Прием ставок (7 сек)'} {/* ИЗМЕНЕНО: с 1 сек на 7 сек */}
             {gameState === 'flying' && '🚀 Полет'}
             {gameState === 'crashed' && '💥 Краш (новый через 0.3 сек)'}
           </span>

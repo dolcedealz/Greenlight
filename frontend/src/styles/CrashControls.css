@@ -125,6 +125,7 @@
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    margin-bottom: 15px;
   }
   
   .main-action-btn.bet {
@@ -180,7 +181,7 @@
   
   /* Информация о текущей ставке */
   .current-bet-info {
-    margin-top: 15px;
+    margin-bottom: 15px;
     padding: 12px;
     background-color: rgba(11, 168, 74, 0.1);
     border: 1px solid rgba(11, 168, 74, 0.3);
@@ -214,6 +215,58 @@
     animation: winAmountPulse 1.5s ease-in-out infinite;
   }
   
+  /* Информация о состоянии игры */
+  .game-state-info {
+    padding: 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .state-indicator,
+  .multiplier-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  
+  .state-indicator:last-child,
+  .multiplier-info:last-child {
+    margin-bottom: 0;
+  }
+  
+  .state-label,
+  .multiplier-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .state-value {
+    font-weight: bold;
+    font-size: 14px;
+  }
+  
+  .state-value.waiting {
+    color: #ffc107;
+  }
+  
+  .state-value.flying {
+    color: var(--primary-color);
+    animation: flyingPulse 1s ease-in-out infinite;
+  }
+  
+  .state-value.crashed {
+    color: #ff3b30;
+  }
+  
+  .multiplier-value {
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--primary-color);
+    animation: multiplierGlow 1s ease-in-out infinite;
+  }
+  
   /* Анимации */
   @keyframes cashoutPulse {
     0%, 100% {
@@ -230,6 +283,26 @@
     }
     50% {
       color: #4ade80;
+    }
+  }
+  
+  @keyframes flyingPulse {
+    0%, 100% {
+      color: var(--primary-color);
+    }
+    50% {
+      color: #4ade80;
+    }
+  }
+  
+  @keyframes multiplierGlow {
+    0%, 100% {
+      color: var(--primary-color);
+      text-shadow: 0 0 5px rgba(11, 168, 74, 0.5);
+    }
+    50% {
+      color: #4ade80;
+      text-shadow: 0 0 10px rgba(11, 168, 74, 0.8);
     }
   }
   

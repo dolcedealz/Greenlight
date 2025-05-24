@@ -19,7 +19,7 @@ const CrashGame = ({
   const [currentMultiplier, setCurrentMultiplier] = useState(1.00);
   const [crashPoint, setCrashPoint] = useState(null);
   const [roundId, setRoundId] = useState(1);
-  const [timeToStart, setTimeToStart] = useState(1); // УСКОРЕНО: с 5 до 1 секунды
+  const [timeToStart, setTimeToStart] = useState(1);
   
   // Ставки и управление
   const [betAmount, setBetAmount] = useState(1);
@@ -27,7 +27,7 @@ const CrashGame = ({
   const [hasBet, setHasBet] = useState(false);
   const [userBet, setUserBet] = useState(null);
   const [cashedOut, setCashedOut] = useState(false);
-  const [userCashOutMultiplier, setUserCashOutMultiplier] = useState(null); // НОВОЕ: сохраняем множитель вывода
+  const [userCashOutMultiplier, setUserCashOutMultiplier] = useState(null);
   const [loading, setLoading] = useState(false);
   
   // История и статистика
@@ -93,7 +93,7 @@ const CrashGame = ({
       });
     }
     
-    // Запускаем новый цикл через 285ms (УСКОРЕНО: с 2000 до 285ms)
+    // Запускаем новый цикл через 285ms
     setTimeout(() => {
       console.log('КРАШ: Сброс и запуск нового цикла');
       resetForNewRound();
@@ -107,7 +107,7 @@ const CrashGame = ({
     setHasBet(false);
     setUserBet(null);
     setCashedOut(false);
-    setUserCashOutMultiplier(null); // НОВОЕ: сбрасываем множитель вывода
+    setUserCashOutMultiplier(null);
     setActiveBets([]);
     setCashedOutBets([]);
     setRoundId(prev => prev + 1);
@@ -116,14 +116,14 @@ const CrashGame = ({
     startWaitingPhase();
   }, []);
   
-  // Период ожидания (1 секунда вместо 5)
+  // Период ожидания
   const startWaitingPhase = useCallback(() => {
     console.log('КРАШ: Начало фазы ожидания');
     
     clearAllTimers();
     
     setGameState('waiting');
-    setTimeToStart(1); // УСКОРЕНО: с 5 до 1 секунды
+    setTimeToStart(1);
     setCurrentMultiplier(1.00);
     setCrashPoint(null);
     
@@ -149,7 +149,7 @@ const CrashGame = ({
     }, 1000);
   }, [clearAllTimers]);
   
-  // Игровая фаза (полет) - УСКОРЕНА В 7 РАЗ
+  // Игровая фаза (полет)
   const startFlyingPhase = useCallback(() => {
     console.log('КРАШ: Начало игровой фазы');
     
@@ -184,8 +184,7 @@ const CrashGame = ({
       
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
       
-      // УСКОРЕННАЯ В 7 РАЗ экспоненциальная формула роста множителя
-      // Увеличили коэффициент с 0.0008 до 0.0056 (в 7 раз быстрее)
+      // Экспоненциальная формула роста множителя
       const multiplier = Math.pow(Math.E, 0.0056 * elapsed * elapsed);
       const currentMult = Math.max(1.00, multiplier);
       
@@ -224,7 +223,7 @@ const CrashGame = ({
       
       console.log('КРАШ: Размещаем ставку', betAmount);
       
-      // Имитация API вызова (сократили время с 150 до 50 мс для ускорения)
+      // Имитация API вызова
       await new Promise(resolve => setTimeout(resolve, 50));
       
       // Создаем ставку
@@ -265,7 +264,7 @@ const CrashGame = ({
       console.log('КРАШ: Выводим ставку, выигрыш:', winAmount.toFixed(2));
       
       setCashedOut(true);
-      setUserCashOutMultiplier(currentMultiplier); // НОВОЕ: сохраняем множитель вывода
+      setUserCashOutMultiplier(currentMultiplier);
       setBalance(prev => prev + winAmount);
       
       // Перемещаем ставку в выведенные
@@ -292,6 +291,96 @@ const CrashGame = ({
     }
   }, [userBet, cashedOut, gameState, currentMultiplier, balance, setBalance, setGameResult, setError]);
   
+  // Получение статуса кнопки
+  const getButtonStatus = () => {
+    if (loading) {
+      return { 
+        text: 'Загрузка...', 
+        disabled: true, 
+        className: 'loading' 
+      };
+    }
+    
+    if (gameState === 'waiting') {
+      if (hasBet) {
+        return { 
+          text: `Ставка ${userBet?.amount} USDT размещена`, 
+          disabled: true, 
+          className: 'placed' 
+        };
+      }
+      
+      if (betAmount <= 0) {
+        return { 
+          text: 'Введите ставку', 
+          disabled: true, 
+          className: 'disabled' 
+        };
+      }
+      
+      if (betAmount > balance) {
+        return { 
+          text: 'Недостаточно средств', 
+          disabled: true, 
+          className: 'disabled' 
+        };
+      }
+      
+      return { 
+        text: `ПОСТАВИТЬ ${betAmount} USDT`, 
+        disabled: false, 
+        className: 'bet' 
+      };
+    }
+    
+    if (gameState === 'flying') {
+      if (hasBet && !cashedOut) {
+        const winAmount = (userBet.amount * currentMultiplier).toFixed(2);
+        return { 
+          text: `ЗАБРАТЬ ${winAmount} USDT`, 
+          disabled: false, 
+          className: 'cashout' 
+        };
+      }
+      return { 
+        text: 'Раунд идет...', 
+        disabled: true, 
+        className: 'disabled' 
+      };
+    }
+    
+    if (gameState === 'crashed') {
+      if (hasBet && cashedOut) {
+        const winAmount = userBet?.winAmount?.toFixed(2) || '0.00';
+        return { 
+          text: `✅ Выиграли ${winAmount} USDT`, 
+          disabled: true, 
+          className: 'won' 
+        };
+      }
+      if (hasBet && !cashedOut) {
+        return { 
+          text: `💥 Проиграли ${userBet?.amount || 0} USDT`, 
+          disabled: true, 
+          className: 'lost' 
+        };
+      }
+      return { 
+        text: 'Новый раунд скоро...', 
+        disabled: true, 
+        className: 'waiting' 
+      };
+    }
+    
+    return { 
+      text: 'Ждите...', 
+      disabled: true, 
+      className: 'disabled' 
+    };
+  };
+  
+  const buttonStatus = getButtonStatus();
+  
   // Инициализация игры
   useEffect(() => {
     console.log('КРАШ: Инициализация игры');
@@ -301,7 +390,7 @@ const CrashGame = ({
       console.log('КРАШ: Очистка ресурсов при размонтировании');
       clearAllTimers();
     };
-  }, []); // Убираем зависимости, чтобы избежать повторных вызовов
+  }, []);
   
   return (
     <div className="crash-game">
@@ -313,20 +402,27 @@ const CrashGame = ({
         timeToStart={timeToStart}
       />
       
+      {/* Основная кнопка действия под графиком */}
+      <button
+        onClick={gameState === 'waiting' ? handlePlaceBet : handleCashOut}
+        disabled={buttonStatus.disabled}
+        className={`crash-main-action-btn ${buttonStatus.className}`}
+      >
+        {buttonStatus.text}
+      </button>
+      
       {/* Элементы управления */}
       <CrashControls 
         betAmount={betAmount}
         setBetAmount={setBetAmount}
         autoCashOut={autoCashOut}
         setAutoCashOut={setAutoCashOut}
-        onPlaceBet={handlePlaceBet}
-        onCashOut={handleCashOut}
         balance={balance}
         gameState={gameState}
         hasBet={hasBet}
         cashedOut={cashedOut}
         userBet={userBet}
-        userCashOutMultiplier={userCashOutMultiplier} // НОВОЕ: передаем множитель вывода
+        userCashOutMultiplier={userCashOutMultiplier}
         loading={loading}
         currentMultiplier={currentMultiplier}
       />

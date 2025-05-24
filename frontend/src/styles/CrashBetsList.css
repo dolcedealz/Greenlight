@@ -49,6 +49,7 @@
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    margin-bottom: 15px;
   }
   
   .bets-content::-webkit-scrollbar {
@@ -191,9 +192,9 @@
   .bets-stats {
     display: flex;
     justify-content: space-between;
-    padding-top: 12px;
-    margin-top: 12px;
+    padding: 12px 0;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 10px;
   }
   
   .stat-item {
@@ -211,6 +212,57 @@
     font-size: 14px;
     font-weight: 600;
     color: white;
+  }
+  
+  /* Статус игры */
+  .game-status {
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+  
+  .status-dot[data-state="waiting"] {
+    background-color: #ffc107;
+  }
+  
+  .status-dot[data-state="flying"] {
+    background-color: var(--primary-color);
+  }
+  
+  .status-dot[data-state="crashed"] {
+    background-color: #ff3b30;
+  }
+  
+  .status-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  /* Анимации */
+  @keyframes statusPulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.2);
+    }
   }
   
   /* Адаптивность */
@@ -260,5 +312,15 @@
     
     .bet-details {
       gap: 8px;
+    }
+    
+    .bets-stats {
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .stat-item {
+      flex-direction: row;
+      justify-content: space-between;
     }
   }

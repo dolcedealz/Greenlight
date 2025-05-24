@@ -8,6 +8,8 @@
     display: flex;
     flex-direction: column;
     height: 400px;
+    /* Анимация для быстрой игры */
+    transition: all 0.3s ease;
   }
   
   .bets-header {
@@ -19,6 +21,8 @@
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     padding: 4px;
+    /* Плавная анимация переключения */
+    transition: all 0.2s ease;
   }
   
   .tab-btn {
@@ -32,15 +36,29 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    /* Добавляем эмодзи анимацию */
+    position: relative;
   }
   
   .tab-btn.active {
     background-color: var(--primary-color);
     color: white;
+    /* Пульсация для активной вкладки */
+    animation: activeTabPulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes activeTabPulse {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(11, 168, 74, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(11, 168, 74, 0.5);
+    }
   }
   
   .tab-btn:hover:not(.active) {
     background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
   }
   
   .bets-content {
@@ -72,12 +90,34 @@
     justify-content: center;
     height: 200px;
     color: rgba(255, 255, 255, 0.5);
+    /* Анимация для пустого состояния */
+    animation: noBetsFloat 3s ease-in-out infinite;
+  }
+  
+  @keyframes noBetsFloat {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
   }
   
   .no-bets-icon {
     font-size: 48px;
     margin-bottom: 10px;
     opacity: 0.5;
+    /* Вращение иконки */
+    animation: iconRotate 4s linear infinite;
+  }
+  
+  @keyframes iconRotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
   
   .no-bets-text {
@@ -87,7 +127,7 @@
   .bets-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
   
   .bet-item {
@@ -99,16 +139,43 @@
     border-radius: 8px;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    /* Анимация появления для быстрой игры */
+    animation: betItemSlideIn 0.3s ease;
+  }
+  
+  @keyframes betItemSlideIn {
+    0% {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
   
   .bet-item:hover {
     background-color: rgba(255, 255, 255, 0.08);
-    transform: translateX(2px);
+    transform: translateX(3px);
+    border-color: rgba(255, 255, 255, 0.1);
   }
   
   .bet-item.current-user {
     background-color: rgba(11, 168, 74, 0.1);
     border-color: rgba(11, 168, 74, 0.3);
+    /* Специальная анимация для пользователя */
+    animation: currentUserGlow 2s ease-in-out infinite;
+  }
+  
+  @keyframes currentUserGlow {
+    0%, 100% {
+      border-color: rgba(11, 168, 74, 0.3);
+      box-shadow: 0 0 5px rgba(11, 168, 74, 0.1);
+    }
+    50% {
+      border-color: rgba(11, 168, 74, 0.5);
+      box-shadow: 0 0 10px rgba(11, 168, 74, 0.2);
+    }
   }
   
   .bet-user {
@@ -130,6 +197,17 @@
     font-size: 12px;
     color: white;
     flex-shrink: 0;
+    /* Анимация пульсации аватара */
+    animation: avatarPulse 3s ease-in-out infinite;
+  }
+  
+  @keyframes avatarPulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
   }
   
   .username {
@@ -138,12 +216,25 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 500;
   }
   
   .you-label {
     font-size: 12px;
     color: var(--primary-color);
     margin-left: 4px;
+    font-weight: 600;
+    /* Мигание для метки "Вы" */
+    animation: youLabelBlink 2s ease-in-out infinite;
+  }
+  
+  @keyframes youLabelBlink {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
   }
   
   .bet-details {
@@ -165,10 +256,22 @@
   .auto-cashout {
     color: #ffc107;
     font-weight: 500;
+    /* Анимация для автовывода */
+    animation: autoCashoutGlow 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes autoCashoutGlow {
+    0%, 100% {
+      text-shadow: 0 0 3px rgba(255, 193, 7, 0.5);
+    }
+    50% {
+      text-shadow: 0 0 8px rgba(255, 193, 7, 0.8);
+    }
   }
   
   .manual {
     color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
   }
   
   .cashout-info {
@@ -181,12 +284,38 @@
     font-size: 14px;
     font-weight: 600;
     color: #ffc107;
+    /* Анимация множителя при кешауте */
+    animation: cashoutMultiplierCelebrate 1s ease-in-out infinite;
+  }
+  
+  @keyframes cashoutMultiplierCelebrate {
+    0%, 100% {
+      transform: scale(1);
+      text-shadow: 0 0 5px rgba(255, 193, 7, 0.5);
+    }
+    50% {
+      transform: scale(1.05);
+      text-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
+    }
   }
   
   .win-amount {
     font-size: 14px;
     font-weight: 600;
     color: var(--primary-color);
+    /* Анимация суммы выигрыша */
+    animation: winAmountSpark 2s ease-in-out infinite;
+  }
+  
+  @keyframes winAmountSpark {
+    0%, 100% {
+      color: var(--primary-color);
+      text-shadow: 0 0 3px rgba(11, 168, 74, 0.5);
+    }
+    50% {
+      color: #4ade80;
+      text-shadow: 0 0 8px rgba(11, 168, 74, 0.8);
+    }
   }
   
   .bets-stats {
@@ -206,20 +335,35 @@
   .stat-label {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
   }
   
   .stat-value {
     font-size: 14px;
     font-weight: 600;
     color: white;
+    /* Анимация для значений статистики */
+    animation: statValueUpdate 0.5s ease;
   }
   
-  /* Статус игры */
+  @keyframes statValueUpdate {
+    0% {
+      transform: scale(0.95);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  /* Статус игры - УЛУЧШЕННЫЙ */
   .game-status {
     padding: 8px 12px;
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
   }
   
   .status-indicator {
@@ -232,19 +376,60 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    animation: statusPulse 2s ease-in-out infinite;
+    /* Быстрая пульсация для ускоренной игры */
+    animation: statusPulseFast 1s ease-in-out infinite;
+  }
+  
+  @keyframes statusPulseFast {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.3);
+    }
   }
   
   .status-dot[data-state="waiting"] {
     background-color: #ffc107;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
   }
   
   .status-dot[data-state="flying"] {
     background-color: var(--primary-color);
+    box-shadow: 0 0 10px rgba(11, 168, 74, 0.5);
+    /* Особо быстрая анимация для полета */
+    animation: flyingDotPulse 0.6s ease-in-out infinite;
+  }
+  
+  @keyframes flyingDotPulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+      box-shadow: 0 0 10px rgba(11, 168, 74, 0.5);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.4);
+      box-shadow: 0 0 15px rgba(11, 168, 74, 0.8);
+    }
   }
   
   .status-dot[data-state="crashed"] {
     background-color: #ff3b30;
+    box-shadow: 0 0 10px rgba(255, 59, 48, 0.5);
+    /* Мигание для краха */
+    animation: crashedDotFlash 0.3s ease-in-out 5;
+  }
+  
+  @keyframes crashedDotFlash {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
   }
   
   .status-text {
@@ -253,19 +438,7 @@
     color: rgba(255, 255, 255, 0.9);
   }
   
-  /* Анимации */
-  @keyframes statusPulse {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.5;
-      transform: scale(1.2);
-    }
-  }
-  
-  /* Адаптивность */
+  /* Адаптивность для быстрой игры */
   @media (max-width: 768px) {
     .crash-bets-list {
       height: 350px;
@@ -288,6 +461,15 @@
     
     .bet-amount {
       font-size: 13px;
+    }
+    
+    /* Уменьшаем интенсивность анимации на мобильных */
+    .bet-item.current-user {
+      animation-duration: 3s;
+    }
+    
+    .status-dot {
+      animation-duration: 1.5s;
     }
   }
   
@@ -322,5 +504,38 @@
     .stat-item {
       flex-direction: row;
       justify-content: space-between;
+    }
+    
+    /* Отключаем некоторые анимации для слабых устройств */
+    .no-bets-icon {
+      animation: none;
+    }
+    
+    .user-avatar {
+      animation: none;
+    }
+  }
+  
+  /* Для пользователей с предпочтением уменьшенного движения */
+  @media (prefers-reduced-motion: reduce) {
+    .crash-bets-list,
+    .tab-btn.active,
+    .bet-item,
+    .bet-item.current-user,
+    .user-avatar,
+    .you-label,
+    .auto-cashout,
+    .cashout-multiplier,
+    .win-amount,
+    .stat-value,
+    .status-dot,
+    .no-bets,
+    .no-bets-icon {
+      animation: none;
+    }
+    
+    .bet-item:hover,
+    .tab-btn:hover {
+      transform: none;
     }
   }

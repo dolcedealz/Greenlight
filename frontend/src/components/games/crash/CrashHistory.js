@@ -32,17 +32,86 @@ const CrashHistory = ({ history }) => {
     });
   };
   
+  // Генерация тестовых данных истории, если история пуста
+  const getDisplayHistory = () => {
+    if (history && history.length > 0) {
+      return history;
+    }
+    
+    // Тестовые данные для демонстрации
+    return [
+      {
+        roundId: 1001,
+        crashPoint: 2.45,
+        timestamp: Date.now() - 60000,
+        totalBets: 5,
+        totalAmount: 127.5
+      },
+      {
+        roundId: 1000,
+        crashPoint: 1.23,
+        timestamp: Date.now() - 120000,
+        totalBets: 3,
+        totalAmount: 45.2
+      },
+      {
+        roundId: 999,
+        crashPoint: 8.91,
+        timestamp: Date.now() - 180000,
+        totalBets: 7,
+        totalAmount: 89.1
+      },
+      {
+        roundId: 998,
+        crashPoint: 1.05,
+        timestamp: Date.now() - 240000,
+        totalBets: 2,
+        totalAmount: 25.0
+      },
+      {
+        roundId: 997,
+        crashPoint: 15.67,
+        timestamp: Date.now() - 300000,
+        totalBets: 4,
+        totalAmount: 67.8
+      },
+      {
+        roundId: 996,
+        crashPoint: 3.21,
+        timestamp: Date.now() - 360000,
+        totalBets: 6,
+        totalAmount: 156.3
+      },
+      {
+        roundId: 995,
+        crashPoint: 1.85,
+        timestamp: Date.now() - 420000,
+        totalBets: 8,
+        totalAmount: 203.7
+      },
+      {
+        roundId: 994,
+        crashPoint: 6.45,
+        timestamp: Date.now() - 480000,
+        totalBets: 5,
+        totalAmount: 112.9
+      }
+    ];
+  };
+  
+  const displayHistory = getDisplayHistory();
+  
   return (
     <div className="crash-history">
       <div className="history-header">
         <h3 className="history-title">История раундов</h3>
-        {history.length > 0 && (
-          <span className="history-count">{history.length} раундов</span>
+        {displayHistory.length > 0 && (
+          <span className="history-count">{displayHistory.length} раундов</span>
         )}
       </div>
       
       <div className="history-content">
-        {history.length === 0 ? (
+        {displayHistory.length === 0 ? (
           <div className="no-history">
             <span className="no-history-icon">📈</span>
             <span className="no-history-text">История раундов появится здесь</span>
@@ -53,12 +122,12 @@ const CrashHistory = ({ history }) => {
             <div className="history-compact">
               <div className="compact-title">Последние раунды:</div>
               <div className="compact-list">
-                {history.slice(0, 10).map((round, index) => (
+                {displayHistory.slice(0, 10).map((round, index) => (
                   <div
                     key={round.roundId || index}
                     className={`compact-item ${getMultiplierClass(round.crashPoint)}`}
                     style={{ color: getMultiplierColor(round.crashPoint) }}
-                    title={`Раунд ${round.roundId}: ${round.crashPoint.toFixed(2)}x`}
+                    title={`Раунд ${round.roundId}: ${round.crashPoint.toFixed(2)}x в ${formatTime(round.timestamp)}`}
                   >
                     {round.crashPoint.toFixed(2)}x
                   </div>
@@ -68,7 +137,7 @@ const CrashHistory = ({ history }) => {
             
             {/* Детальный список */}
             <div className="history-detailed">
-              {history.slice(0, 20).map((round, index) => (
+              {displayHistory.slice(0, 15).map((round, index) => (
                 <div key={round.roundId || index} className="history-item">
                   <div className="round-info">
                     <div className="round-id">#{round.roundId}</div>
@@ -102,32 +171,44 @@ const CrashHistory = ({ history }) => {
       </div>
       
       {/* Статистика по истории */}
-      {history.length > 0 && (
+      {displayHistory.length > 0 && (
         <div className="history-stats">
-          <div className="stats-title">Статистика:</div>
+          <div className="stats-title">Статистика последних {displayHistory.length} раундов:</div>
           <div className="stats-grid">
             <div className="stat-item">
               <span className="stat-label">Средний краш:</span>
               <span className="stat-value">
-                {(history.reduce((sum, round) => sum + round.crashPoint, 0) / history.length).toFixed(2)}x
+                {(displayHistory.reduce((sum, round) => sum + round.crashPoint, 0) / displayHistory.length).toFixed(2)}x
               </span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Макс. краш:</span>
               <span className="stat-value">
-                {Math.max(...history.map(round => round.crashPoint)).toFixed(2)}x
+                {Math.max(...displayHistory.map(round => round.crashPoint)).toFixed(2)}x
               </span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Мин. краш:</span>
               <span className="stat-value">
-                {Math.min(...history.map(round => round.crashPoint)).toFixed(2)}x
+                {Math.min(...displayHistory.map(round => round.crashPoint)).toFixed(2)}x
               </span>
             </div>
             <div className="stat-item">
-              <span className="stat-label"> 2x:</span>
+              <span className="stat-label">≥ 2x:</span>
               <span className="stat-value">
-                {Math.round((history.filter(round => round.crashPoint >= 2).length / history.length) * 100)}%
+                {Math.round((displayHistory.filter(round => round.crashPoint >= 2).length / displayHistory.length) * 100)}%
+              </span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">≥ 5x:</span>
+              <span className="stat-value">
+                {Math.round((displayHistory.filter(round => round.crashPoint >= 5).length / displayHistory.length) * 100)}%
+              </span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">≥ 10x:</span>
+              <span className="stat-value">
+                {Math.round((displayHistory.filter(round => round.crashPoint >= 10).length / displayHistory.length) * 100)}%
               </span>
             </div>
           </div>

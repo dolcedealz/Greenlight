@@ -309,7 +309,8 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </h1>
       </div>
       
-      {gameResult && (
+      {/* ИСПРАВЛЕНО: Показываем результат игры с правильным таймингом */}
+      {gameResult && (gameType !== 'crash' || gameResult.win !== null) && (
         <div className={`game-result ${gameResult.win ? 'win' : 'lose'}`}>
           <div className="result-text">
             {gameResult.win ? 'ВЫИГРЫШ!' : 'ПРОИГРЫШ'}

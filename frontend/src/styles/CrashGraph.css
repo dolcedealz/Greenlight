@@ -1,0 +1,67 @@
+/* frontend/src/styles/CrashGraph.css */
+.crash-graph-container {
+    width: 100%;
+    height: 400px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border-radius: var(--border-radius);
+    border: 2px solid #333;
+    box-shadow: 
+      var(--shadow),
+      inset 0 0 30px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .crash-graph-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.3) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  .crash-graph-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    position: relative;
+    z-index: 2;
+  }
+  
+  /* Анимация загрузки */
+  .crash-graph-container.loading {
+    animation: graphPulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes graphPulse {
+    0%, 100% {
+      box-shadow: 
+        var(--shadow),
+        inset 0 0 30px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(11, 168, 74, 0.1);
+    }
+    50% {
+      box-shadow: 
+        var(--shadow),
+        inset 0 0 30px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(11, 168, 74, 0.3);
+    }
+  }
+  
+  /* Адаптивность */
+  @media (max-width: 768px) {
+    .crash-graph-container {
+      height: 350px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .crash-graph-container {
+      height: 280px;
+      border-width: 1px;
+    }
+  }

@@ -10,8 +10,7 @@
       inset 0 0 30px rgba(0, 0, 0, 0.5);
     position: relative;
     overflow: hidden;
-    /* Добавляем анимацию для быстрой игры */
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
   }
   
   .crash-graph-container::before {
@@ -32,36 +31,40 @@
     display: block;
     position: relative;
     z-index: 2;
-    /* Более плавная анимация для быстрой игры */
-    transition: filter 0.2s ease;
+    transition: filter 0.1s ease;
+    /* Включаем аппаратное ускорение для плавной анимации */
+    will-change: transform;
+    transform: translateZ(0);
   }
   
-  /* Анимация загрузки - УСКОРЕННАЯ */
+  /* НОВОЕ: Улучшенная анимация загрузки */
   .crash-graph-container.loading {
-    animation: graphPulseFast 1.5s ease-in-out infinite;
-    border-color: rgba(11, 168, 74, 0.3);
+    animation: graphPulseSmooth 2s ease-in-out infinite;
+    border-color: rgba(11, 168, 74, 0.4);
   }
   
-  @keyframes graphPulseFast {
+  @keyframes graphPulseSmooth {
     0%, 100% {
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 15px rgba(11, 168, 74, 0.2);
-      border-color: rgba(11, 168, 74, 0.3);
+        0 0 15px rgba(11, 168, 74, 0.3);
+      border-color: rgba(11, 168, 74, 0.4);
+      transform: scale(1);
     }
     50% {
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 25px rgba(11, 168, 74, 0.5);
-      border-color: rgba(11, 168, 74, 0.6);
+        0 0 25px rgba(11, 168, 74, 0.6);
+      border-color: rgba(11, 168, 74, 0.7);
+      transform: scale(1.002);
     }
   }
   
-  /* Состояние ожидания - БЫСТРОЕ */
+  /* Состояние ожидания */
   .crash-graph-container[data-state="waiting"] {
-    animation: waitingGlow 2s ease-in-out infinite;
+    animation: waitingGlow 3s ease-in-out infinite;
   }
   
   @keyframes waitingGlow {
@@ -81,123 +84,175 @@
     }
   }
   
-  /* Состояние полета - АКТИВНОЕ */
+  /* ОБНОВЛЕНО: Более интенсивное состояние полета */
   .crash-graph-container[data-state="flying"] {
-    animation: flyingIntensity 1s ease-in-out infinite;
+    animation: flyingIntense 1.5s ease-in-out infinite;
     border-color: rgba(11, 168, 74, 0.8);
   }
   
-  @keyframes flyingIntensity {
+  @keyframes flyingIntense {
     0%, 100% {
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 15px rgba(11, 168, 74, 0.4);
+        0 0 20px rgba(11, 168, 74, 0.5);
+      transform: scale(1);
     }
     50% {
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 30px rgba(11, 168, 74, 0.7);
+        0 0 35px rgba(11, 168, 74, 0.8);
+      transform: scale(1.003);
     }
   }
   
-  /* Состояние краха - ДРАМАТИЧНОЕ */
+  /* ОБНОВЛЕНО: Более драматичное состояние краха */
   .crash-graph-container[data-state="crashed"] {
-    animation: crashedShake 0.5s ease-in-out;
-    border-color: rgba(255, 59, 48, 0.8);
+    animation: crashedDramatic 0.6s ease-in-out;
+    border-color: rgba(255, 59, 48, 0.9);
   }
   
-  @keyframes crashedShake {
-    0%, 100% {
-      transform: translateX(0);
+  @keyframes crashedDramatic {
+    0% {
+      transform: translateX(0) scale(1);
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
         0 0 20px rgba(255, 59, 48, 0.5);
     }
-    25% {
-      transform: translateX(-2px);
+    20% {
+      transform: translateX(-3px) scale(0.998);
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 30px rgba(255, 59, 48, 0.7);
+        0 0 40px rgba(255, 59, 48, 0.8);
     }
-    75% {
-      transform: translateX(2px);
+    40% {
+      transform: translateX(3px) scale(1.002);
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 30px rgba(255, 59, 48, 0.7);
+        0 0 35px rgba(255, 59, 48, 0.7);
+    }
+    60% {
+      transform: translateX(-2px) scale(0.999);
+      box-shadow: 
+        var(--shadow),
+        inset 0 0 30px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(255, 59, 48, 0.6);
+    }
+    80% {
+      transform: translateX(1px) scale(1.001);
+      box-shadow: 
+        var(--shadow),
+        inset 0 0 30px rgba(0, 0, 0, 0.5),
+        0 0 25px rgba(255, 59, 48, 0.5);
+    }
+    100% {
+      transform: translateX(0) scale(1);
+      box-shadow: 
+        var(--shadow),
+        inset 0 0 30px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(255, 59, 48, 0.4);
     }
   }
   
-  /* Особые эффекты для высоких множителей */
+  /* НОВОЕ: Особые эффекты для высоких множителей */
   .crash-graph-container.high-multiplier {
-    animation: highMultiplierGlow 0.8s ease-in-out infinite;
+    animation: highMultiplierAura 1s ease-in-out infinite;
   }
   
-  @keyframes highMultiplierGlow {
+  @keyframes highMultiplierAura {
     0%, 100% {
       border-color: rgba(11, 168, 74, 0.8);
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 20px rgba(11, 168, 74, 0.6),
-        0 0 40px rgba(11, 168, 74, 0.3);
+        0 0 25px rgba(11, 168, 74, 0.6),
+        0 0 50px rgba(11, 168, 74, 0.3);
+      filter: brightness(1);
     }
     50% {
       border-color: rgba(74, 222, 128, 1);
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 30px rgba(11, 168, 74, 0.8),
-        0 0 60px rgba(11, 168, 74, 0.5);
+        0 0 35px rgba(11, 168, 74, 0.9),
+        0 0 70px rgba(11, 168, 74, 0.5);
+      filter: brightness(1.05);
     }
   }
   
-  /* Эффект для сверхвысоких множителей */
+  /* НОВОЕ: Эффект для сверхвысоких множителей */
   .crash-graph-container.legendary-multiplier {
-    animation: legendaryMultiplierEffect 0.6s ease-in-out infinite;
+    animation: legendaryAura 0.8s ease-in-out infinite;
   }
   
-  @keyframes legendaryMultiplierEffect {
+  @keyframes legendaryAura {
     0%, 100% {
       border-color: rgba(11, 168, 74, 1);
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 25px rgba(11, 168, 74, 0.8),
-        0 0 50px rgba(11, 168, 74, 0.6),
-        0 0 75px rgba(11, 168, 74, 0.4);
+        0 0 30px rgba(11, 168, 74, 0.8),
+        0 0 60px rgba(11, 168, 74, 0.6),
+        0 0 90px rgba(11, 168, 74, 0.4);
       transform: scale(1);
+      filter: brightness(1) saturate(1);
     }
     50% {
       border-color: rgba(74, 222, 128, 1);
       box-shadow: 
         var(--shadow),
         inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 35px rgba(11, 168, 74, 1),
-        0 0 70px rgba(11, 168, 74, 0.8),
-        0 0 105px rgba(11, 168, 74, 0.6);
-      transform: scale(1.01);
+        0 0 40px rgba(11, 168, 74, 1),
+        0 0 80px rgba(11, 168, 74, 0.8),
+        0 0 120px rgba(11, 168, 74, 0.6);
+      transform: scale(1.005);
+      filter: brightness(1.1) saturate(1.2);
     }
   }
   
-  /* Адаптивность для быстрой игры */
+  /* НОВОЕ: Пульсация для критических моментов */
+  .crash-graph-container.critical-moment {
+    animation: criticalPulse 0.3s ease-in-out infinite alternate;
+  }
+  
+  @keyframes criticalPulse {
+    0% {
+      border-color: rgba(255, 193, 7, 0.8);
+      box-shadow: 
+        var(--shadow),
+        inset 0 0 30px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(255, 193, 7, 0.6);
+    }
+    100% {
+      border-color: rgba(255, 107, 53, 1);
+      box-shadow: 
+        var(--shadow),
+        inset 0 0 30px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(255, 107, 53, 0.8);
+    }
+  }
+  
+  /* Адаптивность */
   @media (max-width: 768px) {
     .crash-graph-container {
       height: 350px;
       border-width: 1px;
     }
     
-    /* Уменьшаем интенсивность анимации на мобильных */
-    .crash-graph-container.loading {
-      animation-duration: 2s;
+    /* Уменьшаем интенсивность анимации на мобильных для производительности */
+    .crash-graph-container.loading,
+    .crash-graph-container[data-state="waiting"],
+    .crash-graph-container[data-state="flying"] {
+      animation-duration: 2.5s;
     }
     
-    .crash-graph-container[data-state="flying"] {
-      animation-duration: 1.2s;
+    .crash-graph-container.high-multiplier,
+    .crash-graph-container.legendary-multiplier {
+      animation-duration: 1.5s;
     }
   }
   
@@ -207,34 +262,54 @@
       border-width: 1px;
     }
     
-    /* Еще больше упрощаем анимации */
+    /* Еще больше упрощаем анимации на очень маленьких экранах */
     .crash-graph-container.high-multiplier,
-    .crash-graph-container.legendary-multiplier {
-      animation-duration: 1s;
+    .crash-graph-container.legendary-multiplier,
+    .crash-graph-container.critical-moment {
+      animation-duration: 2s;
     }
     
     .crash-graph-container[data-state="crashed"] {
-      animation-duration: 0.3s;
+      animation-duration: 0.4s;
     }
   }
   
-  /* Дополнительные эффекты для производительности */
-  .crash-graph-canvas {
-    /* Включаем аппаратное ускорение */
-    will-change: transform;
-    transform: translateZ(0);
-  }
-  
-  /* Улучшенная поддержка для темных тем */
-  @media (prefers-color-scheme: dark) {
-    .crash-graph-container {
-      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-      border-color: #444;
+  /* Улучшенная поддержка для современных браузеров */
+  @supports (backdrop-filter: blur(10px)) {
+    .crash-graph-container[data-state="flying"] {
+      backdrop-filter: blur(0.5px);
     }
     
-    .crash-graph-container::before {
-      background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
+    .crash-graph-container.legendary-multiplier {
+      backdrop-filter: blur(1px) saturate(1.2);
     }
+  }
+  
+  @supports (filter: hue-rotate(0deg)) {
+    .crash-graph-container.legendary-multiplier {
+      animation: legendaryHueShift 3s ease-in-out infinite;
+    }
+    
+    @keyframes legendaryHueShift {
+      0%, 100% {
+        filter: hue-rotate(0deg) brightness(1.05) saturate(1.1);
+      }
+      33% {
+        filter: hue-rotate(5deg) brightness(1.08) saturate(1.15);
+      }
+      66% {
+        filter: hue-rotate(-5deg) brightness(1.03) saturate(1.05);
+      }
+    }
+  }
+  
+  /* Оптимизации производительности */
+  .crash-graph-canvas {
+    /* Дополнительные оптимизации для плавной анимации */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+    backface-visibility: hidden;
+    perspective: 1000px;
   }
   
   /* Эффекты для пользователей с предпочтением уменьшенного движения */
@@ -245,7 +320,8 @@
     .crash-graph-container[data-state="flying"],
     .crash-graph-container[data-state="crashed"],
     .crash-graph-container.high-multiplier,
-    .crash-graph-container.legendary-multiplier {
+    .crash-graph-container.legendary-multiplier,
+    .crash-graph-container.critical-moment {
       animation: none;
     }
     
@@ -255,5 +331,87 @@
     
     .crash-graph-canvas {
       transition: none;
+      will-change: auto;
+    }
+  }
+  
+  /* Высокий контраст для пользователей с нарушениями зрения */
+  @media (prefers-contrast: high) {
+    .crash-graph-container {
+      border-width: 3px;
+      border-color: var(--primary-color);
+    }
+    
+    .crash-graph-container[data-state="crashed"] {
+      border-color: #ff0000;
+    }
+  }
+  
+  /* Темная тема */
+  @media (prefers-color-scheme: dark) {
+    .crash-graph-container {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+      border-color: #555;
+    }
+    
+    .crash-graph-container::before {
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
+    }
+  }
+  
+  /* Финальные оптимизации */
+  .crash-graph-container {
+    contain: layout style paint;
+    isolation: isolate;
+  }
+  
+  /* НОВОЕ: Индикатор состояния в углу */
+  .crash-graph-container::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    z-index: 3;
+    transition: all 0.3s ease;
+  }
+  
+  .crash-graph-container[data-state="waiting"]::after {
+    background-color: #ffc107;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+  
+  .crash-graph-container[data-state="flying"]::after {
+    background-color: var(--primary-color);
+    box-shadow: 0 0 10px rgba(11, 168, 74, 0.7);
+    animation: statusPulse 1s ease-in-out infinite;
+  }
+  
+  .crash-graph-container[data-state="crashed"]::after {
+    background-color: #ff3b30;
+    box-shadow: 0 0 10px rgba(255, 59, 48, 0.7);
+    animation: statusFlash 0.5s ease-in-out 3;
+  }
+  
+  @keyframes statusPulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.2);
+    }
+  }
+  
+  @keyframes statusFlash {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
     }
   }

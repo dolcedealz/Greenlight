@@ -40,13 +40,30 @@ const CrashGame = ({
   const startTimeRef = useRef(null);
   const isCrashedRef = useRef(false);
   const roundIdRef = useRef(0);
+  const lastMultiplierUpdateRef = useRef(0);
+  
+  // НОВОЕ: Функция для получения CSS класса графика на основе множителя
+  const getGraphCSSClass = useCallback(() => {
+    if (gameState !== 'flying') return '';
+    
+    if (currentMultiplier >= 15) {
+      return 'legendary-multiplier';
+    } else if (currentMultiplier >= 8) {
+      return 'high-multiplier';
+    } else if (currentMultiplier >= 5) {
+      return 'critical-moment';
+    }
+    
+    return '';
+  }, [gameState, currentMultiplier]);
   
   // Генерация краш-поинта (реальная логика должна быть на сервере)
   const generateCrashPoint = useCallback(() => {
     const random = Math.random();
-    if (random < 0.33) return 1.0 + Math.random() * 0.5; // 1.0-1.5x (33%)
-    if (random < 0.66) return 1.5 + Math.random() * 1.5; // 1.5-3.0x (33%)
-    return 3.0 + Math.random() * 7.0; // 3.0-10.0x (34%)
+    if (random < 0.4) return 1.0 + Math.random() * 0.8; // 1.0-1.8x (40%)
+    if (random < 0.7) return 1.8 + Math.random() * 1.2; // 1.8-3.0x (30%)
+    if (random < 0.9) return 3.0 + Math.random() * 4.0; // 3.0-7.0x (20%)
+    return 7.0 + Math.random() * 13.0; // 7.0-20.0x (10%)
   }, []);
   
   // Размещение ставки
@@ -83,7 +100,7 @@ const CrashGame = ({
     }
   }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, setBalance, setError]);
   
-  // ИСПРАВЛЕНО: Кешаут НЕ ВЛИЯЕТ на игру - игра продолжается независимо
+  // КРИТИЧЕСКИ ВАЖНО: Кешаут НЕ влияет на игру
   const cashOut = useCallback(async () => {
     if (gameState !== 'flying' || !hasBet || cashedOut || loading || isCrashedRef.current) {
       return;
@@ -92,7 +109,7 @@ const CrashGame = ({
     try {
       setLoading(true);
       
-      console.log('КЕШАУТ: Пользователь выводит ставку, игра ПРОДОЛЖАЕТСЯ');
+      console.log('КЕШАУТ: Пользователь выводит при', currentMultiplier, '- игра ПРОДОЛЖАЕТСЯ');
       
       const winAmount = userBet.amount * currentMultiplier;
       setBalance(prev => prev + winAmount);
@@ -122,15 +139,13 @@ const CrashGame = ({
       
       setLoading(false);
       
-      console.log('КЕШАУТ: Завершен, игра продолжается для других игроков');
+      console.log('КЕШАУТ: Завершен успешно, игра продолжается для всех остальных');
       
-      // КРИТИЧЕСКИ ВАЖНО: НЕ ТРОГАЕМ НИКАКИЕ ИГРОВЫЕ ТАЙМЕРЫ И СОСТОЯНИЯ!
-      // multiplierTimerRef.current ПРОДОЛЖАЕТ РАБОТАТЬ
-      // gameState ОСТАЕТСЯ 'flying'  
-      // currentMultiplier ПРОДОЛЖАЕТ РАСТИ
-      // График ПРОДОЛЖАЕТ ЛЕТЕТЬ
-      // isCrashedRef.current НЕ МЕНЯЕТСЯ
-      // Все игровые рефы и состояния остаются нетронутыми
+      // ВАЖНО: НЕ ТРОГАЕМ ИГРОВЫЕ ТАЙМЕРЫ И СОСТОЯНИЯ!
+      // multiplierTimerRef.current продолжает работать
+      // currentMultiplier продолжает расти
+      // gameState остается 'flying'
+      // График продолжает лететь
       
     } catch (err) {
       console.error('Ошибка кешаута:', err);
@@ -147,7 +162,7 @@ const CrashGame = ({
         !isCrashedRef.current &&
         userBet?.autoCashOut > 0 && 
         currentMultiplier >= userBet.autoCashOut) {
-      console.log('АВТОКЕШАУТ: при', currentMultiplier, '- игра продолжается');
+      console.log('АВТОКЕШАУТ: сработал при', currentMultiplier, '- игра продолжается');
       cashOut();
     }
   }, [gameState, hasBet, cashedOut, userBet, currentMultiplier, cashOut]);
@@ -164,7 +179,7 @@ const CrashGame = ({
     }
   }, []);
   
-  // Запуск нового раунда
+  // ИСПРАВЛЕНО: Более плавная и быстрая логика роста множителя
   const startNewRound = useCallback(() => {
     console.log('=== ЗАПУСК НОВОГО РАУНДА ===');
     
@@ -180,82 +195,99 @@ const CrashGame = ({
     setCrashPoint(newCrashPoint);
     console.log('НОВЫЙ КРАШ-ПОИНТ:', newCrashPoint);
     
-    // ВАЖНО: Сбрасываем состояние ТОЛЬКО для нового раунда
+    // Сбрасываем состояние для нового раунда
     setCurrentMultiplier(1.00);
     setGameState('flying');
     startTimeRef.current = Date.now();
+    lastMultiplierUpdateRef.current = Date.now();
     
     // Очищаем списки ставок для нового раунда
     setActiveBets([]);
     setCashedOutBets([]);
     
-    // Запускаем таймер множителя - ОН РАБОТАЕТ НЕЗАВИСИМО ОТ КЕШАУТОВ
+    // ИСПРАВЛЕННАЯ логика роста множителя с плавным ускорением
     multiplierTimerRef.current = setInterval(() => {
       // Проверяем, что игра еще не завершилась
       if (isCrashedRef.current) {
         return;
       }
       
-      const elapsed = (Date.now() - startTimeRef.current) / 1000;
-      const newMultiplier = 1.00 + elapsed * 0.1;
+      const now = Date.now();
+      const totalElapsed = (now - startTimeRef.current) / 1000; // Общее время с начала
+      const deltaTime = (now - lastMultiplierUpdateRef.current) / 1000; // Время с последнего обновления
+      lastMultiplierUpdateRef.current = now;
       
-      // ПРОВЕРЯЕМ КРАШ НЕЗАВИСИМО ОТ КЕШАУТОВ ПОЛЬЗОВАТЕЛЕЙ
-      if (newMultiplier >= newCrashPoint) {
-        // КРАШ! Останавливаем ВСЮ игру
-        console.log('=== КРАШ ПРИ', newCrashPoint, '===');
-        isCrashedRef.current = true;
-        clearInterval(multiplierTimerRef.current);
-        multiplierTimerRef.current = null;
+      // НОВАЯ ФОРМУЛА: Плавное ускорение пропорционально времени
+      // Базовая скорость роста увеличивается с течением времени
+      const baseSpeed = 0.1; // Начальная скорость роста множителя в секунду
+      const acceleration = 0.05; // Ускорение роста во времени
+      const speedIncrease = baseSpeed + (acceleration * totalElapsed); // Скорость растет со временем
+      
+      // Рассчитываем новый множитель
+      const multiplierIncrease = speedIncrease * deltaTime;
+      
+      setCurrentMultiplier(prevMultiplier => {
+        const newMultiplier = prevMultiplier + multiplierIncrease;
         
-        setCurrentMultiplier(newCrashPoint);
-        setGameState('crashed');
-        
-        // Добавляем в историю
-        setHistory(prev => [{
-          roundId: roundIdRef.current,
-          crashPoint: newCrashPoint,
-          timestamp: Date.now(),
-          totalBets: Math.floor(Math.random() * 10) + 1,
-          totalAmount: Math.random() * 500 + 50
-        }, ...prev.slice(0, 19)]);
-        
-        // Если у пользователя была ставка и он не вывел
-        if (hasBet && !cashedOut) {
-          setGameResult({
-            win: false,
-            amount: userBet.amount,
-            newBalance: balance
-          });
-        }
-        
-        // Через 3 секунды запускаем новый таймер ожидания
-        setTimeout(() => {
-          console.log('Переходим в режим ожидания следующего раунда');
-          setGameState('waiting');
-          setTimeToStart(7);
-          setHasBet(false);
-          setCashedOut(false);
-          setUserBet(null);
-          setUserCashOutMultiplier(0);
+        // ПРОВЕРЯЕМ КРАШ НЕЗАВИСИМО ОТ КЕШАУТОВ ПОЛЬЗОВАТЕЛЕЙ
+        if (newMultiplier >= newCrashPoint) {
+          // КРАШ! Останавливаем ВСЮ игру
+          console.log('=== КРАШ ПРИ', newCrashPoint.toFixed(2), '===');
+          isCrashedRef.current = true;
+          clearInterval(multiplierTimerRef.current);
+          multiplierTimerRef.current = null;
           
-          // Запускаем обратный отсчет
-          gameTimerRef.current = setInterval(() => {
-            setTimeToStart(prev => {
-              if (prev <= 1) {
-                clearInterval(gameTimerRef.current);
-                gameTimerRef.current = null;
-                startNewRound();
-                return 0;
-              }
-              return prev - 1;
+          setGameState('crashed');
+          
+          // Добавляем в историю
+          setHistory(prev => [{
+            roundId: roundIdRef.current,
+            crashPoint: newCrashPoint,
+            timestamp: Date.now(),
+            totalBets: Math.floor(Math.random() * 15) + 1,
+            totalAmount: Math.random() * 800 + 100
+          }, ...prev.slice(0, 19)]);
+          
+          // Если у пользователя была ставка и он не вывел
+          if (hasBet && !cashedOut) {
+            setGameResult({
+              win: false,
+              amount: userBet.amount,
+              newBalance: balance
             });
-          }, 1000);
-        }, 3000);
-      } else {
-        // МНОЖИТЕЛЬ РАСТЕТ НЕЗАВИСИМО ОТ ДЕЙСТВИЙ ПОЛЬЗОВАТЕЛЕЙ
-        setCurrentMultiplier(newMultiplier);
-      }
-    }, 100); // Обновляем каждые 100ms
+          }
+          
+          // Через 3 секунды запускаем новый таймер ожидания
+          setTimeout(() => {
+            console.log('Переходим в режим ожидания следующего раунда');
+            setGameState('waiting');
+            setTimeToStart(7);
+            setHasBet(false);
+            setCashedOut(false);
+            setUserBet(null);
+            setUserCashOutMultiplier(0);
+            
+            // Запускаем обратный отсчет
+            gameTimerRef.current = setInterval(() => {
+              setTimeToStart(prev => {
+                if (prev <= 1) {
+                  clearInterval(gameTimerRef.current);
+                  gameTimerRef.current = null;
+                  startNewRound();
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+          }, 3000);
+          
+          return newCrashPoint; // Возвращаем точный краш-поинт
+        } else {
+          // МНОЖИТЕЛЬ РАСТЕТ НЕЗАВИСИМО ОТ ДЕЙСТВИЙ ПОЛЬЗОВАТЕЛЕЙ
+          return newMultiplier;
+        }
+      });
+    }, 50); // Обновляем каждые 50ms для более плавной анимации
   }, [generateCrashPoint, hasBet, cashedOut, userBet, balance, setGameResult, clearAllTimers]);
   
   // Инициализация игры
@@ -347,14 +379,14 @@ const CrashGame = ({
   
   return (
     <div className={`crash-game ${loading ? 'loading' : ''}`} data-game-state={gameState}>
-      {/* График */}
+      {/* ОБНОВЛЕНО: График с CSS классом для эффектов */}
       <CrashGraph 
         multiplier={currentMultiplier}
         gameState={gameState}
         crashPoint={crashPoint}
         timeToStart={timeToStart}
         roundId={roundIdRef.current}
-        userCashedOut={cashedOut}
+        className={getGraphCSSClass()}
       />
       
       {/* Главная кнопка действия */}

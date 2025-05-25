@@ -254,13 +254,13 @@ const CrashControls = ({
         </div>
       )}
       
-      {/* Информация о состоянии игры */}
+      {/* ИСПРАВЛЕНО: Информация о состоянии игры с уточненными описаниями */}
       <div className="game-state-info">
         <div className="state-indicator">
           <span className="state-label">🎮 Состояние:</span>
           <span className={`state-value ${gameState}`}>
-            {gameState === 'waiting' && '⏳ Прием ставок (7 сек)'}
-            {gameState === 'flying' && '🚀 Полет в реальном времени'}
+            {gameState === 'waiting' && '⏳ Прием ставок (ровно 7 сек)'}
+            {gameState === 'flying' && '🚀 Полет (множитель растет медленнее)'}
             {gameState === 'crashed' && '💥 Краш (новый раунд через 3 сек)'}
           </span>
         </div>
@@ -290,15 +290,27 @@ const CrashControls = ({
         )}
       </div>
       
-      {/* НОВОЕ: Индикатор скорости роста */}
+      {/* НОВОЕ: Индикатор скорости роста с улучшениями */}
       {gameState === 'flying' && (
         <div className="game-state-info">
           <div className="state-indicator">
             <span className="state-label">⚡ Скорость роста:</span>
             <span className="state-value flying">
-              {currentMultiplier < 2 ? 'Медленно' : 
-               currentMultiplier < 5 ? 'Ускоряется' : 
-               currentMultiplier < 10 ? 'Быстро' : 'Очень быстро'}
+              {currentMultiplier < 2 ? '🐌 Медленно (безопасно)' : 
+               currentMultiplier < 5 ? '🏃 Ускоряется (осторожно)' : 
+               currentMultiplier < 10 ? '🚀 Быстро (опасно)' : '⚡ Очень быстро (РИСК!)'}
+            </span>
+          </div>
+        </div>
+      )}
+      
+      {/* НОВОЕ: Подсказки для новых игроков */}
+      {gameState === 'waiting' && !hasBet && (
+        <div className="game-state-info">
+          <div className="state-indicator">
+            <span className="state-label">💡 Подсказка:</span>
+            <span className="state-value">
+              Игра замедлена для лучшего опыта. Множитель растет плавнее!
             </span>
           </div>
         </div>

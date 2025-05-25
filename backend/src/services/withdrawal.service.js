@@ -255,11 +255,21 @@ class WithdrawalService {
       await session.abortTransaction();
       
       console.error(`WITHDRAWAL: Ошибка обработки вывода ${withdrawalId}:`, error);
+      console.error('WITHDRAWAL: Полная информация об ошибке:', {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
       
-      // Помечаем вывод как неудачный
+      // Сохраняем детали ошибки в withdrawal
       try {
         const withdrawal = await Withdrawal.findById(withdrawalId);
         if (withdrawal) {
+          withdrawal.lastError = {
+            message: error.message || 'Unknown error',
+            details: error.response?.data || {},
+            timestamp: new Date()
+          };
           await withdrawal.markAsFailed(error);
           
           // Возвращаем средства пользователю

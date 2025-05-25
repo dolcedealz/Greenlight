@@ -17,7 +17,7 @@ const CrashControls = ({
   currentMultiplier
 }) => {
   
-  // ИСПРАВЛЕНИЕ: Корректный обработчик изменения ставки
+  // Корректный обработчик изменения ставки
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
     
@@ -56,7 +56,7 @@ const CrashControls = ({
     setAutoCashOut(value);
   };
   
-  // ИСПРАВЛЕНО: Получение потенциального выигрыша
+  // Получение потенциального выигрыша
   const getPotentialWin = () => {
     if (gameState === 'flying' && hasBet && !cashedOut) {
       // Если игра идет и у пользователя есть ставка - показываем текущий возможный выигрыш
@@ -64,6 +64,14 @@ const CrashControls = ({
     }
     // Иначе показываем потенциальный выигрыш при автовыводе
     return (betAmount * autoCashOut).toFixed(2);
+  };
+  
+  // Получение текущей прибыли
+  const getCurrentProfit = () => {
+    if (gameState === 'flying' && hasBet && !cashedOut) {
+      return (parseFloat(getPotentialWin()) - userBet.amount).toFixed(2);
+    }
+    return (parseFloat(getPotentialWin()) - betAmount).toFixed(2);
   };
   
   // Можно ли изменять ставку
@@ -78,7 +86,7 @@ const CrashControls = ({
         {/* Левая панель - Ставка */}
         <div className="control-panel bet-panel">
           <div className="panel-header">
-            <span className="panel-title">Ставка</span>
+            <span className="panel-title">💰 Ставка</span>
             <span className="balance-info">Баланс: {balance.toFixed(2)} USDT</span>
           </div>
           
@@ -132,10 +140,10 @@ const CrashControls = ({
         {/* Правая панель - Автовывод */}
         <div className="control-panel auto-panel">
           <div className="panel-header">
-            <span className="panel-title">Автовывод</span>
+            <span className="panel-title">🎯 Автовывод</span>
             <span className="potential-win">
               {gameState === 'flying' && hasBet && !cashedOut 
-                ? `Текущий: ${getPotentialWin()} USDT`
+                ? `Сейчас: ${getPotentialWin()} USDT`
                 : `При ${autoCashOut}x: ${getPotentialWin()} USDT`
               }
             </span>
@@ -188,7 +196,7 @@ const CrashControls = ({
         </div>
       </div>
       
-      {/* ИСПРАВЛЕНО: Информация о текущей ставке - показывает правильный статус */}
+      {/* Информация о текущей ставке */}
       {hasBet && userBet && (
         <div className="current-bet-info">
           <div className="bet-info-row">
@@ -198,20 +206,20 @@ const CrashControls = ({
           
           {/* Показываем текущий выигрыш только если игра идет и не вывели */}
           {gameState === 'flying' && !cashedOut && (
-            <div className="bet-info-row">
-              <span>🚀 Текущий выигрыш:</span>
-              <span className="current-win">{getPotentialWin()} USDT</span>
-            </div>
-          )}
-          
-          {/* Показываем прибыль только если игра идет и не вывели */}
-          {gameState === 'flying' && !cashedOut && (
-            <div className="bet-info-row">
-              <span>💎 Прибыль:</span>
-              <span className="current-win">
-                +{(parseFloat(getPotentialWin()) - userBet.amount).toFixed(2)} USDT
-              </span>
-            </div>
+            <>
+              <div className="bet-info-row">
+                <span>🚀 Текущий выигрыш:</span>
+                <span className="current-win">{getPotentialWin()} USDT</span>
+              </div>
+              <div className="bet-info-row">
+                <span>💎 Прибыль:</span>
+                <span className="current-win">+{getCurrentProfit()} USDT</span>
+              </div>
+              <div className="bet-info-row">
+                <span>📈 Рост в реальном времени:</span>
+                <span className="current-win">{currentMultiplier.toFixed(2)}x</span>
+              </div>
+            </>
           )}
           
           {/* Показываем автовывод только если не вывели */}
@@ -222,7 +230,7 @@ const CrashControls = ({
             </div>
           )}
           
-          {/* НОВОЕ: Показываем информацию о выводе если уже вывели */}
+          {/* Показываем информацию о выводе если уже вывели */}
           {cashedOut && userCashOutMultiplier && (
             <>
               <div className="bet-info-row">
@@ -237,6 +245,10 @@ const CrashControls = ({
                 <span>🎉 Прибыль:</span>
                 <span className="current-win">+{(userBet.amount * userCashOutMultiplier - userBet.amount).toFixed(2)} USDT</span>
               </div>
+              <div className="bet-info-row">
+                <span>📊 Игра продолжается:</span>
+                <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
+              </div>
             </>
           )}
         </div>
@@ -245,30 +257,52 @@ const CrashControls = ({
       {/* Информация о состоянии игры */}
       <div className="game-state-info">
         <div className="state-indicator">
-          <span className="state-label">Состояние:</span>
+          <span className="state-label">🎮 Состояние:</span>
           <span className={`state-value ${gameState}`}>
             {gameState === 'waiting' && '⏳ Прием ставок (7 сек)'}
-            {gameState === 'flying' && '🚀 Полет'}
-            {gameState === 'crashed' && '💥 Краш (0.3 сек до нового)'}
+            {gameState === 'flying' && '🚀 Полет в реальном времени'}
+            {gameState === 'crashed' && '💥 Краш (новый раунд через 3 сек)'}
           </span>
         </div>
         
-        {/* ИСПРАВЛЕНО: Показываем множитель всегда во время полета */}
+        {/* Показываем множитель во время полета */}
         {gameState === 'flying' && (
           <div className="multiplier-info">
-            <span className="multiplier-label">🔥 Множитель:</span>
+            <span className="multiplier-label">🔥 Текущий множитель:</span>
             <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
           </div>
         )}
         
-        {/* НОВОЕ: Показываем дополнительную информацию если пользователь уже вывел */}
+        {/* Дополнительная информация для пользователей без ставок */}
+        {gameState === 'flying' && !hasBet && (
+          <div className="multiplier-info">
+            <span className="multiplier-label">⚠️ Вы наблюдаете:</span>
+            <span className="multiplier-value">Ставка не размещена</span>
+          </div>
+        )}
+        
+        {/* Информация о продолжении игры после кешаута */}
         {gameState === 'flying' && cashedOut && (
           <div className="multiplier-info">
-            <span className="multiplier-label">📊 Игра продолжается для других:</span>
-            <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
+            <span className="multiplier-label">👀 Наблюдаете за другими:</span>
+            <span className="multiplier-value">График продолжает расти</span>
           </div>
         )}
       </div>
+      
+      {/* НОВОЕ: Индикатор скорости роста */}
+      {gameState === 'flying' && (
+        <div className="game-state-info">
+          <div className="state-indicator">
+            <span className="state-label">⚡ Скорость роста:</span>
+            <span className="state-value flying">
+              {currentMultiplier < 2 ? 'Медленно' : 
+               currentMultiplier < 5 ? 'Ускоряется' : 
+               currentMultiplier < 10 ? 'Быстро' : 'Очень быстро'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

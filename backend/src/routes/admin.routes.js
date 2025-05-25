@@ -1,6 +1,6 @@
-// backend/src/routes/admin.routes.js - ОБНОВЛЕННАЯ ВЕРСИЯ
+// backend/src/routes/admin.routes.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ФИНАНСАМИ
 const express = require('express');
-const { adminController, withdrawalController } = require('../controllers');
+const { adminController, withdrawalController, financeController } = require('../controllers');
 const { adminAuthMiddleware } = require('../middleware');
 
 const router = express.Router();
@@ -8,57 +8,75 @@ const router = express.Router();
 // Применяем middleware для проверки админских прав
 router.use(adminAuthMiddleware);
 
+// === МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ФИНАНСАМИ ===
+
+/**
+ * GET /api/admin/finance/state
+ * Получение текущего финансового состояния казино
+ */
+router.get('/finance/state', financeController.getCurrentState);
+
+/**
+ * GET /api/admin/finance/report
+ * Получение финансового отчета за период
+ * Query: { period: 'day' | 'week' | 'month' | 'all' }
+ */
+router.get('/finance/report', financeController.getFinancialReport);
+
+/**
+ * POST /api/admin/finance/recalculate
+ * Принудительный пересчет всех финансов
+ */
+router.post('/finance/recalculate', financeController.recalculateFinances);
+
+/**
+ * POST /api/admin/finance/reserve-percentage
+ * Установка процента резервирования
+ * Body: { percentage: number }
+ */
+router.post('/finance/reserve-percentage', financeController.setReservePercentage);
+
+/**
+ * POST /api/admin/finance/withdraw-profit
+ * Вывод прибыли владельца
+ * Body: { amount: number, recipient: string, comment: string }
+ */
+router.post('/finance/withdraw-profit', financeController.withdrawOwnerProfit);
+
+/**
+ * GET /api/admin/finance/history
+ * История изменений балансов
+ * Query: { limit: number }
+ */
+router.get('/finance/history', financeController.getBalanceHistory);
+
+/**
+ * GET /api/admin/finance/game-stats
+ * Детальная статистика по играм
+ */
+router.get('/finance/game-stats', financeController.getGameStatistics);
+
 // === СУЩЕСТВУЮЩИЕ МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ШАНСАМИ ===
 router.post('/win-chance/base', adminController.setBaseWinChance);
 router.post('/win-chance/user', adminController.setUserWinChanceModifier);
 router.get('/win-chance/settings', adminController.getWinChanceSettings);
 router.get('/win-chance/user', adminController.getUserWinChanceModifier);
 
-// === НОВЫЕ МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ВЫВОДАМИ ===
-
-/**
- * GET /api/admin/withdrawals/pending
- * Получение списка выводов, требующих одобрения администратора
- */
+// === МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ВЫВОДАМИ ===
 router.get('/withdrawals/pending', withdrawalController.getPendingApprovals);
-
-/**
- * POST /api/admin/withdrawals/:withdrawalId/approve
- * Одобрение запроса на вывод
- */
 router.post('/withdrawals/:withdrawalId/approve', withdrawalController.approveWithdrawal);
-
-/**
- * POST /api/admin/withdrawals/:withdrawalId/reject
- * Отклонение запроса на вывод
- * Body: { reason: "Причина отклонения" }
- */
 router.post('/withdrawals/:withdrawalId/reject', withdrawalController.rejectWithdrawal);
-
-/**
- * GET /api/admin/withdrawals/stats
- * Получение общей статистики по выводам
- * Query: { userId?: string } - опционально для статистики конкретного пользователя
- */
 router.get('/withdrawals/stats', withdrawalController.getWithdrawalStats);
 
 /**
  * GET /api/admin/withdrawals
  * Получение всех выводов с фильтрацией
- * Query параметры:
- * - status: фильтр по статусу
- * - userId: фильтр по пользователю
- * - limit: количество записей
- * - skip: смещение для пагинации
- * - dateFrom: начальная дата
- * - dateTo: конечная дата
  */
 router.get('/withdrawals', async (req, res) => {
   try {
     const { status, userId, limit = 50, skip = 0, dateFrom, dateTo } = req.query;
     const { Withdrawal } = require('../models');
     
-    // Строим условия запроса
     const query = {};
     
     if (status) {
@@ -79,7 +97,6 @@ router.get('/withdrawals', async (req, res) => {
       }
     }
     
-    // Получаем выводы
     const withdrawals = await Withdrawal.find(query)
       .populate('user', 'telegramId username firstName lastName balance')
       .populate('approvedBy', 'username firstName lastName')
@@ -110,7 +127,7 @@ router.get('/withdrawals', async (req, res) => {
 
 /**
  * GET /api/admin/withdrawals/:withdrawalId
- * Получение детальной информации о выводе (для администратора)
+ * Получение детальной информации о выводе
  */
 router.get('/withdrawals/:withdrawalId', async (req, res) => {
   try {

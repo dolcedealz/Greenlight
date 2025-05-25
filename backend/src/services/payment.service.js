@@ -383,6 +383,13 @@ class PaymentService {
       
       await transaction.save();
       
+      // Обновляем финансовую статистику
+      const financeService = require('./casino-finance.service');
+      await financeService.updateAfterDeposit({
+        amount: deposit.amount,
+        user: user._id
+      });
+      
       console.log(`PAYMENT: Баланс пользователя ${user._id} обновлен: ${oldBalance} -> ${newBalance} USDT`);
       console.log(`PAYMENT: Транзакция создана: ${transaction._id}`);
       

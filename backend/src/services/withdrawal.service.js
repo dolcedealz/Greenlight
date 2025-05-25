@@ -1,4 +1,4 @@
-// backend/src/services/withdrawal.service.js
+// backend/src/services/withdrawal.service.js - УЛУЧШЕННАЯ ВЕРСИЯ
 const axios = require('axios');
 const { Withdrawal, User, Transaction } = require('../models');
 const mongoose = require('mongoose');
@@ -21,20 +21,77 @@ class WithdrawalService {
       },
       timeout: 30000
     });
+
+    // Добавляем интерсептор для логирования запросов
+    this.api.interceptors.request.use(request => {
+      console.log('🚀 CryptoBot API Request:', {
+        method: request.method.toUpperCase(),
+        url: request.url,
+        headers: { ...request.headers, 'Crypto-Pay-API-Token': '[HIDDEN]' },
+        data: request.data
+      });
+      return request;
+    });
+
+    // Добавляем интерсептор для логирования ответов
+    this.api.interceptors.response.use(
+      response => {
+        console.log('✅ CryptoBot API Response:', {
+          status: response.status,
+          data: response.data
+        });
+        return response;
+      },
+      error => {
+        console.error('❌ CryptoBot API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+        return Promise.reject(error);
+      }
+    );
   }
 
   /**
-   * Создает запрос на вывод средств
-   * @param {string} userId - ID пользователя
-   * @param {Object} withdrawalData - Данные для вывода
-   * @returns {Object} - Созданный запрос на вывод
+   * Проверяет баланс казино в CryptoBot
+   */
+  async checkCasinoBalance() {
+    try {
+      console.log('💰 Проверка баланса казино в CryptoBot...');
+      const response = await this.api.get('/getBalance');
+      
+      if (response.data.ok) {
+        const balances = response.data.result;
+        console.log('💰 Балансы казино:', balances);
+        
+        // Находим баланс USDT
+        const usdtBalance = balances.find(b => b.currency_code === 'USDT');
+        if (usdtBalance) {
+          console.log(`💰 Баланс USDT: ${usdtBalance.available} (доступно), ${usdtBalance.onhold} (заморожено)`);
+          return parseFloat(usdtBalance.available);
+        }
+        
+        console.warn('⚠️ Баланс USDT не найден');
+        return 0;
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('❌ Ошибка проверки баланса:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Создает запрос на вывод средств с улучшенной обработкой
    */
   async createWithdrawal(userId, withdrawalData) {
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
-      console.log(`WITHDRAWAL: Создание запроса на вывод для пользователя ${userId}`);
+      console.log(`🔄 WITHDRAWAL: Создание запроса на вывод для пользователя ${userId}`);
       
       const { amount, recipient, recipientType, comment, metadata } = withdrawalData;
       
@@ -48,7 +105,7 @@ class WithdrawalService {
         throw new Error('Ваш аккаунт заблокирован');
       }
       
-      console.log(`WITHDRAWAL: Пользователь: ${user.firstName} ${user.lastName}, баланс: ${user.balance}`);
+      console.log(`👤 WITHDRAWAL: Пользователь: ${user.firstName} ${user.lastName}, баланс: ${user.balance}`);
       
       // Валидация суммы
       if (amount < 1) {
@@ -71,17 +128,23 @@ class WithdrawalService {
       }).session(session);
       
       if (activeWithdrawals.length > 0) {
+        console.warn(`⚠️ WITHDRAWAL: У пользователя есть ${activeWithdrawals.length} активных выводов`);
         throw new Error('У вас уже есть активный запрос на вывод. Дождитесь его обработки.');
+      }
+      
+      // НОВОЕ: Проверяем баланс казино перед созданием вывода
+      const casinoBalance = await this.checkCasinoBalance();
+      if (casinoBalance < amount * 1.1) { // Проверяем с запасом 10%
+        console.error(`❌ WITHDRAWAL: Недостаточно средств казино. Требуется: ${amount}, доступно: ${casinoBalance}`);
+        throw new Error('Временно недоступно. Попробуйте позже или уменьшите сумму.');
       }
       
       // Валидация получателя
       if (recipientType === 'username') {
-        // Для username проверяем, что это корректный Telegram username
         if (!recipient.match(/^@?[a-zA-Z0-9_]{5,32}$/)) {
           throw new Error('Некорректный Telegram username');
         }
       } else if (recipientType === 'wallet') {
-        // Для кошелька проверяем формат (можно добавить более строгую валидацию)
         if (!recipient || recipient.length < 10) {
           throw new Error('Некорректный адрес кошелька');
         }
@@ -98,13 +161,13 @@ class WithdrawalService {
       const withdrawal = new Withdrawal({
         user: userId,
         amount,
-        recipient: recipient.replace('@', ''), // Убираем @ если есть
+        recipient: recipient.replace('@', ''),
         recipientType,
-        status: requiresApproval ? 'pending' : 'approved', // Автоодобрение для малых сумм
+        status: requiresApproval ? 'pending' : 'approved',
         requiresApproval,
         balanceBefore,
         balanceAfter,
-        platformFee: 0, // Можно добавить комиссию платформы
+        platformFee: 0,
         netAmount: amount,
         comment,
         userIp: metadata?.userIp,
@@ -134,7 +197,7 @@ class WithdrawalService {
         payment: {
           invoiceId: withdrawal._id.toString(),
           paymentMethod: 'cryptobot',
-          externalReference: null // Будет обновлено после обработки
+          externalReference: null
         }
       });
       
@@ -142,16 +205,18 @@ class WithdrawalService {
       
       await session.commitTransaction();
       
-      console.log(`WITHDRAWAL: Запрос на вывод создан: ${withdrawal._id}, требует одобрения: ${requiresApproval}`);
+      console.log(`✅ WITHDRAWAL: Запрос на вывод создан: ${withdrawal._id}, требует одобрения: ${requiresApproval}`);
       
       // Если не требует одобрения, сразу обрабатываем
       if (!requiresApproval) {
-        console.log(`WITHDRAWAL: Автоматическая обработка вывода ${withdrawal._id}`);
+        console.log(`⚡ WITHDRAWAL: Автоматическая обработка вывода ${withdrawal._id}`);
         
-        // Запускаем обработку в фоне, чтобы не задерживать ответ
-        this.processWithdrawal(withdrawal._id).catch(error => {
-          console.error(`WITHDRAWAL: Ошибка автоматической обработки: ${error.message}`);
-        });
+        // Запускаем обработку в фоне с задержкой
+        setTimeout(() => {
+          this.processWithdrawal(withdrawal._id).catch(error => {
+            console.error(`❌ WITHDRAWAL: Ошибка автоматической обработки: ${error.message}`);
+          });
+        }, 3000); // Задержка 3 секунды
       }
       
       return {
@@ -166,7 +231,7 @@ class WithdrawalService {
       
     } catch (error) {
       await session.abortTransaction();
-      console.error('WITHDRAWAL: Ошибка создания запроса на вывод:', error);
+      console.error('❌ WITHDRAWAL: Ошибка создания запроса на вывод:', error);
       throw error;
     } finally {
       session.endSession();
@@ -174,15 +239,14 @@ class WithdrawalService {
   }
 
   /**
-   * Обрабатывает вывод через CryptoBot
-   * @param {string} withdrawalId - ID запроса на вывод
+   * Обрабатывает вывод через CryptoBot с улучшенной обработкой ошибок
    */
   async processWithdrawal(withdrawalId) {
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
-      console.log(`WITHDRAWAL: Начало обработки вывода ${withdrawalId}`);
+      console.log(`🔄 WITHDRAWAL: Начало обработки вывода ${withdrawalId}`);
       
       // Получаем запрос на вывод
       const withdrawal = await Withdrawal.findById(withdrawalId)
@@ -201,15 +265,21 @@ class WithdrawalService {
       // Помечаем как обрабатываемый
       await withdrawal.markAsProcessing();
       
-      console.log(`WITHDRAWAL: Отправка перевода через CryptoBot`);
+      console.log(`📤 WITHDRAWAL: Отправка перевода через CryptoBot`);
       console.log(`- Получатель: ${withdrawal.recipient}`);
       console.log(`- Сумма: ${withdrawal.amount} USDT`);
       console.log(`- Тип: ${withdrawal.recipientType}`);
       
+      // НОВОЕ: Повторная проверка баланса перед отправкой
+      const casinoBalance = await this.checkCasinoBalance();
+      if (casinoBalance < withdrawal.amount) {
+        throw new Error(`Недостаточно средств казино для вывода. Доступно: ${casinoBalance} USDT`);
+      }
+      
       // Отправляем запрос в CryptoBot для создания перевода
       const transferData = await this.createCryptoBotTransfer(withdrawal);
       
-      console.log(`WITHDRAWAL: Перевод создан в CryptoBot:`, transferData);
+      console.log(`✅ WITHDRAWAL: Перевод создан в CryptoBot:`, transferData);
       
       // Обновляем запись с данными от CryptoBot
       withdrawal.cryptoBotData = {
@@ -243,19 +313,30 @@ class WithdrawalService {
       
       await session.commitTransaction();
       
-      console.log(`WITHDRAWAL: Вывод ${withdrawalId} успешно обработан`);
+      // Обновляем финансовую статистику
+      const financeService = require('./casino-finance.service');
+      await financeService.updateAfterUserWithdrawal({
+        amount: withdrawal.amount,
+        user: withdrawal.user._id
+      });
+      
+      console.log(`✅ WITHDRAWAL: Вывод ${withdrawalId} успешно обработан`);
       
       // Отправляем уведомление об успешном выводе
-      const notificationService = require('../../../bot/src/services/notification.service');
-      await notificationService.notifyWithdrawalCompleted(withdrawal.user.telegramId, withdrawal);
+      try {
+        const notificationService = require('../../../bot/src/services/notification.service');
+        await notificationService.notifyWithdrawalCompleted(withdrawal.user.telegramId, withdrawal);
+      } catch (notifyError) {
+        console.error('⚠️ WITHDRAWAL: Ошибка отправки уведомления:', notifyError);
+      }
       
       return withdrawal;
       
     } catch (error) {
       await session.abortTransaction();
       
-      console.error(`WITHDRAWAL: Ошибка обработки вывода ${withdrawalId}:`, error);
-      console.error('WITHDRAWAL: Полная информация об ошибке:', {
+      console.error(`❌ WITHDRAWAL: Ошибка обработки вывода ${withdrawalId}:`, error);
+      console.error('📋 WITHDRAWAL: Детали ошибки:', {
         message: error.message,
         response: error.response?.data,
         stack: error.stack
@@ -276,7 +357,7 @@ class WithdrawalService {
           await this.refundFailedWithdrawal(withdrawal);
         }
       } catch (updateError) {
-        console.error('WITHDRAWAL: Ошибка обновления статуса:', updateError);
+        console.error('❌ WITHDRAWAL: Ошибка обновления статуса:', updateError);
       }
       
       throw error;
@@ -286,9 +367,7 @@ class WithdrawalService {
   }
 
   /**
-   * Создает перевод через CryptoBot API
-   * @param {Object} withdrawal - Объект вывода
-   * @returns {Object} - Данные перевода от CryptoBot
+   * Создает перевод через CryptoBot API с улучшенной обработкой
    */
   async createCryptoBotTransfer(withdrawal) {
     try {
@@ -300,7 +379,6 @@ class WithdrawalService {
         throw new Error('Не удалось получить данные пользователя для вывода');
       }
       
-      // ВАЖНО: Для вывода на username нужно найти Telegram ID получателя
       let recipientTelegramId;
       
       if (withdrawal.recipientType === 'username') {
@@ -323,17 +401,18 @@ class WithdrawalService {
         throw new Error('Вывод на кошелек временно недоступен');
       }
       
+      // ВАЖНО: Используем уникальный spend_id с timestamp для избежания конфликтов
+      const spendId = `${withdrawal._id}_${Date.now()}`;
+      
       const payload = {
-        user_id: recipientTelegramId, // ВАЖНО: передаем как число, без дополнительного текста!
+        user_id: recipientTelegramId,
         asset: 'USDT',
         amount: withdrawal.amount.toString(),
-        spend_id: withdrawal._id.toString(),
-        // УБИРАЕМ comment из-за ограничения CryptoBot для новых приложений
-        // comment: withdrawal.comment || `Вывод средств из Greenlight Casino`,
+        spend_id: spendId, // Уникальный ID с timestamp
         disable_send_notification: false
       };
       
-      console.log('WITHDRAWAL: Отправка запроса transfer в CryptoBot:');
+      console.log('📤 WITHDRAWAL: Отправка запроса transfer в CryptoBot:');
       console.log(`- Получатель: @${withdrawal.recipient} (Telegram ID: ${recipientTelegramId})`);
       console.log(`- Сумма: ${payload.amount} ${payload.asset}`);
       console.log(`- Spend ID: ${payload.spend_id}`);
@@ -341,20 +420,23 @@ class WithdrawalService {
       const response = await this.api.post('/transfer', payload);
       
       if (!response.data.ok) {
-        throw new Error(`CryptoBot API Error: ${response.data.error?.name || 'Unknown error'}`);
+        const error = response.data.error || {};
+        console.error('❌ CryptoBot API отклонил запрос:', error);
+        throw new Error(`CryptoBot API Error: ${error.name || 'Unknown error'}`);
       }
       
-      console.log('WITHDRAWAL: Transfer успешно создан:', response.data.result);
+      console.log('✅ WITHDRAWAL: Transfer успешно создан:', response.data.result);
       
       return response.data.result;
       
     } catch (error) {
       if (error.response) {
-        console.error('WITHDRAWAL: CryptoBot API Error:', error.response.data);
+        console.error('❌ WITHDRAWAL: CryptoBot API Error Response:', error.response.data);
         
         const errorCode = error.response.data.error?.code;
         const errorName = error.response.data.error?.name;
         
+        // Детальная обработка ошибок
         if (errorCode === 'USER_NOT_FOUND' || errorName === 'USER_NOT_FOUND') {
           throw new Error('Получатель не найден в CryptoBot. Убедитесь, что получатель использовал @CryptoBot.');
         } else if (errorName === 'INSUFFICIENT_FUNDS') {
@@ -363,11 +445,14 @@ class WithdrawalService {
           throw new Error('Превышен лимит переводов. Попробуйте позже.');
         } else if (errorName === 'USER_ID_INVALID') {
           throw new Error('Некорректный ID получателя. Обратитесь в поддержку.');
+        } else if (errorName === 'SPEND_ID_DUPLICATE') {
+          throw new Error('Дублирование запроса. Попробуйте через несколько секунд.');
         } else if (errorName === 'CANNOT_ATTACH_COMMENT') {
-          throw new Error('Временное ограничение CryptoBot. Вывод будет выполнен без комментария.');
+          // Игнорируем эту ошибку, так как comment не критичен
+          console.warn('⚠️ WITHDRAWAL: Комментарий не поддерживается');
         }
         
-        throw new Error(`CryptoBot API: ${errorName || 'Неизвестная ошибка'}`);
+        throw new Error(`CryptoBot API: ${errorName || errorCode || 'Неизвестная ошибка'}`);
       }
       throw error;
     }
@@ -375,14 +460,13 @@ class WithdrawalService {
 
   /**
    * Возвращает средства пользователю при неудачном выводе
-   * @param {Object} withdrawal - Объект вывода
    */
   async refundFailedWithdrawal(withdrawal) {
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
-      console.log(`WITHDRAWAL: Возврат средств для неудачного вывода ${withdrawal._id}`);
+      console.log(`💸 WITHDRAWAL: Возврат средств для неудачного вывода ${withdrawal._id}`);
       
       const user = await User.findById(withdrawal.user).session(session);
       if (!user) {
@@ -411,11 +495,22 @@ class WithdrawalService {
       
       await session.commitTransaction();
       
-      console.log(`WITHDRAWAL: Средства возвращены пользователю ${user._id}`);
+      console.log(`✅ WITHDRAWAL: Средства (${withdrawal.amount} USDT) возвращены пользователю ${user._id}`);
+      
+      // Отправляем уведомление пользователю
+      try {
+        const notificationService = require('../../../bot/src/services/notification.service');
+        await notificationService.notifyWithdrawalRejected(user.telegramId, {
+          ...withdrawal.toObject(),
+          rejectionReason: 'Технические проблемы. Средства возвращены на баланс.'
+        });
+      } catch (notifyError) {
+        console.error('⚠️ WITHDRAWAL: Ошибка отправки уведомления о возврате:', notifyError);
+      }
       
     } catch (error) {
       await session.abortTransaction();
-      console.error('WITHDRAWAL: Ошибка возврата средств:', error);
+      console.error('❌ WITHDRAWAL: Ошибка возврата средств:', error);
       throw error;
     } finally {
       session.endSession();
@@ -424,8 +519,6 @@ class WithdrawalService {
 
   /**
    * Получает информацию о выводе
-   * @param {string} withdrawalId - ID вывода
-   * @returns {Object} - Информация о выводе
    */
   async getWithdrawalInfo(withdrawalId) {
     const withdrawal = await Withdrawal.findById(withdrawalId)
@@ -441,9 +534,6 @@ class WithdrawalService {
 
   /**
    * Получает историю выводов пользователя
-   * @param {string} userId - ID пользователя
-   * @param {Object} params - Параметры фильтрации
-   * @returns {Object} - История выводов
    */
   async getUserWithdrawals(userId, params = {}) {
     const { limit = 20, skip = 0, status } = params;
@@ -470,8 +560,6 @@ class WithdrawalService {
 
   /**
    * Одобряет запрос на вывод (для администратора)
-   * @param {string} withdrawalId - ID вывода
-   * @param {string} adminId - ID администратора
    */
   async approveWithdrawal(withdrawalId, adminId) {
     const withdrawal = await Withdrawal.findById(withdrawalId);
@@ -486,23 +574,26 @@ class WithdrawalService {
     
     await withdrawal.approve(adminId);
     
-    // Запускаем обработку
-    this.processWithdrawal(withdrawalId).catch(error => {
-      console.error(`WITHDRAWAL: Ошибка обработки после одобрения: ${error.message}`);
-    });
+    // Запускаем обработку с задержкой
+    setTimeout(() => {
+      this.processWithdrawal(withdrawalId).catch(error => {
+        console.error(`❌ WITHDRAWAL: Ошибка обработки после одобрения: ${error.message}`);
+      });
+    }, 3000);
     
     // Отправляем уведомление пользователю
-    const notificationService = require('../../../bot/src/services/notification.service');
-    await notificationService.notifyWithdrawalApproved(withdrawal.user.telegramId, withdrawal);
+    try {
+      const notificationService = require('../../../bot/src/services/notification.service');
+      await notificationService.notifyWithdrawalApproved(withdrawal.user.telegramId, withdrawal);
+    } catch (notifyError) {
+      console.error('⚠️ WITHDRAWAL: Ошибка отправки уведомления об одобрении:', notifyError);
+    }
     
     return withdrawal;
   }
 
   /**
    * Отклоняет запрос на вывод (для администратора)
-   * @param {string} withdrawalId - ID вывода
-   * @param {string} adminId - ID администратора
-   * @param {string} reason - Причина отклонения
    */
   async rejectWithdrawal(withdrawalId, adminId, reason) {
     const withdrawal = await Withdrawal.findById(withdrawalId);
@@ -520,16 +611,11 @@ class WithdrawalService {
     // Возвращаем средства пользователю
     await this.refundFailedWithdrawal(withdrawal);
     
-    // Отправляем уведомление пользователю
-    const notificationService = require('../../../bot/src/services/notification.service');
-    await notificationService.notifyWithdrawalRejected(withdrawal.user.telegramId, withdrawal);
-    
     return withdrawal;
   }
 
   /**
    * Получает выводы, требующие одобрения
-   * @returns {Array} - Список выводов
    */
   async getPendingApprovals() {
     return await Withdrawal.getPendingApprovals();
@@ -537,8 +623,6 @@ class WithdrawalService {
 
   /**
    * Получает статистику по выводам
-   * @param {string} userId - ID пользователя (опционально)
-   * @returns {Object} - Статистика
    */
   async getWithdrawalStats(userId = null) {
     return await Withdrawal.getWithdrawalStats(userId);

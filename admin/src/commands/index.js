@@ -82,7 +82,9 @@ function registerCommands(bot) {
       '/get_user_chance - Показать шанс пользователя\n\n' +
       '--- Управление выводами ---\n' +
       '/pending_withdrawals - Выводы на одобрении\n' +
-      '/withdrawal_stats - Статистика выводов'
+      '/withdrawal_stats - Статистика выводов\n' +
+      '/casino_balance - Баланс казино в CryptoBot\n' +
+      '/recent_withdrawals - Последние 10 выводов'
     );
   });
 
@@ -388,10 +390,57 @@ function registerCommands(bot) {
     }
   });
   
-  // Обработка текстовых сообщений для причины отклонения
+  // Обработка текстовых сообщений для причины отклонения и вывода прибыли
   bot.on('text', async (ctx, next) => {
+    // Проверяем, ожидаем ли мы сумму для вывода прибыли
+    if (ctx.session && ctx.session.withdrawingProfit) {
+      const amount = parseFloat(ctx.message.text);
+      
+      if (isNaN(amount) || amount <= 0) {
+        await ctx.reply('❌ Некорректная сумма. Введите положительное число:');
+        return;
+      }
+      
+      if (amount < 10) {
+        await ctx.reply('❌ Минимальная сумма для вывода: 10 USDT. Введите другую сумму:');
+        return;
+      }
+      
+      try {
+        console.log(`ADMIN: Вывод прибыли ${amount} USDT`);
+        
+        const response = await axios.post(
+          `${apiUrl}/admin/finance/withdraw-profit`,
+          { 
+            amount,
+            recipient: ctx.from.username || `admin_${ctx.from.id}`,
+            comment: 'Вывод прибыли казино'
+          },
+          { headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` } }
+        );
+        
+        if (response.data.success) {
+          await ctx.reply(
+            `✅ Прибыль успешно выведена!\n\n` +
+            `Сумма: ${amount} USDT\n` +
+            `Новый оперативный баланс: ${response.data.data.newOperationalBalance.toFixed(2)} USDT\n` +
+            `Осталось доступно: ${response.data.data.newAvailable.toFixed(2)} USDT\n\n` +
+            `⚠️ Средства будут переведены вручную через CryptoBot`
+          );
+        } else {
+          await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+        }
+        
+        delete ctx.session.withdrawingProfit;
+        
+      } catch (error) {
+        console.error('ADMIN: Ошибка вывода прибыли:', error);
+        await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+        delete ctx.session.withdrawingProfit;
+      }
+    }
     // Проверяем, есть ли в сессии ID отклоняемого вывода
-    if (ctx.session && ctx.session.rejectingWithdrawalId) {
+    else if (ctx.session && ctx.session.rejectingWithdrawalId) {
       const withdrawalId = ctx.session.rejectingWithdrawalId;
       const reason = ctx.message.text;
       
@@ -425,6 +474,585 @@ function registerCommands(bot) {
     } else {
       // Передаем управление следующему обработчику
       return next();
+    }
+  });
+
+  // Команда для проверки баланса казино в CryptoBot
+  bot.command('casino_balance', async (ctx) => {
+    try {
+      console.log('ADMIN: Запрос баланса казино в CryptoBot');
+      
+      await ctx.reply('⏳ Проверяем баланс казино в CryptoBot...');
+      
+      // Делаем запрос к CryptoBot API
+      const axios = require('axios');
+      const cryptoBotToken = process.env.CRYPTO_PAY_API_TOKEN;
+      const cryptoBotApiUrl = process.env.CRYPTO_PAY_API_URL || 'https://pay.crypt.bot/api';
+      
+      if (!cryptoBotToken) {
+        return ctx.reply('❌ CRYPTO_PAY_API_TOKEN не настроен');
+      }
+      
+      const response = await axios.get(`${cryptoBotApiUrl}/getBalance`, {
+        headers: {
+          'Crypto-Pay-API-Token': cryptoBotToken
+        }
+      });
+      
+      if (response.data.ok) {
+        const balances = response.data.result;
+        let message = '💰 Баланс казино в CryptoBot:\n\n';
+        
+        let totalInUSDT = 0;
+        
+        for (const balance of balances) {
+          const available = parseFloat(balance.available);
+          const onhold = parseFloat(balance.onhold || 0);
+          const total = available + onhold;
+          
+          message += `${balance.currency_code}:\n`;
+          message += `  Доступно: ${available.toFixed(2)}\n`;
+          if (onhold > 0) {
+            message += `  Заморожено: ${onhold.toFixed(2)}\n`;
+          }
+          message += `  Всего: ${total.toFixed(2)}\n\n`;
+          
+          // Для упрощения считаем все как USDT (в реальности нужна конвертация)
+          if (balance.currency_code === 'USDT') {
+            totalInUSDT += total;
+          }
+        }
+        
+        // Получаем статистику выводов из БД
+        const response2 = await axios.get(`${apiUrl}/admin/withdrawals/stats`, {
+          headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+        });
+        
+        if (response2.data.success) {
+          const stats = response2.data.data.stats;
+          message += '📊 Статистика выводов:\n';
+          
+          for (const stat of stats) {
+            if (stat._id === 'processing' || stat._id === 'pending') {
+              message += `${stat._id}: ${stat.count} шт. на ${stat.totalAmount.toFixed(2)} USDT\n`;
+            }
+          }
+        }
+        
+        // Рекомендации
+        message += '\n💡 Рекомендации:\n';
+        if (totalInUSDT < 100) {
+          message += '⚠️ Низкий баланс! Рекомендуется пополнить счет казино.\n';
+        } else if (totalInUSDT < 500) {
+          message += '⚠️ Средний баланс. Следите за крупными выводами.\n';
+        } else {
+          message += '✅ Баланс в норме.\n';
+        }
+        
+        await ctx.reply(message);
+        
+      } else {
+        await ctx.reply('❌ Ошибка получения баланса от CryptoBot');
+      }
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка проверки баланса казино:', error);
+      await ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  // Команда для получения детальной информации о последних выводах
+  bot.command('recent_withdrawals', async (ctx) => {
+    try {
+      console.log('ADMIN: Запрос последних выводов');
+      
+      const response = await axios.get(`${apiUrl}/admin/withdrawals`, {
+        params: { limit: 10 },
+        headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+      });
+      
+      if (!response.data.success || response.data.data.withdrawals.length === 0) {
+        return ctx.reply('📋 Нет выводов');
+      }
+      
+      const withdrawals = response.data.data.withdrawals;
+      let message = '📋 Последние 10 выводов:\n\n';
+      
+      for (const w of withdrawals) {
+        const date = new Date(w.createdAt).toLocaleString('ru-RU');
+        let statusEmoji = '';
+        
+        switch (w.status) {
+          case 'pending': statusEmoji = '⏳'; break;
+          case 'approved': statusEmoji = '✅'; break;
+          case 'processing': statusEmoji = '⚙️'; break;
+          case 'completed': statusEmoji = '✅'; break;
+          case 'rejected': statusEmoji = '❌'; break;
+          case 'failed': statusEmoji = '⚠️'; break;
+        }
+        
+        message += `${statusEmoji} ${date}\n`;
+        message += `Сумма: ${w.amount} USDT\n`;
+        message += `Пользователь: @${w.user.username || 'нет'} (${w.user.firstName})\n`;
+        message += `Получатель: @${w.recipient}\n`;
+        message += `Статус: ${w.status}\n`;
+        
+        if (w.lastError && w.lastError.message) {
+          message += `Ошибка: ${w.lastError.message}\n`;
+        }
+        
+        message += '\n';
+      }
+      
+      await ctx.reply(message);
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения последних выводов:', error);
+      await ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  // НОВЫЕ КОМАНДЫ ДЛЯ УПРАВЛЕНИЯ ФИНАНСАМИ
+
+  // Команда для просмотра финансового состояния
+  bot.command('finance', async (ctx) => {
+    try {
+      console.log('ADMIN: Запрос финансового состояния');
+      
+      const response = await axios.get(`${apiUrl}/admin/finance/state`, {
+        headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+      });
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить финансовое состояние');
+      }
+      
+      const { balances, settings, warnings } = response.data.data;
+      
+      // Формируем сообщение
+      let message = '💰 ФИНАНСОВОЕ СОСТОЯНИЕ КАЗИНО\n\n';
+      
+      message += '📊 Балансы:\n';
+      message += `├ Баланс пользователей: ${balances.totalUsers.toFixed(2)} USDT\n`;
+      message += `├ Оперативный счет: ${balances.operational.toFixed(2)} USDT\n`;
+      message += `├ Резерв (${settings.reservePercentage}%): ${balances.reserve.toFixed(2)} USDT\n`;
+      message += `└ Доступно для вывода: ${balances.availableForWithdrawal.toFixed(2)} USDT\n\n`;
+      
+      // Предупреждения
+      if (warnings.lowReserve || warnings.highRiskRatio || warnings.negativeOperational) {
+        message += '⚠️ ПРЕДУПРЕЖДЕНИЯ:\n';
+        if (warnings.lowReserve) message += '├ Низкий уровень резерва\n';
+        if (warnings.highRiskRatio) message += '├ Высокое соотношение балансов к резерву\n';
+        if (warnings.negativeOperational) message += '└ Отрицательный оперативный баланс\n\n';
+      }
+      
+      await ctx.reply(message, 
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback('📈 Отчет за день', 'finance_report:day'),
+            Markup.button.callback('📊 Отчет за неделю', 'finance_report:week')
+          ],
+          [
+            Markup.button.callback('🔄 Пересчитать', 'finance_recalculate'),
+            Markup.button.callback('⚙️ Настройки', 'finance_settings')
+          ],
+          [
+            Markup.button.callback('💸 Вывести прибыль', 'finance_withdraw')
+          ]
+        ])
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения финансов:', error);
+      ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  // Команда для быстрого просмотра доступной прибыли
+  bot.command('profit', async (ctx) => {
+    try {
+      const response = await axios.get(`${apiUrl}/admin/finance/state`, {
+        headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+      });
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить данные');
+      }
+      
+      const { balances } = response.data.data;
+      
+      await ctx.reply(
+        `💵 ДОСТУПНАЯ ПРИБЫЛЬ\n\n` +
+        `💰 Доступно для вывода: ${balances.availableForWithdrawal.toFixed(2)} USDT\n` +
+        `📊 Оперативный счет: ${balances.operational.toFixed(2)} USDT\n` +
+        `🛡️ Резерв: ${balances.reserve.toFixed(2)} USDT\n\n` +
+        `Используйте /finance для подробной информации`
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения прибыли:', error);
+      ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  // Обработчики callback для финансов
+  bot.action(/^finance_report:(.+)$/, async (ctx) => {
+    try {
+      const period = ctx.match[1];
+      await ctx.answerCbQuery('⏳ Генерируем отчет...');
+      
+      const response = await axios.get(`${apiUrl}/admin/finance/report`, {
+        params: { period },
+        headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+      });
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить отчет');
+      }
+      
+      const report = response.data.data;
+      
+      let periodName = '';
+      switch (period) {
+        case 'day': periodName = 'ДЕНЬ'; break;
+        case 'week': periodName = 'НЕДЕЛЮ'; break;
+        case 'month': periodName = 'МЕСЯЦ'; break;
+        default: periodName = 'ВСЕ ВРЕМЯ';
+      }
+      
+      let message = `📊 ФИНАНСОВЫЙ ОТЧЕТ ЗА ${periodName}\n\n`;
+      
+      message += '💳 Депозиты:\n';
+      message += `├ Количество: ${report.period.deposits.count}\n`;
+      message += `└ Сумма: ${report.period.deposits.total.toFixed(2)} USDT\n\n`;
+      
+      message += '💸 Выводы:\n';
+      message += `├ Количество: ${report.period.withdrawals.count}\n`;
+      message += `└ Сумма: ${report.period.withdrawals.total.toFixed(2)} USDT\n\n`;
+      
+      message += '🎮 Игры:\n';
+      message += `├ Количество: ${report.period.games.count}\n`;
+      message += `├ Ставки: ${report.period.games.totalBets.toFixed(2)} USDT\n`;
+      message += `├ Выигрыши: ${report.period.games.totalWins.toFixed(2)} USDT\n`;
+      message += `└ Прибыль: ${report.period.games.profit.toFixed(2)} USDT\n\n`;
+      
+      message += `👥 Активных пользователей: ${report.period.activeUsers}\n\n`;
+      
+      message += '📈 ИТОГО ЗА ВСЕ ВРЕМЯ:\n';
+      message += `├ Депозиты: ${report.allTime.totalDeposits.toFixed(2)} USDT\n`;
+      message += `├ Выводы: ${report.allTime.totalWithdrawals.toFixed(2)} USDT\n`;
+      message += `├ Ставки: ${report.allTime.totalBets.toFixed(2)} USDT\n`;
+      message += `├ Выигрыши: ${report.allTime.totalWins.toFixed(2)} USDT\n`;
+      message += `└ Выведено владельцем: ${report.allTime.totalOwnerWithdrawals.toFixed(2)} USDT`;
+      
+      await ctx.reply(message);
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения отчета:', error);
+      await ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  bot.action('finance_recalculate', async (ctx) => {
+    try {
+      await ctx.answerCbQuery('⏳ Пересчитываем...');
+      
+      const response = await axios.post(
+        `${apiUrl}/admin/finance/recalculate`,
+        {},
+        { headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` } }
+      );
+      
+      if (response.data.success) {
+        const { balances, warnings } = response.data.data;
+        
+        let message = '✅ Финансы успешно пересчитаны\n\n';
+        message += `💰 Баланс пользователей: ${balances.totalUsers.toFixed(2)} USDT\n`;
+        message += `📊 Оперативный: ${balances.operational.toFixed(2)} USDT\n`;
+        message += `🛡️ Резерв: ${balances.reserve.toFixed(2)} USDT\n`;
+        message += `💵 Доступно: ${balances.availableForWithdrawal.toFixed(2)} USDT`;
+        
+        if (warnings.lowReserve || warnings.highRiskRatio || warnings.negativeOperational) {
+          message += '\n\n⚠️ Есть предупреждения!';
+        }
+        
+        await ctx.reply(message);
+      } else {
+        await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+      }
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка пересчета:', error);
+      await ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  bot.action('finance_settings', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      
+      const response = await axios.get(`${apiUrl}/admin/finance/state`, {
+        headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+      });
+      
+      const { settings } = response.data.data;
+      
+      await ctx.reply(
+        `⚙️ НАСТРОЙКИ ФИНАНСОВ\n\n` +
+        `Текущий процент резервирования: ${settings.reservePercentage}%\n\n` +
+        `Для изменения используйте:\n` +
+        `/set_reserve [процент]\n` +
+        `Например: /set_reserve 40`
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения настроек:', error);
+      await ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  bot.action('finance_withdraw', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      
+      ctx.session = ctx.session || {};
+      ctx.session.withdrawingProfit = true;
+      
+      const response = await axios.get(`${apiUrl}/admin/finance/state`, {
+        headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+      });
+      
+      const { balances } = response.data.data;
+      
+      await ctx.reply(
+        `💸 ВЫВОД ПРИБЫЛИ\n\n` +
+        `Доступно для вывода: ${balances.availableForWithdrawal.toFixed(2)} USDT\n` +
+        `Минимальная сумма: 10 USDT\n\n` +
+        `Введите сумму для вывода:`
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка начала вывода:', error);
+      await ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  // Команда для установки процента резерва
+  bot.command('set_reserve', async (ctx) => {
+    try {
+      const args = ctx.message.text.split(' ');
+      if (args.length < 2) {
+        return ctx.reply('Использование: /set_reserve [процент]\nПример: /set_reserve 40');
+      }
+      
+      const percentage = parseFloat(args[1]);
+      
+      if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+        return ctx.reply('Процент должен быть числом от 0 до 100');
+      }
+      
+      const response = await axios.post(
+        `${apiUrl}/admin/finance/reserve-percentage`,
+        { percentage },
+        { headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` } }
+      );
+      
+      if (response.data.success) {
+        const { reservePercentage, reserveBalance, availableForWithdrawal } = response.data.data;
+        
+        await ctx.reply(
+          `✅ Процент резервирования изменен\n\n` +
+          `Новый процент: ${reservePercentage}%\n` +
+          `Резерв: ${reserveBalance.toFixed(2)} USDT\n` +
+          `Доступно для вывода: ${availableForWithdrawal.toFixed(2)} USDT`
+        );
+      } else {
+        await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+      }
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка установки резерва:', error);
+      await ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  // Команда для включения/выключения мониторинга
+  bot.command('monitor', async (ctx) => {
+    ctx.session = ctx.session || {};
+    
+    if (ctx.session.monitoring) {
+      // Выключаем мониторинг
+      clearInterval(ctx.session.monitoringInterval);
+      delete ctx.session.monitoring;
+      delete ctx.session.monitoringInterval;
+      delete ctx.session.monitoringMessageId;
+      
+      await ctx.reply('📊 Мониторинг финансов выключен');
+    } else {
+      // Включаем мониторинг
+      ctx.session.monitoring = true;
+      
+      try {
+        // Отправляем первое сообщение
+        const message = await ctx.reply('⏳ Запуск мониторинга...');
+        ctx.session.monitoringMessageId = message.message_id;
+        
+        // Функция обновления данных
+        const updateMonitoring = async () => {
+          try {
+            const response = await axios.get(`${apiUrl}/admin/finance/state`, {
+              headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+            });
+            
+            if (!response.data.success) return;
+            
+            const { balances, statistics } = response.data.data;
+            
+            const monitorText = 
+              `📊 МОНИТОРИНГ ФИНАНСОВ\n` +
+              `Обновлено: ${new Date().toLocaleTimeString('ru-RU')}\n\n` +
+              `💰 Баланс пользователей: ${balances.totalUsers.toFixed(2)} USDT\n` +
+              `📈 Оперативный счет: ${balances.operational.toFixed(2)} USDT\n` +
+              `🛡️ Резерв: ${balances.reserve.toFixed(2)} USDT\n` +
+              `💵 Доступно для вывода: ${balances.availableForWithdrawal.toFixed(2)} USDT\n\n` +
+              `📊 Статистика:\n` +
+              `├ Всего депозитов: ${statistics.totalDeposits.toFixed(2)} USDT\n` +
+              `├ Всего выводов: ${statistics.totalWithdrawals.toFixed(2)} USDT\n` +
+              `├ Всего ставок: ${statistics.totalBets.toFixed(2)} USDT\n` +
+              `└ Всего выигрышей: ${statistics.totalWins.toFixed(2)} USDT\n\n` +
+              `Для остановки используйте /monitor`;
+            
+            // Редактируем сообщение
+            await ctx.telegram.editMessageText(
+              ctx.chat.id,
+              ctx.session.monitoringMessageId,
+              null,
+              monitorText
+            );
+            
+          } catch (error) {
+            console.error('MONITOR: Ошибка обновления:', error);
+            // Если не удалось отредактировать, останавливаем мониторинг
+            if (error.response && error.response.error_code === 400) {
+              clearInterval(ctx.session.monitoringInterval);
+              delete ctx.session.monitoring;
+              delete ctx.session.monitoringInterval;
+              delete ctx.session.monitoringMessageId;
+            }
+          }
+        };
+        
+        // Запускаем первое обновление
+        await updateMonitoring();
+        
+        // Запускаем обновление каждые 30 секунд
+        ctx.session.monitoringInterval = setInterval(updateMonitoring, 30000);
+        
+      } catch (error) {
+        console.error('MONITOR: Ошибка запуска мониторинга:', error);
+        await ctx.reply(`❌ Ошибка запуска мониторинга: ${error.message}`);
+        delete ctx.session.monitoring;
+      }
+    }
+  });
+
+  // Команда для просмотра истории балансов
+  bot.command('finance_history', async (ctx) => {
+    try {
+      const response = await axios.get(`${apiUrl}/admin/finance/history`, {
+        params: { limit: 20 },
+        headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+      });
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить историю');
+      }
+      
+      const { history } = response.data.data;
+      
+      if (history.length === 0) {
+        return ctx.reply('📊 История изменений пока пуста');
+      }
+      
+      let message = '📊 ИСТОРИЯ ИЗМЕНЕНИЙ БАЛАНСОВ\n\n';
+      
+      history.slice(0, 10).forEach(record => {
+        const date = new Date(record.timestamp).toLocaleString('ru-RU');
+        let eventName = '';
+        
+        switch (record.event) {
+          case 'deposit': eventName = '💳 Депозит'; break;
+          case 'user_withdrawal': eventName = '💸 Вывод пользователя'; break;
+          case 'owner_withdrawal': eventName = '💰 Вывод прибыли'; break;
+          case 'game_win': eventName = '🎮 Выигрыш в игре'; break;
+          case 'game_loss': eventName = '🎮 Проигрыш в игре'; break;
+          case 'full_recalculation': eventName = '🔄 Пересчет'; break;
+          default: eventName = record.event;
+        }
+        
+        message += `${date}\n`;
+        message += `${eventName}\n`;
+        message += `Оперативный: ${record.operationalBalance.toFixed(2)} USDT\n`;
+        if (record.details && record.details.amount) {
+          message += `Сумма: ${record.details.amount.toFixed(2)} USDT\n`;
+        }
+        message += '\n';
+      });
+      
+      await ctx.reply(message);
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения истории:', error);
+      ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  // Команда для быстрой статистики по играм
+  bot.command('game_stats', async (ctx) => {
+    try {
+      const response = await axios.get(`${apiUrl}/admin/finance/game-stats`, {
+        headers: { Authorization: `Bearer ${process.env.ADMIN_API_TOKEN}` }
+      });
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить статистику');
+      }
+      
+      const { games, total } = response.data.data;
+      
+      let message = '🎮 СТАТИСТИКА ПО ИГРАМ\n\n';
+      
+      // Статистика по каждой игре
+      const gameNames = {
+        coin: '🪙 Монетка',
+        mines: '💣 Мины',
+        slots: '🎰 Слоты',
+        crash: '📈 Краш'
+      };
+      
+      for (const [gameType, stats] of Object.entries(games)) {
+        message += `${gameNames[gameType] || gameType}:\n`;
+        message += `├ Игр: ${stats.totalGames}\n`;
+        message += `├ Ставок: ${stats.totalBets.toFixed(2)} USDT\n`;
+        message += `├ Выплат: ${stats.totalWins.toFixed(2)} USDT\n`;
+        message += `├ Прибыль: ${stats.profit.toFixed(2)} USDT\n`;
+        message += `├ RTP: ${stats.rtp}%\n`;
+        message += `└ House Edge: ${stats.houseEdge}%\n\n`;
+      }
+      
+      // Общая статистика
+      message += '📊 ИТОГО:\n';
+      message += `├ Всего ставок: ${total.totalBets.toFixed(2)} USDT\n`;
+      message += `├ Всего выплат: ${total.totalWins.toFixed(2)} USDT\n`;
+      message += `├ Прибыль казино: ${total.totalProfit.toFixed(2)} USDT\n`;
+      message += `├ Общий RTP: ${total.rtp}%\n`;
+      message += `└ House Edge: ${total.houseEdge}%`;
+      
+      await ctx.reply(message);
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения статистики игр:', error);
+      ctx.reply(`❌ Ошибка: ${error.message}`);
     }
   });
 

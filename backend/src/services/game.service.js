@@ -173,6 +173,15 @@ class GameService {
       
       await session.commitTransaction();
       
+      // Обновляем финансовую статистику
+      const financeService = require('./casino-finance.service');
+      await financeService.updateAfterGame({
+        gameType: 'coin',
+        bet: betAmount,
+        profit: profit,
+        win: win
+      });
+      
       // Возвращаем данные для клиента (без seed и прочего)
       return {
         result,
@@ -418,6 +427,15 @@ async playSlots(userData, gameData) {
     }
     
     await session.commitTransaction();
+    
+    // Обновляем финансовую статистику
+    const financeService = require('./casino-finance.service');
+    await financeService.updateAfterGame({
+      gameType: 'slots',
+      bet: betAmount,
+      profit: profit,
+      win: win
+    });
     
     console.log('СЛОТЫ: Финальный результат:', {
       reels,
@@ -750,6 +768,15 @@ async playSlots(userData, gameData) {
         
         await session.commitTransaction();
         
+        // Обновляем финансовую статистику
+        const financeService = require('./casino-finance.service');
+        await financeService.updateAfterGame({
+          gameType: 'mines',
+          bet: game.bet,
+          profit: profit,
+          win: true
+        });
+        
         // Возвращаем данные для клиента
         return {
           win: true,
@@ -802,6 +829,15 @@ async playSlots(userData, gameData) {
           ).session(session);
           
           await session.commitTransaction();
+          
+          // Обновляем финансовую статистику
+          const financeService = require('./casino-finance.service');
+          await financeService.updateAfterGame({
+            gameType: 'mines',
+            bet: game.bet,
+            profit: -game.bet,
+            win: false
+          });
           
           // Добавляем новую ячейку в локальный массив для ответа
           clickedCells.push([row, col]);
@@ -883,6 +919,15 @@ async playSlots(userData, gameData) {
             user.balance += winAmount;
             
             await session.commitTransaction();
+            
+            // Обновляем финансовую статистику
+            const financeService = require('./casino-finance.service');
+            await financeService.updateAfterGame({
+              gameType: 'mines',
+              bet: game.bet,
+              profit: profit,
+              win: true
+            });
             
             // Возвращаем данные для клиента
             return {

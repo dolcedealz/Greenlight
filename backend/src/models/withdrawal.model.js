@@ -159,6 +159,7 @@ const withdrawalSchema = new Schema({
   // Последняя ошибка при обработке
   lastError: {
     message: String,
+    details: Schema.Types.Mixed, // Добавляем поле для деталей ошибки
     timestamp: Date
   }
 }, {

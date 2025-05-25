@@ -324,24 +324,27 @@ class WithdrawalService {
       }
       
       const payload = {
-        user_id: recipientTelegramId, // Используем Telegram ID, а не username!
+        user_id: recipientTelegramId, // ВАЖНО: передаем как число, без дополнительного текста!
         asset: 'USDT',
         amount: withdrawal.amount.toString(),
         spend_id: withdrawal._id.toString(),
-        comment: withdrawal.comment || `Вывод средств из Greenlight Casino`,
+        // УБИРАЕМ comment из-за ограничения CryptoBot для новых приложений
+        // comment: withdrawal.comment || `Вывод средств из Greenlight Casino`,
         disable_send_notification: false
       };
       
-      console.log('WITHDRAWAL: Отправка запроса transfer в CryptoBot:', {
-        ...payload,
-        user_id: `${payload.user_id} (для @${withdrawal.recipient})`
-      });
+      console.log('WITHDRAWAL: Отправка запроса transfer в CryptoBot:');
+      console.log(`- Получатель: @${withdrawal.recipient} (Telegram ID: ${recipientTelegramId})`);
+      console.log(`- Сумма: ${payload.amount} ${payload.asset}`);
+      console.log(`- Spend ID: ${payload.spend_id}`);
       
       const response = await this.api.post('/transfer', payload);
       
       if (!response.data.ok) {
         throw new Error(`CryptoBot API Error: ${response.data.error?.name || 'Unknown error'}`);
       }
+      
+      console.log('WITHDRAWAL: Transfer успешно создан:', response.data.result);
       
       return response.data.result;
       
@@ -350,18 +353,21 @@ class WithdrawalService {
         console.error('WITHDRAWAL: CryptoBot API Error:', error.response.data);
         
         const errorCode = error.response.data.error?.code;
+        const errorName = error.response.data.error?.name;
         
-        if (errorCode === 'USER_NOT_FOUND') {
+        if (errorCode === 'USER_NOT_FOUND' || errorName === 'USER_NOT_FOUND') {
           throw new Error('Получатель не найден в CryptoBot. Убедитесь, что получатель использовал @CryptoBot.');
-        } else if (errorCode === 'INSUFFICIENT_FUNDS') {
-          throw new Error('Недостаточно средств на счете казино');
-        } else if (errorCode === 'TRANSFER_LIMIT_EXCEEDED') {
-          throw new Error('Превышен лимит переводов');
-        } else if (errorCode === 'USER_ID_INVALID') {
-          throw new Error('Некорректный ID получателя');
+        } else if (errorName === 'INSUFFICIENT_FUNDS') {
+          throw new Error('Недостаточно средств на счете казино для выполнения вывода');
+        } else if (errorName === 'TRANSFER_LIMIT_EXCEEDED') {
+          throw new Error('Превышен лимит переводов. Попробуйте позже.');
+        } else if (errorName === 'USER_ID_INVALID') {
+          throw new Error('Некорректный ID получателя. Обратитесь в поддержку.');
+        } else if (errorName === 'CANNOT_ATTACH_COMMENT') {
+          throw new Error('Временное ограничение CryptoBot. Вывод будет выполнен без комментария.');
         }
         
-        throw new Error(`CryptoBot API Error: ${error.response.data.error?.name || error.response.statusText}`);
+        throw new Error(`CryptoBot API: ${errorName || 'Неизвестная ошибка'}`);
       }
       throw error;
     }

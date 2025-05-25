@@ -9,6 +9,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const lastRoundIdRef = useRef(roundId);
   const gameStartTimeRef = useRef(null);
+  const isAnimatingRef = useRef(false); // НОВЫЙ РЕФ для контроля анимации
   
   // Обновление размеров canvas
   useEffect(() => {
@@ -29,10 +30,10 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
     return () => window.removeEventListener('resize', updateSize);
   }, []);
   
-  // Очистка точек ТОЛЬКО при новом раунде
+  // ИСПРАВЛЕНО: Очистка точек только при новом раунде
   useEffect(() => {
-    if (roundId !== lastRoundIdRef.current) {
-      console.log('ГРАФИК: Новый раунд, очищаем точки');
+    if (roundId !== lastRoundIdRef.current && roundId > 0) {
+      console.log('ГРАФИК: Новый раунд', roundId, '- очищаем точки');
       pointsRef.current = [];
       gameStartTimeRef.current = null;
       lastRoundIdRef.current = roundId;
@@ -43,15 +44,20 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
   useEffect(() => {
     if (gameState === 'flying' && gameStartTimeRef.current === null) {
       gameStartTimeRef.current = Date.now();
-      console.log('ГРАФИК: Начался полет');
+      isAnimatingRef.current = true;
+      console.log('ГРАФИК: Начался полет, запускаем анимацию');
+    } else if (gameState !== 'flying') {
+      isAnimatingRef.current = false;
     }
   }, [gameState]);
   
-  // Остановка анимации при смене состояния на не-flying
+  // ИСПРАВЛЕНО: Остановка анимации при смене состояния
   useEffect(() => {
     if (gameState !== 'flying' && animationRef.current) {
+      console.log('ГРАФИК: Останавливаем анимацию, состояние:', gameState);
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
+      isAnimatingRef.current = false;
     }
   }, [gameState]);
   
@@ -153,7 +159,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
       }
     };
     
-    // Состояние ожидания
+    // УЛУЧШЕНО: Состояние ожидания с точным обратным отсчетом
     const drawWaitingState = (ctx, width, height, timeToStart) => {
       const waitingGradient = ctx.createRadialGradient(
         width / 2, height / 2, 0,
@@ -176,6 +182,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
       ctx.lineWidth = 4;
       ctx.stroke();
       
+      // ИСПРАВЛЕНО: Точный прогресс для 7 секунд
       if (timeToStart > 0 && timeToStart <= 7) {
         const progress = (7 - timeToStart) / 7;
         ctx.beginPath();
@@ -211,24 +218,19 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
       ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
     };
     
-    // ИСПРАВЛЕНО: Гиперболическая траектория с ускорением
+    // ИСПРАВЛЕНО: Более плавная и стабильная траектория
     const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
-      if (gameStartTimeRef.current && currentMultiplier >= 1.0) {
+      if (gameStartTimeRef.current && currentMultiplier >= 1.0 && isAnimatingRef.current) {
         const realTimeElapsed = (Date.now() - gameStartTimeRef.current) / 1000;
         
-        // НОВАЯ ФОРМУЛА: Гиперболическая траектория с плавным ускорением
-        // X координата: ускоряется пропорционально множителю
-        const speedMultiplier = Math.log(currentMultiplier + 0.5); // Логарифмическое ускорение
-        const acceleratedTime = realTimeElapsed * (1 + speedMultiplier * 0.3);
+        // УЛУЧШЕННАЯ ФОРМУЛА: Плавная траектория без рывков
+        const timeScale = Math.log(realTimeElapsed + 1) * 100; // Логарифмическое масштабирование
+        const x = padding + Math.min(timeScale, width * 0.9);
         
-        // X растет по логарифмической шкале, не упираясь в стену
-        const timeScale = Math.log(acceleratedTime + 1) * 120; // Логарифмическое масштабирование
-        const x = padding + Math.min(timeScale, width * 0.9); // Оставляем 10% запаса
-        
-        // Y координата: гиперболическая функция
-        const multiplierScale = currentMultiplier - 1; // Убираем базовый 1x
-        const hyperbolaY = Math.log(multiplierScale + 1) * 150; // Гиперболическая кривая
-        const y = padding + height - Math.min(hyperbolaY, height * 0.9); // Оставляем 10% запаса сверху
+        // Y координата: плавная кривая роста
+        const multiplierScale = currentMultiplier - 1;
+        const smoothY = Math.log(multiplierScale + 1) * 120;
+        const y = padding + height - Math.min(smoothY, height * 0.9);
         
         const newPoint = {
           x: Math.max(padding, Math.min(x, padding + width - 10)),
@@ -237,16 +239,18 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
           time: Date.now()
         };
         
-        // Добавляем точку ВСЕГДА
-        pointsRef.current.push(newPoint);
+        // Добавляем точку только если игра активна
+        if (isAnimatingRef.current) {
+          pointsRef.current.push(newPoint);
+        }
         
         // Ограничиваем массив для производительности
-        if (pointsRef.current.length > 1000) {
-          pointsRef.current = pointsRef.current.slice(-800);
+        if (pointsRef.current.length > 800) {
+          pointsRef.current = pointsRef.current.slice(-600);
         }
       }
       
-      // Рисуем линию графика
+      // Рисуем линию графика только если есть точки
       if (pointsRef.current.length > 1) {
         // Создаем градиент для линии в зависимости от высоты множителя
         const lineGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
@@ -455,8 +459,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
     
     draw();
     
-    // Анимация только для состояния полета
-    if (gameState === 'flying') {
+    // ИСПРАВЛЕНО: Анимация только для активного состояния полета
+    if (gameState === 'flying' && isAnimatingRef.current) {
       animationRef.current = requestAnimationFrame(draw);
     }
     

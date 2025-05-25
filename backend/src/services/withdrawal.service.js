@@ -292,23 +292,50 @@ class WithdrawalService {
    */
   async createCryptoBotTransfer(withdrawal) {
     try {
+      // Получаем полную информацию о withdrawal с пользователем
+      const fullWithdrawal = await Withdrawal.findById(withdrawal._id)
+        .populate('user', 'telegramId username');
+      
+      if (!fullWithdrawal || !fullWithdrawal.user) {
+        throw new Error('Не удалось получить данные пользователя для вывода');
+      }
+      
+      // ВАЖНО: Для вывода на username нужно найти Telegram ID получателя
+      let recipientTelegramId;
+      
+      if (withdrawal.recipientType === 'username') {
+        // Если получатель - это тот же пользователь (вывод самому себе)
+        if (withdrawal.recipient.toLowerCase() === fullWithdrawal.user.username?.toLowerCase()) {
+          recipientTelegramId = fullWithdrawal.user.telegramId;
+        } else {
+          // Для вывода другому пользователю нужно найти его в БД
+          const recipientUser = await User.findOne({ 
+            username: new RegExp(`^${withdrawal.recipient}$`, 'i') 
+          });
+          
+          if (!recipientUser) {
+            throw new Error(`Пользователь @${withdrawal.recipient} не найден в системе. Получатель должен быть зарегистрирован в казино.`);
+          }
+          
+          recipientTelegramId = recipientUser.telegramId;
+        }
+      } else {
+        throw new Error('Вывод на кошелек временно недоступен');
+      }
+      
       const payload = {
-        user_id: withdrawal.recipient, // Для username
+        user_id: recipientTelegramId, // Используем Telegram ID, а не username!
         asset: 'USDT',
         amount: withdrawal.amount.toString(),
-        spend_id: withdrawal._id.toString(), // Уникальный ID для идемпотентности
+        spend_id: withdrawal._id.toString(),
         comment: withdrawal.comment || `Вывод средств из Greenlight Casino`,
         disable_send_notification: false
       };
       
-      // Если это адрес кошелька, используем другой метод
-      if (withdrawal.recipientType === 'wallet') {
-        // CryptoBot пока не поддерживает прямые переводы на кошельки
-        // Это заглушка для будущей реализации
-        throw new Error('Вывод на кошелек временно недоступен');
-      }
-      
-      console.log('WITHDRAWAL: Отправка запроса transfer в CryptoBot:', payload);
+      console.log('WITHDRAWAL: Отправка запроса transfer в CryptoBot:', {
+        ...payload,
+        user_id: `${payload.user_id} (для @${withdrawal.recipient})`
+      });
       
       const response = await this.api.post('/transfer', payload);
       
@@ -322,15 +349,16 @@ class WithdrawalService {
       if (error.response) {
         console.error('WITHDRAWAL: CryptoBot API Error:', error.response.data);
         
-        // Обработка специфичных ошибок CryptoBot
         const errorCode = error.response.data.error?.code;
         
         if (errorCode === 'USER_NOT_FOUND') {
-          throw new Error('Получатель не найден. Проверьте правильность username.');
+          throw new Error('Получатель не найден в CryptoBot. Убедитесь, что получатель использовал @CryptoBot.');
         } else if (errorCode === 'INSUFFICIENT_FUNDS') {
           throw new Error('Недостаточно средств на счете казино');
         } else if (errorCode === 'TRANSFER_LIMIT_EXCEEDED') {
           throw new Error('Превышен лимит переводов');
+        } else if (errorCode === 'USER_ID_INVALID') {
+          throw new Error('Некорректный ID получателя');
         }
         
         throw new Error(`CryptoBot API Error: ${error.response.data.error?.name || error.response.statusText}`);

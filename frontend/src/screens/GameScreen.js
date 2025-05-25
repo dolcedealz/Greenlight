@@ -118,24 +118,25 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       case 'coin':
         return (
           <div className="game-container coin-game">
-            <CoinFlip 
-              flipping={isFlipping} 
-              result={result} 
-              onAnimationEnd={handleAnimationEnd} 
-            />
-            <CoinControls 
-              onFlip={handleFlip} 
-              isFlipping={isFlipping} 
+            <CoinGame 
               balance={balance}
+              setBalance={setBalance}
+              gameStats={gameStats}
+              setGameResult={setGameResult}
+              setError={setError}
+              onFlip={handleFlip}
+              isFlipping={isFlipping}
+              result={result}
               lastResults={lastResults}
+              onAnimationEnd={handleAnimationEnd}
             />
-            
+      
             {error && (
               <div className="game-error">
                 <p>{error}</p>
               </div>
             )}
-            
+      
             {gameStats && (
               <div className="game-stats">
                 <h3>Ваша статистика</h3>
@@ -167,8 +168,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
             )}
           </div>
         );
-        
-      case 'mines':
+      case 'mines':   
         return (
           <div className="game-container mines-game">
             <MinesGame 
@@ -334,3 +334,4 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
 };
 
 export default GameScreen;
+

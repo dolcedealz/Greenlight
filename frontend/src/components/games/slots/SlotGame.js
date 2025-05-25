@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import SlotMachine from './SlotMachine';
 import SlotControls from './SlotControls';
 import { gameApi } from '../../../services';
+import '../../../styles/SlotGame.css';
 
 const SlotGame = ({ 
   balance, 
@@ -11,18 +12,41 @@ const SlotGame = ({
   setGameResult, 
   setError 
 }) => {
+  // НОВОЕ: Состояние загрузки
+  const [isInitializing, setIsInitializing] = useState(true);
+  
   // Состояние игры
   const [isSpinning, setIsSpinning] = useState(false);
   const [betAmount, setBetAmount] = useState(1);
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState(null);
-  const [animationComplete, setAnimationComplete] = useState(true); // НОВОЕ СОСТОЯНИЕ
+  const [animationComplete, setAnimationComplete] = useState(true);
   
   // Состояние автоигры
   const [autoplay, setAutoplay] = useState(false);
   const [autoplayCount, setAutoplayCount] = useState(10);
   const [autoplayRemaining, setAutoplayRemaining] = useState(0);
   const [autoplayTimeoutId, setAutoplayTimeoutId] = useState(null);
+  
+  // НОВОЕ: Инициализация с загрузочным экраном
+  useEffect(() => {
+    const initializeGame = async () => {
+      try {
+        // Показываем загрузочный экран минимум 2 секунды
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        console.log('=== ИНИЦИАЛИЗАЦИЯ СЛОТ ИГРЫ ===');
+        setIsInitializing(false);
+        
+      } catch (err) {
+        console.error('Ошибка инициализации слотов:', err);
+        setError('Ошибка загрузки игры');
+        setIsInitializing(false);
+      }
+    };
+    
+    initializeGame();
+  }, [setError]);
   
   // Обработчик завершения анимации
   const handleAnimationComplete = useCallback(() => {
@@ -43,7 +67,7 @@ const SlotGame = ({
       console.log('СЛОТЫ: Начинаем спин с ставкой:', betAmount);
       setLoading(true);
       setIsSpinning(true);
-      setAnimationComplete(false); // БЛОКИРУЕМ до завершения анимации
+      setAnimationComplete(false);
       setError(null);
       
       // Очищаем предыдущий результат
@@ -82,8 +106,6 @@ const SlotGame = ({
         amount: data.win ? Math.abs(data.profit) : betAmount,
         newBalance: data.balanceAfter
       });
-      
-      // Анимация будет завершена через handleAnimationComplete
       
       return data.win;
     } catch (err) {
@@ -131,7 +153,7 @@ const SlotGame = ({
         if (animationComplete) {
           performAutoplay();
         }
-      }, 1000); // Короткая пауза между спинами
+      }, 1000);
       setAutoplayTimeoutId(timeoutId);
     } else {
       setAutoplay(false);
@@ -180,6 +202,27 @@ const SlotGame = ({
     };
   }, [autoplayTimeoutId]);
   
+  // НОВОЕ: Загрузочный экран для слотов
+  if (isInitializing) {
+    return (
+      <div className="slots-loading-screen">
+        <div className="slots-loading-content">
+          <div className="greenlight-logo">
+            <div className="logo-icon slots-icon">🎰</div>
+            <div className="logo-text">Greenlight</div>
+            <div className="logo-subtitle">Slot Machine</div>
+          </div>
+          <div className="loading-spinner">
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+          </div>
+          <div className="loading-text">Загрузка слотов...</div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <>
       <SlotMachine 
@@ -191,7 +234,7 @@ const SlotGame = ({
         autoplay={autoplay}
         loading={loading}
         gameStats={gameStats}
-        onAnimationComplete={handleAnimationComplete} // ПЕРЕДАЕМ CALLBACK
+        onAnimationComplete={handleAnimationComplete}
       />
       
       <SlotControls 

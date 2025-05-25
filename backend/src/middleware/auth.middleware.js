@@ -26,15 +26,10 @@ async function telegramAuthMiddleware(req, res, next) {
     
     console.log('AUTH: Получены initData:', initData);
     
-    // Проверяем данные на корректность (в реальном приложении здесь будет
-    // полноценная проверка подписи от Telegram)
-    
     // В этом примере мы просто извлекаем telegramId из данных
-    // В реальном приложении нужно проверить подпись данных
     let telegramId;
     let telegramUser;
     try {
-      // Простая имитация проверки (в реальном приложении будет более сложная логика)
       const parts = initData.split('&');
       for (const part of parts) {
         if (part.startsWith('user=')) {
@@ -69,7 +64,6 @@ async function telegramAuthMiddleware(req, res, next) {
     if (!user) {
       console.log(`AUTH: Пользователь с telegramId ${telegramId} не найден, создаем нового`);
       
-      // Создаем нового пользователя, если не найден
       try {
         const { userService } = require('../services');
         user = await userService.createOrUpdateUser(telegramUser);
@@ -120,8 +114,53 @@ async function telegramAuthMiddleware(req, res, next) {
  * @param {Function} next - Функция next
  */
 function adminAuthMiddleware(req, res, next) {
-  // Должен быть вызван после telegramAuthMiddleware
+  console.log('ADMIN AUTH: Проверка прав администратора');
+  console.log('ADMIN AUTH: Headers:', JSON.stringify(req.headers, null, 2));
+  
+  // Проверяем Bearer токен
+  const authHeader = req.headers['authorization'];
+  console.log('ADMIN AUTH: Authorization header:', authHeader);
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    console.log('ADMIN AUTH: Извлечен токен (первые 20 символов):', token.substring(0, 20) + '...');
+    
+    // Получаем ожидаемый токен из переменных окружения
+    const expectedToken = process.env.ADMIN_API_TOKEN;
+    console.log('ADMIN AUTH: ADMIN_API_TOKEN установлен:', !!expectedToken);
+    
+    if (!expectedToken) {
+      console.error('ADMIN AUTH: ADMIN_API_TOKEN не установлен в переменных окружения!');
+      return res.status(500).json({
+        success: false,
+        message: 'Ошибка конфигурации сервера: отсутствует ADMIN_API_TOKEN'
+      });
+    }
+    
+    // Сравниваем токены
+    if (token === expectedToken) {
+      console.log('ADMIN AUTH: Токен верный, создаем виртуального админа');
+      // Создаем виртуального админ-пользователя
+      req.user = {
+        _id: 'admin_system',
+        role: 'admin',
+        isAdmin: true,
+        firstName: 'Admin',
+        lastName: 'System'
+      };
+      return next();
+    } else {
+      console.log('ADMIN AUTH: Неверный токен администратора');
+      return res.status(403).json({
+        success: false,
+        message: 'Неверный токен администратора'
+      });
+    }
+  }
+  
+  // Если нет Bearer токена, проверяем обычную аутентификацию
   if (!req.user) {
+    console.log('ADMIN AUTH: Пользователь не аутентифицирован');
     return res.status(401).json({
       success: false,
       message: 'Не аутентифицировано'
@@ -129,12 +168,14 @@ function adminAuthMiddleware(req, res, next) {
   }
   
   if (req.user.role !== 'admin') {
+    console.log('ADMIN AUTH: Пользователь не является администратором');
     return res.status(403).json({
       success: false,
       message: 'Доступ запрещен'
     });
   }
   
+  console.log('ADMIN AUTH: Проверка прав администратора успешна');
   next();
 }
 

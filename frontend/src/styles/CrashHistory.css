@@ -8,8 +8,8 @@
     display: flex;
     flex-direction: column;
     height: 600px;
-    overflow: hidden; /* ИСПРАВЛЕНО: предотвращаем выход за границы */
-    min-width: 0; /* ИСПРАВЛЕНО: позволяем контейнеру сжиматься */
+    overflow: hidden;
+    min-width: 0;
   }
   
   .history-header {
@@ -17,7 +17,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
-    flex-shrink: 0; /* ИСПРАВЛЕНО: заголовок не сжимается */
+    flex-shrink: 0;
   }
   
   .history-title {
@@ -26,7 +26,7 @@
     color: var(--primary-color);
     margin: 0;
     animation: titlePulse 2s ease-in-out infinite;
-    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим заголовок */
+    white-space: nowrap;
   }
   
   @keyframes titlePulse {
@@ -44,16 +44,16 @@
     background-color: rgba(255, 255, 255, 0.1);
     padding: 4px 8px;
     border-radius: 12px;
-    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим счетчик */
+    white-space: nowrap;
   }
   
   .history-content {
     flex: 1;
     overflow-y: auto;
-    overflow-x: hidden; /* ИСПРАВЛЕНО: только вертикальный скролл */
+    overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-    min-height: 0; /* ИСПРАВЛЕНО: позволяем контенту сжиматься */
+    min-height: 0;
   }
   
   .history-content::-webkit-scrollbar {
@@ -94,7 +94,7 @@
     margin-bottom: 20px;
     padding-bottom: 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    flex-shrink: 0; /* ИСПРАВЛЕНО: компактный блок не сжимается */
+    flex-shrink: 0;
   }
   
   .compact-title {
@@ -109,7 +109,7 @@
     gap: 4px;
     flex-wrap: wrap;
     animation: compactListUpdate 0.5s ease;
-    overflow: hidden; /* ИСПРАВЛЕНО: скрываем выходящие элементы */
+    overflow: hidden;
   }
   
   @keyframes compactListUpdate {
@@ -122,15 +122,17 @@
   }
   
   .compact-item {
-    padding: 5px 8px;
+    padding: 6px 10px;
     border-radius: 15px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     transition: all 0.3s ease;
     cursor: pointer;
     border: 1px solid transparent;
     animation: compactItemAppear 0.4s ease;
-    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим текст в элементах */
+    white-space: nowrap;
+    min-width: 45px;
+    text-align: center;
   }
   
   @keyframes compactItemAppear {
@@ -188,19 +190,19 @@
   .history-detailed {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    overflow: hidden; /* ИСПРАВЛЕНО: предотвращаем выход за границы */
+    gap: 8px;
+    overflow: hidden;
   }
   
   .history-item {
     background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 10px;
+    border-radius: 10px;
+    padding: 12px;
     transition: all 0.3s ease;
     border: 1px solid transparent;
     animation: historyItemSlide 0.5s ease;
-    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение в элементах */
-    word-wrap: break-word; /* ИСПРАВЛЕНО: переносим длинные слова */
+    overflow: hidden;
+    word-wrap: break-word;
   }
   
   @keyframes historyItemSlide {
@@ -223,33 +225,53 @@
   .round-info {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    gap: 10px; /* ИСПРАВЛЕНО: добавляем отступ между элементами */
+    align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 10px;
   }
   
   .round-id {
-    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  
+  .round-number {
+    font-size: 14px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
-    flex-shrink: 0; /* ИСПРАВЛЕНО: ID не сжимается */
+  }
+  
+  .round-ago {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
   }
   
   .round-time {
     font-size: 11px;
     color: rgba(255, 255, 255, 0.5);
-    white-space: nowrap; /* ИСПРАВЛЕНО: время не переносится */
+    white-space: nowrap;
   }
   
   .round-result {
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
   }
   
   .crash-multiplier {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     transition: all 0.3s ease;
-    word-break: keep-all; /* ИСПРАВЛЕНО: не разбиваем множители */
+    word-break: keep-all;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .multiplier-value {
+    font-size: 22px;
   }
   
   .crash-multiplier.very-low {
@@ -306,19 +328,20 @@
   
   .round-stats {
     display: flex;
+    justify-content: space-around;
     gap: 16px;
-    flex-wrap: wrap; /* ИСПРАВЛЕНО: переносим статистику на новую строку при необходимости */
   }
   
   .stat {
     display: flex;
-    gap: 4px;
-    font-size: 12px;
-    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим статистику */
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    white-space: nowrap;
   }
   
-  .stat-label {
-    color: rgba(255, 255, 255, 0.7);
+  .stat-icon {
+    font-size: 14px;
   }
   
   .stat-value {
@@ -331,7 +354,7 @@
     padding-top: 12px;
     margin-top: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    flex-shrink: 0; /* ИСПРАВЛЕНО: статистика не сжимается */
+    flex-shrink: 0;
   }
   
   .stats-title {
@@ -350,14 +373,14 @@
   
   .stat-item {
     background-color: rgba(255, 255, 255, 0.05);
-    padding: 6px 8px;
-    border-radius: 6px;
+    padding: 8px 10px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
     transition: all 0.2s ease;
-    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение */
-    min-width: 0; /* ИСПРАВЛЕНО: позволяем сжиматься */
+    overflow: hidden;
+    min-width: 0;
   }
   
   .stat-item:hover {
@@ -366,20 +389,48 @@
   }
   
   .stat-item .stat-label {
-    font-size: 10px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.6);
-    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим лейблы */
-    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение лейблов */
-    text-overflow: ellipsis; /* ИСПРАВЛЕНО: показываем многоточие */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .stat-item .stat-value {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: white;
-    white-space: nowrap; /* ИСПРАВЛЕНО: не переносим значения */
-    overflow: hidden; /* ИСПРАВЛЕНО: скрываем переполнение значений */
-    text-overflow: ellipsis; /* ИСПРАВЛЕНО: показываем многоточие */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* НОВОЕ: Информация о скорости игры */
+  .speed-info {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background-color: rgba(11, 168, 74, 0.1);
+    border: 1px solid rgba(11, 168, 74, 0.3);
+    border-radius: 8px;
+    animation: speedInfoPulse 3s ease-in-out infinite;
+  }
+  
+  @keyframes speedInfoPulse {
+    0%, 100% {
+      border-color: rgba(11, 168, 74, 0.3);
+      background-color: rgba(11, 168, 74, 0.1);
+    }
+    50% {
+      border-color: rgba(11, 168, 74, 0.5);
+      background-color: rgba(11, 168, 74, 0.15);
+    }
+  }
+  
+  .speed-note {
+    font-size: 12px;
+    color: var(--primary-color);
+    text-align: center;
+    font-weight: 500;
   }
   
   /* Адаптивность */
@@ -390,11 +441,16 @@
     }
     
     .stats-grid {
-      grid-template-columns: repeat(2, 1fr); /* ИСПРАВЛЕНО: на планшетах 2 колонки */
+      grid-template-columns: repeat(2, 1fr);
     }
     
     .round-stats {
       gap: 12px;
+    }
+    
+    .compact-item {
+      font-size: 11px;
+      padding: 5px 8px;
     }
   }
   
@@ -405,11 +461,11 @@
     }
     
     .stats-grid {
-      grid-template-columns: 1fr; /* ИСПРАВЛЕНО: на мобильных 1 колонка */
+      grid-template-columns: 1fr;
     }
     
     .round-info {
-      flex-direction: column; /* ИСПРАВЛЕНО: вертикальное расположение на мобильных */
+      flex-direction: column;
       align-items: flex-start;
       gap: 4px;
     }
@@ -420,7 +476,20 @@
     }
     
     .compact-list {
-      justify-content: center; /* ИСПРАВЛЕНО: центрируем компактный список */
+      justify-content: center;
+    }
+    
+    .compact-item {
+      font-size: 10px;
+      padding: 4px 6px;
+    }
+    
+    .crash-multiplier {
+      font-size: 18px;
+    }
+    
+    .multiplier-value {
+      font-size: 20px;
     }
   }
   
@@ -429,7 +498,8 @@
     .crash-history *,
     .compact-item,
     .history-item,
-    .crash-multiplier {
+    .crash-multiplier,
+    .speed-info {
       animation: none;
     }
     

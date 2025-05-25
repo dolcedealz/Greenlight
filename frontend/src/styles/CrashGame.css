@@ -8,10 +8,185 @@
     min-height: 100vh;
     padding-bottom: 80px;
     transition: all 0.2s ease;
-    overflow-x: hidden; /* ИСПРАВЛЕНО: предотвращаем горизонтальный скролл */
+    overflow-x: hidden;
   }
   
-  /* Кнопка под графиком */
+  /* НОВОЕ: Загрузочный экран */
+  .crash-loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: loadingScreenFadeIn 0.5s ease;
+  }
+  
+  @keyframes loadingScreenFadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  
+  .crash-loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    animation: loadingContentSlideIn 1s ease;
+  }
+  
+  @keyframes loadingContentSlideIn {
+    0% {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .greenlight-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .logo-icon {
+    font-size: 80px;
+    animation: logoIconFloat 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(11, 168, 74, 0.5));
+  }
+  
+  @keyframes logoIconFloat {
+    0%, 100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    25% {
+      transform: translateY(-10px) rotate(5deg);
+    }
+    50% {
+      transform: translateY(0) rotate(0deg);
+    }
+    75% {
+      transform: translateY(-5px) rotate(-3deg);
+    }
+  }
+  
+  .logo-text {
+    font-size: 48px;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-shadow: 
+      0 0 20px rgba(11, 168, 74, 0.5),
+      0 0 40px rgba(11, 168, 74, 0.3);
+    animation: logoTextGlow 2s ease-in-out infinite alternate;
+    letter-spacing: 2px;
+  }
+  
+  @keyframes logoTextGlow {
+    0% {
+      text-shadow: 
+        0 0 20px rgba(11, 168, 74, 0.5),
+        0 0 40px rgba(11, 168, 74, 0.3);
+    }
+    100% {
+      text-shadow: 
+        0 0 30px rgba(11, 168, 74, 0.8),
+        0 0 60px rgba(11, 168, 74, 0.5);
+    }
+  }
+  
+  .logo-subtitle {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    letter-spacing: 1px;
+    animation: subtitleFade 2s ease-in-out infinite alternate;
+  }
+  
+  @keyframes subtitleFade {
+    0% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  
+  .loading-spinner {
+    position: relative;
+    width: 80px;
+    height: 80px;
+  }
+  
+  .spinner-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid transparent;
+    border-radius: 50%;
+    animation: spinnerRotate 2s linear infinite;
+  }
+  
+  .spinner-ring:nth-child(1) {
+    border-top-color: var(--primary-color);
+    animation-delay: 0s;
+  }
+  
+  .spinner-ring:nth-child(2) {
+    border-right-color: rgba(11, 168, 74, 0.6);
+    animation-delay: 0.3s;
+    width: 70%;
+    height: 70%;
+    top: 15%;
+    left: 15%;
+  }
+  
+  .spinner-ring:nth-child(3) {
+    border-bottom-color: rgba(11, 168, 74, 0.3);
+    animation-delay: 0.6s;
+    width: 40%;
+    height: 40%;
+    top: 30%;
+    left: 30%;
+  }
+  
+  @keyframes spinnerRotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .loading-text {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    animation: loadingTextPulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes loadingTextPulse {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  
+  /* Остальные стили остаются без изменений */
   .crash-main-action-btn {
     width: 100%;
     padding: 16px 20px;
@@ -131,75 +306,14 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
   
-  /* Анимация загрузки всей игры */
-  .crash-game.loading {
-    animation: gameLoadingPulse 1.5s ease-in-out infinite;
-  }
-  
-  @keyframes gameLoadingPulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.95;
-    }
-  }
-  
-  /* Состояния игры */
-  .crash-game[data-game-state="waiting"] {
-    animation: gameWaitingGlow 2s ease-in-out infinite;
-  }
-  
-  @keyframes gameWaitingGlow {
-    0%, 100% {
-      background-color: var(--background-color);
-    }
-    50% {
-      background-color: rgba(18, 18, 18, 1);
-    }
-  }
-  
-  .crash-game[data-game-state="flying"] {
-    animation: gameFlyingIntensity 1s ease-in-out infinite;
-  }
-  
-  @keyframes gameFlyingIntensity {
-    0%, 100% {
-      background-color: var(--background-color);
-    }
-    50% {
-      background-color: rgba(11, 168, 74, 0.02);
-    }
-  }
-  
-  .crash-game[data-game-state="crashed"] {
-    animation: gameCrashedShake 0.5s ease-in-out;
-  }
-  
-  @keyframes gameCrashedShake {
-    0%, 100% {
-      transform: translateX(0);
-      background-color: var(--background-color);
-    }
-    25% {
-      transform: translateX(-1px);
-      background-color: rgba(255, 59, 48, 0.02);
-    }
-    75% {
-      transform: translateX(1px);
-      background-color: rgba(255, 59, 48, 0.02);
-    }
-  }
-  
-  /* Контейнер информационных панелей - ИСПРАВЛЕНО: правильные пропорции */
   .crash-info-panels {
     display: grid;
-    grid-template-columns: 0.55fr 0.45fr; /* ИСПРАВЛЕНО: сумма = 1fr */
+    grid-template-columns: 0.55fr 0.45fr;
     gap: 15px;
     margin-top: 10px;
     animation: panelsSlideIn 0.5s ease;
-    overflow: hidden; /* ИСПРАВЛЕНО: предотвращаем выход за границы */
-    width: 100%; /* ИСПРАВЛЕНО: явно задаем ширину */
+    overflow: hidden;
+    width: 100%;
   }
   
   @keyframes panelsSlideIn {
@@ -213,96 +327,6 @@
     }
   }
   
-  /* Специальные эффекты для высоких множителей */
-  .crash-game.high-multiplier {
-    animation: highMultiplierGameEffect 0.8s ease-in-out infinite;
-  }
-  
-  @keyframes highMultiplierGameEffect {
-    0%, 100% {
-      background-color: var(--background-color);
-      box-shadow: inset 0 0 0 rgba(11, 168, 74, 0);
-    }
-    50% {
-      background-color: rgba(11, 168, 74, 0.03);
-      box-shadow: inset 0 0 50px rgba(11, 168, 74, 0.1);
-    }
-  }
-  
-  .crash-game.legendary-multiplier {
-    animation: legendaryMultiplierGameEffect 0.6s ease-in-out infinite;
-  }
-  
-  @keyframes legendaryMultiplierGameEffect {
-    0%, 100% {
-      background-color: var(--background-color);
-      box-shadow: inset 0 0 0 rgba(11, 168, 74, 0);
-      transform: scale(1);
-    }
-    50% {
-      background-color: rgba(11, 168, 74, 0.05);
-      box-shadow: inset 0 0 100px rgba(11, 168, 74, 0.2);
-      transform: scale(1.001);
-    }
-  }
-  
-  /* Эффекты переходов между состояниями */
-  .crash-game .crash-graph-container {
-    transition: all 0.3s ease;
-  }
-  
-  .crash-game .crash-controls {
-    transition: all 0.2s ease;
-  }
-  
-  .crash-game .crash-info-panels > * {
-    transition: all 0.2s ease;
-    overflow: hidden; /* ИСПРАВЛЕНО: предотвращаем выход за границы */
-    min-width: 0; /* ИСПРАВЛЕНО: позволяем элементам сжиматься */
-  }
-  
-  /* Индикатор активности игры */
-  .crash-game::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, 
-      transparent 0%, 
-      var(--primary-color) 50%, 
-      transparent 100%);
-    opacity: 0;
-    z-index: 1000;
-    transition: opacity 0.3s ease;
-  }
-  
-  .crash-game[data-game-state="flying"]::before {
-    opacity: 1;
-    animation: gameActivityIndicator 1s ease-in-out infinite;
-  }
-  
-  @keyframes gameActivityIndicator {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
-  }
-  
-  /* Оптимизации производительности */
-  .crash-game * {
-    will-change: auto;
-  }
-  
-  .crash-game .crash-graph-container,
-  .crash-game .crash-main-action-btn {
-    will-change: transform, opacity;
-    transform: translateZ(0);
-  }
-  
   /* Адаптивность */
   @media (max-width: 768px) {
     .crash-game {
@@ -311,7 +335,7 @@
     }
     
     .crash-info-panels {
-      grid-template-columns: 1fr; /* На мобильных одна колонка */
+      grid-template-columns: 1fr;
       gap: 10px;
     }
     
@@ -320,14 +344,26 @@
       font-size: 16px;
     }
     
-    .crash-game[data-game-state="waiting"],
-    .crash-game[data-game-state="flying"] {
-      animation-duration: 2s;
+    /* Адаптивность загрузочного экрана */
+    .logo-icon {
+      font-size: 60px;
     }
     
-    .crash-game.high-multiplier,
-    .crash-game.legendary-multiplier {
-      animation: none;
+    .logo-text {
+      font-size: 36px;
+    }
+    
+    .logo-subtitle {
+      font-size: 16px;
+    }
+    
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+    }
+    
+    .loading-text {
+      font-size: 16px;
     }
   }
   
@@ -346,126 +382,38 @@
       font-size: 15px;
     }
     
-    .crash-game::before {
-      display: none;
+    /* Мобильная адаптивность загрузочного экрана */
+    .logo-icon {
+      font-size: 50px;
     }
     
-    .crash-game[data-game-state="crashed"] {
-      animation: none;
-    }
-  }
-  
-  /* Оптимизация для планшетов */
-  @media (min-width: 768px) and (max-width: 1024px) {
-    .crash-game {
-      max-width: 900px;
-      margin: 0 auto;
+    .logo-text {
+      font-size: 28px;
     }
     
-    .crash-info-panels {
-      gap: 20px;
-    }
-  }
-  
-  /* Большие экраны */
-  @media (min-width: 1024px) {
-    .crash-game {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
+    .logo-subtitle {
+      font-size: 14px;
     }
     
-    .crash-info-panels {
-      gap: 25px;
-    }
-  }
-  
-  /* Темы и предпочтения пользователя */
-  @media (prefers-color-scheme: dark) {
-    .crash-game {
-      background-color: #0a0a0a;
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
     }
     
-    .crash-game[data-game-state="waiting"] {
-      background-color: #0a0a0a;
+    .loading-text {
+      font-size: 14px;
     }
   }
   
   @media (prefers-reduced-motion: reduce) {
-    .crash-game,
-    .crash-game[data-game-state="waiting"],
-    .crash-game[data-game-state="flying"],
-    .crash-game[data-game-state="crashed"],
-    .crash-game.high-multiplier,
-    .crash-game.legendary-multiplier,
-    .crash-info-panels,
+    .crash-loading-screen,
+    .crash-loading-content,
+    .logo-icon,
+    .logo-text,
+    .logo-subtitle,
+    .spinner-ring,
+    .loading-text,
     .crash-main-action-btn {
       animation: none;
     }
-    
-    .crash-game::before {
-      display: none;
-    }
-    
-    .crash-game * {
-      transition: none;
-      will-change: auto;
-    }
-  }
-  
-  /* Контрастность для пользователей с нарушениями зрения */
-  @media (prefers-contrast: high) {
-    .crash-game {
-      border: 2px solid var(--primary-color);
-    }
-    
-    .crash-info-panels > * {
-      border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-  }
-  
-  /* Дополнительные эффекты для современных браузеров */
-  @supports (backdrop-filter: blur(10px)) {
-    .crash-game[data-game-state="flying"] {
-      backdrop-filter: blur(0.5px);
-    }
-  }
-  
-  @supports (filter: hue-rotate(0deg)) {
-    .crash-game.legendary-multiplier {
-      filter: hue-rotate(0deg);
-      animation: legendaryHueShift 2s ease-in-out infinite;
-    }
-    
-    @keyframes legendaryHueShift {
-      0%, 100% {
-        filter: hue-rotate(0deg);
-      }
-      50% {
-        filter: hue-rotate(5deg);
-      }
-    }
-  }
-  
-  /* Загрузочные состояния */
-  .crash-game.initializing {
-    opacity: 0;
-    animation: gameInitialize 1s ease forwards;
-  }
-  
-  @keyframes gameInitialize {
-    0% {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  /* Финальные оптимизации */
-  .crash-game {
-    contain: layout style paint;
-    isolation: isolate;
   }

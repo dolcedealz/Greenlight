@@ -3,7 +3,7 @@ const { Markup } = require('telegraf');
 const axios = require('axios');
 
 // Получаем API URL из переменных окружения
-const apiUrl = process.env.API_URL || 'http://localhost:3001/api';
+const apiUrl = process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api';
 
 /**
  * Регистрирует команды для админ-бота

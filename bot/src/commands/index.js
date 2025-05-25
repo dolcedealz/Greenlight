@@ -5,6 +5,7 @@ const playCommand = require('./play.command');
 const profileCommand = require('./profile.command');
 const depositCommand = require('./deposit.command');
 const balanceCommand = require('./balance.command');
+const withdrawCommand = require('./withdraw.command'); // ДОБАВЛЯЕМ
 
 // Регистрация команд бота
 function registerCommands(bot) {
@@ -16,7 +17,8 @@ function registerCommands(bot) {
   bot.command('play', playCommand);
   bot.command('profile', profileCommand);
   bot.command('deposit', depositCommand);
-  bot.command('balance', balanceCommand); // НОВАЯ КОМАНДА
+  bot.command('balance', balanceCommand);
+  bot.command('withdraw', withdrawCommand); // ДОБАВЛЯЕМ
   
   // Добавляем обработчики для других команд по мере необходимости
   

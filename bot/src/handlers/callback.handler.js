@@ -229,6 +229,143 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('❌ Ошибка проверки');
     }
   });
+
+  // Обработка истории выводов
+  bot.action('withdrawals_history', async (ctx) => {
+    try {
+      console.log(`ИСТОРИЯ ВЫВОДОВ: Запрос от пользователя ${ctx.from.id}`);
+      
+      await ctx.answerCbQuery('⏳ Загружаем историю выводов...');
+      
+      // Получаем историю выводов через API
+      const apiService = require('../services/api.service');
+      const withdrawalsData = await apiService.getUserWithdrawals(ctx.from, { limit: 10 });
+      
+      if (!withdrawalsData.withdrawals || withdrawalsData.withdrawals.length === 0) {
+        await ctx.reply('📋 У вас пока нет запросов на вывод средств');
+        return;
+      }
+      
+      // Формируем сообщение с историей
+      let message = '📋 История выводов (последние 10):\n\n';
+      
+      for (const withdrawal of withdrawalsData.withdrawals) {
+        const date = new Date(withdrawal.createdAt).toLocaleDateString('ru-RU');
+        let statusEmoji = '';
+        let statusText = '';
+        
+        switch (withdrawal.status) {
+          case 'pending':
+            statusEmoji = '⏳';
+            statusText = 'Ожидает';
+            break;
+          case 'approved':
+            statusEmoji = '✅';
+            statusText = 'Одобрен';
+            break;
+          case 'processing':
+            statusEmoji = '⚙️';
+            statusText = 'Обрабатывается';
+            break;
+          case 'completed':
+            statusEmoji = '✅';
+            statusText = 'Выполнен';
+            break;
+          case 'rejected':
+            statusEmoji = '❌';
+            statusText = 'Отклонен';
+            break;
+          case 'failed':
+            statusEmoji = '⚠️';
+            statusText = 'Ошибка';
+            break;
+        }
+        
+        message += `${statusEmoji} ${date} - ${withdrawal.amount} USDT\n`;
+        message += `   Получатель: ${withdrawal.recipient}\n`;
+        message += `   Статус: ${statusText}\n`;
+        
+        if (withdrawal.rejectionReason) {
+          message += `   Причина: ${withdrawal.rejectionReason}\n`;
+        }
+        
+        message += '\n';
+      }
+      
+      await ctx.reply(message);
+      
+    } catch (error) {
+      console.error('ИСТОРИЯ ВЫВОДОВ: Ошибка при получении истории:', error);
+      await ctx.reply('❌ Не удалось загрузить историю выводов');
+    }
+  });
+  
+  // Обработка проверки статуса конкретного вывода
+  bot.action(/^check_withdrawal_status:([0-9a-fA-F]{24})$/, async (ctx) => {
+    try {
+      const withdrawalId = ctx.match[1];
+      
+      console.log(`СТАТУС ВЫВОДА: Проверка статуса вывода: ${withdrawalId}`);
+      
+      await ctx.answerCbQuery('⏳ Проверяем статус вывода...');
+      
+      const apiService = require('../services/api.service');
+      const withdrawalInfo = await apiService.getWithdrawalStatus(ctx.from, withdrawalId);
+      
+      let statusMessage = '';
+      let statusEmoji = '';
+      
+      switch (withdrawalInfo.status) {
+        case 'pending':
+          statusEmoji = '⏳';
+          statusMessage = withdrawalInfo.amount > 300 
+            ? 'Ожидает одобрения администратора' 
+            : 'Ожидает обработки';
+          break;
+        case 'approved':
+          statusEmoji = '✅';
+          statusMessage = 'Одобрен администратором';
+          break;
+        case 'processing':
+          statusEmoji = '⚙️';
+          statusMessage = 'Обрабатывается системой';
+          break;
+        case 'completed':
+          statusEmoji = '✅';
+          statusMessage = 'Успешно выполнен';
+          break;
+        case 'rejected':
+          statusEmoji = '❌';
+          statusMessage = 'Отклонен администратором';
+          break;
+        case 'failed':
+          statusEmoji = '⚠️';
+          statusMessage = 'Ошибка при обработке';
+          break;
+      }
+      
+      let replyMessage = `📊 Статус вывода\n\n` +
+        `🆔 ID: ${withdrawalInfo.id}\n` +
+        `💵 Сумма: ${withdrawalInfo.amount} USDT\n` +
+        `${statusEmoji} Статус: ${statusMessage}\n` +
+        `📅 Создан: ${new Date(withdrawalInfo.createdAt).toLocaleString('ru-RU')}`;
+      
+      if (withdrawalInfo.processedAt) {
+        replyMessage += `\n✅ Обработан: ${new Date(withdrawalInfo.processedAt).toLocaleString('ru-RU')}`;
+      }
+      
+      if (withdrawalInfo.rejectionReason) {
+        replyMessage += `\n\n❌ Причина отклонения: ${withdrawalInfo.rejectionReason}`;
+      }
+      
+      await ctx.reply(replyMessage);
+      
+    } catch (error) {
+      console.error('СТАТУС ВЫВОДА: Ошибка при проверке статуса:', error);
+      await ctx.reply('❌ Не удалось проверить статус вывода');
+      await ctx.answerCbQuery('❌ Ошибка проверки');
+    }
+  });
   
   return bot;
 }

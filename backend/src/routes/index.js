@@ -1,9 +1,10 @@
-// index.js
+// backend/src/routes/index.js
 const express = require('express');
 const gameRoutes = require('./game.routes');
 const userRoutes = require('./user.routes');
 const adminRoutes = require('./admin.routes');
 const paymentRoutes = require('./payment.routes');
+const withdrawalRoutes = require('./withdrawal.routes'); // ДОБАВЛЯЕМ
 const router = express.Router();
 
 // Префиксы для маршрутов
@@ -11,6 +12,7 @@ router.use('/games', gameRoutes);
 router.use('/users', userRoutes);
 router.use('/admin', adminRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/withdrawals', withdrawalRoutes); // ДОБАВЛЯЕМ
 
 // Маршрут для проверки работоспособности API
 router.get('/health', (req, res) => {
@@ -22,7 +24,8 @@ router.get('/health', (req, res) => {
       games: 'активен',
       users: 'активен', 
       admin: 'активен',
-      payments: 'активен'
+      payments: 'активен',
+      withdrawals: 'активен' // ДОБАВЛЯЕМ
     }
   });
 });

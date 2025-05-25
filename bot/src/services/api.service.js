@@ -288,6 +288,188 @@ class ApiService {
       return 'ERROR';
     }
   }
+
+  /**
+   * Создает запрос на вывод средств
+   * @param {Object} telegramUser - Данные пользователя из Telegram
+   * @param {Object} withdrawalData - Данные для вывода
+   * @returns {Object} - Данные созданного запроса на вывод
+   */
+  async createWithdrawal(telegramUser, withdrawalData) {
+    try {
+      console.log(`API: Создаем запрос на вывод для пользователя ${telegramUser.id}`);
+      
+      // Сначала убеждаемся, что пользователь существует в системе
+      await this.createOrUpdateUser(telegramUser);
+      
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      console.log('API: Отправляем запрос на создание вывода:', withdrawalData);
+      
+      const response = await this.api.post('/withdrawals', withdrawalData, { headers });
+      
+      console.log('API: Запрос на вывод создан успешно');
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('API: Ошибка при создании запроса на вывод:', error.response?.data || error.message);
+      
+      if (error.response) {
+        // Пробрасываем ошибку с понятным сообщением
+        const errorMessage = error.response.data?.message || 'Ошибка API при создании вывода';
+        throw new Error(errorMessage);
+      }
+      
+      throw error;
+    }
+  }
+  
+  /**
+   * Получает статус вывода
+   * @param {Object} telegramUser - Данные пользователя из Telegram
+   * @param {string} withdrawalId - ID вывода
+   * @returns {Object} - Статус вывода
+   */
+  async getWithdrawalStatus(telegramUser, withdrawalId) {
+    try {
+      console.log(`API: Проверяем статус вывода ${withdrawalId} для пользователя ${telegramUser.id}`);
+      
+      // Валидация withdrawalId - должен быть MongoDB ObjectId
+      if (!withdrawalId || !withdrawalId.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error('Некорректный ID вывода');
+      }
+      
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.get(`/withdrawals/${withdrawalId}/status`, { headers });
+      
+      console.log('API: Статус вывода получен:', response.data.data);
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('API: Ошибка при получении статуса вывода:', error.response?.data || error.message);
+      
+      if (error.response) {
+        console.error('API: Статус ответа:', error.response.status);
+        
+        // Более детальная обработка ошибок
+        if (error.response.status === 404) {
+          throw new Error('Запрос на вывод не найден');
+        } else if (error.response.status === 403) {
+          throw new Error('Доступ к выводу запрещен');
+        } else if (error.response.status === 401) {
+          throw new Error('Ошибка аутентификации пользователя');
+        } else {
+          const message = error.response.data?.message || 'Ошибка получения статуса вывода';
+          throw new Error(message);
+        }
+      }
+      
+      throw error;
+    }
+  }
+  
+  /**
+   * Получает информацию о выводе
+   * @param {Object} telegramUser - Данные пользователя из Telegram
+   * @param {string} withdrawalId - ID вывода
+   * @returns {Object} - Информация о выводе
+   */
+  async getWithdrawalInfo(telegramUser, withdrawalId) {
+    try {
+      console.log(`API: Получаем информацию о выводе ${withdrawalId} для пользователя ${telegramUser.id}`);
+      
+      // Валидация withdrawalId
+      if (!withdrawalId || !withdrawalId.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error('Некорректный ID вывода');
+      }
+      
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.get(`/withdrawals/${withdrawalId}`, { headers });
+      
+      console.log('API: Информация о выводе получена');
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('API: Ошибка при получении информации о выводе:', error.response?.data || error.message);
+      
+      if (error.response) {
+        if (error.response.status === 404) {
+          throw new Error('Запрос на вывод не найден');
+        } else if (error.response.status === 403) {
+          throw new Error('Доступ к выводу запрещен');
+        }
+      }
+      
+      throw error;
+    }
+  }
+  
+  /**
+   * Получает историю выводов пользователя
+   * @param {Object} telegramUser - Данные пользователя из Telegram
+   * @param {Object} params - Параметры запроса
+   * @returns {Object} - История выводов
+   */
+  async getUserWithdrawals(telegramUser, params = {}) {
+    try {
+      console.log(`API: Получаем историю выводов для пользователя ${telegramUser.id}`);
+      
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.get('/withdrawals', { 
+        headers,
+        params
+      });
+      
+      console.log('API: История выводов получена');
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('API: Ошибка при получении истории выводов:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+  
+  /**
+   * Отменяет запрос на вывод
+   * @param {Object} telegramUser - Данные пользователя из Telegram
+   * @param {string} withdrawalId - ID вывода
+   * @returns {Object} - Результат отмены
+   */
+  async cancelWithdrawal(telegramUser, withdrawalId) {
+    try {
+      console.log(`API: Отменяем вывод ${withdrawalId} для пользователя ${telegramUser.id}`);
+      
+      // Валидация withdrawalId
+      if (!withdrawalId || !withdrawalId.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error('Некорректный ID вывода');
+      }
+      
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.delete(`/withdrawals/${withdrawalId}`, { headers });
+      
+      console.log('API: Вывод отменен');
+      
+      return response.data;
+    } catch (error) {
+      console.error('API: Ошибка при отмене вывода:', error.response?.data || error.message);
+      
+      if (error.response) {
+        const message = error.response.data?.message || 'Ошибка отмены вывода';
+        throw new Error(message);
+      }
+      
+      throw error;
+    }
+  }
   
   /**
    * Проверяет доступность API

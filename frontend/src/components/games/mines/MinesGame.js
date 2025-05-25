@@ -1,10 +1,14 @@
-// MinesGame.js
+// frontend/src/components/games/mines/MinesGame.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { MinesGrid } from './index';
 import { MinesControls } from './index';
 import { gameApi } from '../../../services';
+import '../../../styles/MinesGame.css';
 
 const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) => {
+  // НОВОЕ: Состояние загрузки
+  const [isInitializing, setIsInitializing] = useState(true);
+  
   // Состояние игры
   const [grid, setGrid] = useState(Array(5).fill().map(() => Array(5).fill('gem')));
   const [clickedCells, setClickedCells] = useState([]);
@@ -17,6 +21,26 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
   const [possibleWin, setPossibleWin] = useState(0.95);
   const [loading, setLoading] = useState(false);
   const [autoplay, setAutoplay] = useState(false);
+  
+  // НОВОЕ: Инициализация с загрузочным экраном
+  useEffect(() => {
+    const initializeGame = async () => {
+      try {
+        // Показываем загрузочный экран минимум 2 секунды
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        console.log('=== ИНИЦИАЛИЗАЦИЯ ИГРЫ В МИНЫ ===');
+        setIsInitializing(false);
+        
+      } catch (err) {
+        console.error('Ошибка инициализации мин:', err);
+        setError('Ошибка загрузки игры');
+        setIsInitializing(false);
+      }
+    };
+    
+    initializeGame();
+  }, [setError]);
   
   // Обновление возможного выигрыша при изменении ставки или множителя
   useEffect(() => {
@@ -241,6 +265,27 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
   
   // Получаем количество открытых ячеек
   const revealedCount = clickedCells.length;
+  
+  // НОВОЕ: Загрузочный экран для мин
+  if (isInitializing) {
+    return (
+      <div className="mines-loading-screen">
+        <div className="mines-loading-content">
+          <div className="greenlight-logo">
+            <div className="logo-icon mines-icon">💣</div>
+            <div className="logo-text">Greenlight</div>
+            <div className="logo-subtitle">Mines Game</div>
+          </div>
+          <div className="loading-spinner">
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+          </div>
+          <div className="loading-text">Загрузка мин...</div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <>

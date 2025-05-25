@@ -14,6 +14,9 @@ const CrashGame = ({
   setGameResult, 
   setError 
 }) => {
+  // НОВОЕ: Состояние загрузки
+  const [isInitializing, setIsInitializing] = useState(true);
+  
   // Состояние игры
   const [gameState, setGameState] = useState('waiting'); // waiting, flying, crashed
   const [currentMultiplier, setCurrentMultiplier] = useState(1.00);
@@ -34,28 +37,43 @@ const CrashGame = ({
   const [cashedOutBets, setCashedOutBets] = useState([]);
   const [history, setHistory] = useState([]);
   
-  // Рефы для таймеров и состояния
+  // ИСПРАВЛЕНО: Более надежные рефы для таймеров
   const gameTimerRef = useRef(null);
   const multiplierTimerRef = useRef(null);
   const startTimeRef = useRef(null);
   const isCrashedRef = useRef(false);
   const roundIdRef = useRef(0);
   const lastMultiplierUpdateRef = useRef(0);
+  const isGameActiveRef = useRef(false); // НОВЫЙ РЕФ для отслеживания активности игры
   
-  // НОВОЕ: Функция для получения CSS класса графика на основе множителя
-  const getGraphCSSClass = useCallback(() => {
-    if (gameState !== 'flying') return '';
+  // НОВОЕ: Инициализация с загрузочным экраном
+  useEffect(() => {
+    const initializeGame = async () => {
+      try {
+        // Показываем загрузочный экран минимум 2 секунды
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        console.log('=== ИНИЦИАЛИЗАЦИЯ КРАШ ИГРЫ ===');
+        setIsInitializing(false);
+        
+        // Запускаем первый раунд
+        setTimeout(() => {
+          startWaitingPeriod();
+        }, 500);
+        
+      } catch (err) {
+        console.error('Ошибка инициализации:', err);
+        setError('Ошибка загрузки игры');
+        setIsInitializing(false);
+      }
+    };
     
-    if (currentMultiplier >= 15) {
-      return 'legendary-multiplier';
-    } else if (currentMultiplier >= 8) {
-      return 'high-multiplier';
-    } else if (currentMultiplier >= 5) {
-      return 'critical-moment';
-    }
+    initializeGame();
     
-    return '';
-  }, [gameState, currentMultiplier]);
+    return () => {
+      cleanupAllTimers();
+    };
+  }, []);
   
   // Генерация краш-поинта (реальная логика должна быть на сервере)
   const generateCrashPoint = useCallback(() => {
@@ -64,6 +82,22 @@ const CrashGame = ({
     if (random < 0.7) return 1.8 + Math.random() * 1.2; // 1.8-3.0x (30%)
     if (random < 0.9) return 3.0 + Math.random() * 4.0; // 3.0-7.0x (20%)
     return 7.0 + Math.random() * 13.0; // 7.0-20.0x (10%)
+  }, []);
+  
+  // ИСПРАВЛЕНО: Надежная очистка всех таймеров
+  const cleanupAllTimers = useCallback(() => {
+    console.log('🧹 Очистка всех таймеров');
+    
+    if (gameTimerRef.current) {
+      clearInterval(gameTimerRef.current);
+      gameTimerRef.current = null;
+    }
+    if (multiplierTimerRef.current) {
+      clearInterval(multiplierTimerRef.current);
+      multiplierTimerRef.current = null;
+    }
+    
+    isGameActiveRef.current = false;
   }, []);
   
   // Размещение ставки
@@ -93,23 +127,26 @@ const CrashGame = ({
       }]);
       
       setLoading(false);
+      console.log('✅ Ставка размещена:', betAmount, 'USDT');
+      
     } catch (err) {
-      console.error('Ошибка размещения ставки:', err);
+      console.error('❌ Ошибка размещения ставки:', err);
       setError(err.response?.data?.message || 'Ошибка размещения ставки');
       setLoading(false);
     }
   }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, setBalance, setError]);
   
-  // КРИТИЧЕСКИ ВАЖНО: Кешаут НЕ влияет на игру
+  // ИСПРАВЛЕНО: Кешаут который НЕ ломает игру
   const cashOut = useCallback(async () => {
     if (gameState !== 'flying' || !hasBet || cashedOut || loading || isCrashedRef.current) {
+      console.log('❌ Кешаут заблокирован:', { gameState, hasBet, cashedOut, loading, crashed: isCrashedRef.current });
       return;
     }
     
     try {
       setLoading(true);
       
-      console.log('КЕШАУТ: Пользователь выводит при', currentMultiplier, '- игра ПРОДОЛЖАЕТСЯ');
+      console.log('💰 КЕШАУТ: Пользователь выводит при', currentMultiplier.toFixed(2), 'x');
       
       const winAmount = userBet.amount * currentMultiplier;
       setBalance(prev => prev + winAmount);
@@ -139,16 +176,13 @@ const CrashGame = ({
       
       setLoading(false);
       
-      console.log('КЕШАУТ: Завершен успешно, игра продолжается для всех остальных');
+      console.log('✅ КЕШАУТ: Завершен успешно, игра продолжается для всех остальных');
       
-      // ВАЖНО: НЕ ТРОГАЕМ ИГРОВЫЕ ТАЙМЕРЫ И СОСТОЯНИЯ!
-      // multiplierTimerRef.current продолжает работать
-      // currentMultiplier продолжает расти
-      // gameState остается 'flying'
-      // График продолжает лететь
+      // КРИТИЧЕСКИ ВАЖНО: НЕ ТРОГАЕМ ИГРОВЫЕ ТАЙМЕРЫ!
+      // Игра должна продолжаться независимо от действий пользователя
       
     } catch (err) {
-      console.error('Ошибка кешаута:', err);
+      console.error('❌ Ошибка кешаута:', err);
       setError(err.response?.data?.message || 'Ошибка вывода ставки');
       setLoading(false);
     }
@@ -162,53 +196,82 @@ const CrashGame = ({
         !isCrashedRef.current &&
         userBet?.autoCashOut > 0 && 
         currentMultiplier >= userBet.autoCashOut) {
-      console.log('АВТОКЕШАУТ: сработал при', currentMultiplier, '- игра продолжается');
+      console.log('🤖 АВТОКЕШАУТ: сработал при', currentMultiplier.toFixed(2), 'x');
       cashOut();
     }
   }, [gameState, hasBet, cashedOut, userBet, currentMultiplier, cashOut]);
   
-  // Очистка всех таймеров
-  const clearAllTimers = useCallback(() => {
+  // ИСПРАВЛЕНО: Период ожидания с точным таймингом
+  const startWaitingPeriod = useCallback(() => {
+    console.log('⏳ === НАЧАЛО ПЕРИОДА ОЖИДАНИЯ ===');
+    
+    // Сбрасываем все состояния
+    cleanupAllTimers();
+    setGameState('waiting');
+    setTimeToStart(7); // ТОЧНО 7 секунд
+    setCurrentMultiplier(1.00);
+    isCrashedRef.current = false;
+    isGameActiveRef.current = false;
+    
+    // Очищаем данные предыдущего раунда
+    setHasBet(false);
+    setCashedOut(false);
+    setUserBet(null);
+    setUserCashOutMultiplier(0);
+    setActiveBets([]);
+    setCashedOutBets([]);
+    
+    // ИСПРАВЛЕНО: Точный таймер обратного отсчета
+    let countdown = 7;
+    setTimeToStart(countdown);
+    
+    gameTimerRef.current = setInterval(() => {
+      countdown -= 1;
+      setTimeToStart(countdown);
+      
+      console.log('⏰ Обратный отсчет:', countdown);
+      
+      if (countdown <= 0) {
+        clearInterval(gameTimerRef.current);
+        gameTimerRef.current = null;
+        
+        console.log('🚀 Время ожидания истекло, запускаем полет');
+        startFlyingPhase();
+      }
+    }, 1000); // ТОЧНО 1 секунда
+    
+  }, [cleanupAllTimers]);
+  
+  // ИСПРАВЛЕНО: Фаза полета с правильной скоростью
+  const startFlyingPhase = useCallback(() => {
+    console.log('🚀 === НАЧАЛО ФАЗЫ ПОЛЕТА ===');
+    
+    // Очищаем таймеры ожидания
     if (gameTimerRef.current) {
       clearInterval(gameTimerRef.current);
       gameTimerRef.current = null;
     }
-    if (multiplierTimerRef.current) {
-      clearInterval(multiplierTimerRef.current);
-      multiplierTimerRef.current = null;
-    }
-  }, []);
-  
-  // ИСПРАВЛЕНО: Более плавная и быстрая логика роста множителя
-  const startNewRound = useCallback(() => {
-    console.log('=== ЗАПУСК НОВОГО РАУНДА ===');
-    
-    // Очищаем все таймеры
-    clearAllTimers();
-    
-    // Сбрасываем флаги
-    isCrashedRef.current = false;
-    roundIdRef.current += 1;
     
     // Генерируем новый краш-поинт
     const newCrashPoint = generateCrashPoint();
     setCrashPoint(newCrashPoint);
-    console.log('НОВЫЙ КРАШ-ПОИНТ:', newCrashPoint);
+    roundIdRef.current += 1;
     
-    // Сбрасываем состояние для нового раунда
-    setCurrentMultiplier(1.00);
+    console.log('🎯 Новый краш-поинт:', newCrashPoint.toFixed(2), 'x');
+    console.log('🆔 ID раунда:', roundIdRef.current);
+    
+    // Устанавливаем состояние полета
     setGameState('flying');
+    setCurrentMultiplier(1.00);
     startTimeRef.current = Date.now();
     lastMultiplierUpdateRef.current = Date.now();
+    isCrashedRef.current = false;
+    isGameActiveRef.current = true;
     
-    // Очищаем списки ставок для нового раунда
-    setActiveBets([]);
-    setCashedOutBets([]);
-    
-    // ИСПРАВЛЕННАЯ логика роста множителя с плавным ускорением
+    // ИСПРАВЛЕНО: Замедленная логика роста множителя
     multiplierTimerRef.current = setInterval(() => {
-      // Проверяем, что игра еще не завершилась
-      if (isCrashedRef.current) {
+      // Проверяем, что игра все еще активна
+      if (!isGameActiveRef.current || isCrashedRef.current) {
         return;
       }
       
@@ -217,11 +280,10 @@ const CrashGame = ({
       const deltaTime = (now - lastMultiplierUpdateRef.current) / 1000; // Время с последнего обновления
       lastMultiplierUpdateRef.current = now;
       
-      // НОВАЯ ФОРМУЛА: Плавное ускорение пропорционально времени
-      // Базовая скорость роста увеличивается с течением времени
-      const baseSpeed = 0.1; // Начальная скорость роста множителя в секунду
-      const acceleration = 0.05; // Ускорение роста во времени
-      const speedIncrease = baseSpeed + (acceleration * totalElapsed); // Скорость растет со временем
+      // ЗАМЕДЛЕННАЯ ФОРМУЛА: Более медленный рост множителя
+      const baseSpeed = 0.06; // УМЕНЬШЕНО с 0.1 до 0.06 (на 40% медленнее)
+      const acceleration = 0.03; // УМЕНЬШЕНО с 0.05 до 0.03 (на 40% медленнее)
+      const speedIncrease = baseSpeed + (acceleration * totalElapsed);
       
       // Рассчитываем новый множитель
       const multiplierIncrease = speedIncrease * deltaTime;
@@ -229,14 +291,18 @@ const CrashGame = ({
       setCurrentMultiplier(prevMultiplier => {
         const newMultiplier = prevMultiplier + multiplierIncrease;
         
-        // ПРОВЕРЯЕМ КРАШ НЕЗАВИСИМО ОТ КЕШАУТОВ ПОЛЬЗОВАТЕЛЕЙ
+        // ПРОВЕРЯЕМ КРАШ
         if (newMultiplier >= newCrashPoint) {
-          // КРАШ! Останавливаем ВСЮ игру
-          console.log('=== КРАШ ПРИ', newCrashPoint.toFixed(2), '===');
+          console.log('💥 === КРАШ ПРИ', newCrashPoint.toFixed(2), 'x ===');
+          
+          // Останавливаем игру
           isCrashedRef.current = true;
+          isGameActiveRef.current = false;
+          
           clearInterval(multiplierTimerRef.current);
           multiplierTimerRef.current = null;
           
+          // Переходим в состояние краха
           setGameState('crashed');
           
           // Добавляем в историю
@@ -257,67 +323,21 @@ const CrashGame = ({
             });
           }
           
-          // Через 3 секунды запускаем новый таймер ожидания
+          // ТОЧНО через 3 секунды запускаем новый период ожидания
           setTimeout(() => {
-            console.log('Переходим в режим ожидания следующего раунда');
-            setGameState('waiting');
-            setTimeToStart(7);
-            setHasBet(false);
-            setCashedOut(false);
-            setUserBet(null);
-            setUserCashOutMultiplier(0);
-            
-            // Запускаем обратный отсчет
-            gameTimerRef.current = setInterval(() => {
-              setTimeToStart(prev => {
-                if (prev <= 1) {
-                  clearInterval(gameTimerRef.current);
-                  gameTimerRef.current = null;
-                  startNewRound();
-                  return 0;
-                }
-                return prev - 1;
-              });
-            }, 1000);
-          }, 3000);
+            console.log('🔄 Переходим к новому раунду');
+            startWaitingPeriod();
+          }, 3000); // ТОЧНО 3 секунды
           
           return newCrashPoint; // Возвращаем точный краш-поинт
         } else {
-          // МНОЖИТЕЛЬ РАСТЕТ НЕЗАВИСИМО ОТ ДЕЙСТВИЙ ПОЛЬЗОВАТЕЛЕЙ
+          // Множитель продолжает расти
           return newMultiplier;
         }
       });
-    }, 50); // Обновляем каждые 50ms для более плавной анимации
-  }, [generateCrashPoint, hasBet, cashedOut, userBet, balance, setGameResult, clearAllTimers]);
-  
-  // Инициализация игры
-  useEffect(() => {
-    roundIdRef.current = 0;
+    }, 80); // ЗАМЕДЛЕНО с 50ms до 80ms (на 60% медленнее обновления)
     
-    // Запускаем первый таймер ожидания
-    gameTimerRef.current = setInterval(() => {
-      setTimeToStart(prev => {
-        if (prev <= 1) {
-          clearInterval(gameTimerRef.current);
-          gameTimerRef.current = null;
-          startNewRound();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    
-    return () => {
-      clearAllTimers();
-    };
-  }, [startNewRound, clearAllTimers]);
-  
-  // Очистка таймеров при размонтировании
-  useEffect(() => {
-    return () => {
-      clearAllTimers();
-    };
-  }, [clearAllTimers]);
+  }, [generateCrashPoint, hasBet, cashedOut, userBet, balance, setGameResult, startWaitingPeriod]);
   
   // Получение текста для главной кнопки
   const getMainButtonText = () => {
@@ -377,16 +397,36 @@ const CrashGame = ({
     }
   };
   
+  // НОВОЕ: Загрузочный экран
+  if (isInitializing) {
+    return (
+      <div className="crash-loading-screen">
+        <div className="crash-loading-content">
+          <div className="greenlight-logo">
+            <div className="logo-icon">🚀</div>
+            <div className="logo-text">Greenlight</div>
+            <div className="logo-subtitle">Crash Game</div>
+          </div>
+          <div className="loading-spinner">
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+            <div className="spinner-ring"></div>
+          </div>
+          <div className="loading-text">Загрузка игры...</div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className={`crash-game ${loading ? 'loading' : ''}`} data-game-state={gameState}>
-      {/* ОБНОВЛЕНО: График с CSS классом для эффектов */}
+      {/* График */}
       <CrashGraph 
         multiplier={currentMultiplier}
         gameState={gameState}
         crashPoint={crashPoint}
         timeToStart={timeToStart}
         roundId={roundIdRef.current}
-        className={getGraphCSSClass()}
       />
       
       {/* Главная кнопка действия */}

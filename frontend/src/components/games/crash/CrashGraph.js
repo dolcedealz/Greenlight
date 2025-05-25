@@ -2,14 +2,13 @@
 import React, { useRef, useEffect, useState } from 'react';
 import '../../../styles/CrashGraph.css';
 
-const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, userCashedOut }) => {
+const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, className }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const pointsRef = useRef([]);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const lastRoundIdRef = useRef(roundId);
   const gameStartTimeRef = useRef(null);
-  const lastGameStateRef = useRef(gameState);
   
   // Обновление размеров canvas
   useEffect(() => {
@@ -30,31 +29,22 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
     return () => window.removeEventListener('resize', updateSize);
   }, []);
   
-  // ИСПРАВЛЕНО: Очистка точек ТОЛЬКО при реальной смене раунда
+  // Очистка точек ТОЛЬКО при новом раунде
   useEffect(() => {
-    // Очищаем точки ТОЛЬКО при смене roundId (новый раунд)
     if (roundId !== lastRoundIdRef.current) {
-      console.log('ГРАФИК: Новый раунд, очищаем точки', { 
-        newRound: roundId, 
-        oldRound: lastRoundIdRef.current 
-      });
+      console.log('ГРАФИК: Новый раунд, очищаем точки');
       pointsRef.current = [];
       gameStartTimeRef.current = null;
       lastRoundIdRef.current = roundId;
     }
-    
-    // НЕ очищаем точки при смене gameState внутри одного раунда!
-    lastGameStateRef.current = gameState;
-  }, [roundId]); // УБИРАЕМ gameState из зависимостей!
+  }, [roundId]);
   
   // Запоминаем время начала полета
   useEffect(() => {
     if (gameState === 'flying' && gameStartTimeRef.current === null) {
       gameStartTimeRef.current = Date.now();
-      console.log('ГРАФИК: Начался полет, время старта:', gameStartTimeRef.current);
+      console.log('ГРАФИК: Начался полет');
     }
-    
-    // НЕ сбрасываем gameStartTimeRef при waiting, только при новом раунде
   }, [gameState]);
   
   // Остановка анимации при смене состояния на не-flying
@@ -65,7 +55,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
     }
   }, [gameState]);
   
-  // Основная функция рисования - УБРАЛИ userCashedOut из зависимостей
+  // Основная функция рисования
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || canvasSize.width === 0) return;
@@ -150,20 +140,20 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
       // Подписи по оси X (время)
       for (let i = 0; i <= 5; i++) {
         const x = padding + (i * width / 5);
-        const time = i * 0.2;
+        const time = i * 2;
         ctx.fillText(`${time.toFixed(1)}s`, x, padding + height + 20);
       }
       
       // Подписи по оси Y (множитель)
       ctx.textAlign = 'right';
-      for (let i = 0; i <= 4; i++) {
-        const y = padding + height - (i * height / 4);
-        const mult = 1 + i * 2;
-        ctx.fillText(`${mult}x`, padding - 10, y + 4);
+      for (let i = 0; i <= 8; i++) {
+        const y = padding + height - (i * height / 8);
+        const mult = 1 + i * 1.5;
+        ctx.fillText(`${mult.toFixed(1)}x`, padding - 10, y + 4);
       }
     };
     
-    // Состояние ожидания с обратным отсчетом
+    // Состояние ожидания
     const drawWaitingState = (ctx, width, height, timeToStart) => {
       const waitingGradient = ctx.createRadialGradient(
         width / 2, height / 2, 0,
@@ -221,22 +211,24 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
       ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
     };
     
-    // ИСПРАВЛЕНО: Состояние полета - график ВСЕГДА продолжает расти
+    // ИСПРАВЛЕНО: Гиперболическая траектория с ускорением
     const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
-      // КРИТИЧЕСКИ ВАЖНО: Добавляем точку при каждом кадре во время полета
-      // НЕЗАВИСИМО от статуса кешаута пользователя
       if (gameStartTimeRef.current && currentMultiplier >= 1.0) {
         const realTimeElapsed = (Date.now() - gameStartTimeRef.current) / 1000;
         
-        // Стабильная формула координат
-        const timeBasedX = Math.sqrt(realTimeElapsed * 0.5) * 100;
-        const x = padding + Math.min(timeBasedX, width - 20);
+        // НОВАЯ ФОРМУЛА: Гиперболическая траектория с плавным ускорением
+        // X координата: ускоряется пропорционально множителю
+        const speedMultiplier = Math.log(currentMultiplier + 0.5); // Логарифмическое ускорение
+        const acceleratedTime = realTimeElapsed * (1 + speedMultiplier * 0.3);
         
-        // Y основан на логарифме множителя
-        const logMultiplier = Math.log(Math.max(currentMultiplier, 1.01));
-        const maxLogValue = Math.log(10); // до 10x
-        const yProgress = Math.min(logMultiplier / maxLogValue, 1);
-        const y = padding + height - (yProgress * height * 0.8);
+        // X растет по логарифмической шкале, не упираясь в стену
+        const timeScale = Math.log(acceleratedTime + 1) * 120; // Логарифмическое масштабирование
+        const x = padding + Math.min(timeScale, width * 0.9); // Оставляем 10% запаса
+        
+        // Y координата: гиперболическая функция
+        const multiplierScale = currentMultiplier - 1; // Убираем базовый 1x
+        const hyperbolaY = Math.log(multiplierScale + 1) * 150; // Гиперболическая кривая
+        const y = padding + height - Math.min(hyperbolaY, height * 0.9); // Оставляем 10% запаса сверху
         
         const newPoint = {
           x: Math.max(padding, Math.min(x, padding + width - 10)),
@@ -245,36 +237,66 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
           time: Date.now()
         };
         
-        // Добавляем точку ВСЕГДА, невзирая на кешаут
+        // Добавляем точку ВСЕГДА
         pointsRef.current.push(newPoint);
         
         // Ограничиваем массив для производительности
-        if (pointsRef.current.length > 2000) {
-          pointsRef.current = pointsRef.current.slice(-1500);
+        if (pointsRef.current.length > 1000) {
+          pointsRef.current = pointsRef.current.slice(-800);
         }
       }
       
-      // Рисуем линию графика если есть точки
+      // Рисуем линию графика
       if (pointsRef.current.length > 1) {
-        // Линия ВСЕГДА зеленая, кешаут не влияет на цвет графика
-        ctx.strokeStyle = '#0ba84a';
-        ctx.lineWidth = 4;
+        // Создаем градиент для линии в зависимости от высоты множителя
+        const lineGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
+        if (multiplier < 2) {
+          lineGradient.addColorStop(0, '#4ade80');
+          lineGradient.addColorStop(1, '#0ba84a');
+        } else if (multiplier < 5) {
+          lineGradient.addColorStop(0, '#fbbf24');
+          lineGradient.addColorStop(1, '#0ba84a');
+        } else {
+          lineGradient.addColorStop(0, '#f87171');
+          lineGradient.addColorStop(1, '#fbbf24');
+        }
+        
+        ctx.strokeStyle = lineGradient;
+        ctx.lineWidth = 5;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.setLineDash([]);
         
+        // Рисуем плавную кривую
         ctx.beginPath();
-        ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
         
-        for (let i = 1; i < pointsRef.current.length; i++) {
-          ctx.lineTo(pointsRef.current[i].x, pointsRef.current[i].y);
+        if (pointsRef.current.length === 2) {
+          ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
+          ctx.lineTo(pointsRef.current[1].x, pointsRef.current[1].y);
+        } else {
+          ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
+          
+          // Используем кривые Безье для плавности
+          for (let i = 1; i < pointsRef.current.length - 1; i++) {
+            const current = pointsRef.current[i];
+            const next = pointsRef.current[i + 1];
+            const cpx = (current.x + next.x) / 2;
+            const cpy = (current.y + next.y) / 2;
+            
+            ctx.quadraticCurveTo(current.x, current.y, cpx, cpy);
+          }
+          
+          // Последняя точка
+          const lastPoint = pointsRef.current[pointsRef.current.length - 1];
+          ctx.lineTo(lastPoint.x, lastPoint.y);
         }
         
         ctx.stroke();
         
-        // Заливка под графиком
+        // Заливка под графиком с градиентом
         const fillGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
-        fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.3)');
+        fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.4)');
+        fillGradient.addColorStop(0.5, 'rgba(11, 168, 74, 0.2)');
         fillGradient.addColorStop(1, 'rgba(11, 168, 74, 0.05)');
         
         ctx.fillStyle = fillGradient;
@@ -293,37 +315,60 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
         ctx.closePath();
         ctx.fill();
         
-        // Точка на конце - всегда отображается
+        // Анимированная точка на конце
         const lastPoint = pointsRef.current[pointsRef.current.length - 1];
+        const pulseSize = 8 + Math.sin(Date.now() / 200) * 3;
+        
         ctx.beginPath();
-        ctx.arc(lastPoint.x, lastPoint.y, 6, 0, 2 * Math.PI);
+        ctx.arc(lastPoint.x, lastPoint.y, pulseSize, 0, 2 * Math.PI);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
         ctx.strokeStyle = '#0ba84a';
         ctx.lineWidth = 3;
         ctx.stroke();
-      }
-      
-      // Текущий множитель - всегда отображается
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 64px Arial';
-      ctx.textAlign = 'center';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
-      ctx.strokeText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
-      ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
-      
-      // Эффект мерцания при высоких множителях
-      if (currentMultiplier > 2) {
-        const glowIntensity = Math.min((currentMultiplier - 2) / 5, 1);
+        
+        // Свечение вокруг точки
         ctx.shadowColor = '#0ba84a';
-        ctx.shadowBlur = 20 * glowIntensity;
-        ctx.fillText(`${currentMultiplier.toFixed(2)}x`, canvas.width / 2, 100);
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(lastPoint.x, lastPoint.y, pulseSize - 2, 0, 2 * Math.PI);
+        ctx.fillStyle = '#0ba84a';
+        ctx.fill();
         ctx.shadowBlur = 0;
       }
       
-      // УБРАЛИ отображение статуса кешаута, чтобы не мешать графику
-      // График должен лететь независимо от действий пользователя
+      // Текущий множитель с эффектами
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 72px Arial';
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 4;
+      
+      // Анимированный размер текста
+      const textScale = 1 + Math.sin(Date.now() / 300) * 0.05;
+      ctx.save();
+      ctx.translate(canvas.width / 2, 120);
+      ctx.scale(textScale, textScale);
+      
+      ctx.strokeText(`${currentMultiplier.toFixed(2)}x`, 0, 0);
+      ctx.fillText(`${currentMultiplier.toFixed(2)}x`, 0, 0);
+      
+      ctx.restore();
+      
+      // Эффект свечения для высоких множителей
+      if (currentMultiplier > 2) {
+        const glowIntensity = Math.min((currentMultiplier - 2) / 5, 1);
+        ctx.shadowColor = currentMultiplier > 5 ? '#fbbf24' : '#0ba84a';
+        ctx.shadowBlur = 30 * glowIntensity;
+        
+        ctx.save();
+        ctx.translate(canvas.width / 2, 120);
+        ctx.scale(textScale, textScale);
+        ctx.fillText(`${currentMultiplier.toFixed(2)}x`, 0, 0);
+        ctx.restore();
+        
+        ctx.shadowBlur = 0;
+      }
     };
     
     // Состояние краха
@@ -331,8 +376,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
       // Рисуем последний график красным
       if (pointsRef.current.length > 1) {
         ctx.strokeStyle = '#ff3b30';
-        ctx.lineWidth = 4;
-        ctx.setLineDash([]);
+        ctx.lineWidth = 5;
+        ctx.setLineDash([5, 5]); // Пунктирная линия
         
         ctx.beginPath();
         ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
@@ -367,13 +412,14 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
       
       // Анимация взрыва
       const time = Date.now() / 1000;
-      const explosionRadius = Math.sin(time * 10) * 25 + 60;
+      const explosionRadius = Math.sin(time * 15) * 30 + 80;
       
       const explosionGradient = ctx.createRadialGradient(
         canvas.width / 2, canvas.height / 2 - 20, 0,
         canvas.width / 2, canvas.height / 2 - 20, explosionRadius
       );
-      explosionGradient.addColorStop(0, 'rgba(255, 59, 48, 0.6)');
+      explosionGradient.addColorStop(0, 'rgba(255, 59, 48, 0.8)');
+      explosionGradient.addColorStop(0.7, 'rgba(255, 149, 0, 0.4)');
       explosionGradient.addColorStop(1, 'rgba(255, 59, 48, 0.0)');
       
       ctx.fillStyle = explosionGradient;
@@ -381,20 +427,30 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
       ctx.arc(canvas.width / 2, canvas.height / 2 - 20, explosionRadius, 0, 2 * Math.PI);
       ctx.fill();
       
-      // Текст краха
+      // Текст краха с анимацией
+      const crashTextScale = 1 + Math.sin(time * 8) * 0.1;
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2 - 20);
+      ctx.scale(crashTextScale, crashTextScale);
+      
       ctx.fillStyle = '#ff3b30';
-      ctx.font = 'bold 48px Arial';
+      ctx.font = 'bold 54px Arial';
       ctx.textAlign = 'center';
       ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
-      ctx.strokeText('CRASHED', canvas.width / 2, canvas.height / 2 - 20);
-      ctx.fillText('CRASHED', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.lineWidth = 4;
+      ctx.strokeText('CRASHED', 0, 0);
+      ctx.fillText('CRASHED', 0, 0);
+      
+      ctx.restore();
       
       // Множитель краха
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 32px Arial';
-      ctx.strokeText(`${crashPoint.toFixed(2)}x`, canvas.width / 2, canvas.height / 2 + 40);
-      ctx.fillText(`${crashPoint.toFixed(2)}x`, canvas.width / 2, canvas.height / 2 + 40);
+      ctx.font = 'bold 36px Arial';
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
+      ctx.strokeText(`${crashPoint.toFixed(2)}x`, canvas.width / 2, canvas.height / 2 + 50);
+      ctx.fillText(`${crashPoint.toFixed(2)}x`, canvas.width / 2, canvas.height / 2 + 50);
     };
     
     draw();
@@ -410,10 +466,13 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, u
         animationRef.current = null;
       }
     };
-  }, [multiplier, gameState, crashPoint, timeToStart, canvasSize]); // УБРАЛИ userCashedOut!
+  }, [multiplier, gameState, crashPoint, timeToStart, canvasSize]);
   
   return (
-    <div className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''}`} data-state={gameState}>
+    <div 
+      className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''} ${className || ''}`} 
+      data-state={gameState}
+    >
       <canvas 
         ref={canvasRef}
         className="crash-graph-canvas"

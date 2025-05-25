@@ -245,7 +245,9 @@ class WithdrawalService {
       
       console.log(`WITHDRAWAL: Вывод ${withdrawalId} успешно обработан`);
       
-      // TODO: Отправить уведомление пользователю через бота
+      // Отправляем уведомление об успешном выводе
+      const notificationService = require('../../../bot/src/services/notification.service');
+      await notificationService.notifyWithdrawalCompleted(withdrawal.user.telegramId, withdrawal);
       
       return withdrawal;
       
@@ -445,6 +447,10 @@ class WithdrawalService {
       console.error(`WITHDRAWAL: Ошибка обработки после одобрения: ${error.message}`);
     });
     
+    // Отправляем уведомление пользователю
+    const notificationService = require('../../../bot/src/services/notification.service');
+    await notificationService.notifyWithdrawalApproved(withdrawal.user.telegramId, withdrawal);
+    
     return withdrawal;
   }
 
@@ -469,6 +475,10 @@ class WithdrawalService {
     
     // Возвращаем средства пользователю
     await this.refundFailedWithdrawal(withdrawal);
+    
+    // Отправляем уведомление пользователю
+    const notificationService = require('../../../bot/src/services/notification.service');
+    await notificationService.notifyWithdrawalRejected(withdrawal.user.telegramId, withdrawal);
     
     return withdrawal;
   }

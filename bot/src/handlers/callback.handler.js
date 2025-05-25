@@ -230,6 +230,161 @@ function registerCallbackHandlers(bot) {
     }
   });
 
+  // Обработка действий вывода средств
+  bot.action(/^withdraw:(\d+|custom)$/, async (ctx) => {
+    try {
+      const amount = ctx.match[1];
+      
+      console.log(`ВЫВОД: Обработка callback withdraw:${amount}`);
+      
+      // Сохраняем сумму в сессии
+      ctx.session = ctx.session || {};
+      ctx.session.withdrawAmount = amount;
+      
+      if (amount === 'custom') {
+        // Запрашиваем у пользователя ввод суммы
+        await ctx.reply(
+          '💰 Введите сумму для вывода (в USDT):\n\n' +
+          'Минимум: 1 USDT\nМаксимум: 10000 USDT'
+        );
+        ctx.session.waitingForWithdrawAmount = true;
+        return;
+      }
+      
+      // Валидация суммы
+      const amountFloat = parseFloat(amount);
+      
+      if (isNaN(amountFloat) || amountFloat <= 0) {
+        await ctx.reply('❌ Некорректная сумма для вывода');
+        return;
+      }
+      
+      if (amountFloat < 1) {
+        await ctx.reply('❌ Минимальная сумма вывода: 1 USDT');
+        return;
+      }
+      
+      if (amountFloat > 10000) {
+        await ctx.reply('❌ Максимальная сумма вывода: 10000 USDT');
+        return;
+      }
+      
+      // Проверяем баланс пользователя
+      await ctx.answerCbQuery('⏳ Проверяем баланс...');
+      
+      const apiService = require('../services/api.service');
+      const balance = await apiService.getUserBalance(ctx.from);
+      
+      if (balance < amountFloat) {
+        await ctx.reply(`❌ Недостаточно средств\n\nВаш баланс: ${balance.toFixed(2)} USDT\nЗапрошено: ${amountFloat} USDT`);
+        return;
+      }
+      
+      // Сохраняем сумму и запрашиваем получателя
+      ctx.session.withdrawAmount = amountFloat;
+      
+      await ctx.reply(
+        '📤 Куда вывести средства?\n\n' +
+        'Введите Telegram username получателя (без @):\n\n' +
+        '⚠️ Важно:\n' +
+        '• Получатель должен быть зарегистрирован в @CryptoBot\n' +
+        '• Username вводится без символа @\n' +
+        '• Проверьте правильность username перед отправкой'
+      );
+      
+      ctx.session.waitingForWithdrawRecipient = true;
+      
+    } catch (error) {
+      console.error('ВЫВОД: Ошибка при обработке действия вывода:', error);
+      await ctx.reply('❌ Произошла ошибка. Попробуйте еще раз.');
+      await ctx.answerCbQuery('❌ Ошибка');
+    }
+  });
+
+  // Обработка подтверждения вывода
+  bot.action(/^confirm_withdraw:(.+)$/, async (ctx) => {
+    try {
+      const data = ctx.match[1];
+      const [amount, recipient] = data.split(':');
+      
+      await ctx.answerCbQuery('⏳ Создаем запрос на вывод...');
+      
+      console.log(`ВЫВОД: Подтверждение вывода ${amount} USDT для ${recipient}`);
+      
+      const apiService = require('../services/api.service');
+      
+      try {
+        // Создаем запрос на вывод через API
+        const withdrawalData = await apiService.createWithdrawal(ctx.from, {
+          amount: parseFloat(amount),
+          recipient: recipient,
+          recipientType: 'username',
+          comment: `Вывод через Telegram бот`
+        });
+        
+        console.log(`ВЫВОД: Запрос на вывод создан:`, withdrawalData);
+        
+        // Формируем сообщение в зависимости от суммы
+        let message = `✅ Запрос на вывод создан\n\n` +
+          `💵 Сумма: ${amount} USDT\n` +
+          `📤 Получатель: @${recipient}\n` +
+          `🆔 ID вывода: ${withdrawalData.withdrawalId}\n`;
+        
+        if (withdrawalData.requiresApproval) {
+          message += `\n⏳ Статус: Требует одобрения администратора\n` +
+            `⏰ Время обработки: 24-48 часов`;
+        } else {
+          message += `\n⚡ Статус: Автоматическая обработка\n` +
+            `⏰ Время обработки: 5-15 минут`;
+        }
+        
+        await ctx.editMessageText(message, 
+          Markup.inlineKeyboard([
+            [Markup.button.callback('📊 Проверить статус', `check_withdrawal_status:${withdrawalData.withdrawalId}`)],
+            [Markup.button.callback('📋 История выводов', 'withdrawals_history')]
+          ])
+        );
+        
+        // Очищаем сессию
+        delete ctx.session.withdrawAmount;
+        delete ctx.session.withdrawRecipient;
+        
+      } catch (apiError) {
+        console.error('ВЫВОД: Ошибка API при создании вывода:', apiError);
+        
+        let errorMessage = '❌ Не удалось создать запрос на вывод\n\n';
+        
+        if (apiError.message.includes('Недостаточно средств')) {
+          errorMessage += 'Недостаточно средств на балансе';
+        } else if (apiError.message.includes('активный запрос')) {
+          errorMessage += 'У вас уже есть активный запрос на вывод';
+        } else if (apiError.message.includes('username')) {
+          errorMessage += 'Некорректный username получателя';
+        } else {
+          errorMessage += apiError.message || 'Попробуйте позже';
+        }
+        
+        await ctx.editMessageText(errorMessage);
+      }
+      
+    } catch (error) {
+      console.error('ВЫВОД: Ошибка при подтверждении вывода:', error);
+      await ctx.reply('❌ Произошла ошибка. Попробуйте еще раз.');
+      await ctx.answerCbQuery('❌ Ошибка');
+    }
+  });
+
+  // Обработка отмены вывода
+  bot.action('cancel_withdraw', async (ctx) => {
+    await ctx.answerCbQuery('Отменено');
+    
+    // Очищаем сессию
+    delete ctx.session.withdrawAmount;
+    delete ctx.session.withdrawRecipient;
+    
+    await ctx.editMessageText('❌ Вывод средств отменен');
+  });
+
   // Обработка истории выводов
   bot.action('withdrawals_history', async (ctx) => {
     try {

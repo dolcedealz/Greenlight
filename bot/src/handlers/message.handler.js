@@ -1,4 +1,4 @@
-// bot/src/handlers/message.handler.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// bot/src/handlers/message.handler.js - ОРИГИНАЛ
 const { Markup } = require('telegraf');
 const config = require('../config');
 const apiService = require('../services/api.service');
@@ -8,8 +8,128 @@ const apiService = require('../services/api.service');
  * @param {Object} bot - Экземпляр бота Telegraf
  */
 function registerMessageHandlers(bot) {
-  // УБРАНО: Обработчики для текстовых кнопок WebApp больше не нужны
-  // так как все кнопки теперь WebApp кнопки
+  // Обработка текстовых кнопок
+  bot.hears('🎮 Играть', async (ctx) => {
+    await ctx.reply(
+      '🎮 Выберите игру:',
+      Markup.inlineKeyboard([
+        [
+          Markup.button.webApp('🎰 Слоты', `${config.webAppUrl}?game=slots`),
+          Markup.button.webApp('💣 Мины', `${config.webAppUrl}?game=mines`)
+        ],
+        [
+          Markup.button.webApp('📈 Краш', `${config.webAppUrl}?game=crash`),
+          Markup.button.webApp('🪙 Монетка', `${config.webAppUrl}?game=coin`)
+        ],
+        [
+          Markup.button.webApp('🔮 События', `${config.webAppUrl}?screen=events`),
+        ]
+      ])
+    );
+  });
+  
+  bot.hears('👤 Профиль', async (ctx) => {
+    await ctx.reply(
+      '👤 Ваш профиль:',
+      Markup.inlineKeyboard([
+        Markup.button.webApp('Открыть профиль', `${config.webAppUrl}?screen=profile`)
+      ])
+    );
+  });
+  
+  bot.hears('💰 Пополнить', async (ctx) => {
+    await ctx.reply(
+      config.messages.deposit,
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback('10 USDT', 'deposit:10'),
+          Markup.button.callback('20 USDT', 'deposit:20'),
+          Markup.button.callback('50 USDT', 'deposit:50')
+        ],
+        [
+          Markup.button.callback('100 USDT', 'deposit:100'),
+          Markup.button.callback('500 USDT', 'deposit:500'),
+          Markup.button.callback('1000 USDT', 'deposit:1000')
+        ],
+        [
+          Markup.button.callback('Другая сумма', 'deposit:custom')
+        ]
+      ])
+    );
+  });
+  
+  bot.hears('💸 Вывести', async (ctx) => {
+    try {
+      // Проверяем баланс перед показом меню
+      const balance = await apiService.getUserBalance(ctx.from);
+      
+      if (balance < 1) {
+        await ctx.reply(
+          '❌ Недостаточно средств для вывода\n\n' +
+          `Ваш баланс: ${balance.toFixed(2)} USDT\n` +
+          'Минимальная сумма вывода: 1 USDT'
+        );
+        return;
+      }
+      
+      await ctx.reply(
+        '💸 Вывод средств\n\n' +
+        `💰 Ваш баланс: ${balance.toFixed(2)} USDT\n\n` +
+        '📋 Условия вывода:\n' +
+        '• Минимальная сумма: 1 USDT\n' +
+        '• Максимальная сумма: 10,000 USDT\n' +
+        '• До 300 USDT - автоматически\n' +
+        '• Свыше 300 USDT - требует одобрения\n' +
+        '• Время обработки: 5-15 минут\n\n' +
+        'Выберите сумму для вывода:',
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback('10 USDT', 'withdraw:10'),
+            Markup.button.callback('20 USDT', 'withdraw:20'),
+            Markup.button.callback('50 USDT', 'withdraw:50')
+          ],
+          [
+            Markup.button.callback('100 USDT', 'withdraw:100'),
+            Markup.button.callback('500 USDT', 'withdraw:500'),
+            Markup.button.callback('1000 USDT', 'withdraw:1000')
+          ],
+          [
+            Markup.button.callback('Другая сумма', 'withdraw:custom'),
+            Markup.button.callback('📋 История выводов', 'withdrawals_history')
+          ]
+        ])
+      );
+    } catch (error) {
+      console.error('Ошибка при проверке баланса:', error);
+      await ctx.reply(config.messages.withdraw);
+    }
+  });
+  
+  bot.hears('👥 Рефералы', async (ctx) => {
+    try {
+      const referralCode = await apiService.getUserReferralCode(ctx.from);
+      const referralLink = `https://t.me/${ctx.botInfo.username}?start=${referralCode}`;
+      
+      await ctx.reply(
+        `${config.messages.referral}${referralLink}\n\nПригласите друзей и получайте бонусы!`,
+        Markup.inlineKeyboard([
+          Markup.button.webApp('Подробнее', `${config.webAppUrl}?screen=referrals`)
+        ])
+      );
+    } catch (error) {
+      console.error('Ошибка получения реферального кода:', error);
+      await ctx.reply('Произошла ошибка. Попробуйте позже.');
+    }
+  });
+  
+  bot.hears('📊 История', async (ctx) => {
+    await ctx.reply(
+      'Ваша история игр и транзакций:',
+      Markup.inlineKeyboard([
+        Markup.button.webApp('Открыть историю', `${config.webAppUrl}?screen=history`)
+      ])
+    );
+  });
   
   // Обработка команды отмены
   bot.command('cancel', async (ctx) => {
@@ -18,9 +138,9 @@ function registerMessageHandlers(bot) {
     await ctx.reply('❌ Операция отменена', Markup.removeKeyboard());
   });
   
-  // Обработка всех текстовых сообщений
+  // Обработка всех остальных текстовых сообщений
   bot.on('text', async (ctx) => {
-    // Обработка ввода суммы для депозита (если используется через callback)
+    // Обработка ввода суммы для депозита
     if (ctx.session && ctx.session.waitingForDepositAmount) {
       const amount = parseFloat(ctx.message.text);
       
@@ -155,77 +275,8 @@ function registerMessageHandlers(bot) {
       return;
     }
     
-    // Обработка основных команд через текст
-    const messageText = ctx.message.text.toLowerCase();
-    
-    if (messageText.includes('играть') || messageText.includes('игр')) {
-      await ctx.reply(
-        '🎮 Для игры используйте WebApp кнопки выше или нажмите на кнопку ниже:',
-        Markup.inlineKeyboard([
-          Markup.button.webApp('🎮 Открыть казино', config.webAppUrl)
-        ])
-      );
-      return;
-    }
-    
-    if (messageText.includes('профиль') || messageText.includes('аккаунт')) {
-      await ctx.reply(
-        '👤 Для просмотра профиля используйте WebApp кнопки выше или нажмите на кнопку ниже:',
-        Markup.inlineKeyboard([
-          Markup.button.webApp('👤 Открыть профиль', `${config.webAppUrl}?screen=profile`)
-        ])
-      );
-      return;
-    }
-    
-    if (messageText.includes('пополн') || messageText.includes('депозит')) {
-      await ctx.reply(
-        '💰 Для пополнения используйте WebApp кнопки выше или нажмите на кнопку ниже:',
-        Markup.inlineKeyboard([
-          Markup.button.webApp('💰 Пополнить баланс', `${config.webAppUrl}?screen=deposit`)
-        ])
-      );
-      return;
-    }
-    
-    if (messageText.includes('выв') || messageText.includes('withdraw')) {
-      await ctx.reply(
-        '💸 Для вывода используйте WebApp кнопки выше или нажмите на кнопку ниже:',
-        Markup.inlineKeyboard([
-          Markup.button.webApp('💸 Вывести средства', `${config.webAppUrl}?screen=withdraw`)
-        ])
-      );
-      return;
-    }
-    
-    if (messageText.includes('реферал') || messageText.includes('пригласит')) {
-      await ctx.reply(
-        '👥 Для управления рефералами используйте WebApp кнопки выше или нажмите на кнопку ниже:',
-        Markup.inlineKeyboard([
-          Markup.button.webApp('👥 Реферальная программа', `${config.webAppUrl}?screen=referrals`)
-        ])
-      );
-      return;
-    }
-    
-    if (messageText.includes('истор') || messageText.includes('транзакц')) {
-      await ctx.reply(
-        '📊 Для просмотра истории используйте WebApp кнопки выше или нажмите на кнопку ниже:',
-        Markup.inlineKeyboard([
-          Markup.button.webApp('📊 История игр', `${config.webAppUrl}?screen=history`)
-        ])
-      );
-      return;
-    }
-    
-    // По умолчанию предлагаем использовать WebApp
-    await ctx.reply(
-      '🎰 Добро пожаловать в Greenlight Casino!\n\n' +
-      'Используйте кнопки WebApp выше для доступа к казино, или нажмите на кнопку ниже:',
-      Markup.inlineKeyboard([
-        Markup.button.webApp('🎮 Открыть казино', config.webAppUrl)
-      ])
-    );
+    // По умолчанию отправляем сообщение о неизвестной команде
+    await ctx.reply(config.messages.invalidCommand);
   });
   
   return bot;

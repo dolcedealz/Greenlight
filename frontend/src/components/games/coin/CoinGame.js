@@ -1,8 +1,7 @@
 // frontend/src/components/games/coin/CoinGame.js
 import React, { useState, useEffect } from 'react';
-import { CoinFlip } from './index';
-import { CoinControls } from './index';
-import { gameApi } from '../../../services';
+import CoinFlip from './CoinFlip';
+import CoinControls from './CoinControls';
 import '../../../styles/CoinGame.css';
 
 const CoinGame = ({ 
@@ -17,18 +16,18 @@ const CoinGame = ({
   lastResults,
   onAnimationEnd
 }) => {
-  // НОВОЕ: Состояние загрузки
   const [isInitializing, setIsInitializing] = useState(true);
   
-  // НОВОЕ: Инициализация с загрузочным экраном
   useEffect(() => {
     const initializeGame = async () => {
       try {
-        // Показываем загрузочный экран минимум 2 секунды
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
         console.log('=== ИНИЦИАЛИЗАЦИЯ ИГРЫ МОНЕТКА ===');
+        
+        // Показываем загрузочный экран минимум 1.5 секунды
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
         setIsInitializing(false);
+        console.log('Игра монетка готова');
         
       } catch (err) {
         console.error('Ошибка инициализации монетки:', err);
@@ -40,7 +39,7 @@ const CoinGame = ({
     initializeGame();
   }, [setError]);
   
-  // НОВОЕ: Загрузочный экран для монетки
+  // Загрузочный экран
   if (isInitializing) {
     return (
       <div className="coin-loading-screen">

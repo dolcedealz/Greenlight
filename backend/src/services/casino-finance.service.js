@@ -66,15 +66,18 @@ class CasinoFinanceService {
       
       // 4. Рассчитываем комиссии (5% от споров в монетку и других комиссионных операций)
       // TODO: Добавить расчет комиссий когда будет реализован функционал споров
-      finance.totalCommissions = finance.totalBets * 0.05; // Примерный расчет
+      finance.totalCommissions = 0; // Пока комиссий нет, так как споры не реализованы
       
-      // 5. Рассчитываем оперативный баланс
-      // Формула: депозиты - выводы + (ставки - выигрыши) + комиссии
-      finance.operationalBalance = 
-        finance.totalDeposits - 
-        finance.totalWithdrawals + 
-        (finance.totalBets - finance.totalWins) + 
-        finance.totalCommissions;
+      // 5. ИСПРАВЛЕНО: Рассчитываем оперативный баланс
+      // Оперативный баланс = ТОЛЬКО прибыль казино (ставки - выигрыши + комиссии)
+      // НЕ включаем депозиты и выводы пользователей!
+      finance.operationalBalance = (finance.totalBets - finance.totalWins) + finance.totalCommissions;
+      
+      console.log('FINANCE: Расчет оперативного баланса:');
+      console.log(`- Всего ставок: ${finance.totalBets.toFixed(2)} USDT`);
+      console.log(`- Всего выигрышей: ${finance.totalWins.toFixed(2)} USDT`);
+      console.log(`- Комиссии: ${finance.totalCommissions.toFixed(2)} USDT`);
+      console.log(`- Оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
       
       // 6. Рассчитываем резерв и доступную сумму
       finance.calculateReserve();
@@ -95,7 +98,7 @@ class CasinoFinanceService {
       
       console.log('FINANCE: Пересчет завершен');
       console.log(`- Баланс пользователей: ${finance.totalUserBalance.toFixed(2)} USDT`);
-      console.log(`- Оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
+      console.log(`- Оперативный баланс (прибыль): ${finance.operationalBalance.toFixed(2)} USDT`);
       console.log(`- Резерв: ${finance.reserveBalance.toFixed(2)} USDT`);
       console.log(`- Доступно для вывода: ${finance.availableForWithdrawal.toFixed(2)} USDT`);
       
@@ -137,9 +140,9 @@ class CasinoFinanceService {
       
       // Обновляем оперативный баланс
       if (win) {
-        finance.operationalBalance -= profit; // Выигрыш уменьшает оперативный баланс
+        finance.operationalBalance -= profit; // Выигрыш уменьшает прибыль казино
       } else {
-        finance.operationalBalance += bet; // Проигрыш увеличивает оперативный баланс
+        finance.operationalBalance += bet; // Проигрыш увеличивает прибыль казино
       }
       
       // Пересчитываем резерв
@@ -155,16 +158,27 @@ class CasinoFinanceService {
   
   /**
    * Обновляет финансы после депозита
+   * ИСПРАВЛЕНО: Депозит НЕ влияет на оперативный счет!
    * @param {Object} depositData - Данные депозита
    */
   async updateAfterDeposit(depositData) {
     try {
       const finance = await CasinoFinance.getInstance();
       
+      // Увеличиваем общую сумму депозитов
       finance.totalDeposits += depositData.amount;
-      finance.totalUserBalance += depositData.amount;
-      finance.operationalBalance += depositData.amount;
       
+      // Увеличиваем общий баланс пользователей
+      finance.totalUserBalance += depositData.amount;
+      
+      // ВАЖНО: НЕ увеличиваем оперативный баланс!
+      // Депозиты - это деньги пользователей, а не прибыль казино
+      
+      console.log(`FINANCE: Обработка депозита ${depositData.amount} USDT`);
+      console.log(`- Новый баланс пользователей: ${finance.totalUserBalance.toFixed(2)} USDT`);
+      console.log(`- Оперативный баланс (не изменился): ${finance.operationalBalance.toFixed(2)} USDT`);
+      
+      // Пересчитываем резерв (он зависит от оперативного баланса)
       finance.calculateReserve();
       finance.checkWarnings();
       
@@ -182,16 +196,27 @@ class CasinoFinanceService {
   
   /**
    * Обновляет финансы после вывода пользователя
+   * ИСПРАВЛЕНО: Вывод пользователя НЕ влияет на оперативный счет!
    * @param {Object} withdrawalData - Данные вывода
    */
   async updateAfterUserWithdrawal(withdrawalData) {
     try {
       const finance = await CasinoFinance.getInstance();
       
+      // Увеличиваем общую сумму выводов
       finance.totalWithdrawals += withdrawalData.amount;
-      finance.totalUserBalance -= withdrawalData.amount;
-      finance.operationalBalance -= withdrawalData.amount;
       
+      // Уменьшаем общий баланс пользователей
+      finance.totalUserBalance -= withdrawalData.amount;
+      
+      // ВАЖНО: НЕ уменьшаем оперативный баланс!
+      // Выводы пользователей - это их деньги, а не прибыль казино
+      
+      console.log(`FINANCE: Обработка вывода пользователя ${withdrawalData.amount} USDT`);
+      console.log(`- Новый баланс пользователей: ${finance.totalUserBalance.toFixed(2)} USDT`);
+      console.log(`- Оперативный баланс (не изменился): ${finance.operationalBalance.toFixed(2)} USDT`);
+      
+      // Пересчитываем резерв
       finance.calculateReserve();
       finance.checkWarnings();
       

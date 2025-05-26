@@ -6,18 +6,10 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
   const coinRef = useRef(null);
   const [showResult, setShowResult] = useState(false);
   
-  // Добавляем аудио эффекты
-  const flipSound = new Audio('/assets/sounds/flip.mp3');
-  const winSound = new Audio('/assets/sounds/win.mp3');
-  const loseSound = new Audio('/assets/sounds/lose.mp3');
-  
   useEffect(() => {
-    // Если начался флип и у нас есть результат
     if (flipping && result !== null) {
       const coin = coinRef.current;
-      
-      // Воспроизводим звук подбрасывания
-      flipSound.play().catch(err => console.error('Error playing flip sound:', err));
+      if (!coin) return;
       
       // Добавляем класс анимации
       coin.classList.add('flipping');
@@ -29,23 +21,20 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         coin.classList.add(result === 'heads' ? 'heads' : 'tails');
         setShowResult(true);
         
-        // Воспроизводим звук результата
-        if (result === 'heads') {
-          winSound.play().catch(err => console.error('Error playing win sound:', err));
-        } else {
-          loseSound.play().catch(err => console.error('Error playing lose sound:', err));
-        }
-        
         // Вызываем callback после завершения анимации
         setTimeout(() => {
-          onAnimationEnd && onAnimationEnd();
+          if (onAnimationEnd) {
+            onAnimationEnd();
+          }
         }, 800);
       }, 1500); // Длительность анимации вращения
     } else if (!flipping) {
       // Сбрасываем классы, если не в режиме флипа
       const coin = coinRef.current;
-      coin.classList.remove('flipping', 'heads', 'tails');
-      setShowResult(false);
+      if (coin) {
+        coin.classList.remove('flipping', 'heads', 'tails');
+        setShowResult(false);
+      }
     }
   }, [flipping, result, onAnimationEnd]);
 

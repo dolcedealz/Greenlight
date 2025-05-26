@@ -11,7 +11,7 @@
     overflow-x: hidden;
   }
   
-  /* НОВОЕ: Загрузочный экран для монетки */
+  /* Загрузочный экран для монетки */
   .coin-loading-screen {
     position: fixed;
     top: 0;

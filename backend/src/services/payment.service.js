@@ -393,6 +393,9 @@ class PaymentService {
       console.log(`PAYMENT: Баланс пользователя ${user._id} обновлен: ${oldBalance} -> ${newBalance} USDT`);
       console.log(`PAYMENT: Транзакция создана: ${transaction._id}`);
       
+      // Отправляем уведомление пользователю о депозите
+      await this.notifyUserAboutDeposit(user._id, deposit.amount);
+      
     } catch (error) {
       console.error('PAYMENT: Ошибка зачисления средств:', error);
       throw error;
@@ -497,6 +500,42 @@ class PaymentService {
     } catch (error) {
       console.error('PAYMENT: Ошибка получения истории депозитов:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Отправляет уведомление пользователю о успешном депозите
+   */
+  async notifyUserAboutDeposit(userId, amount) {
+    try {
+      // Получаем пользователя
+      const user = await User.findById(userId);
+      if (!user) {
+        console.log('Пользователь не найден для уведомления');
+        return;
+      }
+      
+      // Если есть бот, отправляем уведомление
+      if (process.env.TELEGRAM_BOT_TOKEN) {
+        const axios = require('axios');
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        
+        const message = `✅ Ваш депозит успешно зачислен!\n\n` +
+          `💵 Сумма: ${amount} USDT\n` +
+          `💰 Новый баланс: ${user.balance.toFixed(2)} USDT\n\n` +
+          `🎮 Удачной игры!`;
+        
+        await axios.post(apiUrl, {
+          chat_id: user.telegramId,
+          text: message,
+          parse_mode: 'HTML'
+        });
+        
+        console.log(`Уведомление о депозите отправлено пользователю ${user.telegramId}`);
+      }
+    } catch (error) {
+      console.error('Ошибка отправки уведомления о депозите:', error);
     }
   }
 }

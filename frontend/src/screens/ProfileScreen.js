@@ -1,11 +1,12 @@
-// frontend/src/screens/ProfileScreen.js
+// frontend/src/screens/ProfileScreen.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ДЕПОЗИТАМИ
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
+import Deposits from '../components/profile/Deposits';
 import { userApi, gameApi } from '../services';
 import { showNotification } from '../utils/telegram';
 import '../styles/ProfileScreen.css';
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ balance, onBalanceUpdate }) => {
   const [userData, setUserData] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [stats, setStats] = useState(null);
@@ -114,14 +115,12 @@ const ProfileScreen = () => {
         <div className="profile-balance">
           <div className="balance-header">
             <h3>Баланс</h3>
-            <button className="action-button">Пополнить</button>
           </div>
-          <div className="balance-amount">{userData.balance.toFixed(2)} USDT</div>
-          <div className="balance-actions">
-            <button className="action-button">История транзакций</button>
-            <button className="action-button secondary">Вывести</button>
-          </div>
+          <div className="balance-amount">{balance.toFixed(2)} USDT</div>
         </div>
+        
+        {/* Компонент депозитов */}
+        <Deposits balance={balance} onBalanceUpdate={onBalanceUpdate} />
         
         <div className="profile-stats">
           <h3>Статистика</h3>
@@ -373,7 +372,7 @@ const ProfileScreen = () => {
   
   return (
     <div className="profile-screen">
-      <Header balance={userData?.balance || 0} />
+      <Header balance={balance} />
       
       <div className="profile-header">
         <h1 className="profile-title">Профиль</h1>

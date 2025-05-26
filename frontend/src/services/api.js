@@ -254,8 +254,40 @@ playSlots: (betAmount) => {
   }
 };
 
+// API для платежей
+const paymentApi = {
+  // Создание депозита
+  createDeposit: (depositData) => {
+    console.log('Создание депозита:', depositData);
+    
+    return api.post('/payments/deposits', depositData);
+  },
+  
+  // Получение истории депозитов
+  getUserDeposits: (params = {}) => {
+    console.log('Получение истории депозитов:', params);
+    
+    return api.get('/payments/deposits', { params });
+  },
+  
+  // Проверка статуса депозита
+  checkDepositStatus: (depositId) => {
+    console.log('Проверка статуса депозита:', depositId);
+    
+    return api.get(`/payments/deposits/${depositId}/status`);
+  },
+  
+  // Получение информации о депозите
+  getDepositInfo: (depositId) => {
+    console.log('Получение информации о депозите:', depositId);
+    
+    return api.get(`/payments/deposits/${depositId}`);
+  }
+};
+
 export {
   api as default,
   userApi,
-  gameApi
+  gameApi,
+  paymentApi // Добавьте paymentApi в экспорт
 };

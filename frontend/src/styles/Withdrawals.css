@@ -1,0 +1,369 @@
+/* frontend/src/styles/Withdrawals.css */
+.withdrawals-section {
+  margin-bottom: 20px;
+}
+
+.withdrawals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.withdrawals-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--primary-color);
+}
+
+.withdrawal-button {
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.withdrawal-button:hover:not(:disabled) {
+  background-color: #0c9740;
+  transform: translateY(-1px);
+}
+
+.withdrawal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.withdrawal-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 15px;
+  color: #ffc107;
+  font-size: 14px;
+}
+
+/* История выводов */
+.withdrawals-history {
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  padding: 15px;
+  box-shadow: var(--shadow);
+}
+
+.withdrawals-history h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.withdrawals-loading {
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+}
+
+.no-withdrawals {
+  text-align: center;
+  padding: 30px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.withdrawals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.withdrawal-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.withdrawal-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.withdrawal-icon {
+  font-size: 24px;
+  margin-right: 12px;
+  margin-top: 4px;
+}
+
+.withdrawal-details {
+  flex-grow: 1;
+}
+
+.withdrawal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.withdrawal-amount {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.withdrawal-status {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.withdrawal-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 5px;
+}
+
+.withdrawal-recipient {
+  color: var(--primary-color);
+}
+
+.withdrawal-rejection {
+  font-size: 12px;
+  color: #ff3b30;
+  margin-top: 5px;
+  padding: 5px;
+  background-color: rgba(255, 59, 48, 0.1);
+  border-radius: 4px;
+}
+
+.cancel-withdrawal-button {
+  margin-top: 8px;
+  padding: 4px 12px;
+  background-color: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-withdrawal-button:hover {
+  background-color: rgba(255, 59, 48, 0.3);
+}
+
+/* Модальное окно */
+.withdrawal-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.withdrawal-modal-content {
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: modalSlideIn 0.3s ease;
+}
+
+.withdrawal-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.withdrawal-modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.withdrawal-modal-body {
+  padding: 20px;
+}
+
+.withdrawal-balance-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: rgba(11, 168, 74, 0.1);
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.withdrawal-balance-info .balance-amount {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.withdrawal-input-group {
+  margin-bottom: 20px;
+}
+
+.withdrawal-input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.withdrawal-input-group input {
+  width: 100%;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.withdrawal-input-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.input-with-prefix {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.input-prefix {
+  padding: 0 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 16px;
+}
+
+.input-with-prefix input {
+  border: none;
+  background: none;
+  margin-bottom: 0;
+}
+
+.input-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.withdrawal-info {
+  background-color: rgba(11, 168, 74, 0.1);
+  border-radius: 6px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+.withdrawal-info p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.withdrawal-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Повторное использование стилей из Deposits.css */
+.preset-amounts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.preset-amount-button {
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preset-amount-button:hover:not(:disabled) {
+  background-color: rgba(11, 168, 74, 0.2);
+  border-color: var(--primary-color);
+}
+
+.preset-amount-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 24px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.close-button:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cancel-button,
+.confirm-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cancel-button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.confirm-button {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.confirm-button:hover:not(:disabled) {
+  background-color: #0c9740;
+}
+
+.confirm-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

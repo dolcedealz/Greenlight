@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
 import Deposits from '../components/profile/Deposits';
+import Withdrawals from '../components/profile/Withdrawals';
 import { userApi, gameApi } from '../services';
 import { showNotification } from '../utils/telegram';
 import '../styles/ProfileScreen.css';
@@ -121,6 +122,9 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
         
         {/* Компонент депозитов */}
         <Deposits balance={balance} onBalanceUpdate={onBalanceUpdate} />
+        
+        {/* Компонент выводов */}
+        <Withdrawals balance={balance} onBalanceUpdate={onBalanceUpdate} />
         
         <div className="profile-stats">
           <h3>Статистика</h3>

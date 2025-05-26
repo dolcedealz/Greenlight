@@ -282,6 +282,43 @@ const paymentApi = {
     console.log('Получение информации о депозите:', depositId);
     
     return api.get(`/payments/deposits/${depositId}`);
+  },
+
+  // === МЕТОДЫ ДЛЯ ВЫВОДОВ ===
+  
+  // Создание запроса на вывод
+  createWithdrawal: (withdrawalData) => {
+    console.log('Создание запроса на вывод:', withdrawalData);
+    
+    return api.post('/withdrawals', withdrawalData);
+  },
+  
+  // Получение истории выводов
+  getUserWithdrawals: (params = {}) => {
+    console.log('Получение истории выводов:', params);
+    
+    return api.get('/withdrawals', { params });
+  },
+  
+  // Проверка статуса вывода
+  checkWithdrawalStatus: (withdrawalId) => {
+    console.log('Проверка статуса вывода:', withdrawalId);
+    
+    return api.get(`/withdrawals/${withdrawalId}/status`);
+  },
+  
+  // Получение информации о выводе
+  getWithdrawalInfo: (withdrawalId) => {
+    console.log('Получение информации о выводе:', withdrawalId);
+    
+    return api.get(`/withdrawals/${withdrawalId}`);
+  },
+  
+  // Отмена запроса на вывод
+  cancelWithdrawal: (withdrawalId) => {
+    console.log('Отмена вывода:', withdrawalId);
+    
+    return api.delete(`/withdrawals/${withdrawalId}`);
   }
 };
 

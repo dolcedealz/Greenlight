@@ -1,6 +1,4 @@
-// ===== 1. bot/src/handlers/callback.handler.js =====
-
-// callback.handler.js
+// callback.handler.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { Markup } = require('telegraf');
 const config = require('../config');
 const apiService = require('../services/api.service');
@@ -10,20 +8,26 @@ const apiService = require('../services/api.service');
  * @param {Object} bot - Экземпляр бота Telegraf
  */
 function registerCallbackHandlers(bot) {
-  // ИСПРАВЛЕНО: Более специфичные регулярные выражения для избежания конфликтов
   
-  // Обработка действий пополнения баланса - СТРОГО только числа или 'custom'
+  // Обработка действий пополнения баланса
   bot.action(/^deposit:(\d+|custom)$/, async (ctx) => {
     try {
-      // Получаем сумму из callback data
       const amount = ctx.match[1];
       
       console.log(`ДЕПОЗИТ: Обработка callback deposit:${amount}`);
       
       if (amount === 'custom') {
-        // Запрашиваем у пользователя ввод суммы
-        await ctx.reply('💰 Введите сумму для пополнения (в USDT):\n\nМинимум: 1 USDT\nМаксимум: 10000 USDT');
-        // TODO: Добавить обработчик для пользовательского ввода суммы
+        // Инициализируем сессию если её нет
+        ctx.session = ctx.session || {};
+        ctx.session.waitingForDepositAmount = true;
+        
+        await ctx.answerCbQuery();
+        await ctx.reply(
+          '💰 Введите сумму для пополнения (в USDT):\n\n' +
+          'Минимум: 1 USDT\n' +
+          'Максимум: 10000 USDT\n\n' +
+          'Для отмены введите /cancel'
+        );
         return;
       }
       
@@ -129,7 +133,7 @@ function registerCallbackHandlers(bot) {
     }
   });
   
-  // ИСПРАВЛЕНО: Более специфичный паттерн для проверки статуса депозита
+  // Проверка статуса депозита
   bot.action(/^check_deposit_status:([0-9a-fA-F]{24})$/, async (ctx) => {
     try {
       const depositId = ctx.match[1];
@@ -176,7 +180,7 @@ function registerCallbackHandlers(bot) {
     }
   });
   
-  // ИСПРАВЛЕНО: Fallback для старых депозитов с другим паттерном
+  // Fallback для старых депозитов
   bot.action(/^check_payment_fallback:(\d+)$/, async (ctx) => {
     try {
       const invoiceId = ctx.match[1];
@@ -237,17 +241,19 @@ function registerCallbackHandlers(bot) {
       
       console.log(`ВЫВОД: Обработка callback withdraw:${amount}`);
       
-      // Сохраняем сумму в сессии
+      // Инициализируем сессию если её нет
       ctx.session = ctx.session || {};
-      ctx.session.withdrawAmount = amount;
       
       if (amount === 'custom') {
-        // Запрашиваем у пользователя ввод суммы
+        ctx.session.waitingForWithdrawAmount = true;
+        
+        await ctx.answerCbQuery();
         await ctx.reply(
           '💰 Введите сумму для вывода (в USDT):\n\n' +
-          'Минимум: 1 USDT\nМаксимум: 10000 USDT'
+          'Минимум: 1 USDT\n' +
+          'Максимум: 10000 USDT\n\n' +
+          'Для отмены введите /cancel'
         );
-        ctx.session.waitingForWithdrawAmount = true;
         return;
       }
       
@@ -272,7 +278,6 @@ function registerCallbackHandlers(bot) {
       // Проверяем баланс пользователя
       await ctx.answerCbQuery('⏳ Проверяем баланс...');
       
-      const apiService = require('../services/api.service');
       const balance = await apiService.getUserBalance(ctx.from);
       
       if (balance < amountFloat) {
@@ -282,6 +287,7 @@ function registerCallbackHandlers(bot) {
       
       // Сохраняем сумму и запрашиваем получателя
       ctx.session.withdrawAmount = amountFloat;
+      ctx.session.waitingForWithdrawRecipient = true;
       
       await ctx.reply(
         '📤 Куда вывести средства?\n\n' +
@@ -289,10 +295,9 @@ function registerCallbackHandlers(bot) {
         '⚠️ Важно:\n' +
         '• Получатель должен быть зарегистрирован в @CryptoBot\n' +
         '• Username вводится без символа @\n' +
-        '• Проверьте правильность username перед отправкой'
+        '• Проверьте правильность username перед отправкой\n\n' +
+        'Для отмены введите /cancel'
       );
-      
-      ctx.session.waitingForWithdrawRecipient = true;
       
     } catch (error) {
       console.error('ВЫВОД: Ошибка при обработке действия вывода:', error);
@@ -310,8 +315,6 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('⏳ Создаем запрос на вывод...');
       
       console.log(`ВЫВОД: Подтверждение вывода ${amount} USDT для ${recipient}`);
-      
-      const apiService = require('../services/api.service');
       
       try {
         // Создаем запрос на вывод через API
@@ -348,6 +351,8 @@ function registerCallbackHandlers(bot) {
         // Очищаем сессию
         delete ctx.session.withdrawAmount;
         delete ctx.session.withdrawRecipient;
+        delete ctx.session.waitingForWithdrawAmount;
+        delete ctx.session.waitingForWithdrawRecipient;
         
       } catch (apiError) {
         console.error('ВЫВОД: Ошибка API при создании вывода:', apiError);
@@ -379,8 +384,11 @@ function registerCallbackHandlers(bot) {
     await ctx.answerCbQuery('Отменено');
     
     // Очищаем сессию
+    ctx.session = ctx.session || {};
     delete ctx.session.withdrawAmount;
     delete ctx.session.withdrawRecipient;
+    delete ctx.session.waitingForWithdrawAmount;
+    delete ctx.session.waitingForWithdrawRecipient;
     
     await ctx.editMessageText('❌ Вывод средств отменен');
   });
@@ -393,7 +401,6 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('⏳ Загружаем историю выводов...');
       
       // Получаем историю выводов через API
-      const apiService = require('../services/api.service');
       const withdrawalsData = await apiService.getUserWithdrawals(ctx.from, { limit: 10 });
       
       if (!withdrawalsData.withdrawals || withdrawalsData.withdrawals.length === 0) {
@@ -464,7 +471,6 @@ function registerCallbackHandlers(bot) {
       
       await ctx.answerCbQuery('⏳ Проверяем статус вывода...');
       
-      const apiService = require('../services/api.service');
       const withdrawalInfo = await apiService.getWithdrawalStatus(ctx.from, withdrawalId);
       
       let statusMessage = '';
@@ -520,6 +526,173 @@ function registerCallbackHandlers(bot) {
       await ctx.reply('❌ Не удалось проверить статус вывода');
       await ctx.answerCbQuery('❌ Ошибка проверки');
     }
+  });
+
+  // === ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ ДЛЯ СЕССИЙ ===
+  
+  bot.on('text', async (ctx, next) => {
+    // Проверяем наличие активной сессии
+    if (!ctx.session) {
+      return next();
+    }
+    
+    // Обработка команды отмены
+    if (ctx.message.text === '/cancel') {
+      // Очищаем все флаги сессии
+      delete ctx.session.waitingForDepositAmount;
+      delete ctx.session.waitingForWithdrawAmount;
+      delete ctx.session.waitingForWithdrawRecipient;
+      delete ctx.session.withdrawAmount;
+      delete ctx.session.withdrawRecipient;
+      delete ctx.session.rejectingWithdrawalId;
+      delete ctx.session.withdrawingProfit;
+      
+      await ctx.reply('❌ Операция отменена');
+      return;
+    }
+    
+    // Обработка ввода суммы для депозита
+    if (ctx.session.waitingForDepositAmount) {
+      const amount = parseFloat(ctx.message.text);
+      
+      if (isNaN(amount) || amount <= 0) {
+        await ctx.reply('❌ Некорректная сумма. Введите положительное число:');
+        return;
+      }
+      
+      if (amount < 1) {
+        await ctx.reply('❌ Минимальная сумма пополнения: 1 USDT. Введите другую сумму:');
+        return;
+      }
+      
+      if (amount > 10000) {
+        await ctx.reply('❌ Максимальная сумма пополнения: 10000 USDT. Введите другую сумму:');
+        return;
+      }
+      
+      delete ctx.session.waitingForDepositAmount;
+      
+      try {
+        const depositData = await apiService.createDeposit(ctx.from, amount, {
+          source: 'bot',
+          description: `Пополнение через Telegram бот на ${amount} USDT`
+        });
+        
+        await ctx.reply(
+          `💰 Создан счет на пополнение баланса\n\n` +
+          `💵 Сумма: ${amount} USDT\n` +
+          `🆔 ID депозита: ${depositData.depositId}\n` +
+          `🧾 ID инвойса: ${depositData.invoiceId}\n` +
+          `⏰ Срок действия: 1 час\n\n` +
+          `Нажмите на кнопку ниже для оплаты:`,
+          Markup.inlineKeyboard([
+            [Markup.button.url('💳 Оплатить', depositData.payUrl)],
+            [Markup.button.callback('📋 Статус платежа', `check_deposit_status:${depositData.depositId}`)]
+          ])
+        );
+        
+      } catch (error) {
+        console.error('Ошибка создания депозита:', error);
+        await ctx.reply('❌ Не удалось создать счет для оплаты. Попробуйте позже.');
+      }
+      
+      return;
+    }
+    
+    // Обработка ввода суммы для вывода
+    if (ctx.session.waitingForWithdrawAmount) {
+      const amount = parseFloat(ctx.message.text);
+      
+      if (isNaN(amount) || amount <= 0) {
+        await ctx.reply('❌ Некорректная сумма. Введите положительное число:');
+        return;
+      }
+      
+      if (amount < 1) {
+        await ctx.reply('❌ Минимальная сумма вывода: 1 USDT. Введите другую сумму:');
+        return;
+      }
+      
+      if (amount > 10000) {
+        await ctx.reply('❌ Максимальная сумма вывода: 10000 USDT. Введите другую сумму:');
+        return;
+      }
+      
+      // Проверяем баланс
+      try {
+        const balance = await apiService.getUserBalance(ctx.from);
+        
+        if (balance < amount) {
+          await ctx.reply(
+            `❌ Недостаточно средств\n\n` +
+            `💰 Ваш баланс: ${balance.toFixed(2)} USDT\n` +
+            `💸 Запрошено: ${amount.toFixed(2)} USDT\n\n` +
+            `Введите другую сумму или /cancel для отмены:`
+          );
+          return;
+        }
+        
+        ctx.session.withdrawAmount = amount;
+        delete ctx.session.waitingForWithdrawAmount;
+        ctx.session.waitingForWithdrawRecipient = true;
+        
+        await ctx.reply(
+          `📤 Куда вывести ${amount} USDT?\n\n` +
+          `Введите Telegram username получателя (без @):\n\n` +
+          `⚠️ Важно:\n` +
+          `• Получатель должен быть зарегистрирован в @CryptoBot\n` +
+          `• Username вводится без символа @\n` +
+          `• Проверьте правильность username перед отправкой\n\n` +
+          `Для отмены введите /cancel`
+        );
+        
+      } catch (error) {
+        console.error('Ошибка проверки баланса:', error);
+        await ctx.reply('❌ Ошибка проверки баланса. Попробуйте позже.');
+        delete ctx.session.waitingForWithdrawAmount;
+      }
+      
+      return;
+    }
+    
+    // Обработка ввода получателя для вывода
+    if (ctx.session.waitingForWithdrawRecipient) {
+      const recipient = ctx.message.text.replace('@', '').trim();
+      
+      if (!recipient.match(/^[a-zA-Z0-9_]{5,32}$/)) {
+        await ctx.reply(
+          '❌ Некорректный username\n\n' +
+          'Username должен:\n' +
+          '• Содержать 5-32 символа\n' +
+          '• Только буквы, цифры и _\n' +
+          '• Без символа @\n\n' +
+          'Попробуйте еще раз:'
+        );
+        return;
+      }
+      
+      const amount = ctx.session.withdrawAmount;
+      delete ctx.session.waitingForWithdrawRecipient;
+      
+      await ctx.reply(
+        `📋 Подтверждение вывода\n\n` +
+        `💵 Сумма: ${amount} USDT\n` +
+        `📤 Получатель: @${recipient}\n` +
+        `${amount > 300 ? '⚠️ Требует одобрения администратора' : '⚡ Автоматическая обработка'}\n\n` +
+        `✅ Подтвердить?`,
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback('✅ Да, вывести', `confirm_withdraw:${amount}:${recipient}`),
+            Markup.button.callback('❌ Отменить', 'cancel_withdraw')
+          ]
+        ])
+      );
+      
+      return;
+    }
+    
+    // Если никакие условия не выполнены, передаем управление следующему обработчику
+    return next();
   });
   
   return bot;

@@ -4,7 +4,7 @@ import '../../../styles/CoinControls.css';
 
 const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
   const [betAmount, setBetAmount] = useState(1);
-  const [selectedSide, setSelectedSide] = useState('heads'); // 'heads' или 'tails'
+  const [selectedSide, setSelectedSide] = useState('heads');
   
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
@@ -32,14 +32,16 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
   const handleFlipClick = () => {
     if (betAmount <= 0 || betAmount > balance || isFlipping) return;
     
-    onFlip({
-      betAmount,
-      selectedSide
-    });
+    if (onFlip) {
+      onFlip({
+        betAmount: parseFloat(betAmount),
+        selectedSide
+      });
+    }
   };
 
   // Вычисляем потенциальный выигрыш
-  const potentialWin = (betAmount * 2.0).toFixed(2);
+  const potentialWin = (parseFloat(betAmount) * 2.0).toFixed(2);
 
   return (
     <div className="coin-controls">

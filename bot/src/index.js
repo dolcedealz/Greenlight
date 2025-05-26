@@ -21,18 +21,35 @@ bot.telegram.setMyCommands(config.commands)
   .then(() => console.log('Команды бота успешно установлены'))
   .catch(error => console.error('Ошибка при установке команд бота:', error));
 
-// Применяем middleware
+// ВАЖНО: Порядок применения middleware и обработчиков критичен!
+
+// 1. Сначала применяем middleware (включая сессии)
 middleware.applyMiddleware(bot);
 
-// Регистрируем команды
+// 2. Затем регистрируем команды
 commands.registerCommands(bot);
 
-// Регистрируем обработчики
-handlers.registerHandlers(bot);
+// 3. Затем регистрируем callback handlers
+const { registerCallbackHandlers } = require('./handlers/callback.handler');
+registerCallbackHandlers(bot);
+
+// 4. Затем регистрируем inline handlers
+const { registerInlineHandlers } = require('./handlers/inline.handler');
+registerInlineHandlers(bot);
+
+// 5. И в самом конце - обработчики текстовых сообщений
+const { registerMessageHandlers } = require('./handlers/message.handler');
+registerMessageHandlers(bot);
 
 // Обработка ошибок
 bot.catch((error, ctx) => {
   console.error(`Ошибка для ${ctx.updateType}:`, error);
+  console.error('Контекст ошибки:', {
+    updateType: ctx.updateType,
+    message: ctx.message,
+    from: ctx.from,
+    session: ctx.session
+  });
 });
 
 // Маршрут для проверки работоспособности

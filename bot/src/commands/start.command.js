@@ -1,4 +1,4 @@
-// start.command.js
+// start.command.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { Markup } = require('telegraf');
 const config = require('../config');
 
@@ -15,19 +15,19 @@ async function startCommand(ctx) {
     
     console.log(`Пользователь ${first_name} (${id}) запустил бота`);
     
-    // Создаем клавиатуру с кнопками
+    // ИСПРАВЛЕНО: Создаем клавиатуру ТОЛЬКО с WebApp кнопками
     const keyboard = Markup.keyboard([
       [
         Markup.button.webApp('🎮 Играть', `${webAppUrl}`),
         Markup.button.webApp('👤 Профиль', `${webAppUrl}?screen=profile`)
       ],
       [
-        Markup.button.text('💰 Пополнить'),
-        Markup.button.text('💸 Вывести')
+        Markup.button.webApp('💰 Пополнить', `${webAppUrl}?screen=deposit`),
+        Markup.button.webApp('💸 Вывести', `${webAppUrl}?screen=withdraw`)
       ],
       [
-        Markup.button.text('👥 Рефералы'),
-        Markup.button.text('📊 История')
+        Markup.button.webApp('👥 Рефералы', `${webAppUrl}?screen=referrals`),
+        Markup.button.webApp('📊 История', `${webAppUrl}?screen=history`)
       ]
     ]).resize();
     

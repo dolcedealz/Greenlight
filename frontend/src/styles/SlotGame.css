@@ -1,0 +1,285 @@
+/* frontend/src/styles/SlotsGame.css */
+.slots-game {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 15px;
+  background-color: var(--background-color);
+  min-height: 100vh;
+  padding-bottom: 80px;
+  transition: all 0.2s ease;
+  overflow-x: hidden;
+}
+
+/* НОВОЕ: Загрузочный экран для слотов */
+.slots-loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: loadingScreenFadeIn 0.5s ease;
+}
+
+@keyframes loadingScreenFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.slots-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  animation: loadingContentSlideIn 1s ease;
+}
+
+@keyframes loadingContentSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.greenlight-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon.slots-icon {
+  font-size: 80px;
+  animation: slotsIconFloat 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(11, 168, 74, 0.5));
+}
+
+@keyframes slotsIconFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) rotate(5deg);
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-5px) rotate(-3deg);
+  }
+}
+
+.logo-text {
+  font-size: 48px;
+  font-weight: bold;
+  color: var(--primary-color);
+  text-shadow: 
+    0 0 20px rgba(11, 168, 74, 0.5),
+    0 0 40px rgba(11, 168, 74, 0.3);
+  animation: logoTextGlow 2s ease-in-out infinite alternate;
+  letter-spacing: 2px;
+}
+
+@keyframes logoTextGlow {
+  0% {
+    text-shadow: 
+      0 0 20px rgba(11, 168, 74, 0.5),
+      0 0 40px rgba(11, 168, 74, 0.3);
+  }
+  100% {
+    text-shadow: 
+      0 0 30px rgba(11, 168, 74, 0.8),
+      0 0 60px rgba(11, 168, 74, 0.5);
+  }
+}
+
+.logo-subtitle {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  letter-spacing: 1px;
+  animation: subtitleFade 2s ease-in-out infinite alternate;
+}
+
+@keyframes subtitleFade {
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.loading-spinner {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.spinner-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  animation: spinnerRotate 2s linear infinite;
+}
+
+.spinner-ring:nth-child(1) {
+  border-top-color: var(--primary-color);
+  animation-delay: 0s;
+}
+
+.spinner-ring:nth-child(2) {
+  border-right-color: rgba(11, 168, 74, 0.6);
+  animation-delay: 0.3s;
+  width: 70%;
+  height: 70%;
+  top: 15%;
+  left: 15%;
+}
+
+.spinner-ring:nth-child(3) {
+  border-bottom-color: rgba(11, 168, 74, 0.3);
+  animation-delay: 0.6s;
+  width: 40%;
+  height: 40%;
+  top: 30%;
+  left: 30%;
+}
+
+@keyframes spinnerRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  animation: loadingTextPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loadingTextPulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Слот барабаны для загрузочного экрана */
+.slots-reels-demo {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.reel-demo {
+  width: 60px;
+  height: 80px;
+  background: linear-gradient(145deg, #333, #222);
+  border-radius: 8px;
+  border: 2px solid var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  animation: slotReelSpin 2s ease-in-out infinite;
+  box-shadow: 0 0 15px rgba(11, 168, 74, 0.3);
+}
+
+.reel-demo:nth-child(1) { animation-delay: 0s; }
+.reel-demo:nth-child(2) { animation-delay: 0.3s; }
+.reel-demo:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes slotReelSpin {
+  0% { transform: rotateX(0deg); }
+  50% { transform: rotateX(180deg); }
+  100% { transform: rotateX(360deg); }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .logo-icon.slots-icon {
+    font-size: 60px;
+  }
+  
+  .logo-text {
+    font-size: 36px;
+  }
+  
+  .logo-subtitle {
+    font-size: 16px;
+  }
+  
+  .loading-spinner {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .loading-text {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-icon.slots-icon {
+    font-size: 50px;
+  }
+  
+  .logo-text {
+    font-size: 28px;
+  }
+  
+  .logo-subtitle {
+    font-size: 14px;
+  }
+  
+  .loading-spinner {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .loading-text {
+    font-size: 14px;
+  }
+  
+  .reel-demo {
+    width: 50px;
+    height: 65px;
+    font-size: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slots-loading-screen,
+  .slots-loading-content,
+  .logo-icon.slots-icon,
+  .logo-text,
+  .logo-subtitle,
+  .spinner-ring,
+  .loading-text,
+  .reel-demo {
+    animation: none;
+  }
+}

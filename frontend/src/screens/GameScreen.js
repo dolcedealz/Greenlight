@@ -1,9 +1,9 @@
 // frontend/src/screens/GameScreen.js
 import React, { useState, useEffect } from 'react';
-import { CoinFlip, CoinControls } from '../components/games/coin';
+import CoinGame from '../components/games/coin/CoinGame';
 import MinesGame from '../components/games/mines/MinesGame';
 import SlotGame from '../components/games/slots/SlotGame';
-import CrashGame from '../components/games/crash/CrashGame'; // ДОБАВЛЯЕМ ИМПОРТ
+import CrashGame from '../components/games/crash/CrashGame';
 import { Header } from '../components/layout';
 import { userApi, gameApi } from '../services';
 import '../styles/GameScreen.css';
@@ -64,6 +64,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     try {
       setIsFlipping(true);
       setGameResult(null);
+      setError(null);
       
       const response = await gameApi.playCoinFlip(
         betData.betAmount,
@@ -184,36 +185,6 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
                 <p>{error}</p>
               </div>
             )}
-            
-            {gameStats && (
-              <div className="game-stats">
-                <h3>Ваша статистика</h3>
-                <div className="stats-container">
-                  <div className="stat-item">
-                    <span className="stat-label">Всего игр:</span>
-                    <span className="stat-value">{gameStats.totalGames}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Победы:</span>
-                    <span className="stat-value">{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Ставки:</span>
-                    <span className="stat-value">{gameStats.totalBet?.toFixed(2) || 0} USDT</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Выигрыши:</span>
-                    <span className="stat-value">{gameStats.totalWin?.toFixed(2) || 0} USDT</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Профит:</span>
-                    <span className={`stat-value ${(gameStats.totalWin - gameStats.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
-                      {((gameStats.totalWin || 0) - (gameStats.totalLoss || 0)).toFixed(2)} USDT
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         );
 
@@ -252,36 +223,6 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
                 <p>{error}</p>
               </div>
             )}
-            
-            {gameStats && (
-              <div className="game-stats">
-                <h3>Ваша статистика</h3>
-                <div className="stats-container">
-                  <div className="stat-item">
-                    <span className="stat-label">Всего игр:</span>
-                    <span className="stat-value">{gameStats.totalGames}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Победы:</span>
-                    <span className="stat-value">{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Ставки:</span>
-                    <span className="stat-value">{gameStats.totalBet?.toFixed(2) || 0} USDT</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Выигрыши:</span>
-                    <span className="stat-value">{gameStats.totalWin?.toFixed(2) || 0} USDT</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Профит:</span>
-                    <span className={`stat-value ${(gameStats.totalWin - gameStats.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
-                      {((gameStats.totalWin || 0) - (gameStats.totalLoss || 0)).toFixed(2)} USDT
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         );
         
@@ -309,7 +250,6 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </h1>
       </div>
       
-      {/* ИСПРАВЛЕНО: Показываем результат игры с правильным таймингом */}
       {gameResult && (gameType !== 'crash' || gameResult.win !== null) && (
         <div className={`game-result ${gameResult.win ? 'win' : 'lose'}`}>
           <div className="result-text">

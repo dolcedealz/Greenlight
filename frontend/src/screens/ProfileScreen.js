@@ -253,66 +253,161 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     );
   };
   
-  // Рендер вкладки статистики
+  // ОБНОВЛЕННАЯ функция рендера статистики
   const renderStatsTab = () => {
-    if (!stats) return null;
+    if (!stats) {
+      return (
+        <div className="stats-tab">
+          <h3>📊 Детальная статистика</h3>
+          <div className="no-game-stats">
+            <div className="stats-icon">🎮</div>
+            <div className="stats-text">Статистика пока пуста</div>
+            <div className="stats-hint">Сыграйте несколько игр, чтобы увидеть детальную статистику</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Функция для получения процента выигрышей с индикатором
+    const renderWinrateIndicator = (winRate) => {
+      const percentage = (winRate * 100).toFixed(1);
+      return (
+        <div className="winrate-indicator">
+          <span>{percentage}%</span>
+          <div className="winrate-bar">
+            <div 
+              className="winrate-fill" 
+              style={{ width: `${Math.min(winRate * 100, 100)}%` }}
+            ></div>
+          </div>
+        </div>
+      );
+    };
+
+    // Функция для получения названия игры с иконкой
+    const getGameDisplayName = (gameType) => {
+      const gameNames = {
+        'coin': 'Монетка',
+        'mines': 'Мины', 
+        'crash': 'Краш',
+        'slots': 'Слоты'
+      };
+      return gameNames[gameType] || gameType;
+    };
     
     return (
       <div className="stats-tab">
-        <h3>Детальная статистика</h3>
+        <h3>📊 Детальная статистика</h3>
         
+        {/* Общая статистика с улучшенным дизайном */}
         <div className="game-stats-summary">
           <div className="summary-item">
-            <span className="summary-label">Всего игр</span>
+            <span className="summary-label">🎮 Всего игр</span>
             <span className="summary-value">{stats.overall.totalGames}</span>
           </div>
           <div className="summary-item">
-            <span className="summary-label">Выигрыши</span>
-            <span className="summary-value">{stats.overall.winCount} ({(stats.overall.winRate * 100).toFixed(1)}%)</span>
+            <span className="summary-label">🏆 Выигрыши</span>
+            <span className="summary-value positive">
+              {stats.overall.winCount} ({(stats.overall.winRate * 100).toFixed(1)}%)
+            </span>
           </div>
           <div className="summary-item">
-            <span className="summary-label">Общий результат</span>
+            <span className="summary-label">💰 Проставлено</span>
+            <span className="summary-value">{stats.overall.totalBet?.toFixed(2) || '0.00'} USDT</span>
+          </div>
+          <div className="summary-item">
+            <span className="summary-label">💎 Выиграно</span>
+            <span className="summary-value positive">{stats.overall.totalWin?.toFixed(2) || '0.00'} USDT</span>
+          </div>
+          <div className="summary-item">
+            <span className="summary-label">📈 Общий результат</span>
             <span className={`summary-value ${(stats.overall.totalWin - stats.overall.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
               {((stats.overall.totalWin || 0) - (stats.overall.totalLoss || 0)).toFixed(2)} USDT
             </span>
           </div>
+          <div className="summary-item">
+            <span className="summary-label">🎯 Процент успеха</span>
+            <span className="summary-value">
+              {renderWinrateIndicator(stats.overall.winRate)}
+            </span>
+          </div>
         </div>
         
+        {/* Детальная статистика по играм */}
         <div className="game-stats-details">
-          <h4>По типам игр</h4>
+          <h4>🎲 Статистика по типам игр</h4>
           
-          {Object.keys(stats.byGameType).map(gameType => {
-            const gameStats = stats.byGameType[gameType];
-            return (
-              <div key={gameType} className="game-stat-item">
-                <div className="game-stat-header">
-                  <h5>{
-                    gameType === 'coin' ? 'Монетка' :
-                    gameType === 'mines' ? 'Мины' :
-                    gameType === 'crash' ? 'Краш' :
-                    gameType === 'slots' ? 'Слоты' : gameType
-                  }</h5>
-                  <span className="game-stat-count">{gameStats.totalGames} игр</span>
+          {Object.keys(stats.byGameType).length === 0 ? (
+            <div className="no-game-stats">
+              <div className="stats-icon">🎯</div>
+              <div className="stats-text">Нет статистики по играм</div>
+              <div className="stats-hint">Поиграйте в разные игры, чтобы увидеть детальную аналитику</div>
+            </div>
+          ) : (
+            Object.keys(stats.byGameType).map(gameType => {
+              const gameStats = stats.byGameType[gameType];
+              const profitLoss = (gameStats.totalWin || 0) - (gameStats.totalLoss || 0);
+              const avgBet = gameStats.totalGames > 0 ? (gameStats.totalBet / gameStats.totalGames) : 0;
+              const avgWin = gameStats.winCount > 0 ? (gameStats.totalWin / gameStats.winCount) : 0;
+              
+              return (
+                <div key={gameType} className="game-stat-item">
+                  <div className="game-stat-header">
+                    <h5 data-game={gameType}>{getGameDisplayName(gameType)}</h5>
+                    <span className="game-stat-count">{gameStats.totalGames} игр</span>
+                  </div>
+                  
+                  <div className="game-stat-details">
+                    <div className="game-stat-detail">
+                      <span>💰 Общие ставки:</span>
+                      <span>{gameStats.totalBet?.toFixed(2) || '0.00'} USDT</span>
+                    </div>
+                    
+                    <div className="game-stat-detail">
+                      <span>🎯 Выигрыши:</span>
+                      <span>{gameStats.winCount} из {gameStats.totalGames}</span>
+                    </div>
+                    
+                    <div className="game-stat-detail">
+                      <span>📊 Процент побед:</span>
+                      <span>{renderWinrateIndicator(gameStats.winRate)}</span>
+                    </div>
+                    
+                    <div className="game-stat-detail">
+                      <span>💎 Общий выигрыш:</span>
+                      <span className="positive">{gameStats.totalWin?.toFixed(2) || '0.00'} USDT</span>
+                    </div>
+                    
+                    <div className="game-stat-detail">
+                      <span>📈 Итоговый результат:</span>
+                      <span className={profitLoss >= 0 ? 'positive' : 'negative'}>
+                        {profitLoss >= 0 ? '+' : ''}{profitLoss.toFixed(2)} USDT
+                      </span>
+                    </div>
+                    
+                    <div className="game-stat-detail">
+                      <span>⚡ Средняя ставка:</span>
+                      <span>{avgBet.toFixed(2)} USDT</span>
+                    </div>
+                    
+                    {gameStats.winCount > 0 && (
+                      <div className="game-stat-detail">
+                        <span>🏆 Средний выигрыш:</span>
+                        <span className="positive">{avgWin.toFixed(2)} USDT</span>
+                      </div>
+                    )}
+                    
+                    {gameStats.maxWin && gameStats.maxWin > 0 && (
+                      <div className="game-stat-detail">
+                        <span>🚀 Максимальный выигрыш:</span>
+                        <span className="positive">{gameStats.maxWin.toFixed(2)} USDT</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="game-stat-details">
-                  <div className="game-stat-detail">
-                    <span>Ставки:</span>
-                    <span>{gameStats.totalBet.toFixed(2)} USDT</span>
-                  </div>
-                  <div className="game-stat-detail">
-                    <span>Выигрыши:</span>
-                    <span>{gameStats.winCount} ({(gameStats.winRate * 100).toFixed(1)}%)</span>
-                  </div>
-                  <div className="game-stat-detail">
-                    <span>Результат:</span>
-                    <span className={`${(gameStats.totalWin - gameStats.totalLoss) >= 0 ? 'positive' : 'negative'}`}>
-                      {(gameStats.totalWin - gameStats.totalLoss).toFixed(2)} USDT
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     );

@@ -1,5 +1,6 @@
 // frontend/src/components/games/crash/CrashControls.js
 import React from 'react';
+import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import '../../../styles/CrashControls.css';
 
 const CrashControls = ({
@@ -17,6 +18,13 @@ const CrashControls = ({
   currentMultiplier
 }) => {
   
+  const { 
+    buttonPressFeedback, 
+    selectionChanged, 
+    gameActionFeedback, 
+    importantActionFeedback 
+  } = useTactileFeedback();
+  
   // Корректный обработчик изменения ставки
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
@@ -31,6 +39,7 @@ const CrashControls = ({
     // Проверяем, что значение корректное и в пределах баланса
     if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
+      buttonPressFeedback(); // Легкая вибрация при изменении ставки
     }
   };
   
@@ -39,6 +48,7 @@ const CrashControls = ({
     const value = parseFloat(e.target.value) || 0;
     if (value >= 1.01) {
       setAutoCashOut(value);
+      buttonPressFeedback(); // Легкая вибрация при изменении автовывода
     }
   };
   
@@ -46,6 +56,7 @@ const CrashControls = ({
   const handleQuickBet = (multiplier) => {
     if (gameState !== 'waiting' || hasBet || loading) return;
     
+    buttonPressFeedback(); // Вибрация при быстрой ставке
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
@@ -53,6 +64,8 @@ const CrashControls = ({
   // Быстрые значения автовывода
   const handleQuickAutoCashOut = (value) => {
     if (gameState === 'flying' && hasBet) return;
+    
+    selectionChanged(); // Вибрация при смене выбора автовывода
     setAutoCashOut(value);
   };
   

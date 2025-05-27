@@ -1,10 +1,18 @@
 // frontend/src/components/games/coin/CoinControls.js
 import React, { useState } from 'react';
+import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import '../../../styles/CoinControls.css';
 
 const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
   const [betAmount, setBetAmount] = useState(1);
   const [selectedSide, setSelectedSide] = useState('heads');
+  
+  const { 
+    buttonPressFeedback, 
+    selectionChanged, 
+    gameActionFeedback, 
+    importantActionFeedback 
+  } = useTactileFeedback();
   
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
@@ -19,18 +27,31 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
     const value = parseFloat(inputValue);
     if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
+      buttonPressFeedback(); // Легкая вибрация при изменении ставки
     }
   };
   
   // Быстрые кнопки для ставки
   const handleQuickBet = (multiplier) => {
+    buttonPressFeedback(); // Вибрация при нажатии быстрой ставки
     const quickBet = Math.min(balance, Math.max(1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
+  };
+  
+  // Обработчик выбора стороны
+  const handleSideSelection = (side) => {
+    if (!isFlipping) {
+      selectionChanged(); // Вибрация при смене выбора
+      setSelectedSide(side);
+    }
   };
   
   // Обработчик нажатия кнопки подбрасывания
   const handleFlipClick = () => {
     if (betAmount <= 0 || betAmount > balance || isFlipping) return;
+    
+    // Сильная вибрация для главного игрового действия
+    importantActionFeedback();
     
     if (onFlip) {
       onFlip({
@@ -48,7 +69,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
       <div className="side-selection">
         <div 
           className={`side-option ${selectedSide === 'heads' ? 'selected' : ''}`}
-          onClick={() => !isFlipping && setSelectedSide('heads')}
+          onClick={() => handleSideSelection('heads')}
         >
           <div className="side-icon">O</div>
           <div className="side-name">Орёл</div>
@@ -56,7 +77,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
         
         <div 
           className={`side-option ${selectedSide === 'tails' ? 'selected' : ''}`}
-          onClick={() => !isFlipping && setSelectedSide('tails')}
+          onClick={() => handleSideSelection('tails')}
         >
           <div className="side-icon">P</div>
           <div className="side-name">Решка</div>

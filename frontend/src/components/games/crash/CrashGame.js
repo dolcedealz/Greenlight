@@ -4,6 +4,7 @@ import CrashGraph from './CrashGraph';
 import CrashControls from './CrashControls';
 import CrashBetsList from './CrashBetsList';
 import CrashHistory from './CrashHistory';
+import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import { gameApi } from '../../../services';
 import '../../../styles/CrashGame.css';
 
@@ -14,6 +15,15 @@ const CrashGame = ({
   setGameResult, 
   setError 
 }) => {
+  // Добавляем тактильную обратную связь
+  const { 
+    gameActionFeedback, 
+    importantActionFeedback, 
+    criticalActionFeedback,
+    gameWinFeedback,
+    gameLoseFeedback 
+  } = useTactileFeedback();
+
   // НОВОЕ: Состояние загрузки
   const [isInitializing, setIsInitializing] = useState(true);
   
@@ -174,6 +184,9 @@ const CrashGame = ({
         newBalance: balance + winAmount
       });
       
+      // Вибрация при успешном кешауте
+      gameWinFeedback();
+      
       setLoading(false);
       
       console.log('✅ КЕШАУТ: Завершен успешно, игра продолжается для всех остальных');
@@ -186,7 +199,7 @@ const CrashGame = ({
       setError(err.response?.data?.message || 'Ошибка вывода ставки');
       setLoading(false);
     }
-  }, [gameState, hasBet, cashedOut, loading, currentMultiplier, userBet, balance, setBalance, setError, setGameResult]);
+  }, [gameState, hasBet, cashedOut, loading, currentMultiplier, userBet, balance, setBalance, setError, setGameResult, gameWinFeedback]);
   
   // Автоматический кешаут
   useEffect(() => {
@@ -316,6 +329,7 @@ const CrashGame = ({
           
           // Если у пользователя была ставка и он не вывел
           if (hasBet && !cashedOut) {
+            gameLoseFeedback(); // Вибрация при проигрыше
             setGameResult({
               win: false,
               amount: userBet.amount,
@@ -337,7 +351,7 @@ const CrashGame = ({
       });
     }, 80); // ЗАМЕДЛЕНО с 50ms до 80ms (на 60% медленнее обновления)
     
-  }, [generateCrashPoint, hasBet, cashedOut, userBet, balance, setGameResult, startWaitingPeriod]);
+  }, [generateCrashPoint, hasBet, cashedOut, userBet, balance, setGameResult, startWaitingPeriod, gameLoseFeedback]);
   
   // Получение текста для главной кнопки
   const getMainButtonText = () => {
@@ -381,16 +395,22 @@ const CrashGame = ({
     }
   };
   
-  // Обработчик главной кнопки
+  // Обработчик главной кнопки с тактильной обратной связью
   const handleMainButtonClick = () => {
     if (loading) return;
     
     switch (gameState) {
       case 'waiting':
-        if (!hasBet) placeBet();
+        if (!hasBet) {
+          gameActionFeedback(); // Вибрация при размещении ставки
+          placeBet();
+        }
         break;
       case 'flying':
-        if (hasBet && !cashedOut) cashOut();
+        if (hasBet && !cashedOut) {
+          criticalActionFeedback(); // Сильная вибрация при кешауте
+          cashOut();
+        }
         break;
       default:
         break;
@@ -429,7 +449,7 @@ const CrashGame = ({
         roundId={roundIdRef.current}
       />
       
-      {/* Главная кнопка действия */}
+      {/* Главная кнопка действия с тактильной обратной связью */}
       <button 
         className={`crash-main-action-btn ${getMainButtonClass()}`}
         onClick={handleMainButtonClick}

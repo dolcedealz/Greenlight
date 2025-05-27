@@ -1,7 +1,10 @@
 import React from 'react';
+import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import '../../../styles/MinesGrid.css';
 
 const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver, loading }) => {
+  const { gameActionFeedback } = useTactileFeedback();
+
   // Обработчик клика по ячейке
   const handleCellClick = (rowIndex, colIndex) => {
     // Блокируем клики если:
@@ -18,6 +21,9 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
     if (!gameActive || gameOver || loading || alreadyClicked) {
       return;
     }
+    
+    // Вибрация при клике по ячейке
+    gameActionFeedback();
     
     // Вызываем обработчик из родительского компонента
     onCellClick(rowIndex, colIndex);

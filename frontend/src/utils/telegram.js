@@ -1,4 +1,4 @@
-// telegram.js
+// frontend/src/utils/telegram.js
 import WebApp from '@twa-dev/sdk';
 
 /**
@@ -28,6 +28,94 @@ export const initTelegram = () => {
 };
 
 /**
+ * Функции тактильной обратной связи
+ */
+
+// Проверка доступности API тактильной обратной связи
+export const isHapticAvailable = () => {
+  return !!(
+    window.Telegram && 
+    window.Telegram.WebApp && 
+    window.Telegram.WebApp.HapticFeedback
+  );
+};
+
+// Легкая вибрация
+export const lightHaptic = () => {
+  if (isHapticAvailable()) {
+    try {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    } catch (error) {
+      console.warn('Ошибка при выполнении легкой вибрации:', error);
+    }
+  }
+};
+
+// Средняя вибрация
+export const mediumHaptic = () => {
+  if (isHapticAvailable()) {
+    try {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    } catch (error) {
+      console.warn('Ошибка при выполнении средней вибрации:', error);
+    }
+  }
+};
+
+// Сильная вибрация
+export const heavyHaptic = () => {
+  if (isHapticAvailable()) {
+    try {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+    } catch (error) {
+      console.warn('Ошибка при выполнении сильной вибрации:', error);
+    }
+  }
+};
+
+// Вибрация при изменении выбора
+export const selectionHaptic = () => {
+  if (isHapticAvailable()) {
+    try {
+      window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    } catch (error) {
+      console.warn('Ошибка при выполнении вибрации выбора:', error);
+    }
+  }
+};
+
+// Уведомления с вибрацией
+export const successHaptic = () => {
+  if (isHapticAvailable()) {
+    try {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    } catch (error) {
+      console.warn('Ошибка при выполнении вибрации успеха:', error);
+    }
+  }
+};
+
+export const errorHaptic = () => {
+  if (isHapticAvailable()) {
+    try {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+    } catch (error) {
+      console.warn('Ошибка при выполнении вибрации ошибки:', error);
+    }
+  }
+};
+
+export const warningHaptic = () => {
+  if (isHapticAvailable()) {
+    try {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+    } catch (error) {
+      console.warn('Ошибка при выполнении вибрации предупреждения:', error);
+    }
+  }
+};
+
+/**
  * Показывает всплывающее уведомление
  * @param {string} message - Текст уведомления
  */
@@ -53,8 +141,10 @@ export const showConfirmation = (message, onConfirm, onCancel) => {
       message,
       (confirmed) => {
         if (confirmed) {
+          mediumHaptic(); // Вибрация при подтверждении
           onConfirm && onConfirm();
         } else {
+          lightHaptic(); // Легкая вибрация при отмене
           onCancel && onCancel();
         }
       }
@@ -82,5 +172,14 @@ export default {
   initTelegram,
   showNotification,
   showConfirmation,
-  closeWebApp
+  closeWebApp,
+  // Тактильная обратная связь
+  isHapticAvailable,
+  lightHaptic,
+  mediumHaptic,
+  heavyHaptic,
+  selectionHaptic,
+  successHaptic,
+  errorHaptic,
+  warningHaptic
 };

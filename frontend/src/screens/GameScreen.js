@@ -5,10 +5,18 @@ import MinesGame from '../components/games/mines/MinesGame';
 import SlotGame from '../components/games/slots/SlotGame';
 import CrashGame from '../components/games/crash/CrashGame';
 import { Header } from '../components/layout';
+import useTactileFeedback from '../hooks/useTactileFeedback';
 import { userApi, gameApi } from '../services';
 import '../styles/GameScreen.css';
 
 const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setBalance }) => {
+  // Добавляем тактильную обратную связь
+  const { 
+    navigationFeedback, 
+    gameWinFeedback, 
+    gameLoseFeedback 
+  } = useTactileFeedback();
+
   // For Coin game
   const [isFlipping, setIsFlipping] = useState(false);
   const [result, setResult] = useState(null);
@@ -19,6 +27,25 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [gameStats, setGameStats] = useState(null);
+
+  // Обработчик кнопки назад с вибрацией
+  const handleBackClick = () => {
+    navigationFeedback(); // Вибрация при навигации назад
+    onBack();
+  };
+
+  // Обработчик изменения результата игры с вибрацией
+  useEffect(() => {
+    if (gameResult && gameResult.win !== null) {
+      if (gameResult.win) {
+        // Вибрация при выигрыше
+        gameWinFeedback();
+      } else {
+        // Вибрация при проигрыше
+        gameLoseFeedback();
+      }
+    }
+  }, [gameResult, gameWinFeedback, gameLoseFeedback]);
   
   // Fetch game history and stats on mount
   useEffect(() => {
@@ -230,7 +257,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         return (
           <div className="game-not-available">
             <p>Выбранная игра "{gameType}" еще в разработке</p>
-            <button onClick={onBack}>Вернуться на главную</button>
+            <button onClick={handleBackClick}>Вернуться на главную</button>
           </div>
         );
     }
@@ -241,7 +268,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       <Header balance={balance} />
       
       <div className="game-header">
-        <button className="back-button" onClick={onBack}>←</button>
+        <button className="back-button" onClick={handleBackClick}>←</button>
         <h1 className="game-title">
           {gameType === 'coin' ? 'Монетка' : 
            gameType === 'mines' ? 'Мины' : 

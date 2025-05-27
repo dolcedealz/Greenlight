@@ -177,7 +177,12 @@ function registerCommands(bot) {
       '/set_reserve - Установить процент резерва\n' +
       '/game_stats - Статистика по играм\n' +
       '/finance_history - История изменений балансов\n' +
-      '/monitor - Включить/выключить мониторинг'
+      '/monitor - Включить/выключить мониторинг\n\n' +
+      '--- Управление реферальной системой ---\n' +
+      '/referral_stats - Общая статистика реферальной системы\n' +
+      '/top_partners [количество] - Топ партнеров\n' +
+      '/partner_info [user_id/@username] - Информация о партнере\n' +
+      '/referral_fraud - Проверка мошеннической активности'
     );
   });
 
@@ -1044,6 +1049,387 @@ function registerCommands(bot) {
       console.error('ADMIN: Ошибка получения статистики игр:', error);
       ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
     }
+  });
+
+  // === КОМАНДЫ ДЛЯ УПРАВЛЕНИЯ РЕФЕРАЛЬНОЙ СИСТЕМОЙ ===
+  
+  // Команда для просмотра статистики реферальной системы
+  bot.command('referral_stats', async (ctx) => {
+    try {
+      console.log('ADMIN: Запрос статистики реферальной системы');
+      
+      const response = await apiClient.get('/referrals/admin/stats');
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить статистику');
+      }
+      
+      const stats = response.data.data;
+      
+      let message = '📊 СТАТИСТИКА РЕФЕРАЛЬНОЙ СИСТЕМЫ\n\n';
+      
+      message += '💰 Финансы:\n';
+      message += `├ Всего выплачено партнерам: ${stats.finance.totalReferralPayments.toFixed(2)} USDT\n`;
+      message += `├ % от прибыли казино: ${stats.finance.impactPercent}%\n`;
+      message += `└ Ожидает выплаты: ${stats.partners.totalBalance.toFixed(2)} USDT\n\n`;
+      
+      message += '👥 Партнеры:\n';
+      message += `├ Всего партнеров: ${stats.partners.total}\n`;
+      stats.partners.byLevel.forEach(level => {
+        const levelNames = {
+          bronze: '🥉 Бронза',
+          silver: '🥈 Серебро',
+          gold: '🥇 Золото',
+          platinum: '💎 Платина',
+          vip: '🌟 VIP'
+        };
+        message += `├ ${levelNames[level._id] || level._id}: ${level.count} (заработали ${level.totalEarned.toFixed(2)} USDT)\n`;
+      });
+      message += '\n';
+      
+      message += '📈 Эффективность:\n';
+      message += `├ Всего привлечено: ${stats.referrals.total}\n`;
+      message += `├ Активных рефералов: ${stats.referrals.active}\n`;
+      message += `├ Конверсия: ${stats.referrals.conversionRate}%\n\n`;
+      
+      message += '💸 Выплаты:\n';
+      message += `├ Всего выплат: ${stats.payouts.payoutsCount}\n`;
+      message += `├ Общая сумма: ${stats.payouts.totalPaid.toFixed(2)} USDT\n`;
+      message += `└ Средняя выплата: ${stats.payouts.avgPayout.toFixed(2)} USDT`;
+      
+      await ctx.reply(message, 
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback('🏆 Топ партнеров', 'ref_top_partners'),
+            Markup.button.callback('🚨 Проверка фрода', 'ref_fraud_check')
+          ],
+          [
+            Markup.button.callback('📊 Отчет за день', 'ref_report:day'),
+            Markup.button.callback('📊 Отчет за неделю', 'ref_report:week')
+          ]
+        ])
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения статистики рефералов:', error);
+      ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+  
+  // Команда для просмотра топ партнеров
+  bot.command('top_partners', async (ctx) => {
+    try {
+      const args = ctx.message.text.split(' ');
+      const limit = args[1] || 10;
+      
+      const response = await apiClient.get('/referrals/admin/top-partners', {
+        params: { limit }
+      });
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить топ партнеров');
+      }
+      
+      const partners = response.data.data.partners;
+      
+      let message = `🏆 ТОП-${limit} ПАРТНЕРОВ\n\n`;
+      
+      partners.forEach((partner, index) => {
+        const levelEmojis = {
+          bronze: '🥉',
+          silver: '🥈',
+          gold: '🥇',
+          platinum: '💎',
+          vip: '🌟'
+        };
+        
+        message += `${index + 1}. @${partner.username || 'нет'} (${partner.firstName})\n`;
+        message += `   ${levelEmojis[partner.referralStats.level]} ${partner.referralStats.level.toUpperCase()}\n`;
+        message += `   ├ Заработано: ${partner.referralStats.totalEarned.toFixed(2)} USDT\n`;
+        message += `   ├ Баланс: ${partner.referralStats.referralBalance.toFixed(2)} USDT\n`;
+        message += `   ├ Активных рефералов: ${partner.referralStats.activeReferrals}\n`;
+        message += `   └ Конверсия: ${partner.referralDetails.conversionRate}%\n\n`;
+      });
+      
+      await ctx.reply(message);
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения топ партнеров:', error);
+      ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+  
+  // Команда для получения информации о конкретном партнере
+  bot.command('partner_info', async (ctx) => {
+    try {
+      const args = ctx.message.text.split(' ');
+      if (args.length < 2) {
+        return ctx.reply('Использование: /partner_info [user_id или @username]');
+      }
+      
+      let partnerId = args[1];
+      
+      // Если это username, нужно найти пользователя
+      if (partnerId.startsWith('@')) {
+        const { User } = require('../../../backend/src/models');
+        const username = partnerId.substring(1);
+        const user = await User.findOne({ username });
+        if (!user) {
+          return ctx.reply('❌ Пользователь не найден');
+        }
+        partnerId = user._id.toString();
+      }
+      
+      const response = await apiClient.get(`/referrals/admin/partner/${partnerId}`);
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить информацию о партнере');
+      }
+      
+      const data = response.data.data;
+      const partner = data.partner;
+      const stats = data.stats;
+      
+      const levelEmojis = {
+        bronze: '🥉',
+        silver: '🥈',
+        gold: '🥇',
+        platinum: '💎',
+        vip: '🌟'
+      };
+      
+      let message = `👤 ПАРТНЕР: @${partner.username || 'нет'} (${partner.name})\n\n`;
+      
+      message += '📊 Статус:\n';
+      message += `├ Уровень: ${levelEmojis[partner.level]} ${partner.levelInfo.name} (${partner.levelInfo.commissionPercent}%)\n`;
+      message += `├ До ${partner.progress.nextLevel || 'максимума'}: ${partner.progress.needed} активных рефералов\n`;
+      message += `├ Прогресс: ${partner.progress.progress.toFixed(0)}%\n`;
+      message += `└ Реферальный код: ${partner.referralCode}\n\n`;
+      
+      message += '💰 Финансы:\n';
+      message += `├ Всего заработано: ${stats.totalEarned.toFixed(2)} USDT\n`;
+      message += `├ Реферальный баланс: ${stats.referralBalance.toFixed(2)} USDT\n`;
+      message += `├ Выведено: ${stats.totalWithdrawn.toFixed(2)} USDT\n`;
+      message += `└ Транзакций: ${stats.totalTransactions}\n\n`;
+      
+      message += '👥 Рефералы:\n';
+      message += `├ Всего привлечено: ${stats.totalReferrals}\n`;
+      message += `├ Активных (30д): ${stats.activeReferrals}\n`;
+      message += `└ С депозитами: ${stats.referralsWithDeposits}\n\n`;
+      
+      // Топ рефералы
+      if (data.referrals.top.length > 0) {
+        message += '🏆 Топ-3 реферала:\n';
+        data.referrals.top.slice(0, 3).forEach((ref, index) => {
+          message += `${index + 1}. @${ref.referral.username || 'нет'} - принес ${ref.totalBrought.toFixed(2)} USDT\n`;
+        });
+      }
+      
+      await ctx.reply(message,
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback('📝 Изменить уровень', `ref_change_level:${partnerId}`),
+            Markup.button.callback('📊 Детальная статистика', `ref_detailed_stats:${partnerId}`)
+          ],
+          [
+            Markup.button.callback('👥 Список рефералов', `ref_list:${partnerId}`),
+            Markup.button.callback('💸 История выплат', `ref_payout_history:${partnerId}`)
+          ]
+        ])
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения информации о партнере:', error);
+      ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+  
+  // Команда для проверки мошеннической активности
+  bot.command('referral_fraud', async (ctx) => {
+    try {
+      console.log('ADMIN: Запрос проверки мошеннической активности');
+      
+      const response = await apiClient.get('/referrals/admin/fraud');
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось выполнить проверку');
+      }
+      
+      const { patterns, totalSuspicious } = response.data.data;
+      
+      if (totalSuspicious === 0) {
+        return ctx.reply('✅ Подозрительная активность не обнаружена');
+      }
+      
+      let message = `⚠️ ОБНАРУЖЕНА ПОДОЗРИТЕЛЬНАЯ АКТИВНОСТЬ\n\n`;
+      message += `Всего подозрительных случаев: ${totalSuspicious}\n\n`;
+      
+      patterns.forEach(pattern => {
+        message += `🚨 ${pattern.message}:\n`;
+        
+        if (pattern.type === 'high_inactive_rate') {
+          pattern.data.forEach(partner => {
+            message += `├ @${partner.username || 'ID:' + partner.telegramId}: ${partner.inactivePercent.toFixed(0)}% неактивных\n`;
+          });
+        } else if (pattern.type === 'bulk_registrations') {
+          pattern.data.forEach(bulk => {
+            const partner = bulk.partnerInfo[0];
+            message += `├ @${partner?.username || 'ID:' + bulk._id.referrer}: ${bulk.count} регистраций за час\n`;
+          });
+        } else if (pattern.type === 'deposits_without_games') {
+          pattern.data.forEach(group => {
+            message += `├ Партнер ID:${group._id}: ${group.count} рефералов с депозитами без игр\n`;
+          });
+        }
+        
+        message += '\n';
+      });
+      
+      message += '💡 Рекомендации:\n';
+      message += '├ Проверить IP адреса подозрительных аккаунтов\n';
+      message += '├ Изучить историю игр на предмет паттернов\n';
+      message += '└ Рассмотреть временную блокировку выплат';
+      
+      await ctx.reply(message);
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка проверки фрода:', error);
+      ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+  
+  // Callback обработчики для реферальной системы
+  bot.action('ref_top_partners', async (ctx) => {
+    await ctx.answerCbQuery();
+    // Вызываем команду top_partners
+    ctx.message = { text: '/top_partners 10' };
+    await bot.handleUpdate({ message: ctx.message, update_id: Date.now() });
+  });
+  
+  bot.action('ref_fraud_check', async (ctx) => {
+    await ctx.answerCbQuery();
+    ctx.message = { text: '/referral_fraud' };
+    await bot.handleUpdate({ message: ctx.message, update_id: Date.now() });
+  });
+  
+  bot.action(/^ref_report:(.+)$/, async (ctx) => {
+    try {
+      const period = ctx.match[1];
+      await ctx.answerCbQuery('⏳ Генерируем отчет...');
+      
+      const response = await apiClient.get('/referrals/admin/stats', {
+        params: { period }
+      });
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить отчет');
+      }
+      
+      const stats = response.data.data;
+      
+      let periodName = '';
+      switch (period) {
+        case 'day': periodName = 'ДЕНЬ'; break;
+        case 'week': periodName = 'НЕДЕЛЮ'; break;
+        case 'month': periodName = 'МЕСЯЦ'; break;
+      }
+      
+      let message = `📊 РЕФЕРАЛЬНЫЙ ОТЧЕТ ЗА ${periodName}\n\n`;
+      
+      message += '💰 Начисления:\n';
+      stats.earnings.forEach(earning => {
+        const typeNames = {
+          game_loss: '🎮 Комиссии с проигрышей',
+          registration_bonus: '🎁 Бонусы за регистрацию'
+        };
+        message += `├ ${typeNames[earning._id] || earning._id}: ${earning.totalAmount.toFixed(2)} USDT (${earning.count} раз)\n`;
+      });
+      
+      const totalEarnings = stats.earnings.reduce((sum, e) => sum + e.totalAmount, 0);
+      message += `└ Всего: ${totalEarnings.toFixed(2)} USDT\n\n`;
+      
+      message += '📈 Динамика:\n';
+      message += `├ Новых партнеров: ${stats.partners.byLevel.filter(l => l._id === 'bronze').reduce((sum, l) => sum + l.count, 0)}\n`;
+      message += `├ Новых рефералов: ${stats.referrals.total}\n`;
+      message += `└ ROI программы: ${totalEarnings > 0 ? ((stats.finance.totalReferralPayments / totalEarnings * 100).toFixed(0)) : 0}%`;
+      
+      await ctx.reply(message);
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения отчета:', error);
+      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+  
+  bot.action(/^ref_change_level:(.+)$/, async (ctx) => {
+    try {
+      const partnerId = ctx.match[1];
+      await ctx.answerCbQuery();
+      
+      ctx.session = ctx.session || {};
+      ctx.session.changingLevelForPartner = partnerId;
+      
+      await ctx.reply(
+        'Выберите новый уровень для партнера:',
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback('🥉 Бронза (5%)', 'set_partner_level:bronze'),
+            Markup.button.callback('🥈 Серебро (7%)', 'set_partner_level:silver')
+          ],
+          [
+            Markup.button.callback('🥇 Золото (10%)', 'set_partner_level:gold'),
+            Markup.button.callback('💎 Платина (12%)', 'set_partner_level:platinum')
+          ],
+          [
+            Markup.button.callback('🌟 VIP (15%)', 'set_partner_level:vip')
+          ],
+          [
+            Markup.button.callback('❌ Отмена', 'cancel_level_change')
+          ]
+        ])
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка начала изменения уровня:', error);
+      await ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+  
+  bot.action(/^set_partner_level:(.+)$/, async (ctx) => {
+    try {
+      const level = ctx.match[1];
+      const partnerId = ctx.session?.changingLevelForPartner;
+      
+      if (!partnerId) {
+        await ctx.answerCbQuery('❌ Сессия истекла');
+        return;
+      }
+      
+      await ctx.answerCbQuery('⏳ Изменяем уровень...');
+      
+      const response = await apiClient.put(`/referrals/admin/partner/${partnerId}/level`, { level });
+      
+      if (response.data.success) {
+        await ctx.editMessageText(
+          `✅ ${response.data.message}\n\n` +
+          `Новая комиссия: ${response.data.data.commissionPercent}%`
+        );
+      } else {
+        await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+      }
+      
+      delete ctx.session.changingLevelForPartner;
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка изменения уровня:', error);
+      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+  
+  bot.action('cancel_level_change', async (ctx) => {
+    await ctx.answerCbQuery('Отменено');
+    await ctx.deleteMessage();
+    delete ctx.session?.changingLevelForPartner;
   });
 
   return bot;

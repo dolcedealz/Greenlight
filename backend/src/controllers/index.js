@@ -4,7 +4,8 @@ const userController = require('./user.controller');
 const adminController = require('./admin.controller');
 const paymentController = require('./payment.controller');
 const withdrawalController = require('./withdrawal.controller');
-const financeController = require('./finance.controller'); // ДОБАВЛЯЕМ
+const financeController = require('./finance.controller');
+const referralController = require('./referral.controller'); // ДОБАВЛЯЕМ
 
 module.exports = {
   gameController,
@@ -12,5 +13,6 @@ module.exports = {
   adminController,
   paymentController,
   withdrawalController,
-  financeController // ДОБАВЛЯЕМ
+  financeController,
+  referralController // ДОБАВЛЯЕМ
 };

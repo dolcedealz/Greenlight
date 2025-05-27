@@ -3,6 +3,7 @@ const { User, Game, Transaction } = require('../models');
 const randomService = require('./random.service');
 // Импортируем новый сервис для управления шансами
 const oddsService = require('./odds.service');
+const referralService = require('./referral.service');
 const mongoose = require('mongoose');
 
 // Предварительно рассчитанные таблицы коэффициентов для каждого количества мин
@@ -181,6 +182,22 @@ class GameService {
         profit: profit,
         win: win
       });
+      
+      // Обрабатываем реферальную комиссию если игрок проиграл
+      if (!win) {
+        try {
+          await referralService.processGameLoss({
+            userId: user._id,
+            gameId: game._id,
+            gameType: 'coin',
+            bet: betAmount,
+            profit: profit
+          });
+        } catch (refError) {
+          console.error('GAME: Ошибка обработки реферальной комиссии:', refError);
+          // Не прерываем игру из-за ошибки в реферальной системе
+        }
+      }
       
       // Возвращаем данные для клиента (без seed и прочего)
       return {
@@ -436,6 +453,21 @@ async playSlots(userData, gameData) {
       profit: profit,
       win: win
     });
+    
+    // Обрабатываем реферальную комиссию если игрок проиграл
+    if (!win) {
+      try {
+        await referralService.processGameLoss({
+          userId: user._id,
+          gameId: game._id,
+          gameType: 'slots',
+          bet: betAmount,
+          profit: profit
+        });
+      } catch (refError) {
+        console.error('GAME: Ошибка обработки реферальной комиссии:', refError);
+      }
+    }
     
     console.log('СЛОТЫ: Финальный результат:', {
       reels,
@@ -838,6 +870,19 @@ async playSlots(userData, gameData) {
             profit: -game.bet,
             win: false
           });
+          
+          // Обрабатываем реферальную комиссию
+          try {
+            await referralService.processGameLoss({
+              userId: user._id,
+              gameId: game._id,
+              gameType: 'mines',
+              bet: game.bet,
+              profit: -game.bet
+            });
+          } catch (refError) {
+            console.error('GAME: Ошибка обработки реферальной комиссии:', refError);
+          }
           
           // Добавляем новую ячейку в локальный массив для ответа
           clickedCells.push([row, col]);

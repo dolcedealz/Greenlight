@@ -2,6 +2,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { Deposit, User } = require('../models');
+const referralService = require('./referral.service');
 
 class PaymentService {
   constructor() {
@@ -389,6 +390,18 @@ class PaymentService {
         amount: deposit.amount,
         user: user._id
       });
+      
+      // Обрабатываем бонус за первый депозит реферала
+      try {
+        const firstDepositBonus = await referralService.processFirstDeposit(user._id, deposit.amount);
+        
+        if (firstDepositBonus) {
+          console.log(`PAYMENT: Начислен бонус партнеру ${firstDepositBonus.partnerId} за первый депозит реферала`);
+        }
+      } catch (refError) {
+        console.error('PAYMENT: Ошибка обработки реферального бонуса:', refError);
+        // Не прерываем процесс депозита из-за ошибки в реферальной системе
+      }
       
       console.log(`PAYMENT: Баланс пользователя ${user._id} обновлен: ${oldBalance} -> ${newBalance} USDT`);
       console.log(`PAYMENT: Транзакция создана: ${transaction._id}`);

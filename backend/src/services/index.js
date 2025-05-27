@@ -5,7 +5,8 @@ const userService = require('./user.service');
 const paymentService = require('./payment.service');
 const withdrawalService = require('./withdrawal.service');
 const oddsService = require('./odds.service');
-const casinoFinanceService = require('./casino-finance.service'); // ДОБАВЛЯЕМ
+const casinoFinanceService = require('./casino-finance.service');
+const referralService = require('./referral.service'); // ДОБАВЛЯЕМ
 
 module.exports = {
   randomService,
@@ -14,5 +15,6 @@ module.exports = {
   paymentService,
   withdrawalService,
   oddsService,
-  casinoFinanceService // ДОБАВЛЯЕМ
+  casinoFinanceService,
+  referralService // ДОБАВЛЯЕМ
 };

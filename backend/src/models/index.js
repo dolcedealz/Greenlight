@@ -5,7 +5,9 @@ const Transaction = require('./transaction.model');
 const Deposit = require('./deposit.model');
 const Withdrawal = require('./withdrawal.model');
 const CrashRound = require('./crash-round.model');
-const CasinoFinance = require('./casino-finance.model'); // ДОБАВЛЯЕМ
+const CasinoFinance = require('./casino-finance.model');
+const ReferralEarning = require('./referral-earning.model'); // ДОБАВЛЯЕМ
+const ReferralPayout = require('./referral-payout.model'); // ДОБАВЛЯЕМ
 
 module.exports = {
   User,
@@ -14,5 +16,7 @@ module.exports = {
   Deposit,
   Withdrawal,
   CrashRound,
-  CasinoFinance // ДОБАВЛЯЕМ
+  CasinoFinance,
+  ReferralEarning, // ДОБАВЛЯЕМ
+  ReferralPayout // ДОБАВЛЯЕМ
 };

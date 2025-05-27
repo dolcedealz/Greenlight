@@ -1,8 +1,9 @@
-// frontend/src/screens/ProfileScreen.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ДЕПОЗИТАМИ
+// frontend/src/screens/ProfileScreen.js
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
 import Deposits from '../components/profile/Deposits';
 import Withdrawals from '../components/profile/Withdrawals';
+import useTactileFeedback from '../hooks/useTactileFeedback';
 import { userApi, gameApi } from '../services';
 import { showNotification } from '../utils/telegram';
 import '../styles/ProfileScreen.css';
@@ -14,6 +15,14 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
+  
+  // Добавляем тактильную обратную связь
+  const { 
+    buttonPressFeedback, 
+    selectionChanged, 
+    successNotification,
+    navigationFeedback 
+  } = useTactileFeedback();
   
   // Загружаем данные пользователя при загрузке компонента
   useEffect(() => {
@@ -44,11 +53,14 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     fetchUserData();
   }, []);
   
-  // Копирование реферального кода
+  // Копирование реферального кода с вибрацией
   const copyReferralCode = () => {
     if (userData && userData.referralCode) {
+      buttonPressFeedback(); // Вибрация при нажатии
+      
       navigator.clipboard.writeText(`https://t.me/greenlight_casino_bot?start=${userData.referralCode}`)
         .then(() => {
+          successNotification(); // Вибрация успеха
           showNotification('Реферальная ссылка скопирована!');
         })
         .catch(err => {
@@ -56,6 +68,33 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           showNotification('Не удалось скопировать ссылку');
         });
     }
+  };
+
+  // Обработчик смены вкладок с вибрацией
+  const handleTabChange = (tab) => {
+    if (activeTab !== tab) {
+      selectionChanged(); // Вибрация при смене вкладки
+    } else {
+      navigationFeedback(); // Обычная навигационная вибрация
+    }
+    setActiveTab(tab);
+  };
+
+  // Обработчик переключателей с вибрацией
+  const handleToggleChange = (e) => {
+    selectionChanged(); // Вибрация при переключении
+    // Здесь можно добавить логику сохранения настроек
+  };
+
+  // Обработчик попытки снова с вибрацией
+  const handleRetryClick = () => {
+    buttonPressFeedback(); // Вибрация при нажатии
+    window.location.reload();
+  };
+
+  // Обработчик ссылок с вибрацией
+  const handleLinkClick = () => {
+    buttonPressFeedback(); // Вибрация при нажатии на ссылку
   };
   
   // Форматирование даты
@@ -279,7 +318,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     );
   };
   
-  // Рендер вкладки настроек
+  // Рендер вкладки настроек с вибрацией
   const renderSettingsTab = () => {
     return (
       <div className="settings-tab">
@@ -290,21 +329,33 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           <div className="setting-item">
             <span className="setting-label">Уведомления о выигрышах</span>
             <label className="toggle">
-              <input type="checkbox" defaultChecked />
+              <input 
+                type="checkbox" 
+                defaultChecked 
+                onChange={handleToggleChange}
+              />
               <span className="slider"></span>
             </label>
           </div>
           <div className="setting-item">
             <span className="setting-label">Уведомления о депозитах</span>
             <label className="toggle">
-              <input type="checkbox" defaultChecked />
+              <input 
+                type="checkbox" 
+                defaultChecked 
+                onChange={handleToggleChange}
+              />
               <span className="slider"></span>
             </label>
           </div>
           <div className="setting-item">
             <span className="setting-label">Уведомления о выводах</span>
             <label className="toggle">
-              <input type="checkbox" defaultChecked />
+              <input 
+                type="checkbox" 
+                defaultChecked 
+                onChange={handleToggleChange}
+              />
               <span className="slider"></span>
             </label>
           </div>
@@ -315,14 +366,22 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           <div className="setting-item">
             <span className="setting-label">Показывать исторические данные</span>
             <label className="toggle">
-              <input type="checkbox" defaultChecked />
+              <input 
+                type="checkbox" 
+                defaultChecked 
+                onChange={handleToggleChange}
+              />
               <span className="slider"></span>
             </label>
           </div>
           <div className="setting-item">
             <span className="setting-label">Показывать статистику игр</span>
             <label className="toggle">
-              <input type="checkbox" defaultChecked />
+              <input 
+                type="checkbox" 
+                defaultChecked 
+                onChange={handleToggleChange}
+              />
               <span className="slider"></span>
             </label>
           </div>
@@ -333,7 +392,11 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           <div className="setting-item">
             <span className="setting-label">Проверка честности игры</span>
             <label className="toggle">
-              <input type="checkbox" defaultChecked />
+              <input 
+                type="checkbox" 
+                defaultChecked 
+                onChange={handleToggleChange}
+              />
               <span className="slider"></span>
             </label>
           </div>
@@ -350,8 +413,22 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             <span className="about-value">Greenlight Team</span>
           </div>
           <div className="about-links">
-            <a href="https://t.me/greenlight_news" target="_blank" rel="noopener noreferrer">Канал Telegram</a>
-            <a href="https://t.me/greenlight_support" target="_blank" rel="noopener noreferrer">Поддержка</a>
+            <a 
+              href="https://t.me/greenlight_news" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={handleLinkClick}
+            >
+              Канал Telegram
+            </a>
+            <a 
+              href="https://t.me/greenlight_support" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={handleLinkClick}
+            >
+              Поддержка
+            </a>
           </div>
         </div>
       </div>
@@ -390,32 +467,32 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       ) : error ? (
         <div className="profile-error">
           <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Попробовать снова</button>
+          <button onClick={handleRetryClick}>Попробовать снова</button>
         </div>
       ) : (
         <>
           <div className="profile-tabs">
             <button 
               className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`} 
-              onClick={() => setActiveTab('profile')}
+              onClick={() => handleTabChange('profile')}
             >
               Профиль
             </button>
             <button 
               className={`tab-button ${activeTab === 'transactions' ? 'active' : ''}`} 
-              onClick={() => setActiveTab('transactions')}
+              onClick={() => handleTabChange('transactions')}
             >
               Транзакции
             </button>
             <button 
               className={`tab-button ${activeTab === 'stats' ? 'active' : ''}`} 
-              onClick={() => setActiveTab('stats')}
+              onClick={() => handleTabChange('stats')}
             >
               Статистика
             </button>
             <button 
               className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`} 
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleTabChange('settings')}
             >
               Настройки
             </button>

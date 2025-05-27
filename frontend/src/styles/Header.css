@@ -35,7 +35,7 @@
   font-weight: bold;
   font-size: 16px;
   margin-right: 5px;
-  transform: translateY(3px); /* УВЕЛИЧЕНО: опускаем цифры на 3px */
+  transform: translateY(7px); /* УВЕЛИЧЕНО: опускаем цифры на 3px */
 }
 
 .balance-currency {

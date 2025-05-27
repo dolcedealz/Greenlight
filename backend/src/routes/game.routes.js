@@ -1,6 +1,7 @@
-// backend/src/routes/game.routes.js
+// backend/src/routes/game.routes.js - ОБНОВЛЕННАЯ ВЕРСИЯ
 const express = require('express');
 const { gameController } = require('../controllers');
+const crashController = require('../controllers/crash.controller');
 const { telegramAuthMiddleware, validateCoinFlip, validateMinesPlay, validateMinesComplete } = require('../middleware');
 
 const router = express.Router();
@@ -31,6 +32,32 @@ router.post('/mines/complete',
   gameController.completeMinesGame
 );
 
+// НОВЫЕ МАРШРУТЫ ДЛЯ КРАШ ИГРЫ
+router.post('/crash/bet', 
+  telegramAuthMiddleware, 
+  crashController.placeBet
+);
+
+router.post('/crash/cashout', 
+  telegramAuthMiddleware, 
+  crashController.cashOut
+);
+
+router.get('/crash/state', 
+  telegramAuthMiddleware, 
+  crashController.getGameState
+);
+
+router.get('/crash/history', 
+  telegramAuthMiddleware, 
+  crashController.getGameHistory
+);
+
+router.get('/crash/stats', 
+  telegramAuthMiddleware, 
+  crashController.getUserStats
+);
+
 // Маршруты для получения истории игр
 router.get('/history', 
   telegramAuthMiddleware, 
@@ -43,8 +70,7 @@ router.get('/stats',
   gameController.getUserGameStats
 );
 
-// Отладочный маршрут для проверки расчета множителя
-// Доступен без авторизации для упрощения тестирования
+// Отладочный маршрут для проверки расчета множителя в минах
 router.get('/debug/mines/multiplier', (req, res) => {
   const { minesCount = 5, revealed = 0, betAmount = 1 } = req.query;
   
@@ -127,13 +153,11 @@ router.get('/debug/mines/multiplier', (req, res) => {
   });
 });
 
-// Маршрут для проверки текущей игры в мины (получение состояния)
+// Маршрут для проверки текущей игры в мины
 router.get('/debug/mines/active-game', telegramAuthMiddleware, async (req, res) => {
   try {
-    // Импортируем модель Game
     const { Game } = require('../models');
     
-    // Находим активную игру пользователя
     const activeGame = await Game.findOne({
       user: req.user._id,
       gameType: 'mines',
@@ -150,7 +174,6 @@ router.get('/debug/mines/active-game', telegramAuthMiddleware, async (req, res) 
       });
     }
     
-    // Рассчитываем текущий множитель
     const minesCount = activeGame.result.minesCount;
     const clickedCells = activeGame.result.clickedCells || [];
     const safeTotal = 25 - minesCount;
@@ -160,7 +183,6 @@ router.get('/debug/mines/active-game', telegramAuthMiddleware, async (req, res) 
       ? (safeTotal / remainingCount) * 0.95 
       : safeTotal * 0.95;
     
-    // Проверяем соответствие множителя в БД и рассчитанного
     const multiplierMatch = Math.abs(activeGame.multiplier - expectedMultiplier) < 0.01;
     
     res.json({
@@ -185,76 +207,6 @@ router.get('/debug/mines/active-game', telegramAuthMiddleware, async (req, res) 
     });
   } catch (error) {
     console.error('Ошибка при получении активной игры:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Внутренняя ошибка сервера'
-    });
-  }
-});
-
-// Маршрут для исправления множителя в активной игре (только для разработки)
-router.post('/debug/mines/fix-multiplier', telegramAuthMiddleware, async (req, res) => {
-  try {
-    // Проверяем, что мы находимся в режиме разработки
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(403).json({
-        success: false,
-        message: 'Этот маршрут доступен только в режиме разработки'
-      });
-    }
-    
-    // Импортируем модель Game
-    const { Game } = require('../models');
-    
-    // Находим активную игру пользователя
-    const activeGame = await Game.findOne({
-      user: req.user._id,
-      gameType: 'mines',
-      status: 'active'
-    });
-    
-    if (!activeGame) {
-      return res.status(404).json({
-        success: false,
-        message: 'Активная игра не найдена'
-      });
-    }
-    
-    // Рассчитываем текущий множитель
-    const minesCount = activeGame.result.minesCount;
-    const clickedCells = activeGame.result.clickedCells || [];
-    const safeTotal = 25 - minesCount;
-    const revealedCount = clickedCells.length;
-    const remainingCount = safeTotal - revealedCount;
-    const correctMultiplier = remainingCount > 0 
-      ? (safeTotal / remainingCount) * 0.95 
-      : safeTotal * 0.95;
-    
-    // Сохраняем старый множитель для логирования
-    const oldMultiplier = activeGame.multiplier;
-    
-    // Обновляем множитель
-    activeGame.multiplier = correctMultiplier;
-    await activeGame.save();
-    
-    res.json({
-      success: true,
-      data: {
-        gameId: activeGame._id,
-        oldMultiplier,
-        newMultiplier: correctMultiplier,
-        calculation: {
-          minesCount,
-          safeTotal,
-          clickedCells,
-          revealedCount,
-          remainingCount,
-          formula: `(${safeTotal}/${remainingCount})*0.95`
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Ошибка при исправлении множителя:', error);
     res.status(500).json({
       success: false,
       message: 'Внутренняя ошибка сервера'

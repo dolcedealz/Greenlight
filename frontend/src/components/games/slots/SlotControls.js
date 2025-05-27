@@ -1,5 +1,6 @@
 // frontend/src/components/games/slots/SlotControls.js
 import React, { useState, useEffect } from 'react';
+import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import '../../../styles/SlotControls.css';
 
 const SlotControls = ({ 
@@ -17,6 +18,14 @@ const SlotControls = ({
   gameStats
 }) => {
   const [maxWin, setMaxWin] = useState(0);
+  
+  const { 
+    buttonPressFeedback, 
+    selectionChanged, 
+    gameActionFeedback, 
+    importantActionFeedback,
+    heavyImpact 
+  } = useTactileFeedback();
   
   // Рассчитываем максимальный возможный выигрыш
   useEffect(() => {
@@ -36,6 +45,7 @@ const SlotControls = ({
     const value = parseFloat(inputValue);
     if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
+      buttonPressFeedback(); // Легкая вибрация при изменении ставки
     }
   };
   
@@ -43,6 +53,7 @@ const SlotControls = ({
   const handleQuickBet = (multiplier) => {
     if (isSpinning || loading || autoplay) return; // БЛОКИРУЕМ при спине
     
+    buttonPressFeedback(); // Вибрация при быстрой ставке
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
@@ -50,19 +61,32 @@ const SlotControls = ({
   // Обработчик кнопки "Крутить"
   const handleSpinClick = () => {
     if (betAmount <= 0 || betAmount > balance || isSpinning || loading) return;
+    
+    // Сильная вибрация для главного игрового действия
+    heavyImpact();
     onSpin();
   };
   
   // Обработчик автоигры
   const handleAutoplayToggle = () => {
     if (isSpinning || loading) return; // БЛОКИРУЕМ при спине
+    
+    selectionChanged(); // Вибрация при переключении
     setAutoplay(!autoplay);
   };
   
   // Обработчик изменения количества автоспинов
   const handleAutoplayCountChange = (count) => {
     if (isSpinning || loading || autoplay) return; // БЛОКИРУЕМ при спине
+    
+    buttonPressFeedback(); // Легкая вибрация при выборе
     setAutoplayCount(count);
+  };
+
+  // Обработчик остановки автоигры
+  const handleStopAutoplay = () => {
+    gameActionFeedback(); // Вибрация при остановке
+    setAutoplay(false);
   };
   
   // Символы с эмодзи fallback
@@ -154,7 +178,7 @@ const SlotControls = ({
           {autoplay && (
             <button 
               className="stop-autoplay-btn"
-              onClick={() => setAutoplay(false)}
+              onClick={handleStopAutoplay}
               disabled={loading}
             >
               Остановить

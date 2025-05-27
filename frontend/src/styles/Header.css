@@ -2,18 +2,18 @@
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start; /* ИЗМЕНЕНО: было center */
+  align-items: center; /* ИСПРАВЛЕНО: возвращаем center для выравнивания */
   padding: 15px;
   background-color: var(--secondary-color);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  min-height: 70px; /* ДОБАВЛЕНО: минимальная высота */
+  min-height: 70px;
 }
 
 .logo {
   font-size: 24px;
   font-weight: bold;
   color: var(--primary-color);
-  margin-top: 5px; /* ДОБАВЛЕНО: небольшой отступ сверху */
+  /* УБРАНО: margin-top: 5px; */
 }
 
 .balance {
@@ -22,7 +22,7 @@
   background-color: rgba(11, 168, 74, 0.1);
   padding: 6px 12px;
   border-radius: 50px;
-  margin-top: 12px; /* ДОБАВЛЕНО: опускаем баланс вниз */
+  /* УБРАНО: margin-top: 12px; */
 }
 
 .balance-label {

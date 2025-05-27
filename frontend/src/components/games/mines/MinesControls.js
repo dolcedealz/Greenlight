@@ -1,5 +1,6 @@
-// MinesControls.js
+// frontend/src/components/games/mines/MinesControls.js
 import React from 'react';
+import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import '../../../styles/MinesControls.css';
 
 const MinesControls = ({ 
@@ -18,6 +19,14 @@ const MinesControls = ({
   autoplay,
   loading
 }) => {
+  const { 
+    buttonPressFeedback, 
+    selectionChanged, 
+    gameActionFeedback, 
+    importantActionFeedback,
+    criticalActionFeedback 
+  } = useTactileFeedback();
+
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
@@ -31,18 +40,39 @@ const MinesControls = ({
     const value = parseFloat(inputValue);
     if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
+      buttonPressFeedback(); // Легкая вибрация при изменении ставки
     }
   };
   
   // Быстрые ставки (процент от баланса)
   const handleQuickBet = (multiplier) => {
+    buttonPressFeedback(); // Вибрация при быстрой ставке
     const quickBet = Math.min(balance, Math.max(1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
   
   // Быстрый выбор количества мин
   const handleQuickMines = (count) => {
+    selectionChanged(); // Вибрация при смене выбора мин
     setMinesCount(count);
+  };
+  
+  // Обработчик кнопки играть
+  const handlePlayClick = () => {
+    gameActionFeedback(); // Вибрация для начала игры
+    onPlay();
+  };
+
+  // Обработчик кнопки забрать выигрыш
+  const handleCashoutClick = () => {
+    criticalActionFeedback(); // Сильная вибрация для важного действия
+    onCashout();
+  };
+
+  // Обработчик автоигры
+  const handleAutoplayChange = (checked) => {
+    selectionChanged(); // Вибрация при переключении
+    onAutoplayChange(checked);
   };
   
   // Для отображения в интерфейсе
@@ -193,7 +223,7 @@ const MinesControls = ({
         {!gameActive ? (
           <button 
             className="play-button" 
-            onClick={onPlay}
+            onClick={handlePlayClick}
             disabled={betAmount <= 0 || betAmount > balance || loading}
           >
             {loading ? 'Загрузка...' : 'Играть'}
@@ -201,7 +231,7 @@ const MinesControls = ({
         ) : (
           <button 
             className="cashout-button" 
-            onClick={onCashout}
+            onClick={handleCashoutClick}
             disabled={loading}
           >
             {loading ? 'Загрузка...' : `Забрать выигрыш (${possibleWin.toFixed(2)} USDT)`}
@@ -214,7 +244,7 @@ const MinesControls = ({
           <input 
             type="checkbox" 
             checked={autoplay} 
-            onChange={(e) => onAutoplayChange(e.target.checked)}
+            onChange={(e) => handleAutoplayChange(e.target.checked)}
             disabled={gameActive || loading}
           />
           <span className="toggle-slider"></span>

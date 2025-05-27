@@ -1,10 +1,22 @@
-// EventsPreview.js
+// frontend/src/components/main/EventsPreview.js
 import React from 'react';
+import useTactileFeedback from '../../hooks/useTactileFeedback';
 import '../../styles/EventsPreview.css';
 
 const EventsPreview = ({ event, onClick }) => {
+  const { mediumImpact } = useTactileFeedback();
+
+  const handleClick = () => {
+    // Средняя вибрация для важного действия (переход к событиям)
+    mediumImpact();
+    
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
-    <div className="events-preview" onClick={onClick}>
+    <div className="events-preview" onClick={handleClick}>
       <div className="events-header">
         <h3>События</h3>
         <span className="events-total">{event.totalBets.toFixed(2)} USDT</span>

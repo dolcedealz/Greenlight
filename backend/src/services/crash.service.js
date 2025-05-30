@@ -169,8 +169,15 @@ class CrashService extends EventEmitter {
     
     try {
       // Запускаем полет
-      this.currentRound.startFlying();
-      await this.currentRound.save();
+      await CrashRound.findByIdAndUpdate(
+        this.currentRound._id,
+        { 
+          status: 'flying',
+          startedAt: new Date()
+        }
+      );
+      this.currentRound.status = 'flying';
+      this.currentRound.startedAt = new Date();
       
       this.currentMultiplier = 1.00;
       this.gameStartTime = Date.now();
@@ -218,8 +225,17 @@ class CrashService extends EventEmitter {
             
             // Обрабатываем краш
             if (this.currentRound) {
-              this.currentRound.crash(crashPoint);
-              await this.currentRound.save();
+              await CrashRound.findByIdAndUpdate(
+                this.currentRound._id,
+                { 
+                  status: 'crashed',
+                  crashedAt: new Date(),
+                  finalMultiplier: crashPoint
+                }
+              );
+              this.currentRound.status = 'crashed';
+              this.currentRound.crashedAt = new Date();
+              this.currentRound.finalMultiplier = crashPoint;
               
               // Эмитим краш
               this.emit('gameCrashed', {
@@ -264,18 +280,32 @@ class CrashService extends EventEmitter {
         bet.autoCashOut <= this.currentMultiplier
       );
       
+      if (betsToProcess.length === 0) {
+        await session.commitTransaction();
+        return;
+      }
+      
+      // Подготавливаем обновления для всех ставок
+      const betUpdates = [];
+      
       for (const bet of betsToProcess) {
         try {
-          // Обновляем ставку
-          const processedBet = this.currentRound.cashOut(bet.user, bet.autoCashOut);
+          const winAmount = bet.amount * bet.autoCashOut;
+          const profit = winAmount - bet.amount;
+          
+          // Обновляем локальную копию ставки
+          bet.cashedOut = true;
+          bet.cashOutMultiplier = bet.autoCashOut;
+          bet.profit = profit;
+          bet.cashedOutAt = new Date();
           
           // Обновляем баланс пользователя
           await User.findByIdAndUpdate(
             bet.user,
             { 
               $inc: { 
-                balance: bet.amount * bet.autoCashOut,
-                totalWon: bet.amount * bet.autoCashOut
+                balance: winAmount,
+                totalWon: winAmount
               }
             }
           ).session(session);
@@ -284,7 +314,7 @@ class CrashService extends EventEmitter {
           const winTransaction = new Transaction({
             user: bet.user,
             type: 'win',
-            amount: bet.amount * bet.autoCashOut,
+            amount: winAmount,
             description: `Автовывод в краш игре при ${bet.autoCashOut.toFixed(2)}x`,
             status: 'completed',
             balanceBefore: 0, // Будет обновлено
@@ -299,16 +329,21 @@ class CrashService extends EventEmitter {
             userId: bet.user,
             amount: bet.amount,
             multiplier: bet.autoCashOut,
-            profit: processedBet.profit
+            profit: profit
           });
         } catch (betError) {
           console.error(`❌ CRASH SERVICE: Ошибка автовывода для пользователя ${bet.user}:`, betError);
         }
       }
       
-      if (betsToProcess.length > 0) {
-        await this.currentRound.save({ session });
-      }
+      // ИСПРАВЛЕНИЕ: Используем одну атомарную операцию для обновления всех ставок
+      await CrashRound.findByIdAndUpdate(
+        this.currentRound._id,
+        { 
+          $set: { bets: this.currentRound.bets }
+        },
+        { session }
+      );
       
       await session.commitTransaction();
     } catch (error) {
@@ -394,8 +429,15 @@ class CrashService extends EventEmitter {
     if (!this.currentRound) return;
     
     try {
-      this.currentRound.complete();
-      await this.currentRound.save();
+      await CrashRound.findByIdAndUpdate(
+        this.currentRound._id,
+        { 
+          status: 'completed',
+          completedAt: new Date()
+        }
+      );
+      this.currentRound.status = 'completed';
+      this.currentRound.completedAt = new Date();
       
       console.log(`✅ CRASH SERVICE: Раунд #${this.currentRound.roundId} завершен`);
       
@@ -463,8 +505,28 @@ class CrashService extends EventEmitter {
         throw new Error('Недостаточно средств');
       }
       
-      // Добавляем ставку в раунд
-      const bet = this.currentRound.addBet(userId, betAmount, autoCashOut);
+      // Создаем объект ставки
+      const bet = {
+        user: userId,
+        amount: betAmount,
+        autoCashOut: autoCashOut,
+        cashedOut: false,
+        cashOutMultiplier: 0,
+        profit: 0,
+        placedAt: new Date()
+      };
+      
+      // ИСПРАВЛЕНИЕ: Используем атомарную операцию вместо save()
+      await CrashRound.findByIdAndUpdate(
+        this.currentRound._id,
+        { 
+          $push: { bets: bet }
+        },
+        { session }
+      );
+      
+      // Обновляем локальный объект
+      this.currentRound.bets.push(bet);
       
       // Списываем средства с баланса
       user.balance -= betAmount;
@@ -482,7 +544,6 @@ class CrashService extends EventEmitter {
       });
       
       await betTransaction.save({ session });
-      await this.currentRound.save({ session });
       
       await session.commitTransaction();
       
@@ -502,7 +563,7 @@ class CrashService extends EventEmitter {
         roundId: this.currentRound.roundId,
         betAmount,
         autoCashOut,
-        newBalance: user.balance
+        balanceAfter: user.balance
       };
       
     } catch (error) {
@@ -522,18 +583,42 @@ class CrashService extends EventEmitter {
     session.startTransaction();
     
     try {
-      // Находим ставку пользователя
-      const bet = this.currentRound.bets.find(b => 
+      // Находим индекс ставки пользователя
+      const betIndex = this.currentRound.bets.findIndex(b => 
         b.user.toString() === userId.toString() && !b.cashedOut
       );
       
-      if (!bet) {
+      if (betIndex === -1) {
         throw new Error('Активная ставка не найдена');
       }
       
-      // Выводим ставку
-      const cashOutBet = this.currentRound.cashOut(userId, this.currentMultiplier);
+      const bet = this.currentRound.bets[betIndex];
       const winAmount = bet.amount * this.currentMultiplier;
+      const profit = winAmount - bet.amount;
+      
+      // Обновляем локальную копию
+      bet.cashedOut = true;
+      bet.cashOutMultiplier = this.currentMultiplier;
+      bet.profit = profit;
+      bet.cashedOutAt = new Date();
+      
+      // ИСПРАВЛЕНИЕ: Используем атомарную операцию
+      await CrashRound.findOneAndUpdate(
+        { 
+          _id: this.currentRound._id,
+          'bets.user': userId,
+          'bets.cashedOut': false
+        },
+        { 
+          $set: { 
+            [`bets.${betIndex}.cashedOut`]: true,
+            [`bets.${betIndex}.cashOutMultiplier`]: this.currentMultiplier,
+            [`bets.${betIndex}.profit`]: profit,
+            [`bets.${betIndex}.cashedOutAt`]: new Date()
+          }
+        },
+        { session }
+      );
       
       // Обновляем баланс пользователя
       const user = await User.findByIdAndUpdate(
@@ -559,7 +644,6 @@ class CrashService extends EventEmitter {
       });
       
       await winTransaction.save({ session });
-      await this.currentRound.save({ session });
       
       await session.commitTransaction();
       
@@ -570,15 +654,15 @@ class CrashService extends EventEmitter {
         username: user.username || 'Игрок',
         amount: bet.amount,
         multiplier: this.currentMultiplier,
-        profit: cashOutBet.profit
+        profit: profit
       });
       
       return {
         success: true,
         multiplier: this.currentMultiplier,
         winAmount,
-        profit: cashOutBet.profit,
-        newBalance: user.balance
+        profit: profit,
+        balanceAfter: user.balance
       };
       
     } catch (error) {

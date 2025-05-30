@@ -59,7 +59,10 @@ class CrashController {
       res.status(200).json({
         success: true,
         message: 'Ставка размещена',
-        data: result
+        data: {
+          ...result,
+          balanceAfter: result.balanceAfter || result.newBalance
+        }
       });
       
     } catch (error) {

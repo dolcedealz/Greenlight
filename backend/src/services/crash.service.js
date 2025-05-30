@@ -7,13 +7,29 @@ const EventEmitter = require('events');
 class CrashService extends EventEmitter {
   constructor() {
     super();
+    this.currentRound = null;
     this.gameTimer = null;
+    this.countdownTimer = null;
     this.isRunning = false;
+    this.currentMultiplier = 1.00;
+    this.gameStartTime = null;
     
     // Настройки игры
     this.WAITING_TIME = 7000; // 7 секунд ожидания
     this.CRASH_DELAY = 3000; // 3 секунды после краша
     this.MULTIPLIER_UPDATE_INTERVAL = 80; // Обновление каждые 80мс
+    
+    // Привязываем контекст для всех методов
+    this.startGameCycle = this.startGameCycle.bind(this);
+    this.runSingleRound = this.runSingleRound.bind(this);
+    this.createNewRound = this.createNewRound.bind(this);
+    this.waitingPeriod = this.waitingPeriod.bind(this);
+    this.flyingPeriod = this.flyingPeriod.bind(this);
+    this.crashPeriod = this.crashPeriod.bind(this);
+    this.completeRound = this.completeRound.bind(this);
+    this.startFlying = this.startFlying.bind(this);
+    this.updateMultiplier = this.updateMultiplier.bind(this);
+    this.crashTheGame = this.crashTheGame.bind(this);
     
     this.init();
   }
@@ -21,245 +37,20 @@ class CrashService extends EventEmitter {
   async init() {
     console.log('🚀 CRASH SERVICE: Инициализация сервиса краш игры');
     
-    // Восстанавливаем активный раунд из БД
-    const activeRound = await CrashRound.findOne({ 
-      status: { $in: ['waiting', 'flying'] } 
-    }).sort({ createdAt: -1 });
-    
-    if (activeRound) {
-      console.log(`🔄 CRASH SERVICE: Восстановление раунда #${activeRound.roundId}`);
-      await this.resumeRound(activeRound);
-    } else {
-      // Запускаем новый раунд
+    try {
+      // Завершаем любые активные раунды при запуске
+      await CrashRound.updateMany(
+        { status: { $in: ['waiting', 'flying'] } },
+        { status: 'completed' }
+      );
+      
+      // Запускаем игровой цикл
       this.startGameCycle();
+    } catch (error) {
+      console.error('❌ CRASH SERVICE: Ошибка инициализации:', error);
+      // Пробуем перезапустить через 5 секунд
+      setTimeout(() => this.init(), 5000);
     }
-  }
-  
-  async resumeRound(round) {
-    // Восстанавливаем состояние из БД
-    if (round.status === 'waiting') {
-      // Вычисляем оставшееся время ожидания
-      const elapsed = Date.now() - round.createdAt.getTime();
-      const remaining = Math.max(0, this.WAITING_TIME - elapsed);
-      
-      if (remaining > 0) {
-        console.log(`⏳ CRASH SERVICE: Продолжаем ожидание ${remaining}ms`);
-        setTimeout(() => this.startFlying(round._id), remaining);
-      } else {
-        await this.startFlying(round._id);
-      }
-    } else if (round.status === 'flying') {
-      // Восстанавливаем полет
-      const elapsed = Date.now() - round.startedAt.getTime();
-      const currentMultiplier = this.calculateMultiplier(elapsed / 1000);
-      
-      if (currentMultiplier >= round.crashPoint) {
-        await this.crashTheGame(round._id);
-      } else {
-        await this.resumeFlying(round._id, currentMultiplier, elapsed);
-      }
-    }
-  }
-  
-  async resumeFlying(roundId, currentMultiplier, elapsed) {
-    console.log(`🔄 CRASH SERVICE: Восстановление полета на ${currentMultiplier.toFixed(2)}x`);
-    
-    // Восстанавливаем игровое состояние
-    this.currentRound = await CrashRound.findById(roundId);
-    this.currentMultiplier = currentMultiplier;
-    this.gameStartTime = Date.now() - elapsed;
-    
-    // Эмитим текущее состояние
-    this.emit('gameStarted', {
-      roundId: this.currentRound.roundId,
-      status: 'flying',
-      multiplier: currentMultiplier
-    });
-    
-    // Продолжаем обновление множителя
-    this.updateMultiplier(roundId);
-  }
-  
-  async crashTheGame(roundId) {
-    const round = await CrashRound.findById(roundId);
-    if (!round || round.status !== 'flying') return;
-    
-    clearInterval(this.gameTimer);
-    
-    // Устанавливаем точный crash point
-    const crashPoint = round.crashPoint;
-    
-    console.log(`💥 CRASH SERVICE: Краш на ${crashPoint.toFixed(2)}x`);
-    
-    // Обрабатываем краш
-    round.crash(crashPoint);
-    await round.save();
-    
-    // Эмитим краш
-    this.emit('gameCrashed', {
-      roundId: round.roundId,
-      status: 'crashed',
-      crashPoint: crashPoint,
-      finalMultiplier: crashPoint
-    });
-    
-    // Обрабатываем финальные результаты
-    await this.processFinalResults();
-    
-    // Завершаем раунд
-    setTimeout(async () => {
-      round.complete();
-      await round.save();
-      
-      this.emit('roundCompleted', {
-        roundId: round.roundId,
-        crashPoint: round.crashPoint,
-        totalBets: round.bets.length,
-        totalAmount: round.totalBetAmount
-      });
-      
-      // Запускаем новый раунд
-      this.startGameCycle();
-    }, this.CRASH_DELAY);
-  }
-  
-  async getCurrentRound() {
-    return await CrashRound.findOne({ 
-      status: { $in: ['waiting', 'flying'] } 
-    }).populate('bets.user', 'username telegramId');
-  }
-  
-  async createNewRound() {
-    const roundId = await CrashRound.getNextRoundId();
-    
-    // Генерируем криптографически безопасные данные
-    const serverSeed = randomService.generateServerSeed();
-    const serverSeedHashed = randomService.hashServerSeed(serverSeed);
-    const nonce = randomService.generateNonce();
-    
-    // Генерируем crash point
-    const crashPoint = this.generateCrashPoint(serverSeed, nonce);
-    
-    const round = new CrashRound({
-      roundId,
-      status: 'waiting',
-      crashPoint,
-      serverSeed,
-      serverSeedHashed,
-      nonce
-    });
-    
-    await round.save();
-    
-    console.log(`🆕 CRASH SERVICE: Создан раунд #${roundId}, crash point: ${crashPoint.toFixed(2)}x`);
-    
-    // Эмитим событие для WebSocket
-    this.emit('roundCreated', {
-      roundId,
-      serverSeedHashed,
-      timeToStart: this.WAITING_TIME / 1000
-    });
-    
-    return round;
-  }
-  
-  async startFlying(roundId) {
-    const round = await CrashRound.findById(roundId);
-    if (!round || round.status !== 'waiting') return;
-    
-    round.startFlying();
-    await round.save();
-    
-    console.log('🚀 CRASH SERVICE: Полет начался!');
-    
-    this.emit('gameStarted', {
-      roundId: round.roundId,
-      status: 'flying',
-      multiplier: 1.00
-    });
-    
-    // Запускаем обновление множителя
-    this.updateMultiplier(round._id);
-  }
-  
-  calculateMultiplier(elapsedSeconds) {
-    // Замедленная формула роста
-    const baseSpeed = 0.06;
-    const acceleration = 0.03;
-    return 1.00 + (baseSpeed * elapsedSeconds) + (acceleration * elapsedSeconds * elapsedSeconds / 2);
-  }
-  
-  async updateMultiplier(roundId) {
-    const round = await CrashRound.findById(roundId);
-    if (!round || round.status !== 'flying') return;
-    
-    const startTime = round.startedAt.getTime();
-    
-    this.gameTimer = setInterval(async () => {
-      const currentRound = await CrashRound.findById(roundId);
-      if (!currentRound || currentRound.status !== 'flying') {
-        clearInterval(this.gameTimer);
-        return;
-      }
-      
-      const elapsed = (Date.now() - startTime) / 1000;
-      const currentMultiplier = this.calculateMultiplier(elapsed);
-      
-      // Проверяем краш
-      if (currentMultiplier >= currentRound.crashPoint) {
-        await this.crashTheGame(roundId);
-        return;
-      }
-      
-      // Обрабатываем автовыводы
-      await this.processAutoCashOuts(roundId, currentMultiplier);
-      
-      // Эмитим обновление
-      this.emit('multiplierUpdate', {
-        roundId: currentRound.roundId,
-        multiplier: parseFloat(currentMultiplier.toFixed(2)),
-        timestamp: Date.now()
-      });
-      
-    }, this.MULTIPLIER_UPDATE_INTERVAL);
-  }
-  
-  getCurrentGameState() {
-    // Асинхронный метод теперь возвращает Promise
-    return this.getCurrentRound().then(round => {
-      if (!round) {
-        return {
-          status: 'no_game',
-          message: 'Игра инициализируется'
-        };
-      }
-      
-      const elapsed = round.status === 'flying' 
-        ? (Date.now() - round.startedAt.getTime()) / 1000 
-        : 0;
-      
-      const currentMultiplier = round.status === 'flying'
-        ? this.calculateMultiplier(elapsed)
-        : 1.00;
-      
-      return {
-        roundId: round.roundId,
-        status: round.status,
-        currentMultiplier: parseFloat(currentMultiplier.toFixed(2)),
-        serverSeedHashed: round.serverSeedHashed,
-        bets: round.bets.map(bet => ({
-          userId: bet.user._id,
-          username: bet.user.username || 'Игрок',
-          amount: bet.amount,
-          autoCashOut: bet.autoCashOut,
-          cashedOut: bet.cashedOut,
-          cashOutMultiplier: bet.cashOutMultiplier
-        })),
-        timeToStart: round.status === 'waiting' 
-          ? Math.max(0, 7 - Math.floor((Date.now() - round.createdAt.getTime()) / 1000))
-          : 0
-      };
-    });
   }
   
   async startGameCycle() {
@@ -295,168 +86,176 @@ class CrashService extends EventEmitter {
     await this.completeRound();
   }
   
+  async createNewRound() {
+    try {
+      const roundId = await CrashRound.getNextRoundId();
+      
+      // Генерируем криптографически безопасные данные
+      const serverSeed = randomService.generateServerSeed();
+      const serverSeedHashed = randomService.hashServerSeed(serverSeed);
+      const nonce = randomService.generateNonce();
+      
+      // Генерируем crash point используя provably fair алгоритм
+      const crashPoint = this.generateCrashPoint(serverSeed, nonce);
+      
+      this.currentRound = new CrashRound({
+        roundId,
+        status: 'waiting',
+        crashPoint,
+        serverSeed,
+        serverSeedHashed,
+        nonce,
+        gameData: {}
+      });
+      
+      await this.currentRound.save();
+      
+      console.log(`🆕 CRASH SERVICE: Создан раунд #${roundId}, crash point: ${crashPoint.toFixed(2)}x`);
+      
+      // Эмитим событие для WebSocket
+      this.emit('roundCreated', {
+        roundId,
+        status: 'waiting',
+        serverSeedHashed,
+        timeToStart: this.WAITING_TIME / 1000
+      });
+    } catch (error) {
+      console.error('❌ CRASH SERVICE: Ошибка создания раунда:', error);
+      throw error;
+    }
+  }
   
   async waitingPeriod() {
     console.log('⏳ CRASH SERVICE: Период ожидания ставок');
     
     let timeLeft = this.WAITING_TIME / 1000; // 7 секунд
     
-    const countdown = setInterval(() => {
-      timeLeft--;
+    return new Promise((resolve) => {
+      // Сохраняем текущий roundId для проверки
+      const currentRoundId = this.currentRound?.roundId;
       
-      // Эмитим обновление таймера
-      this.emit('countdownUpdate', {
-        roundId: this.currentRound.roundId,
-        timeToStart: timeLeft
-      });
-      
-      if (timeLeft <= 0) {
-        clearInterval(countdown);
-      }
-    }, 1000);
-    
-    // Ждем 7 секунд
-    await new Promise(resolve => setTimeout(resolve, this.WAITING_TIME));
+      this.countdownTimer = setInterval(() => {
+        // Проверяем, что раунд все еще актуален
+        if (!this.currentRound || this.currentRound.roundId !== currentRoundId) {
+          if (this.countdownTimer) {
+            clearInterval(this.countdownTimer);
+            this.countdownTimer = null;
+          }
+          resolve();
+          return;
+        }
+        
+        timeLeft--;
+        
+        // Эмитим обновление таймера
+        this.emit('countdownUpdate', {
+          roundId: this.currentRound.roundId,
+          timeToStart: timeLeft
+        });
+        
+        if (timeLeft <= 0) {
+          clearInterval(this.countdownTimer);
+          this.countdownTimer = null;
+          resolve();
+        }
+      }, 1000);
+    });
   }
   
   async flyingPeriod() {
+    if (!this.currentRound) {
+      console.error('❌ CRASH SERVICE: Нет активного раунда для полета');
+      return;
+    }
+    
     console.log('🚀 CRASH SERVICE: Начало полета');
     
-    // Запускаем полет
-    this.currentRound.startFlying();
-    await this.currentRound.save();
-    
-    this.currentMultiplier = 1.00;
-    this.gameStartTime = Date.now();
-    
-    // Эмитим начало полета
-    this.emit('gameStarted', {
-      roundId: this.currentRound.roundId,
-      status: 'flying',
-      multiplier: this.currentMultiplier
-    });
-    
-    // Запускаем цикл обновления множителя
-    return new Promise((resolve) => {
-      const multiplierInterval = setInterval(async () => {
-        const now = Date.now();
-        const elapsedSeconds = (now - this.gameStartTime) / 1000;
-        
-        // Рассчитываем множитель (замедленная формула как на фронтенде)
-        const baseSpeed = 0.06;
-        const acceleration = 0.03;
-        const speed = baseSpeed + (acceleration * elapsedSeconds);
-        const deltaTime = this.MULTIPLIER_UPDATE_INTERVAL / 1000;
-        
-        this.currentMultiplier += speed * deltaTime;
-        
-        // Проверяем, достигли ли crash point
-        if (this.currentMultiplier >= this.currentRound.crashPoint) {
-          clearInterval(multiplierInterval);
-          
-          // Крашим точно на заданном crash point
-          this.currentMultiplier = this.currentRound.crashPoint;
-          
-          console.log(`💥 CRASH SERVICE: Краш на ${this.currentRound.crashPoint.toFixed(2)}x`);
-          
-          // Обрабатываем краш
-          this.currentRound.crash(this.currentRound.crashPoint);
-          await this.currentRound.save();
-          
-          // Эмитим краш
-          this.emit('gameCrashed', {
-            roundId: this.currentRound.roundId,
-            status: 'crashed',
-            crashPoint: this.currentRound.crashPoint,
-            finalMultiplier: this.currentMultiplier
-          });
-          
-          resolve();
-        } else {
-          // Обрабатываем автовыводы
-          await this.processAutoCashOutsLegacy();
-          
-          // Эмитим обновление множителя
-          this.emit('multiplierUpdate', {
-            roundId: this.currentRound.roundId,
-            multiplier: this.currentMultiplier,
-            timestamp: now
-          });
-        }
-      }, this.MULTIPLIER_UPDATE_INTERVAL);
-    });
-  }
-  
-  async processAutoCashOuts(roundId, currentMultiplier) {
-    if (!roundId) {
-      // Fallback для совместимости со старым кодом
-      return this.processAutoCashOutsLegacy();
-    }
-    
-    const round = await CrashRound.findById(roundId);
-    if (!round || round.status !== 'flying') return;
-    
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    
     try {
-      // Находим ставки с автовыводом на текущем множителе
-      const betsToProcess = round.bets.filter(bet => 
-        !bet.cashedOut && 
-        bet.autoCashOut > 0 && 
-        bet.autoCashOut <= currentMultiplier
-      );
+      // Запускаем полет
+      this.currentRound.startFlying();
+      await this.currentRound.save();
       
-      for (const bet of betsToProcess) {
-        // Обновляем ставку
-        const processedBet = round.cashOut(bet.user, bet.autoCashOut);
+      this.currentMultiplier = 1.00;
+      this.gameStartTime = Date.now();
+      
+      // Эмитим начало полета
+      this.emit('gameStarted', {
+        roundId: this.currentRound.roundId,
+        status: 'flying',
+        multiplier: this.currentMultiplier
+      });
+      
+      // Запускаем цикл обновления множителя
+      return new Promise((resolve) => {
+        // Сохраняем текущий roundId и crashPoint
+        const currentRoundId = this.currentRound.roundId;
+        const crashPoint = this.currentRound.crashPoint;
         
-        // Обновляем баланс пользователя
-        await User.findByIdAndUpdate(
-          bet.user,
-          { 
-            $inc: { 
-              balance: bet.amount * bet.autoCashOut,
-              totalWon: bet.amount * bet.autoCashOut
-            }
+        const multiplierInterval = setInterval(async () => {
+          // Проверяем, что раунд все еще актуален
+          if (!this.currentRound || this.currentRound.roundId !== currentRoundId) {
+            clearInterval(multiplierInterval);
+            resolve();
+            return;
           }
-        ).session(session);
-        
-        // Создаем транзакцию выигрыша
-        const winTransaction = new Transaction({
-          user: bet.user,
-          type: 'win',
-          amount: bet.amount * bet.autoCashOut,
-          description: `Автовывод в краш игре при ${bet.autoCashOut.toFixed(2)}x`,
-          status: 'completed'
-        });
-        
-        await winTransaction.save({ session });
-        
-        // Эмитим событие автовывода
-        this.emit('autoCashOut', {
-          roundId: round.roundId,
-          userId: bet.user,
-          amount: bet.amount,
-          multiplier: bet.autoCashOut,
-          profit: processedBet.profit
-        });
-      }
-      
-      if (betsToProcess.length > 0) {
-        await round.save({ session });
-      }
-      
-      await session.commitTransaction();
+          
+          const now = Date.now();
+          const elapsedSeconds = (now - this.gameStartTime) / 1000;
+          
+          // Рассчитываем множитель (замедленная формула как на фронтенде)
+          const baseSpeed = 0.06;
+          const acceleration = 0.03;
+          const speed = baseSpeed + (acceleration * elapsedSeconds);
+          const deltaTime = this.MULTIPLIER_UPDATE_INTERVAL / 1000;
+          
+          this.currentMultiplier += speed * deltaTime;
+          
+          // Проверяем, достигли ли crash point
+          if (this.currentMultiplier >= crashPoint) {
+            clearInterval(multiplierInterval);
+            
+            // Крашим точно на заданном crash point
+            this.currentMultiplier = crashPoint;
+            
+            console.log(`💥 CRASH SERVICE: Краш на ${crashPoint.toFixed(2)}x`);
+            
+            // Обрабатываем краш
+            if (this.currentRound) {
+              this.currentRound.crash(crashPoint);
+              await this.currentRound.save();
+              
+              // Эмитим краш
+              this.emit('gameCrashed', {
+                roundId: currentRoundId,
+                status: 'crashed',
+                crashPoint: crashPoint,
+                finalMultiplier: this.currentMultiplier
+              });
+            }
+            
+            resolve();
+          } else {
+            // Обрабатываем автовыводы
+            await this.processAutoCashOuts();
+            
+            // Эмитим обновление множителя
+            this.emit('multiplierUpdate', {
+              roundId: currentRoundId,
+              multiplier: this.currentMultiplier,
+              timestamp: now
+            });
+          }
+        }, this.MULTIPLIER_UPDATE_INTERVAL);
+      });
     } catch (error) {
-      await session.abortTransaction();
-      console.error('❌ CRASH SERVICE: Ошибка обработки автовыводов:', error);
-    } finally {
-      session.endSession();
+      console.error('❌ CRASH SERVICE: Ошибка в период полета:', error);
+      throw error;
     }
   }
   
-  async processAutoCashOutsLegacy() {
+  async processAutoCashOuts() {
+    if (!this.currentRound) return;
+    
     const session = await mongoose.startSession();
     session.startTransaction();
     
@@ -469,39 +268,45 @@ class CrashService extends EventEmitter {
       );
       
       for (const bet of betsToProcess) {
-        // Обновляем ставку
-        const processedBet = this.currentRound.cashOut(bet.user, bet.autoCashOut);
-        
-        // Обновляем баланс пользователя
-        await User.findByIdAndUpdate(
-          bet.user,
-          { 
-            $inc: { 
-              balance: bet.amount * bet.autoCashOut,
-              totalWon: bet.amount * bet.autoCashOut
+        try {
+          // Обновляем ставку
+          const processedBet = this.currentRound.cashOut(bet.user, bet.autoCashOut);
+          
+          // Обновляем баланс пользователя
+          await User.findByIdAndUpdate(
+            bet.user,
+            { 
+              $inc: { 
+                balance: bet.amount * bet.autoCashOut,
+                totalWon: bet.amount * bet.autoCashOut
+              }
             }
-          }
-        ).session(session);
-        
-        // Создаем транзакцию выигрыша
-        const winTransaction = new Transaction({
-          user: bet.user,
-          type: 'win',
-          amount: bet.amount * bet.autoCashOut,
-          description: `Автовывод в краш игре при ${bet.autoCashOut.toFixed(2)}x`,
-          status: 'completed'
-        });
-        
-        await winTransaction.save({ session });
-        
-        // Эмитим событие автовывода
-        this.emit('autoCashOut', {
-          roundId: this.currentRound.roundId,
-          userId: bet.user,
-          amount: bet.amount,
-          multiplier: bet.autoCashOut,
-          profit: processedBet.profit
-        });
+          ).session(session);
+          
+          // Создаем транзакцию выигрыша
+          const winTransaction = new Transaction({
+            user: bet.user,
+            type: 'win',
+            amount: bet.amount * bet.autoCashOut,
+            description: `Автовывод в краш игре при ${bet.autoCashOut.toFixed(2)}x`,
+            status: 'completed',
+            balanceBefore: 0, // Будет обновлено
+            balanceAfter: 0  // Будет обновлено
+          });
+          
+          await winTransaction.save({ session });
+          
+          // Эмитим событие автовывода
+          this.emit('autoCashOut', {
+            roundId: this.currentRound.roundId,
+            userId: bet.user,
+            amount: bet.amount,
+            multiplier: bet.autoCashOut,
+            profit: processedBet.profit
+          });
+        } catch (betError) {
+          console.error(`❌ CRASH SERVICE: Ошибка автовывода для пользователя ${bet.user}:`, betError);
+        }
       }
       
       if (betsToProcess.length > 0) {
@@ -528,49 +333,55 @@ class CrashService extends EventEmitter {
   }
   
   async processFinalResults() {
+    if (!this.currentRound) return;
+    
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
       for (const bet of this.currentRound.bets) {
-        const user = await User.findById(bet.user).session(session);
-        if (!user) continue;
-        
-        const win = bet.cashedOut;
-        const profit = win ? bet.profit : -bet.amount;
-        
-        // Создаем запись об игре
-        const game = new Game({
-          user: bet.user,
-          gameType: 'crash',
-          bet: bet.amount,
-          multiplier: win ? bet.cashOutMultiplier : this.currentRound.crashPoint,
-          result: {
-            roundId: this.currentRound.roundId,
-            autoCashOut: bet.autoCashOut,
-            cashedOut: bet.cashedOut,
-            cashOutMultiplier: bet.cashOutMultiplier,
-            crashPoint: this.currentRound.crashPoint,
-            win
-          },
-          win,
-          profit,
-          balanceBefore: user.balance - (win ? 0 : bet.amount),
-          balanceAfter: user.balance,
-          serverSeed: this.currentRound.serverSeed,
-          serverSeedHashed: this.currentRound.serverSeedHashed,
-          nonce: this.currentRound.nonce,
-          status: 'completed'
-        });
-        
-        await game.save({ session });
-        
-        // Обновляем статистику пользователя (ставка уже списана при размещении)
-        if (!win) {
-          user.totalWagered += bet.amount;
+        try {
+          const user = await User.findById(bet.user).session(session);
+          if (!user) continue;
+          
+          const win = bet.cashedOut;
+          const profit = win ? bet.profit : -bet.amount;
+          
+          // Создаем запись об игре
+          const game = new Game({
+            user: bet.user,
+            gameType: 'crash',
+            bet: bet.amount,
+            multiplier: win ? bet.cashOutMultiplier : this.currentRound.crashPoint,
+            result: {
+              roundId: this.currentRound.roundId,
+              autoCashOut: bet.autoCashOut,
+              cashedOut: bet.cashedOut,
+              cashOutMultiplier: bet.cashOutMultiplier,
+              crashPoint: this.currentRound.crashPoint,
+              win
+            },
+            win,
+            profit,
+            balanceBefore: user.balance - (win ? 0 : bet.amount),
+            balanceAfter: user.balance,
+            serverSeed: this.currentRound.serverSeed,
+            serverSeedHashed: this.currentRound.serverSeedHashed,
+            nonce: this.currentRound.nonce,
+            status: 'completed'
+          });
+          
+          await game.save({ session });
+          
+          // Обновляем статистику пользователя (ставка уже списана при размещении)
+          if (!win) {
+            user.totalWagered += bet.amount;
+          }
+          
+          await user.save({ session });
+        } catch (betError) {
+          console.error(`❌ CRASH SERVICE: Ошибка обработки результата для ставки:`, betError);
         }
-        
-        await user.save({ session });
       }
       
       await session.commitTransaction();
@@ -583,20 +394,26 @@ class CrashService extends EventEmitter {
   }
   
   async completeRound() {
-    this.currentRound.complete();
-    await this.currentRound.save();
+    if (!this.currentRound) return;
     
-    console.log(`✅ CRASH SERVICE: Раунд #${this.currentRound.roundId} завершен`);
-    
-    // Эмитим завершение раунда
-    this.emit('roundCompleted', {
-      roundId: this.currentRound.roundId,
-      crashPoint: this.currentRound.crashPoint,
-      totalBets: this.currentRound.bets.length,
-      totalAmount: this.currentRound.totalBetAmount
-    });
-    
-    this.currentRound = null;
+    try {
+      this.currentRound.complete();
+      await this.currentRound.save();
+      
+      console.log(`✅ CRASH SERVICE: Раунд #${this.currentRound.roundId} завершен`);
+      
+      // Эмитим завершение раунда
+      this.emit('roundCompleted', {
+        roundId: this.currentRound.roundId,
+        crashPoint: this.currentRound.crashPoint,
+        totalBets: this.currentRound.bets.length,
+        totalAmount: this.currentRound.totalBetAmount
+      });
+    } catch (error) {
+      console.error('❌ CRASH SERVICE: Ошибка завершения раунда:', error);
+    } finally {
+      this.currentRound = null;
+    }
   }
   
   generateCrashPoint(serverSeed, nonce) {
@@ -627,12 +444,26 @@ class CrashService extends EventEmitter {
         throw new Error('Пользователь не найден');
       }
       
-      if (user.balance < betAmount) {
-        throw new Error('Недостаточно средств');
+      if (user.isBlocked) {
+        throw new Error('Ваш аккаунт заблокирован');
       }
       
       if (!this.currentRound || this.currentRound.status !== 'waiting') {
         throw new Error('Ставки не принимаются в данный момент');
+      }
+      
+      // Проверяем, что у пользователя нет активной ставки
+      const existingBet = this.currentRound.bets.find(bet => 
+        bet.user.toString() === userId.toString()
+      );
+      
+      if (existingBet) {
+        throw new Error('У вас уже есть ставка в этом раунде');
+      }
+      
+      // Проверяем баланс
+      if (user.balance < betAmount) {
+        throw new Error('Недостаточно средств');
       }
       
       // Добавляем ставку в раунд
@@ -648,7 +479,9 @@ class CrashService extends EventEmitter {
         type: 'bet',
         amount: -betAmount,
         description: `Ставка в краш игре #${this.currentRound.roundId}`,
-        status: 'completed'
+        status: 'completed',
+        balanceBefore: user.balance + betAmount,
+        balanceAfter: user.balance
       });
       
       await betTransaction.save({ session });
@@ -660,6 +493,7 @@ class CrashService extends EventEmitter {
       this.emit('betPlaced', {
         roundId: this.currentRound.roundId,
         userId,
+        username: user.username || 'Игрок',
         amount: betAmount,
         autoCashOut,
         totalBets: this.currentRound.bets.length,
@@ -683,27 +517,37 @@ class CrashService extends EventEmitter {
   }
   
   async manualCashOut(userId) {
+    if (!this.currentRound || this.currentRound.status !== 'flying') {
+      throw new Error('Вывод невозможен в данный момент');
+    }
+    
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
-      if (!this.currentRound || this.currentRound.status !== 'flying') {
-        throw new Error('Вывод невозможен в данный момент');
+      // Находим ставку пользователя
+      const bet = this.currentRound.bets.find(b => 
+        b.user.toString() === userId.toString() && !b.cashedOut
+      );
+      
+      if (!bet) {
+        throw new Error('Активная ставка не найдена');
       }
       
       // Выводим ставку
-      const bet = this.currentRound.cashOut(userId, this.currentMultiplier);
+      const cashOutBet = this.currentRound.cashOut(userId, this.currentMultiplier);
       const winAmount = bet.amount * this.currentMultiplier;
       
       // Обновляем баланс пользователя
-      await User.findByIdAndUpdate(
+      const user = await User.findByIdAndUpdate(
         userId,
         { 
           $inc: { 
             balance: winAmount,
             totalWon: winAmount
           }
-        }
+        },
+        { new: true }
       ).session(session);
       
       // Создаем транзакцию выигрыша
@@ -712,7 +556,9 @@ class CrashService extends EventEmitter {
         type: 'win',
         amount: winAmount,
         description: `Вывод в краш игре при ${this.currentMultiplier.toFixed(2)}x`,
-        status: 'completed'
+        status: 'completed',
+        balanceBefore: user.balance - winAmount,
+        balanceAfter: user.balance
       });
       
       await winTransaction.save({ session });
@@ -724,16 +570,18 @@ class CrashService extends EventEmitter {
       this.emit('manualCashOut', {
         roundId: this.currentRound.roundId,
         userId,
+        username: user.username || 'Игрок',
         amount: bet.amount,
         multiplier: this.currentMultiplier,
-        profit: bet.profit
+        profit: cashOutBet.profit
       });
       
       return {
         success: true,
         multiplier: this.currentMultiplier,
         winAmount,
-        profit: bet.profit
+        profit: cashOutBet.profit,
+        newBalance: user.balance
       };
       
     } catch (error) {
@@ -779,48 +627,20 @@ class CrashService extends EventEmitter {
     }));
   }
   
-  async getCurrentGameStateAsync() {
-    // Асинхронная версия для новой архитектуры
-    const round = await this.getCurrentRound();
-    if (!round) {
-      return {
-        status: 'no_game',
-        message: 'Игра инициализируется'
-      };
-    }
-    
-    const elapsed = round.status === 'flying' 
-      ? (Date.now() - round.startedAt.getTime()) / 1000 
-      : 0;
-    
-    const currentMultiplier = round.status === 'flying'
-      ? this.calculateMultiplier(elapsed)
-      : 1.00;
-    
-    return {
-      roundId: round.roundId,
-      status: round.status,
-      currentMultiplier: parseFloat(currentMultiplier.toFixed(2)),
-      serverSeedHashed: round.serverSeedHashed,
-      bets: round.bets.map(bet => ({
-        userId: bet.user._id,
-        username: bet.user.username || 'Игрок',
-        amount: bet.amount,
-        autoCashOut: bet.autoCashOut,
-        cashedOut: bet.cashedOut,
-        cashOutMultiplier: bet.cashOutMultiplier
-      })),
-      timeToStart: round.status === 'waiting' 
-        ? Math.max(0, 7 - Math.floor((Date.now() - round.createdAt.getTime()) / 1000))
-        : 0
-    };
-  }
-  
   stop() {
     this.isRunning = false;
+    
+    // Очищаем все таймеры
     if (this.gameTimer) {
       clearInterval(this.gameTimer);
+      this.gameTimer = null;
     }
+    
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+    
     console.log('🛑 CRASH SERVICE: Сервис остановлен');
   }
 }

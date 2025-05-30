@@ -15,7 +15,8 @@ const SlotControls = ({
   setAutoplayCount,
   loading,
   autoplayRemaining,
-  gameStats
+  gameStats,
+  onStopAutoplay // Новый проп для остановки автоспина
 }) => {
   const [maxWin, setMaxWin] = useState(0);
   
@@ -83,10 +84,18 @@ const SlotControls = ({
     setAutoplayCount(count);
   };
 
-  // Обработчик остановки автоигры
+  // Обработчик остановки автоигры - ИСПРАВЛЕННЫЙ
   const handleStopAutoplay = () => {
     gameActionFeedback(); // Вибрация при остановке
-    setAutoplay(false);
+    console.log('СЛОТЫ CONTROLS: Нажата кнопка остановки автоспина');
+    
+    // Используем функцию из родительского компонента
+    if (onStopAutoplay) {
+      onStopAutoplay();
+    } else {
+      // Fallback к старому методу
+      setAutoplay(false);
+    }
   };
   
   // Символы с эмодзи fallback

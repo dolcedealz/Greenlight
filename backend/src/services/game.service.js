@@ -1163,7 +1163,7 @@ async playSlots(userData, gameData) {
   /**
    * Ручной вывод ставки
    */
-  async cashOutCrash(userData, gameData) {
+  async cashOutCrash(userData) {
     const crashService = require('./crash.service');
     return crashService.manualCashOut(userData.userId);
   }

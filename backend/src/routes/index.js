@@ -1,11 +1,13 @@
-// backend/src/routes/index.js - ОБНОВЛЕННАЯ ВЕРСИЯ
+// backend/src/routes/index.js
 const express = require('express');
 const gameRoutes = require('./game.routes');
 const userRoutes = require('./user.routes');
 const adminRoutes = require('./admin.routes');
 const paymentRoutes = require('./payment.routes');
 const withdrawalRoutes = require('./withdrawal.routes');
-const referralRoutes = require('./referral.routes'); // ДОБАВЛЯЕМ
+const referralRoutes = require('./referral.routes');
+const authRoutes = require('./auth.routes'); // ДОБАВЛЯЕМ
+const webhookRoutes = require('./webhook.routes');
 const router = express.Router();
 
 // Префиксы для маршрутов
@@ -14,7 +16,9 @@ router.use('/users', userRoutes);
 router.use('/admin', adminRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/withdrawals', withdrawalRoutes);
-router.use('/referrals', referralRoutes); // ДОБАВЛЯЕМ
+router.use('/referrals', referralRoutes);
+router.use('/auth', authRoutes); // ДОБАВЛЯЕМ
+router.use('/webhooks', webhookRoutes);
 
 // Маршрут для проверки работоспособности API
 router.get('/health', (req, res) => {
@@ -28,7 +32,8 @@ router.get('/health', (req, res) => {
       admin: 'активен',
       payments: 'активен',
       withdrawals: 'активен',
-      referrals: 'активен' // ДОБАВЛЯЕМ
+      referrals: 'активен',
+      auth: 'активен' // ДОБАВЛЯЕМ
     }
   });
 });

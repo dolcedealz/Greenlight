@@ -1,6 +1,7 @@
 // backend/src/services/crash.service.js
 const { CrashRound, User, Game, Transaction } = require('../models');
 const randomService = require('./random.service');
+const { CRASH_GAME_CONFIG } = require('../../../common/constants');
 const mongoose = require('mongoose');
 const EventEmitter = require('events');
 
@@ -14,10 +15,10 @@ class CrashService extends EventEmitter {
     this.currentMultiplier = 1.00;
     this.gameStartTime = null;
     
-    // Настройки игры
-    this.WAITING_TIME = 7000; // 7 секунд ожидания
-    this.CRASH_DELAY = 3000; // 3 секунды после краша
-    this.MULTIPLIER_UPDATE_INTERVAL = 80; // Обновление каждые 80мс
+    // Настройки игры (синхронизированы через common/constants.js)
+    this.WAITING_TIME = CRASH_GAME_CONFIG.WAITING_TIME; // 7000мс
+    this.CRASH_DELAY = CRASH_GAME_CONFIG.CRASH_DELAY; // 3000мс
+    this.MULTIPLIER_UPDATE_INTERVAL = CRASH_GAME_CONFIG.MULTIPLIER_UPDATE_INTERVAL; // 80мс
     
     // Привязываем контекст для всех методов
     this.startGameCycle = this.startGameCycle.bind(this);

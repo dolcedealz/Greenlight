@@ -350,30 +350,17 @@ async playSlots(req, res) {
    */
   async cashOutCrash(req, res) {
     try {
-      const { gameId } = req.body;
-      
-      if (!gameId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Не указан ID игры'
-        });
-      }
-      
+      // В crash игре gameId не нужен - один пользователь = одна ставка в раунде
       // Получаем информацию о пользователе
       const userData = {
         userId: req.user._id,
         telegramId: req.user.telegramId
       };
       
-      // Данные для кешаута
-      const gameData = {
-        gameId
-      };
-      
       console.log(`CRASH CASHOUT: Пользователь ${userData.userId} выводит ставку`);
       
-      // Выводим ставку
-      const result = await gameService.cashOutCrash(userData, gameData);
+      // Выводим ставку (без gameId)
+      const result = await gameService.cashOutCrash(userData);
       
       res.status(200).json({
         success: true,

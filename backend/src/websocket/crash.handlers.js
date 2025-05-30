@@ -59,8 +59,16 @@ class CrashWebSocketHandlers {
   setupSocketHandlers(socket) {
     // Подключение к краш игре
     socket.on('join_crash', () => {
-      socket.join('game_crash'); // Используем правильное название комнаты
-      console.log(`CRASH WEBSOCKET: Пользователь ${socket.id} подключился к краш игре`);
+      // Проверяем аутентификацию для участия в игре
+      if (!socket.userId && !socket.isGuest) {
+        socket.emit('crash_error', {
+          message: 'Для участия в игре требуется авторизация'
+        });
+        return;
+      }
+      
+      socket.join('game_crash');
+      console.log(`CRASH WEBSOCKET: Пользователь ${socket.telegramId || socket.id} подключился к краш игре`);
       
       // Отправляем текущее состояние игры
       const gameState = crashService.getCurrentGameState();

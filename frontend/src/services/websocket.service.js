@@ -17,7 +17,7 @@ class WebSocketService {
   }
 
   /**
-   * Подключение к WebSocket серверу
+   * Подключение к WebSocket серверу для Telegram Mini App
    * @param {string} userTelegramId - ID пользователя Telegram
    */
   async connect(userTelegramId = null) {
@@ -27,14 +27,39 @@ class WebSocketService {
         return true;
       }
 
-      console.log('🔌 Подключение к WebSocket серверу...');
+      console.log('🔌 Подключение к WebSocket серверу Telegram Mini App...');
 
-      // Создаем новое соединение
+      // Получаем Telegram WebApp данные если доступны
+      let authData = {};
+      
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        
+        // Используем initData для аутентификации
+        if (tg.initData) {
+          authData.initData = tg.initData;
+          console.log('🔐 Использование Telegram initData для аутентификации');
+        }
+        
+        // Fallback на telegramId если есть
+        if (userTelegramId && !authData.initData) {
+          authData.telegramId = userTelegramId;
+          console.log('🔐 Fallback на telegramId:', userTelegramId);
+        }
+      } else if (userTelegramId) {
+        // Если не в Telegram WebApp, используем переданный ID
+        authData.telegramId = userTelegramId;
+        console.log('🔐 Обычное подключение с telegramId:', userTelegramId);
+      }
+
+      // Создаем новое соединение с аутентификацией
       this.socket = io(this.socketUrl, {
         transports: ['websocket', 'polling'],
         timeout: 10000,
         forceNew: true,
+        auth: authData,
         query: {
+          source: 'telegram-mini-app',
           userTelegramId: userTelegramId || 'anonymous'
         }
       });

@@ -1,5 +1,6 @@
 // frontend/src/components/games/crash/CrashGraph.js
 import React, { useRef, useEffect, useState } from 'react';
+import { CRASH_GAME_CONFIG } from '../../../../../common/constants';
 import '../../../styles/CrashGraph.css';
 
 const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, className }) => {
@@ -182,9 +183,9 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
       ctx.lineWidth = 4;
       ctx.stroke();
       
-      // ИСПРАВЛЕНО: Точный прогресс для 7 секунд
-      if (timeToStart > 0 && timeToStart <= 7) {
-        const progress = (7 - timeToStart) / 7;
+      // СИНХРОНИЗИРОВАНО: Точный прогресс для ${CRASH_GAME_CONFIG.WAITING_TIME_SECONDS} секунд
+      if (timeToStart > 0 && timeToStart <= CRASH_GAME_CONFIG.WAITING_TIME_SECONDS) {
+        const progress = (CRASH_GAME_CONFIG.WAITING_TIME_SECONDS - timeToStart) / CRASH_GAME_CONFIG.WAITING_TIME_SECONDS;
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius - 2, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * progress));
         ctx.strokeStyle = '#0ba84a';

@@ -10,7 +10,7 @@ import webSocketService from '../../../services/websocket.service';
 import '../../../styles/CrashGame.css';
 
 const CrashGame = ({ 
-  balance, 
+  balance = 0,  // Добавляем значение по умолчанию
   setBalance, 
   gameStats, 
   setGameResult, 
@@ -368,7 +368,7 @@ const CrashGame = ({
 
   // Кешаут
   const cashOut = useCallback(async () => {
-    if (gameState !== 'flying' || !hasBet || cashedOut || loading || !userGameId) {
+    if (gameState !== 'flying' || !hasBet || cashedOut || loading) {
       return;
     }
     
@@ -376,7 +376,7 @@ const CrashGame = ({
       setLoading(true);
       criticalActionFeedback();
       
-      const response = await gameApi.cashOutCrash(userGameId);
+      const response = await gameApi.cashOutCrash();
       
       if (response.success) {
         setBalance(response.data.balanceAfter);
@@ -400,7 +400,7 @@ const CrashGame = ({
     } finally {
       setLoading(false);
     }
-  }, [gameState, hasBet, cashedOut, loading, userGameId, setBalance, setError, setGameResult, criticalActionFeedback, gameWinFeedback]);
+  }, [gameState, hasBet, cashedOut, loading, setBalance, setError, setGameResult, criticalActionFeedback, gameWinFeedback]);
 
   // Получение текста для главной кнопки
   const getMainButtonText = () => {
@@ -408,15 +408,16 @@ const CrashGame = ({
     
     switch (gameState) {
       case 'waiting':
-        if (hasBet) return `Ставка размещена (${userBet?.amount} USDT)`;
-        return `Поставить ${betAmount} USDT`;
+        if (hasBet && userBet) return `Ставка размещена (${userBet.amount || 0} USDT)`;
+        return `Поставить ${betAmount || 0} USDT`;
       case 'flying':
         if (!hasBet) return 'Ставка не размещена';
-        if (cashedOut) return `Выведено при ${userCashOutMultiplier.toFixed(2)}x`;
-        return `Вывести (${(userBet.amount * currentMultiplier).toFixed(2)} USDT)`;
+        if (cashedOut && userCashOutMultiplier !== undefined) return `Выведено при ${userCashOutMultiplier.toFixed(2)}x`;
+        if (userBet) return `Вывести (${((userBet.amount || 0) * (currentMultiplier || 1)).toFixed(2)} USDT)`;
+        return 'Вывести';
       case 'crashed':
         if (hasBet && !cashedOut) return 'Проигрыш';
-        if (hasBet && cashedOut) return `Выигрыш ${userCashOutMultiplier.toFixed(2)}x`;
+        if (hasBet && cashedOut && userCashOutMultiplier !== undefined) return `Выигрыш ${userCashOutMultiplier.toFixed(2)}x`;
         return 'Раунд завершен';
       default:
         return 'Ошибка состояния';

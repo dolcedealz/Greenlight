@@ -1,4 +1,4 @@
-// backend/src/services/index.js - ОБНОВЛЕННАЯ ВЕРСИЯ
+// backend/src/services/index.js
 const randomService = require('./random.service');
 const gameService = require('./game.service');
 const userService = require('./user.service');
@@ -7,7 +7,8 @@ const withdrawalService = require('./withdrawal.service');
 const oddsService = require('./odds.service');
 const casinoFinanceService = require('./casino-finance.service');
 const referralService = require('./referral.service');
-const crashService = require('./crash.service'); // ДОБАВЛЯЕМ
+const crashService = require('./crash.service');
+const authService = require('./auth.service'); // ДОБАВЛЯЕМ
 
 module.exports = {
   randomService,
@@ -18,5 +19,6 @@ module.exports = {
   oddsService,
   casinoFinanceService,
   referralService,
-  crashService // ДОБАВЛЯЕМ
+  crashService,
+  authService // ДОБАВЛЯЕМ
 };

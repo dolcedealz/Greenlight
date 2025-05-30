@@ -185,14 +185,12 @@ playSlots: (betAmount) => {
 
   /**
    * Вывести ставку (кешаут) в Crash
-   * @param {string} gameId - ID игры
+   * В crash игре gameId не нужен - один пользователь может иметь только одну ставку в раунде
    * @returns {Promise<Object>}
    */
-  cashOutCrash: async (gameId) => {
+  cashOutCrash: async () => {
     try {
-      const response = await api.post('/games/crash/cashout', {
-        gameId
-      });
+      const response = await api.post('/games/crash/cashout');
       return response.data;
     } catch (error) {
       console.error('Ошибка кешаута в Crash:', error);

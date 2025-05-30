@@ -1,25 +1,87 @@
 // backend/src/websocket/middleware.js
 const { User } = require('../models');
+const authService = require('../services/auth.service');
 
 /**
- * Middleware для аутентификации WebSocket соединений
+ * Middleware для аутентификации WebSocket соединений в Telegram Mini App
  */
 const authMiddleware = async (socket, next) => {
   try {
     // Получаем данные аутентификации из handshake
-    const { telegramId, token } = socket.handshake.auth || {};
+    const { telegramId, token, initData } = socket.handshake.auth || {};
     
-    if (!telegramId && !token) {
-      // Разрешаем подключение без аутентификации
-      // Аутентификация может быть выполнена позже через событие 'authenticate'
-      console.log('🔒 WEBSOCKET AUTH: Подключение без аутентификации разрешено');
+    console.log(`🔒 WEBSOCKET AUTH: Попытка подключения с данными:`, {
+      telegramId: telegramId || 'отсутствует',
+      hasToken: !!token,
+      hasInitData: !!initData
+    });
+    
+    // Если есть Telegram initData, валидируем через auth service
+    if (initData) {
+      console.log('🔒 WEBSOCKET AUTH: Валидация через Telegram initData');
+      
+      const telegramData = authService.validateTelegramWebAppData(
+        initData, 
+        process.env.TELEGRAM_BOT_TOKEN
+      );
+      
+      if (!telegramData) {
+        console.error('🔒 WEBSOCKET AUTH: Невалидные Telegram данные');
+        return next(new Error('Невалидные данные авторизации'));
+      }
+      
+      // Получаем или создаем пользователя
+      const user = await authService.getOrCreateUser(telegramData);
+      
+      if (user.isBlocked) {
+        console.log(`🔒 WEBSOCKET AUTH: Пользователь ${user._id} заблокирован`);
+        return next(new Error('Пользователь заблокирован'));
+      }
+      
+      // Привязываем пользователя к сокету
+      socket.userId = user._id;
+      socket.telegramId = user.telegramId;
+      socket.user = user;
+      
+      console.log(`✅ WEBSOCKET AUTH: Пользователь ${user.username || user.telegramId} аутентифицирован через initData`);
       return next();
     }
     
-    if (telegramId) {
-      // Поиск пользователя по Telegram ID
-      const user = await User.findOne({ telegramId });
+    // Если есть JWT токен, валидируем его
+    if (token) {
+      console.log('🔒 WEBSOCKET AUTH: Валидация через JWT токен');
       
+      const decoded = authService.validateJWT(token);
+      if (!decoded) {
+        console.error('🔒 WEBSOCKET AUTH: Невалидный JWT токен');
+        return next(new Error('Невалидный токен'));
+      }
+      
+      const user = await User.findById(decoded.userId);
+      if (!user) {
+        console.error('🔒 WEBSOCKET AUTH: Пользователь из токена не найден');
+        return next(new Error('Пользователь не найден'));
+      }
+      
+      if (user.isBlocked) {
+        console.log(`🔒 WEBSOCKET AUTH: Пользователь ${user._id} заблокирован`);
+        return next(new Error('Пользователь заблокирован'));
+      }
+      
+      // Привязываем пользователя к сокету
+      socket.userId = user._id;
+      socket.telegramId = user.telegramId;
+      socket.user = user;
+      
+      console.log(`✅ WEBSOCKET AUTH: Пользователь ${user.username || user.telegramId} аутентифицирован через JWT`);
+      return next();
+    }
+    
+    // Если есть только telegramId (legacy)
+    if (telegramId) {
+      console.log('🔒 WEBSOCKET AUTH: Валидация через Telegram ID (legacy)');
+      
+      const user = await User.findOne({ telegramId });
       if (!user) {
         console.log(`🔒 WEBSOCKET AUTH: Пользователь с Telegram ID ${telegramId} не найден`);
         return next(new Error('Пользователь не найден'));
@@ -32,19 +94,20 @@ const authMiddleware = async (socket, next) => {
       
       // Привязываем пользователя к сокету
       socket.userId = user._id;
+      socket.telegramId = user.telegramId;
       socket.user = user;
       
-      // Обновляем последнюю активность
-      user.lastActivity = new Date();
-      await user.save();
-      
-      console.log(`🔒 WEBSOCKET AUTH: Пользователь ${user._id} аутентифицирован`);
+      console.log(`✅ WEBSOCKET AUTH: Пользователь ${user.username || user.telegramId} аутентифицирован через telegramId`);
+      return next();
     }
     
+    // Разрешаем подключение без аутентификации для общих событий
+    console.log('⚠️ WEBSOCKET AUTH: Подключение без аутентификации (только для чтения)');
+    socket.isGuest = true;
     next();
     
   } catch (error) {
-    console.error('🔒 WEBSOCKET AUTH: Ошибка аутентификации:', error);
+    console.error('❌ WEBSOCKET AUTH: Ошибка аутентификации:', error);
     next(new Error('Ошибка аутентификации'));
   }
 };

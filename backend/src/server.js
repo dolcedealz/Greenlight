@@ -1,4 +1,4 @@
-// backend/src/server.js - ОБНОВЛЕННАЯ ВЕРСИЯ
+// backend/src/server.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 require('dotenv').config();
 const mongoose = require('mongoose');
 const http = require('http');
@@ -38,11 +38,9 @@ async function initializeCrashGame() {
   try {
     console.log('🚀 Инициализация Crash игры...');
     
-    // Импортируем gameService
-    const { gameService } = require('./services');
-    
-    // Инициализируем Crash
-    gameService.initializeCrash();
+    // Краш сервис инициализируется автоматически при импорте
+    // Просто проверяем, что он загружен
+    const { crashService } = require('./services');
     
     console.log('✅ Crash игра успешно инициализирована');
     
@@ -121,8 +119,8 @@ process.on('SIGTERM', () => {
   
   // Останавливаем Crash игру
   try {
-    const { gameService } = require('./services');
-    // gameService не имеет метода stop, но можно добавить логику очистки таймеров
+    const { crashService } = require('./services');
+    crashService.stop();
     console.log('🔒 Crash игра остановлена');
   } catch (error) {
     console.error('Ошибка остановки Crash игры:', error);
@@ -143,8 +141,8 @@ process.on('SIGINT', () => {
   
   // Останавливаем Crash игру
   try {
-    const { gameService } = require('./services');
-    // gameService не имеет метода stop, но можно добавить логику очистки таймеров
+    const { crashService } = require('./services');
+    crashService.stop();
     console.log('🔒 Crash игра остановлена');
   } catch (error) {
     console.error('Ошибка остановки Crash игры:', error);

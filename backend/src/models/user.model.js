@@ -77,6 +77,33 @@ const userSchema = new Schema({
         min: -47.5, // не может быть ниже 0% шанса (47.5 базовый)
         max: 52.5,  // не может быть выше 100% шанса
       }
+    },
+    slots: {
+      // Модификатор RTP (Return To Player) в процентах
+      rtpModifier: {
+        type: Number,
+        default: 0, // 0 = стандартный RTP
+        min: -30, // минимум -30% от базового RTP
+        max: 20   // максимум +20% от базового RTP
+      }
+    },
+    mines: {
+      // Модификатор шанса на мину
+      mineChanceModifier: {
+        type: Number,
+        default: 0,
+        min: -20, // меньше мин = легче игра
+        max: 30   // больше мин = сложнее игра
+      }
+    },
+    crash: {
+      // Модификатор шанса раннего краша
+      crashModifier: {
+        type: Number,
+        default: 0,
+        min: -20, // реже крашится рано
+        max: 50   // чаще крашится рано
+      }
     }
   }
 }, {

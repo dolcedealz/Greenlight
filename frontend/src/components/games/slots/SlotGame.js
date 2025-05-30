@@ -127,56 +127,79 @@ const SlotGame = ({
     }
   }, [autoplay, isSpinning, loading, animationComplete, performSpin]);
   
-  // Функция автоигры
+  // Функция автоигры - ИСПРАВЛЕННАЯ ВЕРСИЯ
   const performAutoplay = useCallback(async () => {
+    // Проверяем базовые условия
     if (!autoplay || autoplayRemaining <= 0 || betAmount > balance || isSpinning || loading || !animationComplete) {
+      console.log('СЛОТЫ: Автоигра остановлена, условия:', { autoplay, autoplayRemaining, betAmount, balance, isSpinning, loading, animationComplete });
       setAutoplay(false);
       setAutoplayRemaining(0);
       return;
     }
     
-    console.log('СЛОТЫ: Автоспин, осталось:', autoplayRemaining);
-    const won = await performSpin();
-    setAutoplayRemaining(prev => prev - 1);
+    console.log('СЛОТЫ: Автоспин начинается, осталось:', autoplayRemaining);
     
-    // Если выиграли большую сумму (больше 10x), останавливаем автоигру
-    if (won && lastResult && Math.abs(lastResult.profit) > betAmount * 10) {
-      console.log('СЛОТЫ: Большой выигрыш, останавливаем автоигру');
-      setAutoplay(false);
-      setAutoplayRemaining(0);
-      return;
-    }
+    // Выполняем спин и ждем результат
+    const spinResult = await performSpin();
     
-    // Планируем следующий спин только после завершения анимации
-    if (autoplayRemaining > 1 && betAmount <= balance) {
-      const timeoutId = setTimeout(() => {
+    // Ждем завершения анимации перед проверкой условий
+    await new Promise(resolve => {
+      const checkAnimation = setInterval(() => {
         if (animationComplete) {
-          performAutoplay();
+          clearInterval(checkAnimation);
+          resolve();
         }
-      }, 1000);
-      setAutoplayTimeoutId(timeoutId);
-    } else {
+      }, 100);
+    });
+    
+    // Уменьшаем счетчик ПОСЛЕ завершения спина
+    const newRemaining = autoplayRemaining - 1;
+    setAutoplayRemaining(newRemaining);
+    
+    // Проверяем условия остановки после получения результата
+    const currentBalance = balance; // Используем актуальный баланс
+    const shouldStop = 
+      newRemaining <= 0 || // Достигнут лимит спинов
+      betAmount > currentBalance || // Недостаточно средств
+      (spinResult && lastResult && Math.abs(lastResult.profit) >= betAmount * 10); // Большой выигрыш
+    
+    if (shouldStop) {
+      console.log('СЛОТЫ: Остановка автоигры. Причина:', {
+        spinsComplete: newRemaining <= 0,
+        insufficientFunds: betAmount > currentBalance,
+        bigWin: spinResult && lastResult && Math.abs(lastResult.profit) >= betAmount * 10
+      });
       setAutoplay(false);
       setAutoplayRemaining(0);
+      return;
     }
+    
+    // Продолжаем автоигру с задержкой между спинами
+    console.log('СЛОТЫ: Планируем следующий автоспин через 1.5 сек');
   }, [autoplay, autoplayRemaining, betAmount, balance, isSpinning, loading, animationComplete, performSpin, lastResult]);
   
-  // Эффект для запуска автоигры
+  // Эффект для запуска автоигры - ИСПРАВЛЕННАЯ ВЕРСИЯ
   useEffect(() => {
-    if (autoplay && autoplayRemaining > 0 && !isSpinning && !loading && animationComplete) {
-      const autoplayTimeout = setTimeout(() => {
-        performAutoplay();
-      }, 500);
-      
-      return () => clearTimeout(autoplayTimeout);
+    // Очищаем предыдущий таймаут
+    if (autoplayTimeoutId) {
+      clearTimeout(autoplayTimeoutId);
+      setAutoplayTimeoutId(null);
     }
     
-    return () => {
-      if (autoplayTimeoutId) {
-        clearTimeout(autoplayTimeoutId);
-      }
-    };
-  }, [autoplay, autoplayRemaining, isSpinning, loading, animationComplete, performAutoplay, autoplayTimeoutId]);
+    // Запускаем автоигру только при выполнении всех условий
+    if (autoplay && autoplayRemaining > 0 && !isSpinning && !loading && animationComplete) {
+      console.log('СЛОТЫ: Планируем автоспин через 1.5 сек');
+      const timeoutId = setTimeout(() => {
+        performAutoplay();
+      }, 1500); // Увеличиваем задержку между спинами
+      
+      setAutoplayTimeoutId(timeoutId);
+      
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [autoplay, autoplayRemaining, isSpinning, loading, animationComplete, performAutoplay]);
   
   // Обработчик включения автоигры
   const handleAutoplayToggle = useCallback((enabled) => {

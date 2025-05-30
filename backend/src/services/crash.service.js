@@ -1,6 +1,7 @@
 // backend/src/services/crash.service.js
 const { CrashRound, User, Game, Transaction } = require('../models');
 const randomService = require('./random.service');
+const oddsService = require('./odds.service');
 const { CRASH_GAME_CONFIG } = require('../../../common/constants');
 const mongoose = require('mongoose');
 const EventEmitter = require('events');
@@ -14,6 +15,9 @@ class CrashService extends EventEmitter {
     this.isRunning = false;
     this.currentMultiplier = 1.00;
     this.gameStartTime = null;
+    
+    // Глобальный модификатор для всей игры Crash
+    this.globalCrashModifier = 0;
     
     // Настройки игры (синхронизированы через common/constants.js)
     this.WAITING_TIME = CRASH_GAME_CONFIG.WAITING_TIME; // 7000мс
@@ -458,7 +462,24 @@ class CrashService extends EventEmitter {
   
   generateCrashPoint(serverSeed, nonce) {
     // Используем провably fair алгоритм для генерации crash point
-    const randomValue = randomService.generateRandomNumber(serverSeed, 'crash-client', nonce);
+    let randomValue = randomService.generateRandomNumber(serverSeed, 'crash-client', nonce);
+    
+    // ИНТЕГРАЦИЯ МОДИФИКАТОРА: Получаем глобальный модификатор для всей игры
+    // В будущем это может быть настройка администратора для всего казино
+    const globalCrashModifier = this.globalCrashModifier || 0;
+    
+    if (globalCrashModifier !== 0) {
+      console.log(`CRASH: Применяется глобальный модификатор: ${globalCrashModifier}%`);
+      
+      // Модификатор увеличивает шанс раннего краша
+      if (globalCrashModifier > 0) {
+        // Увеличиваем вероятность низких множителей
+        randomValue = randomValue * (1 - globalCrashModifier / 200); // Макс эффект 25% при модификаторе 50%
+      } else if (globalCrashModifier < 0) {
+        // Уменьшаем вероятность низких множителей
+        randomValue = Math.min(0.99, randomValue * (1 - globalCrashModifier / 200));
+      }
+    }
     
     // Конвертируем в crash point с логарифмическим распределением
     // Большинство крашей происходит на низких множителях
@@ -729,6 +750,44 @@ class CrashService extends EventEmitter {
     }
     
     console.log('🛑 CRASH SERVICE: Сервис остановлен');
+  }
+  
+  // Методы для управления глобальным модификатором
+  
+  /**
+   * Установить глобальный модификатор для Crash игры
+   * @param {number} modifier - Модификатор в процентах (-20 до +50)
+   */
+  setGlobalCrashModifier(modifier) {
+    // Ограничиваем модификатор разумными пределами
+    const clampedModifier = Math.max(-20, Math.min(50, modifier));
+    this.globalCrashModifier = clampedModifier;
+    
+    console.log(`CRASH: Глобальный модификатор установлен: ${clampedModifier}%`);
+    
+    return {
+      success: true,
+      modifier: clampedModifier,
+      effect: clampedModifier > 0 
+        ? 'Увеличена вероятность раннего краша' 
+        : clampedModifier < 0 
+          ? 'Уменьшена вероятность раннего краша'
+          : 'Стандартная вероятность'
+    };
+  }
+  
+  /**
+   * Получить текущий глобальный модификатор
+   */
+  getGlobalCrashModifier() {
+    return {
+      modifier: this.globalCrashModifier,
+      effect: this.globalCrashModifier > 0 
+        ? 'Увеличена вероятность раннего краша' 
+        : this.globalCrashModifier < 0 
+          ? 'Уменьшена вероятность раннего краша'
+          : 'Стандартная вероятность'
+    };
   }
 }
 

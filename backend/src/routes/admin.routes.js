@@ -56,11 +56,28 @@ router.get('/finance/history', financeController.getBalanceHistory);
  */
 router.get('/finance/game-stats', financeController.getGameStatistics);
 
-// === СУЩЕСТВУЮЩИЕ МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ШАНСАМИ ===
-router.post('/win-chance/base', adminController.setBaseWinChance);
-router.post('/win-chance/user', adminController.setUserWinChanceModifier);
-router.get('/win-chance/settings', adminController.getWinChanceSettings);
-router.get('/win-chance/user', adminController.getUserWinChanceModifier);
+// === МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ШАНСАМИ И МОДИФИКАТОРАМИ ===
+router.post('/users/:userId/modifiers', adminController.setUserGameModifier);
+router.get('/users/:userId/modifiers', adminController.getUserModifiers);
+router.post('/users/:userId/modifiers/reset', adminController.resetUserModifiers);
+router.get('/odds/statistics', adminController.getOddsStatistics);
+router.post('/odds/bulk-modifiers', adminController.setBulkModifiers);
+
+// Глобальный модификатор для Crash
+router.post('/crash/global-modifier', adminController.setGlobalCrashModifier);
+router.get('/crash/global-modifier', adminController.getGlobalCrashModifier);
+
+// Глобальные настройки игр
+router.get('/game-settings', adminController.getGameSettings);
+router.put('/game-settings', adminController.updateGameSettings);
+router.post('/game-settings/:gameType/modifier', adminController.setGlobalGameModifier);
+
+// === ОСНОВНЫЕ МАРШРУТЫ АДМИНИСТРАТОРА ===
+router.get('/stats', adminController.getCasinoStats);
+router.get('/users', adminController.getUsers);
+router.get('/users/:userId', adminController.getUserDetails);
+router.post('/users/:userId/block', adminController.toggleUserBlock);
+router.post('/users/:userId/balance', adminController.adjustUserBalance);
 
 // === МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ВЫВОДАМИ ===
 router.get('/withdrawals/pending', withdrawalController.getPendingApprovals);

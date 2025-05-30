@@ -137,11 +137,6 @@ const SlotMachine = ({
         isStoppingRef.current = false;
         animationCompleteRef.current = true;
         
-        // Уведомляем родительский компонент о завершении анимации
-        if (onAnimationComplete) {
-          onAnimationComplete();
-        }
-        
         // Показываем результат через короткую задержку
         setTimeout(() => {
           setShowingResult(true);
@@ -156,6 +151,14 @@ const SlotMachine = ({
               }, 4000);
             }, 300);
           }
+          
+          // ИСПРАВЛЕНИЕ: Уведомляем родительский компонент ПОСЛЕ визуального завершения
+          setTimeout(() => {
+            if (onAnimationComplete) {
+              console.log('СЛОТЫ: Вызываем onAnimationComplete после показа результата');
+              onAnimationComplete();
+            }
+          }, 800); // Задержка для полного визуального завершения
         }, 200);
       }
     }, delay);

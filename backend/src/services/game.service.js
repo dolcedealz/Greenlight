@@ -278,14 +278,58 @@ async playSlots(userData, gameData) {
       return SLOT_SYMBOLS[0];
     };
     
+    // Получаем RTP для пользователя
+    const userRTP = await oddsService.getSlotsRTP(user);
+    const shouldWin = await oddsService.shouldSlotsWin(user);
+    
+    console.log(`СЛОТЫ: RTP для пользователя ${user.username || user.telegramId}: ${userRTP}, выигрыш: ${shouldWin}`);
+
     // Генерируем барабаны в правильном формате [колонка][строка]
     const reels = [];
-    for (let col = 0; col < 4; col++) {
-      const column = [];
-      for (let row = 0; row < 4; row++) {
-        column.push(generateSymbol().symbol);
+    
+    // Если пользователь должен выиграть, пытаемся создать выигрышную комбинацию
+    if (shouldWin && Math.random() < 0.7) { // 70% шанс форсированного выигрыша при положительном RTP
+      // Выбираем случайный символ для выигрышной линии
+      const winSymbol = generateSymbol();
+      const lineType = Math.random();
+      
+      // Генерируем базовые барабаны
+      for (let col = 0; col < 4; col++) {
+        const column = [];
+        for (let row = 0; row < 4; row++) {
+          column.push(generateSymbol().symbol);
+        }
+        reels.push(column);
       }
-      reels.push(column);
+      
+      // Создаем выигрышную линию
+      if (lineType < 0.6) { // 60% - горизонтальная линия
+        const row = Math.floor(Math.random() * 4);
+        const length = Math.random() < 0.5 ? 3 : 4; // 50/50 для 3 или 4 в ряд
+        for (let col = 0; col < length; col++) {
+          reels[col][row] = winSymbol.symbol;
+        }
+      } else { // 40% - диагональная линия
+        const length = Math.random() < 0.5 ? 3 : 4;
+        if (Math.random() < 0.5) { // главная диагональ
+          for (let i = 0; i < length; i++) {
+            reels[i][i] = winSymbol.symbol;
+          }
+        } else { // побочная диагональ
+          for (let i = 0; i < length; i++) {
+            reels[i][3 - i] = winSymbol.symbol;
+          }
+        }
+      }
+    } else {
+      // Обычная генерация
+      for (let col = 0; col < 4; col++) {
+        const column = [];
+        for (let row = 0; row < 4; row++) {
+          column.push(generateSymbol().symbol);
+        }
+        reels.push(column);
+      }
     }
     
     console.log('СЛОТЫ: Сгенерированные барабаны:', JSON.stringify(reels, null, 2));
@@ -499,6 +543,59 @@ async playSlots(userData, gameData) {
 }
 
   /**
+   * Генерирует фейковую сетку с правильным количеством мин для отображения
+   * @param {Array} realGrid - Реальная сетка
+   * @param {Number} realMinesCount - Реальное количество мин
+   * @param {Number} requestedMinesCount - Запрошенное количество мин
+   * @param {Array} clickedCells - Открытые ячейки
+   * @returns {Array} - Модифицированная сетка
+   */
+  generateDisplayGrid(realGrid, realMinesCount, requestedMinesCount, clickedCells = []) {
+    const displayGrid = JSON.parse(JSON.stringify(realGrid)); // Клонируем реальную сетку
+    
+    // Если реальных мин больше, чем запрошено, скрываем лишние
+    if (realMinesCount > requestedMinesCount) {
+      const minesToHide = realMinesCount - requestedMinesCount;
+      let hidden = 0;
+      
+      for (let i = 0; i < 5 && hidden < minesToHide; i++) {
+        for (let j = 0; j < 5 && hidden < minesToHide; j++) {
+          // Скрываем мины, которые не были кликнуты
+          if (displayGrid[i][j] === 'mine' && !clickedCells.some(cell => cell[0] === i && cell[1] === j)) {
+            displayGrid[i][j] = 'gem';
+            hidden++;
+          }
+        }
+      }
+    }
+    // Если реальных мин меньше, добавляем фейковые
+    else if (realMinesCount < requestedMinesCount) {
+      const minesToAdd = requestedMinesCount - realMinesCount;
+      let added = 0;
+      
+      // Собираем свободные ячейки
+      const freeCells = [];
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          if (displayGrid[i][j] === 'gem' && !clickedCells.some(cell => cell[0] === i && cell[1] === j)) {
+            freeCells.push([i, j]);
+          }
+        }
+      }
+      
+      // Случайно добавляем фейковые мины
+      while (added < minesToAdd && freeCells.length > 0) {
+        const randomIndex = Math.floor(Math.random() * freeCells.length);
+        const [i, j] = freeCells.splice(randomIndex, 1)[0];
+        displayGrid[i][j] = 'mine';
+        added++;
+      }
+    }
+    
+    return displayGrid;
+  }
+
+  /**
    * Начать игру в мины
    * @param {Object} userData - Данные пользователя
    * @param {Object} gameData - Данные игры
@@ -563,6 +660,10 @@ async playSlots(userData, gameData) {
       const realClientSeed = clientSeed || 'default';
       const nonce = randomService.generateNonce();
       
+      // ИНТЕГРАЦИЯ МОДИФИКАТОРА: Получаем модифицированное количество мин
+      const actualMinesCount = await oddsService.getModifiedMinesCount(user, minesCount);
+      console.log(`МИНЫ: Базовое количество мин: ${minesCount}, с модификатором: ${actualMinesCount}`);
+      
       // Создаем игровое поле 5x5
       const grid = Array(5).fill().map(() => Array(5).fill('gem'));
       
@@ -588,8 +689,8 @@ async playSlots(userData, gameData) {
         [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]];
       }
       
-      // Выбираем первые N позиций для мин
-      for (let i = 0; i < minesCount; i++) {
+      // Выбираем первые N позиций для мин (используем МОДИФИЦИРОВАННОЕ количество)
+      for (let i = 0; i < actualMinesCount; i++) {
         const [row, col] = allPositions[i];
         grid[row][col] = 'mine';
         minePositions.push([row, col]);
@@ -605,8 +706,8 @@ async playSlots(userData, gameData) {
       user.lastActivity = new Date();
       await user.save({ session });
       
-      // Получаем начальный множитель из таблицы
-      const initialMultiplier = payoutTables[minesCount][1] || 0.95;
+      // Получаем начальный множитель из таблицы (используем РЕАЛЬНОЕ количество мин)
+      const initialMultiplier = payoutTables[actualMinesCount][1] || 0.95;
       
       // Создаем запись об игре
       const game = new Game({
@@ -616,7 +717,7 @@ async playSlots(userData, gameData) {
         multiplier: initialMultiplier, // Используем значение из таблицы
         result: {
           grid,
-          minesCount,
+          minesCount: actualMinesCount, // Сохраняем РЕАЛЬНОЕ количество мин
           minePositions,
           clickedCells: [],
           win: null,  // null = игра в процессе
@@ -632,8 +733,9 @@ async playSlots(userData, gameData) {
         nonce,
         status: 'active',
         gameData: {
-          minesCount,
-          safeTotal: 25 - minesCount
+          minesCount: actualMinesCount, // Сохраняем РЕАЛЬНОЕ количество мин
+          requestedMinesCount: minesCount, // Сохраняем запрошенное количество для отладки
+          safeTotal: 25 - actualMinesCount
         }
       });
       
@@ -810,6 +912,10 @@ async playSlots(userData, gameData) {
           win: true
         });
         
+        // ИСПРАВЛЕНИЕ: Создаем фейковую сетку для cashout
+        const requestedMinesCount = game.gameData.requestedMinesCount || game.result.minesCount;
+        const displayGrid = this.generateDisplayGrid(game.result.grid, game.result.minesCount, requestedMinesCount, clickedCells);
+        
         // Возвращаем данные для клиента
         return {
           win: true,
@@ -817,7 +923,7 @@ async playSlots(userData, gameData) {
           profit,
           balanceAfter: user.balance,
           clickedCells,
-          grid: game.result.grid, // Добавляем сетку в результаты кешаута
+          grid: displayGrid, // Используем фейковую сетку
           serverSeedHashed: game.serverSeedHashed,
           clientSeed: game.clientSeed,
           nonce: game.nonce
@@ -888,11 +994,15 @@ async playSlots(userData, gameData) {
           // Добавляем новую ячейку в локальный массив для ответа
           clickedCells.push([row, col]);
           
-          // Возвращаем данные для клиента
+          // ИСПРАВЛЕНИЕ: Создаем фейковую сетку с запрошенным количеством мин
+          const requestedMinesCount = game.gameData.requestedMinesCount || game.result.minesCount;
+          const displayGrid = this.generateDisplayGrid(grid, game.result.minesCount, requestedMinesCount, clickedCells);
+          
+          // Возвращаем данные для клиента с фейковой сеткой
           return {
             win: false,
             clickedCells,
-            grid,
+            grid: displayGrid, // Используем модифицированную сетку
             balanceAfter: user.balance
           };
         } else {
@@ -975,6 +1085,10 @@ async playSlots(userData, gameData) {
               win: true
             });
             
+            // ИСПРАВЛЕНИЕ: Создаем фейковую сетку для максимального выигрыша
+            const requestedMinesCount = game.gameData.requestedMinesCount || game.result.minesCount;
+            const displayGrid = this.generateDisplayGrid(game.result.grid, game.result.minesCount, requestedMinesCount, clickedCells);
+            
             // Возвращаем данные для клиента
             return {
               win: true,
@@ -982,7 +1096,7 @@ async playSlots(userData, gameData) {
               profit,
               balanceAfter: user.balance,
               clickedCells,
-              grid, // Добавляем сетку
+              grid: displayGrid, // Используем фейковую сетку
               maxWin: true,
               serverSeedHashed: game.serverSeedHashed,
               clientSeed: game.clientSeed,

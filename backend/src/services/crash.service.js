@@ -726,13 +726,18 @@ class CrashService extends EventEmitter {
   async getGameHistory(limit = 50) {
     const rounds = await CrashRound.getLastRounds(limit);
     
-    return rounds.map(round => ({
-      roundId: round.roundId,
-      crashPoint: round.crashPoint,
-      timestamp: round.createdAt,
-      totalBets: round.bets.length,
-      totalAmount: round.totalBetAmount
-    }));
+    return rounds.map(round => {
+      // Вычисляем общую сумму ставок вручную, так как используем lean()
+      const totalAmount = round.bets ? round.bets.reduce((sum, bet) => sum + bet.amount, 0) : 0;
+      
+      return {
+        roundId: round.roundId,
+        crashPoint: round.crashPoint,
+        timestamp: round.createdAt,
+        totalBets: round.bets ? round.bets.length : 0,
+        totalAmount: totalAmount
+      };
+    });
   }
   
   stop() {

@@ -32,127 +32,10 @@ const CrashHistory = ({ history }) => {
     });
   };
   
-  // ОБНОВЛЕНО: Более разнообразные тестовые данные истории
+  // Функция для получения истории - показываем только реальные данные
   const getDisplayHistory = () => {
-    if (history && history.length > 0) {
-      return history;
-    }
-    
-    // Улучшенные тестовые данные с разнообразными множителями
-    return [
-      {
-        roundId: 1015,
-        crashPoint: 2.34,
-        timestamp: Date.now() - 3000,
-        totalBets: 7,
-        totalAmount: 145.2
-      },
-      {
-        roundId: 1014,
-        crashPoint: 1.08,
-        timestamp: Date.now() - 13000,
-        totalBets: 3,
-        totalAmount: 67.5
-      },
-      {
-        roundId: 1013,
-        crashPoint: 8.91,
-        timestamp: Date.now() - 23000,
-        totalBets: 12,
-        totalAmount: 289.7
-      },
-      {
-        roundId: 1012,
-        crashPoint: 1.67,
-        timestamp: Date.now() - 33000,
-        totalBets: 5,
-        totalAmount: 98.3
-      },
-      {
-        roundId: 1011,
-        crashPoint: 4.56,
-        timestamp: Date.now() - 43000,
-        totalBets: 8,
-        totalAmount: 176.4
-      },
-      {
-        roundId: 1010,
-        crashPoint: 1.23,
-        timestamp: Date.now() - 53000,
-        totalBets: 4,
-        totalAmount: 55.8
-      },
-      {
-        roundId: 1009,
-        crashPoint: 12.78,
-        timestamp: Date.now() - 63000,
-        totalBets: 6,
-        totalAmount: 134.9
-      },
-      {
-        roundId: 1008,
-        crashPoint: 1.85,
-        timestamp: Date.now() - 73000,
-        totalBets: 4,
-        totalAmount: 89.5
-      },
-      {
-        roundId: 1007,
-        crashPoint: 3.42,
-        timestamp: Date.now() - 83000,
-        totalBets: 6,
-        totalAmount: 156.3
-      },
-      {
-        roundId: 1006,
-        crashPoint: 1.12,
-        timestamp: Date.now() - 93000,
-        totalBets: 2,
-        totalAmount: 25.0
-      },
-      {
-        roundId: 1005,
-        crashPoint: 7.89,
-        timestamp: Date.now() - 103000,
-        totalBets: 8,
-        totalAmount: 203.7
-      },
-      {
-        roundId: 1004,
-        crashPoint: 2.45,
-        timestamp: Date.now() - 113000,
-        totalBets: 5,
-        totalAmount: 127.5
-      },
-      {
-        roundId: 1003,
-        crashPoint: 1.23,
-        timestamp: Date.now() - 123000,
-        totalBets: 3,
-        totalAmount: 45.2
-      },
-      {
-        roundId: 1002,
-        crashPoint: 15.67,
-        timestamp: Date.now() - 133000,
-        totalBets: 4,
-        totalAmount: 67.8
-      },
-      {
-        roundId: 1001,
-        crashPoint: 4.21,
-        timestamp: Date.now() - 143000,
-        totalBets: 7,
-        totalAmount: 189.4
-      },
-      {
-        roundId: 1000,
-        crashPoint: 1.05,
-        timestamp: Date.now() - 153000,
-        totalBets: 2,
-        totalAmount: 18.5
-      }
-    ];
+    // Возвращаем только реальную историю из API
+    return history && Array.isArray(history) ? history : [];
   };
   
   const displayHistory = getDisplayHistory();
@@ -170,7 +53,8 @@ const CrashHistory = ({ history }) => {
         {displayHistory.length === 0 ? (
           <div className="no-history">
             <span className="no-history-icon">📈</span>
-            <span className="no-history-text">История раундов появится здесь</span>
+            <span className="no-history-text">История раундов появится после первых игр</span>
+            <span className="no-history-subtext">Сыграйте несколько раундов, чтобы увидеть статистику</span>
           </div>
         ) : (
           <>

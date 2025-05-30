@@ -109,7 +109,8 @@ crashRoundSchema.statics.getLastRounds = function(limit = 50) {
   return this.find({ status: 'completed' })
     .sort({ roundId: -1 })
     .limit(limit)
-    .select('roundId crashPoint createdAt bets totalBetAmount');
+    .select('roundId crashPoint createdAt bets')
+    .lean(); // Используем lean() для лучшей производительности, но без виртуальных полей
 };
 
 // Методы экземпляра

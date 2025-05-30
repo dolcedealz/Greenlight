@@ -27,9 +27,6 @@ class CrashService extends EventEmitter {
     this.flyingPeriod = this.flyingPeriod.bind(this);
     this.crashPeriod = this.crashPeriod.bind(this);
     this.completeRound = this.completeRound.bind(this);
-    this.startFlying = this.startFlying.bind(this);
-    this.updateMultiplier = this.updateMultiplier.bind(this);
-    this.crashTheGame = this.crashTheGame.bind(this);
     
     this.init();
   }
@@ -613,6 +610,11 @@ class CrashService extends EventEmitter {
         cashOutMultiplier: bet.cashOutMultiplier
       }))
     };
+  }
+  
+  // Новый асинхронный метод для получения состояния игры
+  async getCurrentGameStateAsync() {
+    return this.getCurrentGameState();
   }
   
   async getGameHistory(limit = 50) {

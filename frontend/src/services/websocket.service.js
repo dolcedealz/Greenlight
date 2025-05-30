@@ -157,7 +157,13 @@ class WebSocketService {
     }
 
     console.log('🎮 Присоединение к Crash игре...');
+    
+    // Отправляем специальное событие для краша
+    this.socket.emit('join_crash');
+    
+    // Также присоединяемся к общей комнате игры
     this.socket.emit('join_game', 'crash');
+    
     return true;
   }
 
@@ -171,7 +177,27 @@ class WebSocketService {
     }
 
     console.log('🎮 Покидание Crash игры...');
+    
+    // Отправляем специальное событие для краша
+    this.socket.emit('leave_crash');
+    
+    // Также покидаем общую комнату игры
     this.socket.emit('leave_game', 'crash');
+    
+    return true;
+  }
+
+  /**
+   * Запросить текущее состояние Crash игры
+   */
+  requestCrashState() {
+    if (!this.socket || !this.isConnected) {
+      console.warn('🎮 Нельзя запросить состояние - WebSocket не подключен');
+      return false;
+    }
+
+    console.log('🎮 Запрос состояния Crash игры...');
+    this.socket.emit('get_crash_state');
     return true;
   }
 

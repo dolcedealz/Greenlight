@@ -9,41 +9,45 @@ class CrashWebSocketHandlers {
   }
 
   setupEventListeners() {
-    // Слушаем события от crash service
+    // Слушаем события от crash service и транслируем их клиентам
     crashService.on('roundCreated', (data) => {
-      this.io.to('crash').emit('round_created', data);
+      // Отправляем в правильную комнату с правильным названием события
+      this.io.to('game_crash').emit('crash_new_round', {
+        ...data,
+        status: 'waiting'
+      });
     });
 
     crashService.on('countdownUpdate', (data) => {
-      this.io.to('crash').emit('countdown_update', data);
+      this.io.to('game_crash').emit('crash_countdown_update', data);
     });
 
     crashService.on('gameStarted', (data) => {
-      this.io.to('crash').emit('game_started', data);
+      this.io.to('game_crash').emit('crash_game_started', data);
     });
 
     crashService.on('multiplierUpdate', (data) => {
-      this.io.to('crash').emit('multiplier_update', data);
+      this.io.to('game_crash').emit('crash_multiplier_update', data);
     });
 
     crashService.on('gameCrashed', (data) => {
-      this.io.to('crash').emit('game_crashed', data);
+      this.io.to('game_crash').emit('crash_game_crashed', data);
     });
 
     crashService.on('betPlaced', (data) => {
-      this.io.to('crash').emit('bet_placed', data);
+      this.io.to('game_crash').emit('crash_bet_placed', data);
     });
 
     crashService.on('autoCashOut', (data) => {
-      this.io.to('crash').emit('auto_cash_out', data);
+      this.io.to('game_crash').emit('crash_auto_cash_out', data);
     });
 
     crashService.on('manualCashOut', (data) => {
-      this.io.to('crash').emit('manual_cash_out', data);
+      this.io.to('game_crash').emit('crash_manual_cash_out', data);
     });
 
     crashService.on('roundCompleted', (data) => {
-      this.io.to('crash').emit('round_completed', data);
+      this.io.to('game_crash').emit('crash_round_completed', data);
     });
 
     // Настраиваем обработчики подключений
@@ -55,29 +59,24 @@ class CrashWebSocketHandlers {
   setupSocketHandlers(socket) {
     // Подключение к краш игре
     socket.on('join_crash', () => {
-      socket.join('crash');
+      socket.join('game_crash'); // Используем правильное название комнаты
       console.log(`CRASH WEBSOCKET: Пользователь ${socket.id} подключился к краш игре`);
       
       // Отправляем текущее состояние игры
       const gameState = crashService.getCurrentGameState();
-      socket.emit('game_state', gameState);
+      socket.emit('crash_game_state', gameState);
     });
 
     // Отключение от краш игры
     socket.on('leave_crash', () => {
-      socket.leave('crash');
+      socket.leave('game_crash');
       console.log(`CRASH WEBSOCKET: Пользователь ${socket.id} отключился от краш игры`);
     });
 
     // Запрос текущего состояния игры
-    socket.on('get_game_state', () => {
+    socket.on('get_crash_state', () => {
       const gameState = crashService.getCurrentGameState();
-      socket.emit('game_state', gameState);
-    });
-
-    // Обработка отключения
-    socket.on('disconnect', () => {
-      // Пользователь автоматически покинет все комнаты
+      socket.emit('crash_game_state', gameState);
     });
   }
 }

@@ -396,7 +396,8 @@ async playSlots(req, res) {
    */
   async getCrashState(req, res) {
     try {
-      const state = gameService.getCurrentCrashState();
+      // Правильно вызываем асинхронный метод
+      const state = await gameService.getCurrentCrashState();
       
       res.status(200).json({
         success: true,

@@ -109,7 +109,8 @@ class CrashController {
    */
   async getGameState(req, res) {
     try {
-      const gameState = crashService.getCurrentGameState();
+      // Теперь правильно обрабатываем асинхронный метод
+      const gameState = await crashService.getCurrentGameStateAsync();
       
       res.status(200).json({
         success: true,

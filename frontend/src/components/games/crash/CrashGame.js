@@ -106,21 +106,28 @@ const CrashGame = ({
       console.log('🎮 Новый раунд:', data);
       setGameState('waiting');
       setRoundId(data.roundId);
-      setTimeToStart(data.timeToStart);
+      setTimeToStart(data.timeToStart || 7);
       setCurrentMultiplier(1.00);
       setCrashPoint(0);
       
-      // Сбрасываем состояние ставки
-      if (!hasBet || gameState === 'crashed') {
-        setHasBet(false);
-        setCashedOut(false);
-        setUserBet(null);
-        setUserGameId(null);
-        setUserCashOutMultiplier(0);
-      }
+      // Сбрасываем состояние ставки для нового раунда
+      setHasBet(false);
+      setCashedOut(false);
+      setUserBet(null);
+      setUserGameId(null);
+      setUserCashOutMultiplier(0);
+      
+      // Очищаем списки ставок
+      setActiveBets([]);
+      setCashedOutBets([]);
       
       // Запускаем обратный отсчет
-      startCountdown(data.timeToStart);
+      startCountdown(data.timeToStart || 7);
+    });
+
+    // Обновление обратного отсчета
+    const unsubCountdown = webSocketService.on('crash_countdown_update', (data) => {
+      setTimeToStart(data.timeToStart);
     });
 
     // Игра началась
@@ -163,52 +170,81 @@ const CrashGame = ({
     // Новая ставка
     const unsubBetPlaced = webSocketService.on('crash_bet_placed', (data) => {
       console.log('💰 Новая ставка:', data);
-      setActiveBets(prev => [...prev, {
-        id: Date.now(),
-        userId: data.userId,
-        username: data.username,
-        amount: data.amount,
-        autoCashOut: data.autoCashOut,
-        isCurrentUser: data.userId === userTelegramId
-      }]);
+      
+      // Добавляем только если это не наша ставка (уже добавлена локально)
+      if (data.userId !== userTelegramId) {
+        setActiveBets(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          userId: data.userId,
+          username: data.username || 'Игрок',
+          amount: data.amount,
+          autoCashOut: data.autoCashOut || 0,
+          isCurrentUser: false
+        }]);
+      }
     });
 
-    // Кешаут
-    const unsubCashOut = webSocketService.on('crash_cash_out', (data) => {
-      console.log('💸 Кешаут:', data);
-      
+    // Автоматический кешаут
+    const unsubAutoCashOut = webSocketService.on('crash_auto_cash_out', (data) => {
+      console.log('🤖 Автокешаут:', data);
+      handleCashOutEvent(data);
+    });
+
+    // Ручной кешаут
+    const unsubManualCashOut = webSocketService.on('crash_manual_cash_out', (data) => {
+      console.log('💸 Ручной кешаут:', data);
+      handleCashOutEvent(data);
+    });
+
+    // Текущее состояние игры
+    const unsubGameState = webSocketService.on('crash_game_state', (data) => {
+      console.log('📊 Состояние игры:', data);
+      updateGameState(data);
+    });
+
+    // Раунд завершен
+    const unsubRoundCompleted = webSocketService.on('crash_round_completed', (data) => {
+      console.log('✅ Раунд завершен:', data);
+      // Можно добавить дополнительную логику при завершении раунда
+    });
+
+    // Функция обработки кешаута
+    const handleCashOutEvent = (data) => {
       // Убираем из активных
       setActiveBets(prev => prev.filter(bet => bet.userId !== data.userId));
       
       // Добавляем в выведенные
       setCashedOutBets(prev => [...prev, {
-        id: Date.now(),
+        id: Date.now() + Math.random(),
         userId: data.userId,
-        username: data.username,
+        username: data.username || 'Игрок',
         amount: data.amount,
         cashOutMultiplier: data.multiplier,
-        winAmount: data.winAmount,
+        winAmount: data.amount * data.multiplier,
         isCurrentUser: data.userId === userTelegramId
       }]);
-    });
-
-    // Текущее состояние игры
-    const unsubGameState = webSocketService.on('game_state', (data) => {
-      console.log('📊 Состояние игры:', data);
-      updateGameState(data);
-    });
+      
+      // Если это наш кешаут, обновляем UI
+      if (data.userId === userTelegramId) {
+        setCashedOut(true);
+        setUserCashOutMultiplier(data.multiplier);
+      }
+    };
 
     // Очистка подписок
     return () => {
       unsubNewRound();
+      unsubCountdown();
       unsubGameStarted();
       unsubMultiplierUpdate();
       unsubGameCrashed();
       unsubBetPlaced();
-      unsubCashOut();
+      unsubAutoCashOut();
+      unsubManualCashOut();
       unsubGameState();
+      unsubRoundCompleted();
     };
-  }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, gameLoseFeedback, setGameResult]);
+  }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, gameLoseFeedback, setGameResult, startCountdown, loadHistory, updateGameState]);
 
   // Обновление состояния игры
   const updateGameState = useCallback((state) => {

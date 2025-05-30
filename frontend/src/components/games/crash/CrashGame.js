@@ -6,6 +6,7 @@ import CrashBetsList from './CrashBetsList';
 import CrashHistory from './CrashHistory';
 import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import { gameApi } from '../../../services';
+import webSocketService from '../../../services/websocket.service';
 import '../../../styles/CrashGame.css';
 
 const CrashGame = ({ 
@@ -13,9 +14,9 @@ const CrashGame = ({
   setBalance, 
   gameStats, 
   setGameResult, 
-  setError 
+  setError,
+  userTelegramId 
 }) => {
-  // Добавляем тактильную обратную связь
   const { 
     gameActionFeedback, 
     importantActionFeedback, 
@@ -24,15 +25,16 @@ const CrashGame = ({
     gameLoseFeedback 
   } = useTactileFeedback();
 
-  // НОВОЕ: Состояние загрузки
+  // Состояние загрузки
   const [isInitializing, setIsInitializing] = useState(true);
   
   // Состояние игры
-  const [gameState, setGameState] = useState('waiting'); // waiting, flying, crashed
+  const [gameState, setGameState] = useState('waiting');
   const [currentMultiplier, setCurrentMultiplier] = useState(1.00);
   const [timeToStart, setTimeToStart] = useState(7);
   const [crashPoint, setCrashPoint] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [roundId, setRoundId] = useState(null);
   
   // Состояние ставки пользователя
   const [betAmount, setBetAmount] = useState(10);
@@ -40,36 +42,42 @@ const CrashGame = ({
   const [hasBet, setHasBet] = useState(false);
   const [cashedOut, setCashedOut] = useState(false);
   const [userBet, setUserBet] = useState(null);
+  const [userGameId, setUserGameId] = useState(null);
   const [userCashOutMultiplier, setUserCashOutMultiplier] = useState(0);
   
-  // Ставки других игроков (мок данные)
+  // Ставки и история
   const [activeBets, setActiveBets] = useState([]);
   const [cashedOutBets, setCashedOutBets] = useState([]);
   const [history, setHistory] = useState([]);
   
-  // ИСПРАВЛЕНО: Более надежные рефы для таймеров
-  const gameTimerRef = useRef(null);
-  const multiplierTimerRef = useRef(null);
-  const startTimeRef = useRef(null);
-  const isCrashedRef = useRef(false);
-  const roundIdRef = useRef(0);
-  const lastMultiplierUpdateRef = useRef(0);
-  const isGameActiveRef = useRef(false); // НОВЫЙ РЕФ для отслеживания активности игры
-  
-  // НОВОЕ: Инициализация с загрузочным экраном
+  // Таймеры для обратного отсчета
+  const countdownTimerRef = useRef(null);
+
+  // Инициализация WebSocket и загрузка начальных данных
   useEffect(() => {
     const initializeGame = async () => {
       try {
-        // Показываем загрузочный экран минимум 2 секунды
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
         console.log('=== ИНИЦИАЛИЗАЦИЯ КРАШ ИГРЫ ===');
-        setIsInitializing(false);
         
-        // Запускаем первый раунд
-        setTimeout(() => {
-          startWaitingPeriod();
-        }, 500);
+        // Подключаемся к WebSocket
+        await webSocketService.connect(userTelegramId);
+        
+        // Присоединяемся к краш игре
+        webSocketService.joinCrash();
+        
+        // Загружаем начальное состояние
+        const stateResponse = await gameApi.getCrashState();
+        if (stateResponse.success) {
+          updateGameState(stateResponse.data);
+        }
+        
+        // Загружаем историю
+        const historyResponse = await gameApi.getCrashHistory();
+        if (historyResponse.success) {
+          setHistory(historyResponse.data);
+        }
+        
+        setIsInitializing(false);
         
       } catch (err) {
         console.error('Ошибка инициализации:', err);
@@ -81,35 +89,214 @@ const CrashGame = ({
     initializeGame();
     
     return () => {
-      cleanupAllTimers();
+      // Очистка при размонтировании
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+      webSocketService.leaveCrash();
     };
-  }, []);
-  
-  // Генерация краш-поинта (реальная логика должна быть на сервере)
-  const generateCrashPoint = useCallback(() => {
-    const random = Math.random();
-    if (random < 0.4) return 1.0 + Math.random() * 0.8; // 1.0-1.8x (40%)
-    if (random < 0.7) return 1.8 + Math.random() * 1.2; // 1.8-3.0x (30%)
-    if (random < 0.9) return 3.0 + Math.random() * 4.0; // 3.0-7.0x (20%)
-    return 7.0 + Math.random() * 13.0; // 7.0-20.0x (10%)
-  }, []);
-  
-  // ИСПРАВЛЕНО: Надежная очистка всех таймеров
-  const cleanupAllTimers = useCallback(() => {
-    console.log('🧹 Очистка всех таймеров');
+  }, [userTelegramId, setError]);
+
+  // Подписка на WebSocket события
+  useEffect(() => {
+    if (isInitializing) return;
+
+    // Новый раунд
+    const unsubNewRound = webSocketService.on('crash_new_round', (data) => {
+      console.log('🎮 Новый раунд:', data);
+      setGameState('waiting');
+      setRoundId(data.roundId);
+      setTimeToStart(data.timeToStart);
+      setCurrentMultiplier(1.00);
+      setCrashPoint(0);
+      
+      // Сбрасываем состояние ставки
+      if (!hasBet || gameState === 'crashed') {
+        setHasBet(false);
+        setCashedOut(false);
+        setUserBet(null);
+        setUserGameId(null);
+        setUserCashOutMultiplier(0);
+      }
+      
+      // Запускаем обратный отсчет
+      startCountdown(data.timeToStart);
+    });
+
+    // Игра началась
+    const unsubGameStarted = webSocketService.on('crash_game_started', (data) => {
+      console.log('🚀 Игра началась:', data);
+      setGameState('flying');
+      setCurrentMultiplier(1.00);
+      
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    });
+
+    // Обновление множителя
+    const unsubMultiplierUpdate = webSocketService.on('crash_multiplier_update', (data) => {
+      setCurrentMultiplier(data.multiplier);
+    });
+
+    // Игра разбилась
+    const unsubGameCrashed = webSocketService.on('crash_game_crashed', (data) => {
+      console.log('💥 Игра разбилась:', data);
+      setGameState('crashed');
+      setCrashPoint(data.crashPoint);
+      setCurrentMultiplier(data.crashPoint);
+      
+      // Обновляем историю
+      loadHistory();
+      
+      // Если у пользователя была ставка и он не вывел
+      if (hasBet && !cashedOut) {
+        gameLoseFeedback();
+        setGameResult({
+          win: false,
+          amount: userBet.amount,
+          newBalance: balance
+        });
+      }
+    });
+
+    // Новая ставка
+    const unsubBetPlaced = webSocketService.on('crash_bet_placed', (data) => {
+      console.log('💰 Новая ставка:', data);
+      setActiveBets(prev => [...prev, {
+        id: Date.now(),
+        userId: data.userId,
+        username: data.username,
+        amount: data.amount,
+        autoCashOut: data.autoCashOut,
+        isCurrentUser: data.userId === userTelegramId
+      }]);
+    });
+
+    // Кешаут
+    const unsubCashOut = webSocketService.on('crash_cash_out', (data) => {
+      console.log('💸 Кешаут:', data);
+      
+      // Убираем из активных
+      setActiveBets(prev => prev.filter(bet => bet.userId !== data.userId));
+      
+      // Добавляем в выведенные
+      setCashedOutBets(prev => [...prev, {
+        id: Date.now(),
+        userId: data.userId,
+        username: data.username,
+        amount: data.amount,
+        cashOutMultiplier: data.multiplier,
+        winAmount: data.winAmount,
+        isCurrentUser: data.userId === userTelegramId
+      }]);
+    });
+
+    // Текущее состояние игры
+    const unsubGameState = webSocketService.on('game_state', (data) => {
+      console.log('📊 Состояние игры:', data);
+      updateGameState(data);
+    });
+
+    // Очистка подписок
+    return () => {
+      unsubNewRound();
+      unsubGameStarted();
+      unsubMultiplierUpdate();
+      unsubGameCrashed();
+      unsubBetPlaced();
+      unsubCashOut();
+      unsubGameState();
+    };
+  }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, gameLoseFeedback, setGameResult]);
+
+  // Обновление состояния игры
+  const updateGameState = useCallback((state) => {
+    setGameState(state.status);
+    setRoundId(state.roundId);
+    setCurrentMultiplier(state.multiplier);
     
-    if (gameTimerRef.current) {
-      clearInterval(gameTimerRef.current);
-      gameTimerRef.current = null;
-    }
-    if (multiplierTimerRef.current) {
-      clearInterval(multiplierTimerRef.current);
-      multiplierTimerRef.current = null;
+    if (state.status === 'waiting' && state.timeToStart > 0) {
+      setTimeToStart(state.timeToStart);
+      startCountdown(state.timeToStart);
     }
     
-    isGameActiveRef.current = false;
+    // Обновляем список ставок
+    const active = [];
+    const cashedOut = [];
+    
+    state.bets.forEach(bet => {
+      if (bet.cashedOut) {
+        cashedOut.push({
+          id: bet.userId,
+          userId: bet.userId,
+          username: bet.username,
+          amount: bet.amount,
+          cashOutMultiplier: bet.cashOutMultiplier,
+          winAmount: bet.amount * bet.cashOutMultiplier,
+          isCurrentUser: bet.userId === userTelegramId
+        });
+      } else {
+        active.push({
+          id: bet.userId,
+          userId: bet.userId,
+          username: bet.username,
+          amount: bet.amount,
+          autoCashOut: bet.autoCashOut,
+          isCurrentUser: bet.userId === userTelegramId
+        });
+      }
+      
+      // Проверяем нашу ставку
+      if (bet.userId === userTelegramId) {
+        setHasBet(true);
+        setCashedOut(bet.cashedOut);
+        setUserBet({
+          amount: bet.amount,
+          autoCashOut: bet.autoCashOut
+        });
+        if (bet.cashedOut) {
+          setUserCashOutMultiplier(bet.cashOutMultiplier);
+        }
+      }
+    });
+    
+    setActiveBets(active);
+    setCashedOutBets(cashedOut);
+  }, [userTelegramId]);
+
+  // Обратный отсчет
+  const startCountdown = useCallback((seconds) => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+    }
+    
+    let remaining = seconds;
+    setTimeToStart(remaining);
+    
+    countdownTimerRef.current = setInterval(() => {
+      remaining -= 1;
+      setTimeToStart(remaining);
+      
+      if (remaining <= 0) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
+    }, 1000);
   }, []);
-  
+
+  // Загрузка истории
+  const loadHistory = useCallback(async () => {
+    try {
+      const response = await gameApi.getCrashHistory();
+      if (response.success) {
+        setHistory(response.data);
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки истории:', err);
+    }
+  }, []);
+
   // Размещение ставки
   const placeBet = useCallback(async () => {
     if (gameState !== 'waiting' || hasBet || betAmount <= 0 || betAmount > balance || loading) {
@@ -118,241 +305,67 @@ const CrashGame = ({
     
     try {
       setLoading(true);
+      gameActionFeedback();
       
-      setBalance(prev => prev - betAmount);
-      setHasBet(true);
-      setCashedOut(false);
-      setUserBet({
-        amount: betAmount,
-        autoCashOut: autoCashOut
-      });
+      const response = await gameApi.placeCrashBet(betAmount, autoCashOut);
       
-      setActiveBets(prev => [...prev, {
-        id: Date.now(),
-        amount: betAmount,
-        autoCashOut: autoCashOut,
-        username: 'Вы',
-        userId: 'current-user',
-        isCurrentUser: true
-      }]);
-      
-      setLoading(false);
-      console.log('✅ Ставка размещена:', betAmount, 'USDT');
+      if (response.success) {
+        setBalance(response.data.balanceAfter);
+        setHasBet(true);
+        setCashedOut(false);
+        setUserBet({
+          amount: betAmount,
+          autoCashOut: autoCashOut
+        });
+        setUserGameId(response.data.gameId);
+        
+        console.log('✅ Ставка размещена:', response.data);
+      }
       
     } catch (err) {
       console.error('❌ Ошибка размещения ставки:', err);
       setError(err.response?.data?.message || 'Ошибка размещения ставки');
+    } finally {
       setLoading(false);
     }
-  }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, setBalance, setError]);
-  
-  // ИСПРАВЛЕНО: Кешаут который НЕ ломает игру
+  }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, setBalance, setError, gameActionFeedback]);
+
+  // Кешаут
   const cashOut = useCallback(async () => {
-    if (gameState !== 'flying' || !hasBet || cashedOut || loading || isCrashedRef.current) {
-      console.log('❌ Кешаут заблокирован:', { gameState, hasBet, cashedOut, loading, crashed: isCrashedRef.current });
+    if (gameState !== 'flying' || !hasBet || cashedOut || loading || !userGameId) {
       return;
     }
     
     try {
       setLoading(true);
+      criticalActionFeedback();
       
-      console.log('💰 КЕШАУТ: Пользователь выводит при', currentMultiplier.toFixed(2), 'x');
+      const response = await gameApi.cashOutCrash(userGameId);
       
-      const winAmount = userBet.amount * currentMultiplier;
-      setBalance(prev => prev + winAmount);
-      setCashedOut(true);
-      setUserCashOutMultiplier(currentMultiplier);
-      
-      // Убираем ставку пользователя из активных
-      setActiveBets(prev => prev.filter(bet => !bet.isCurrentUser));
-      
-      // Добавляем в список выведенных ставок
-      setCashedOutBets(prev => [...prev, {
-        id: Date.now(),
-        amount: userBet.amount,
-        autoCashOut: userBet.autoCashOut,
-        username: 'Вы',
-        userId: 'current-user',
-        isCurrentUser: true,
-        cashOutMultiplier: currentMultiplier,
-        winAmount: winAmount
-      }]);
-      
-      setGameResult({
-        win: true,
-        amount: winAmount - userBet.amount,
-        newBalance: balance + winAmount
-      });
-      
-      // Вибрация при успешном кешауте
-      gameWinFeedback();
-      
-      setLoading(false);
-      
-      console.log('✅ КЕШАУТ: Завершен успешно, игра продолжается для всех остальных');
-      
-      // КРИТИЧЕСКИ ВАЖНО: НЕ ТРОГАЕМ ИГРОВЫЕ ТАЙМЕРЫ!
-      // Игра должна продолжаться независимо от действий пользователя
+      if (response.success) {
+        setBalance(response.data.balanceAfter);
+        setCashedOut(true);
+        setUserCashOutMultiplier(response.data.multiplier);
+        
+        setGameResult({
+          win: true,
+          amount: response.data.profit,
+          newBalance: response.data.balanceAfter
+        });
+        
+        gameWinFeedback();
+        
+        console.log('✅ Кешаут успешен:', response.data);
+      }
       
     } catch (err) {
       console.error('❌ Ошибка кешаута:', err);
       setError(err.response?.data?.message || 'Ошибка вывода ставки');
+    } finally {
       setLoading(false);
     }
-  }, [gameState, hasBet, cashedOut, loading, currentMultiplier, userBet, balance, setBalance, setError, setGameResult, gameWinFeedback]);
-  
-  // Автоматический кешаут
-  useEffect(() => {
-    if (gameState === 'flying' && 
-        hasBet && 
-        !cashedOut && 
-        !isCrashedRef.current &&
-        userBet?.autoCashOut > 0 && 
-        currentMultiplier >= userBet.autoCashOut) {
-      console.log('🤖 АВТОКЕШАУТ: сработал при', currentMultiplier.toFixed(2), 'x');
-      cashOut();
-    }
-  }, [gameState, hasBet, cashedOut, userBet, currentMultiplier, cashOut]);
-  
-  // ИСПРАВЛЕНО: Период ожидания с точным таймингом
-  const startWaitingPeriod = useCallback(() => {
-    console.log('⏳ === НАЧАЛО ПЕРИОДА ОЖИДАНИЯ ===');
-    
-    // Сбрасываем все состояния
-    cleanupAllTimers();
-    setGameState('waiting');
-    setTimeToStart(7); // ТОЧНО 7 секунд
-    setCurrentMultiplier(1.00);
-    isCrashedRef.current = false;
-    isGameActiveRef.current = false;
-    
-    // Очищаем данные предыдущего раунда
-    setHasBet(false);
-    setCashedOut(false);
-    setUserBet(null);
-    setUserCashOutMultiplier(0);
-    setActiveBets([]);
-    setCashedOutBets([]);
-    
-    // ИСПРАВЛЕНО: Точный таймер обратного отсчета
-    let countdown = 7;
-    setTimeToStart(countdown);
-    
-    gameTimerRef.current = setInterval(() => {
-      countdown -= 1;
-      setTimeToStart(countdown);
-      
-      console.log('⏰ Обратный отсчет:', countdown);
-      
-      if (countdown <= 0) {
-        clearInterval(gameTimerRef.current);
-        gameTimerRef.current = null;
-        
-        console.log('🚀 Время ожидания истекло, запускаем полет');
-        startFlyingPhase();
-      }
-    }, 1000); // ТОЧНО 1 секунда
-    
-  }, [cleanupAllTimers]);
-  
-  // ИСПРАВЛЕНО: Фаза полета с правильной скоростью
-  const startFlyingPhase = useCallback(() => {
-    console.log('🚀 === НАЧАЛО ФАЗЫ ПОЛЕТА ===');
-    
-    // Очищаем таймеры ожидания
-    if (gameTimerRef.current) {
-      clearInterval(gameTimerRef.current);
-      gameTimerRef.current = null;
-    }
-    
-    // Генерируем новый краш-поинт
-    const newCrashPoint = generateCrashPoint();
-    setCrashPoint(newCrashPoint);
-    roundIdRef.current += 1;
-    
-    console.log('🎯 Новый краш-поинт:', newCrashPoint.toFixed(2), 'x');
-    console.log('🆔 ID раунда:', roundIdRef.current);
-    
-    // Устанавливаем состояние полета
-    setGameState('flying');
-    setCurrentMultiplier(1.00);
-    startTimeRef.current = Date.now();
-    lastMultiplierUpdateRef.current = Date.now();
-    isCrashedRef.current = false;
-    isGameActiveRef.current = true;
-    
-    // ИСПРАВЛЕНО: Замедленная логика роста множителя
-    multiplierTimerRef.current = setInterval(() => {
-      // Проверяем, что игра все еще активна
-      if (!isGameActiveRef.current || isCrashedRef.current) {
-        return;
-      }
-      
-      const now = Date.now();
-      const totalElapsed = (now - startTimeRef.current) / 1000; // Общее время с начала
-      const deltaTime = (now - lastMultiplierUpdateRef.current) / 1000; // Время с последнего обновления
-      lastMultiplierUpdateRef.current = now;
-      
-      // ЗАМЕДЛЕННАЯ ФОРМУЛА: Более медленный рост множителя
-      const baseSpeed = 0.06; // УМЕНЬШЕНО с 0.1 до 0.06 (на 40% медленнее)
-      const acceleration = 0.03; // УМЕНЬШЕНО с 0.05 до 0.03 (на 40% медленнее)
-      const speedIncrease = baseSpeed + (acceleration * totalElapsed);
-      
-      // Рассчитываем новый множитель
-      const multiplierIncrease = speedIncrease * deltaTime;
-      
-      setCurrentMultiplier(prevMultiplier => {
-        const newMultiplier = prevMultiplier + multiplierIncrease;
-        
-        // ПРОВЕРЯЕМ КРАШ
-        if (newMultiplier >= newCrashPoint) {
-          console.log('💥 === КРАШ ПРИ', newCrashPoint.toFixed(2), 'x ===');
-          
-          // Останавливаем игру
-          isCrashedRef.current = true;
-          isGameActiveRef.current = false;
-          
-          clearInterval(multiplierTimerRef.current);
-          multiplierTimerRef.current = null;
-          
-          // Переходим в состояние краха
-          setGameState('crashed');
-          
-          // Добавляем в историю
-          setHistory(prev => [{
-            roundId: roundIdRef.current,
-            crashPoint: newCrashPoint,
-            timestamp: Date.now(),
-            totalBets: Math.floor(Math.random() * 15) + 1,
-            totalAmount: Math.random() * 800 + 100
-          }, ...prev.slice(0, 19)]);
-          
-          // Если у пользователя была ставка и он не вывел
-          if (hasBet && !cashedOut) {
-            gameLoseFeedback(); // Вибрация при проигрыше
-            setGameResult({
-              win: false,
-              amount: userBet.amount,
-              newBalance: balance
-            });
-          }
-          
-          // ТОЧНО через 3 секунды запускаем новый период ожидания
-          setTimeout(() => {
-            console.log('🔄 Переходим к новому раунду');
-            startWaitingPeriod();
-          }, 3000); // ТОЧНО 3 секунды
-          
-          return newCrashPoint; // Возвращаем точный краш-поинт
-        } else {
-          // Множитель продолжает расти
-          return newMultiplier;
-        }
-      });
-    }, 80); // ЗАМЕДЛЕНО с 50ms до 80ms (на 60% медленнее обновления)
-    
-  }, [generateCrashPoint, hasBet, cashedOut, userBet, balance, setGameResult, startWaitingPeriod, gameLoseFeedback]);
-  
+  }, [gameState, hasBet, cashedOut, loading, userGameId, setBalance, setError, setGameResult, criticalActionFeedback, gameWinFeedback]);
+
   // Получение текста для главной кнопки
   const getMainButtonText = () => {
     if (loading) return 'Загрузка...';
@@ -373,7 +386,7 @@ const CrashGame = ({
         return 'Ошибка состояния';
     }
   };
-  
+
   // Получение класса для главной кнопки
   const getMainButtonClass = () => {
     if (loading) return 'loading';
@@ -394,21 +407,19 @@ const CrashGame = ({
         return 'disabled';
     }
   };
-  
-  // Обработчик главной кнопки с тактильной обратной связью
+
+  // Обработчик главной кнопки
   const handleMainButtonClick = () => {
     if (loading) return;
     
     switch (gameState) {
       case 'waiting':
         if (!hasBet) {
-          gameActionFeedback(); // Вибрация при размещении ставки
           placeBet();
         }
         break;
       case 'flying':
         if (hasBet && !cashedOut) {
-          criticalActionFeedback(); // Сильная вибрация при кешауте
           cashOut();
         }
         break;
@@ -416,8 +427,8 @@ const CrashGame = ({
         break;
     }
   };
-  
-  // НОВОЕ: Загрузочный экран
+
+  // Загрузочный экран
   if (isInitializing) {
     return (
       <div className="crash-loading-screen">
@@ -432,12 +443,12 @@ const CrashGame = ({
             <div className="spinner-ring"></div>
             <div className="spinner-ring"></div>
           </div>
-          <div className="loading-text">Загрузка игры...</div>
+          <div className="loading-text">Подключение к серверу...</div>
         </div>
       </div>
     );
   }
-  
+
   return (
     <div className={`crash-game ${loading ? 'loading' : ''}`} data-game-state={gameState}>
       {/* График */}
@@ -446,10 +457,10 @@ const CrashGame = ({
         gameState={gameState}
         crashPoint={crashPoint}
         timeToStart={timeToStart}
-        roundId={roundIdRef.current}
+        roundId={roundId}
       />
       
-      {/* Главная кнопка действия с тактильной обратной связью */}
+      {/* Главная кнопка действия */}
       <button 
         className={`crash-main-action-btn ${getMainButtonClass()}`}
         onClick={handleMainButtonClick}

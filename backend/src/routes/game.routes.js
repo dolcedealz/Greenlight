@@ -1,7 +1,6 @@
 // backend/src/routes/game.routes.js - ОБНОВЛЕННАЯ ВЕРСИЯ
 const express = require('express');
 const { gameController } = require('../controllers');
-const crashController = require('../controllers/crash.controller');
 const { telegramAuthMiddleware, validateCoinFlip, validateMinesPlay, validateMinesComplete } = require('../middleware');
 
 const router = express.Router();
@@ -32,30 +31,30 @@ router.post('/mines/complete',
   gameController.completeMinesGame
 );
 
-// НОВЫЕ МАРШРУТЫ ДЛЯ КРАШ ИГРЫ
+// Маршруты для Crash игры
 router.post('/crash/bet', 
   telegramAuthMiddleware, 
-  crashController.placeBet
+  gameController.placeCrashBet
 );
 
 router.post('/crash/cashout', 
   telegramAuthMiddleware, 
-  crashController.cashOut
+  gameController.cashOutCrash
 );
 
 router.get('/crash/state', 
   telegramAuthMiddleware, 
-  crashController.getGameState
+  gameController.getCrashState
 );
 
 router.get('/crash/history', 
   telegramAuthMiddleware, 
-  crashController.getGameHistory
+  gameController.getCrashHistory
 );
 
 router.get('/crash/stats', 
   telegramAuthMiddleware, 
-  crashController.getUserStats
+  gameController.getCrashUserStats
 );
 
 // Маршруты для получения истории игр

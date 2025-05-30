@@ -162,44 +162,87 @@ playSlots: (betAmount) => {
   });
 },
 
-// frontend/src/services/api.js - ДОБАВИТЬ ЭТИ МЕТОДЫ К СУЩЕСТВУЮЩЕМУ gameApi
-// Добавьте эти методы в объект gameApi после существующих методов
-
-// В gameApi добавить:
+  // === МЕТОДЫ ДЛЯ CRASH ИГРЫ ===
   
-  // Игра "Краш" - размещение ставки
-  placeCrashBet: (betAmount, autoCashOut = 0) => {
-    console.log('Игра "Краш" - размещение ставки:', { betAmount, autoCashOut });
-    
-    return api.post('/games/crash/bet', { 
-      betAmount, 
-      autoCashOut
-    });
+  /**
+   * Разместить ставку в Crash
+   * @param {number} amount - Сумма ставки
+   * @param {number} autoCashOut - Автовывод (0 = отключен)
+   * @returns {Promise<Object>}
+   */
+  placeCrashBet: async (amount, autoCashOut = 0) => {
+    try {
+      const response = await api.post('/games/crash/bet', {
+        amount,
+        autoCashOut
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка размещения ставки в Crash:', error);
+      throw error;
+    }
   },
 
-  // Игра "Краш" - вывод ставки
-  crashCashOut: (roundId) => {
-    console.log('Игра "Краш" - вывод ставки:', { roundId });
-    
-    return api.post('/games/crash/cashout', { 
-      roundId
-    });
+  /**
+   * Вывести ставку (кешаут) в Crash
+   * @param {string} gameId - ID игры
+   * @returns {Promise<Object>}
+   */
+  cashOutCrash: async (gameId) => {
+    try {
+      const response = await api.post('/games/crash/cashout', {
+        gameId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка кешаута в Crash:', error);
+      throw error;
+    }
   },
 
-  // Получение текущего состояния игры Краш
-  getCrashGameState: () => {
-    console.log('Получение состояния игры Краш');
-    
-    return api.get('/games/crash/state');
+  /**
+   * Получить текущее состояние Crash игры
+   * @returns {Promise<Object>}
+   */
+  getCrashState: async () => {
+    try {
+      const response = await api.get('/games/crash/state');
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка получения состояния Crash:', error);
+      throw error;
+    }
   },
 
-  // Получение истории раундов Краш
-  getCrashHistory: (limit = 50) => {
-    console.log('Получение истории раундов Краш');
-    
-    return api.get('/games/crash/history', { 
-      params: { limit } 
-    });
+  /**
+   * Получить историю Crash игр
+   * @param {number} limit - Количество записей
+   * @returns {Promise<Object>}
+   */
+  getCrashHistory: async (limit = 20) => {
+    try {
+      const response = await api.get('/games/crash/history', {
+        params: { limit }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка получения истории Crash:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Получить статистику пользователя в Crash
+   * @returns {Promise<Object>}
+   */
+  getCrashStats: async () => {
+    try {
+      const response = await api.get('/games/crash/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка получения статистики Crash:', error);
+      throw error;
+    }
   },
   
   // Игра "Мины" - ОБНОВЛЕННАЯ ВЕРСИЯ

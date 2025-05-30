@@ -287,6 +287,232 @@ async playSlots(req, res) {
       });
     }
   }
+
+  /**
+   * Разместить ставку в Crash
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
+   */
+  async placeCrashBet(req, res) {
+    try {
+      const { amount, autoCashOut } = req.body;
+      
+      // Валидация
+      if (!amount || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Укажите корректную сумму ставки'
+        });
+      }
+      
+      if (autoCashOut && autoCashOut < 1.01) {
+        return res.status(400).json({
+          success: false,
+          message: 'Автовывод должен быть не менее 1.01x'
+        });
+      }
+      
+      // Получаем информацию о пользователе
+      const userData = {
+        userId: req.user._id,
+        telegramId: req.user.telegramId
+      };
+      
+      // Данные игры
+      const gameData = {
+        betAmount: parseFloat(amount),
+        autoCashOut: parseFloat(autoCashOut) || 0
+      };
+      
+      console.log(`CRASH BET: Пользователь ${userData.userId} ставит ${gameData.betAmount} USDT`);
+      
+      // Размещаем ставку
+      const result = await gameService.placeCrashBet(userData, gameData);
+      
+      res.status(200).json({
+        success: true,
+        data: result
+      });
+      
+    } catch (error) {
+      console.error('CRASH: Ошибка размещения ставки:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+  
+  /**
+   * Вывести ставку (кешаут)
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
+   */
+  async cashOutCrash(req, res) {
+    try {
+      const { gameId } = req.body;
+      
+      if (!gameId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Не указан ID игры'
+        });
+      }
+      
+      // Получаем информацию о пользователе
+      const userData = {
+        userId: req.user._id,
+        telegramId: req.user.telegramId
+      };
+      
+      // Данные для кешаута
+      const gameData = {
+        gameId
+      };
+      
+      console.log(`CRASH CASHOUT: Пользователь ${userData.userId} выводит ставку`);
+      
+      // Выводим ставку
+      const result = await gameService.cashOutCrash(userData, gameData);
+      
+      res.status(200).json({
+        success: true,
+        data: result
+      });
+      
+    } catch (error) {
+      console.error('CRASH: Ошибка вывода ставки:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+  
+  /**
+   * Получить текущее состояние Crash игры
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
+   */
+  async getCrashState(req, res) {
+    try {
+      const state = gameService.getCurrentCrashState();
+      
+      res.status(200).json({
+        success: true,
+        data: state
+      });
+      
+    } catch (error) {
+      console.error('CRASH: Ошибка получения состояния:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка получения состояния игры'
+      });
+    }
+  }
+  
+  /**
+   * Получить историю Crash игр
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
+   */
+  async getCrashHistory(req, res) {
+    try {
+      const { limit = 20 } = req.query;
+      
+      const history = await gameService.getCrashHistory(parseInt(limit));
+      
+      res.status(200).json({
+        success: true,
+        data: history
+      });
+      
+    } catch (error) {
+      console.error('CRASH: Ошибка получения истории:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка получения истории'
+      });
+    }
+  }
+  
+  /**
+   * Получить статистику пользователя в Crash
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
+   */
+  async getCrashUserStats(req, res) {
+    try {
+      const userId = req.user._id;
+      
+      const { Game } = require('../models');
+      
+      // Получаем статистику
+      const stats = await Game.aggregate([
+        {
+          $match: {
+            user: userId,
+            gameType: 'crash',
+            status: 'completed'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalGames: { $sum: 1 },
+            totalBet: { $sum: '$bet' },
+            totalWin: { 
+              $sum: { 
+                $cond: ['$win', { $add: ['$bet', '$profit'] }, 0] 
+              } 
+            },
+            totalProfit: { $sum: '$profit' },
+            wins: { $sum: { $cond: ['$win', 1, 0] } },
+            losses: { $sum: { $cond: ['$win', 0, 1] } },
+            avgMultiplier: { 
+              $avg: { 
+                $cond: ['$win', '$multiplier', null] 
+              } 
+            },
+            bestMultiplier: { 
+              $max: { 
+                $cond: ['$win', '$multiplier', 0] 
+              } 
+            }
+          }
+        }
+      ]);
+      
+      const userStats = stats[0] || {
+        totalGames: 0,
+        totalBet: 0,
+        totalWin: 0,
+        totalProfit: 0,
+        wins: 0,
+        losses: 0,
+        avgMultiplier: 0,
+        bestMultiplier: 0
+      };
+      
+      // Добавляем процент побед
+      userStats.winRate = userStats.totalGames > 0 
+        ? (userStats.wins / userStats.totalGames * 100).toFixed(2)
+        : 0;
+      
+      res.status(200).json({
+        success: true,
+        data: userStats
+      });
+      
+    } catch (error) {
+      console.error('CRASH: Ошибка получения статистики:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка получения статистики'
+      });
+    }
+  }
 }
 
 module.exports = new GameController();

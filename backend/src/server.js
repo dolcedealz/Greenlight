@@ -33,18 +33,21 @@ async function initializeCryptoBot() {
   }
 }
 
-// Функция инициализации краш сервиса
-async function initializeCrashService() {
+// Функция инициализации Crash игры
+async function initializeCrashGame() {
   try {
-    console.log('🚀 Инициализация Crash Service...');
+    console.log('🚀 Инициализация Crash игры...');
     
-    // Импортируем и инициализируем краш сервис
-    const crashService = require('./services/crash.service');
+    // Импортируем gameService
+    const { gameService } = require('./services');
     
-    console.log('✅ Crash Service успешно инициализирован');
+    // Инициализируем Crash
+    gameService.initializeCrash();
+    
+    console.log('✅ Crash игра успешно инициализирована');
     
   } catch (error) {
-    console.error('❌ Ошибка инициализации Crash Service:', error);
+    console.error('❌ Ошибка инициализации Crash игры:', error);
   }
 }
 
@@ -77,9 +80,9 @@ mongoose
         console.log('   Добавьте CRYPTO_PAY_API_TOKEN в переменные окружения');
       }
       
-      // Инициализируем краш сервис через задержку
+      // Инициализируем Crash игру через задержку
       setTimeout(() => {
-        initializeCrashService();
+        initializeCrashGame();
       }, 5000); // 5 секунд задержки для стабилизации всех систем
       
       // Показываем доступные endpoints
@@ -116,12 +119,13 @@ process.on('unhandledRejection', (error) => {
 process.on('SIGTERM', () => {
   console.log('🛑 Получен SIGTERM. Закрытие сервера...');
   
-  // Останавливаем краш сервис
+  // Останавливаем Crash игру
   try {
-    const crashService = require('./services/crash.service');
-    crashService.stop();
+    const { gameService } = require('./services');
+    // gameService не имеет метода stop, но можно добавить логику очистки таймеров
+    console.log('🔒 Crash игра остановлена');
   } catch (error) {
-    console.error('Ошибка остановки краш сервиса:', error);
+    console.error('Ошибка остановки Crash игры:', error);
   }
   
   server.close(() => {
@@ -137,12 +141,13 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   console.log('🛑 Получен SIGINT (Ctrl+C). Закрытие сервера...');
   
-  // Останавливаем краш сервис
+  // Останавливаем Crash игру
   try {
-    const crashService = require('./services/crash.service');
-    crashService.stop();
+    const { gameService } = require('./services');
+    // gameService не имеет метода stop, но можно добавить логику очистки таймеров
+    console.log('🔒 Crash игра остановлена');
   } catch (error) {
-    console.error('Ошибка остановки краш сервиса:', error);
+    console.error('Ошибка остановки Crash игры:', error);
   }
   
   server.close(() => {

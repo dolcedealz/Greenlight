@@ -175,19 +175,29 @@ const CrashGame = ({
 
     // Новая ставка
     const unsubBetPlaced = webSocketService.on('crash_bet_placed', (data) => {
-      console.log('💰 Новая ставка:', data);
+      console.log('💰 Новая ставка получена:', data);
       
-      // Добавляем только если это не наша ставка (уже добавлена локально)
-      if (data.userId !== userTelegramId) {
-        setActiveBets(prev => [...prev, {
-          id: Date.now() + Math.random(),
-          userId: data.userId,
-          username: data.username || 'Игрок',
-          amount: data.amount,
-          autoCashOut: data.autoCashOut || 0,
-          isCurrentUser: false
-        }]);
-      }
+      // Добавляем ставку в список активных ставок
+      const newBet = {
+        id: `bet-${data.userId}-${data.amount}-${Date.now()}`,
+        userId: data.userId,
+        username: data.username || 'Игрок',
+        amount: data.amount,
+        autoCashOut: data.autoCashOut || 0,
+        isCurrentUser: data.userId === userTelegramId
+      };
+      
+      setActiveBets(prev => {
+        // Проверяем, что ставка еще не добавлена
+        const exists = prev.find(bet => bet.userId === data.userId);
+        if (exists) {
+          console.log('Ставка уже существует, пропускаем');
+          return prev;
+        }
+        
+        console.log('Добавляем новую ставку:', newBet);
+        return [...prev, newBet];
+      });
     });
 
     // Автоматический кешаут
@@ -217,6 +227,11 @@ const CrashGame = ({
     // Функция обработки кешаута - ИСПРАВЛЕННАЯ
     const handleCashOutEvent = (data) => {
       console.log('💸 Обработка кешаута:', data);
+      
+      if (!data.userId || !data.amount || !data.multiplier) {
+        console.warn('Некорректные данные кешаута:', data);
+        return;
+      }
       
       // Убираем из активных ставок
       setActiveBets(prev => {
@@ -259,14 +274,19 @@ const CrashGame = ({
         // Обновляем баланс если передан
         if (data.balanceAfter !== undefined) {
           setBalance(data.balanceAfter);
+        } else if (data.profit !== undefined) {
+          // Если нет balanceAfter, пытаемся вычислить его
+          setBalance(prev => prev + data.profit);
         }
         
         // Показываем результат игры
         setGameResult({
           win: true,
-          amount: data.amount * data.multiplier - data.amount, // Прибыль
+          amount: data.profit || (data.amount * data.multiplier - data.amount), // Прибыль
           newBalance: data.balanceAfter
         });
+        
+        gameWinFeedback();
       }
     };
 
@@ -283,18 +303,23 @@ const CrashGame = ({
       unsubGameState();
       unsubRoundCompleted();
     };
-  }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, gameLoseFeedback, setGameResult, startCountdown, loadHistory, updateGameState]);
+  }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, gameLoseFeedback, gameWinFeedback, setGameResult, startCountdown, loadHistory, updateGameState]);
 
   // Обновление состояния игры - ИСПРАВЛЕННОЕ
   const updateGameState = useCallback((state) => {
     console.log('📊 Обновление состояния игры:', state);
     
-    setGameState(state.status);
-    setRoundId(state.roundId);
+    if (!state || typeof state !== 'object') {
+      console.warn('Получено некорректное состояние игры:', state);
+      return;
+    }
+    
+    setGameState(state.status || 'waiting');
+    setRoundId(state.roundId || null);
     
     // Обновляем множитель только если он валидный
-    if (state.multiplier !== undefined && state.multiplier > 0) {
-      setCurrentMultiplier(state.multiplier);
+    if (state.currentMultiplier !== undefined && state.currentMultiplier > 0) {
+      setCurrentMultiplier(state.currentMultiplier);
     }
     
     if (state.status === 'waiting' && state.timeToStart > 0) {
@@ -315,7 +340,7 @@ const CrashGame = ({
         }
         
         const betData = {
-          id: `bet-${bet.userId}-${bet.amount}`,
+          id: `bet-${bet.userId}-${bet.amount}-${Date.now()}`,
           userId: bet.userId,
           username: bet.username || 'Игрок',
           amount: bet.amount,
@@ -348,9 +373,16 @@ const CrashGame = ({
         }
       });
       
-      console.log('Обновленные ставки:', { active, cashedOut });
+      console.log('Обновленные ставки из состояния игры:', { active, cashedOut });
       setActiveBets(active);
       setCashedOutBets(cashedOut);
+    } else {
+      console.log('Нет ставок в состоянии игры, очищаем списки');
+      // Если нет ставок в состоянии, очищаем только если это новый раунд
+      if (state.status === 'waiting') {
+        setActiveBets([]);
+        setCashedOutBets([]);
+      }
     }
   }, [userTelegramId, startCountdown]);
 
@@ -420,21 +452,8 @@ const CrashGame = ({
         });
         setUserGameId(response.data.gameId);
         
-        // Немедленно добавляем нашу ставку в локальный список
-        const userBetData = {
-          id: `user-bet-${userTelegramId}`,
-          userId: userTelegramId,
-          username: 'Вы',
-          amount: betAmount,
-          autoCashOut: autoCashOut,
-          isCurrentUser: true
-        };
-        
-        setActiveBets(prev => {
-          // Убираем старую ставку пользователя если есть
-          const filtered = prev.filter(bet => bet.userId !== userTelegramId);
-          return [...filtered, userBetData];
-        });
+        // НЕ добавляем ставку локально - она придет через WebSocket событие
+        // Это предотвратит дублирование ставок
       }
       
     } catch (err) {

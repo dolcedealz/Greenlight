@@ -146,10 +146,7 @@ class CrashController {
       
       res.status(200).json({
         success: true,
-        data: {
-          history,
-          count: history.length
-        }
+        data: history || [] // Возвращаем историю напрямую как массив
       });
       
     } catch (error) {

@@ -58,7 +58,7 @@ class CrashWebSocketHandlers {
 
   setupSocketHandlers(socket) {
     // Подключение к краш игре
-    socket.on('join_crash', () => {
+    socket.on('join_crash', async () => {
       // Проверяем аутентификацию для участия в игре
       if (!socket.userId && !socket.isGuest) {
         socket.emit('crash_error', {
@@ -71,7 +71,7 @@ class CrashWebSocketHandlers {
       console.log(`CRASH WEBSOCKET: Пользователь ${socket.telegramId || socket.id} подключился к краш игре`);
       
       // Отправляем текущее состояние игры
-      const gameState = crashService.getCurrentGameState();
+      const gameState = await crashService.getCurrentGameState();
       socket.emit('crash_game_state', gameState);
     });
 
@@ -82,8 +82,8 @@ class CrashWebSocketHandlers {
     });
 
     // Запрос текущего состояния игры
-    socket.on('get_crash_state', () => {
-      const gameState = crashService.getCurrentGameState();
+    socket.on('get_crash_state', async () => {
+      const gameState = await crashService.getCurrentGameState();
       socket.emit('crash_game_state', gameState);
     });
   }

@@ -328,10 +328,14 @@ class CrashService extends EventEmitter {
           
           await winTransaction.save({ session });
           
+          // Получаем имя пользователя для события
+          const user = await User.findById(bet.user).select('username').lean();
+          
           // Эмитим событие автовывода
           this.emit('autoCashOut', {
             roundId: this.currentRound.roundId,
             userId: bet.user,
+            username: user?.username || 'Игрок',
             amount: bet.amount,
             multiplier: bet.autoCashOut,
             profit: profit
@@ -695,13 +699,21 @@ class CrashService extends EventEmitter {
     }
   }
   
-  getCurrentGameState() {
+  async getCurrentGameState() {
     if (!this.currentRound) {
       return {
         status: 'no_game',
         message: 'Игра инициализируется'
       };
     }
+    
+    // Получаем пользователей для ставок
+    const userIds = this.currentRound.bets.map(bet => bet.user);
+    const users = await User.find({ _id: { $in: userIds } }).select('_id username').lean();
+    const userMap = users.reduce((map, user) => {
+      map[user._id.toString()] = user.username || 'Игрок';
+      return map;
+    }, {});
     
     return {
       roundId: this.currentRound.roundId,
@@ -710,6 +722,7 @@ class CrashService extends EventEmitter {
       serverSeedHashed: this.currentRound.serverSeedHashed,
       bets: this.currentRound.bets.map(bet => ({
         userId: bet.user,
+        username: userMap[bet.user.toString()] || 'Игрок',
         amount: bet.amount,
         autoCashOut: bet.autoCashOut,
         cashedOut: bet.cashedOut,
@@ -720,7 +733,7 @@ class CrashService extends EventEmitter {
   
   // Новый асинхронный метод для получения состояния игры
   async getCurrentGameStateAsync() {
-    return this.getCurrentGameState();
+    return await this.getCurrentGameState();
   }
   
   async getGameHistory(limit = 50) {

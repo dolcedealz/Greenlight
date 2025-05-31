@@ -288,7 +288,7 @@ async playSlots(userData, gameData) {
     const reels = [];
     
     // Если пользователь должен выиграть, пытаемся создать выигрышную комбинацию
-    if (shouldWin && Math.random() < 0.7) { // 70% шанс форсированного выигрыша при положительном RTP
+    if (shouldWin && Math.random() < 0.8) { // 80% шанс форсированного выигрыша
       // Выбираем случайный символ для выигрышной линии
       const winSymbol = generateSymbol();
       const lineType = Math.random();

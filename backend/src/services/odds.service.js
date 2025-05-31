@@ -15,7 +15,7 @@ class OddsService {
   /**
    * Базовые параметры RTP для слотов
    */
-  static SLOTS_BASE_RTP = 0.96; // 96% RTP
+  static SLOTS_BASE_RTP = 0.90; // 90% RTP - более справедливый базовый RTP
 
   /**
    * Получить шанс выигрыша для конкретного пользователя в конкретной игре
@@ -113,12 +113,30 @@ class OddsService {
 
   /**
    * Проверить, должен ли слот выиграть на основе RTP
+   * Правильная логика: RTP влияет на частоту выигрышей, но не напрямую
    * @param {Object} user - Объект пользователя
    * @returns {boolean} - true если должен выиграть
    */
   async shouldSlotsWin(user) {
     const rtp = await this.getSlotsRTP(user);
-    return Math.random() < rtp;
+    
+    // Преобразуем RTP в шанс выигрыша
+    // Базовый шанс выигрыша в слотах должен быть около 20-25%
+    // RTP влияет на размер выигрышей, а не только на частоту
+    const baseWinChance = 0.22; // 22% базовый шанс выигрыша
+    
+    // RTP модифицирует шанс выигрыша:
+    // При RTP 90% = базовый шанс
+    // При RTP выше/ниже - корректируем шанс
+    const rtpFactor = rtp / OddsService.SLOTS_BASE_RTP; // например, 0.95/0.90 = 1.056
+    const adjustedWinChance = baseWinChance * rtpFactor;
+    
+    // Ограничиваем шанс разумными пределами (12% - 35%)
+    const finalWinChance = Math.max(0.12, Math.min(0.35, adjustedWinChance));
+    
+    console.log(`ODDS: Шанс выигрыша в слотах для ${user.username || user.telegramId}: ${(finalWinChance * 100).toFixed(1)}% (RTP: ${(rtp * 100).toFixed(1)}%)`);
+    
+    return Math.random() < finalWinChance;
   }
 
   /**

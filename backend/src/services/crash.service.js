@@ -16,6 +16,7 @@ class CrashService extends EventEmitter {
     this.isRunning = false;
     this.currentMultiplier = 1.00;
     this.gameStartTime = null;
+    this.lastProcessedMultiplier = 1.00; // НОВОЕ: Отслеживание последнего обработанного множителя
     
     // Глобальный модификатор для всей игры Crash
     this.globalCrashModifier = 0;
@@ -116,6 +117,9 @@ class CrashService extends EventEmitter {
       
       console.log(`🆕 CRASH SERVICE: Создан раунд #${roundId}, crash point: ${crashPoint.toFixed(2)}x`);
       
+      // Сбрасываем отслеживание множителя
+      this.lastProcessedMultiplier = 1.00;
+      
       // Эмитим событие для WebSocket
       this.emit('roundCreated', {
         roundId,
@@ -187,6 +191,7 @@ class CrashService extends EventEmitter {
       this.currentRound.startedAt = new Date();
       
       this.currentMultiplier = 1.00;
+      this.lastProcessedMultiplier = 1.00; // НОВОЕ: Сбрасываем отслеживание
       this.gameStartTime = Date.now();
       
       // Эмитим начало полета
@@ -220,6 +225,9 @@ class CrashService extends EventEmitter {
           const deltaTime = this.MULTIPLIER_UPDATE_INTERVAL / 1000;
           
           this.currentMultiplier += speed * deltaTime;
+          
+          // КЛЮЧЕВАЯ УЛУЧШЕННАЯ ЛОГИКА: Обрабатываем автовыводы ДО проверки краша
+          await this.processAutoCashOuts();
           
           // Проверяем, достигли ли crash point
           if (this.currentMultiplier >= crashPoint) {
@@ -255,9 +263,6 @@ class CrashService extends EventEmitter {
             
             resolve();
           } else {
-            // Обрабатываем автовыводы
-            await this.processAutoCashOuts();
-            
             // Эмитим обновление множителя
             this.emit('multiplierUpdate', {
               roundId: currentRoundId,
@@ -273,107 +278,145 @@ class CrashService extends EventEmitter {
     }
   }
   
+  // КАРДИНАЛЬНО УЛУЧШЕННАЯ функция обработки автовыводов
   async processAutoCashOuts() {
     if (!this.currentRound) return;
+    
+    // НОВОЕ: Проверяем только если множитель значительно изменился
+    if (Math.abs(this.currentMultiplier - this.lastProcessedMultiplier) < 0.01) {
+      return; // Пропускаем если изменение меньше 0.01x
+    }
     
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
-      // Находим ставки с автовыводом на текущем множителе
-      const betsToProcess = this.currentRound.bets.filter(bet => 
-        !bet.cashedOut && 
-        bet.autoCashOut > 0 && 
-        bet.autoCashOut <= this.currentMultiplier
-      );
+      // УЛУЧШЕННАЯ ЛОГИКА: Находим ставки для автовывода с более точной проверкой
+      const betsToProcess = this.currentRound.bets.filter(bet => {
+        // Проверяем все условия для автовывода
+        const isActive = !bet.cashedOut;
+        const hasAutoCashOut = bet.autoCashOut > 0;
+        const shouldCashOut = bet.autoCashOut <= this.currentMultiplier;
+        const wasNotProcessed = bet.autoCashOut > this.lastProcessedMultiplier; // НОВОЕ: Не обрабатывали ранее
+        
+        if (isActive && hasAutoCashOut && shouldCashOut && wasNotProcessed) {
+          console.log(`🎯 АВТОВЫВОД: Обрабатываем ставку пользователя ${bet.user}, цель: ${bet.autoCashOut}x, текущий: ${this.currentMultiplier.toFixed(2)}x`);
+          return true;
+        }
+        
+        return false;
+      });
       
       if (betsToProcess.length === 0) {
         await session.commitTransaction();
+        this.lastProcessedMultiplier = this.currentMultiplier; // НОВОЕ: Обновляем отслеживание
         return;
       }
       
-      // Подготавливаем обновления для всех ставок
-      const betUpdates = [];
+      console.log(`🤖 АВТОВЫВОД: Обрабатываем ${betsToProcess.length} автовыводов на множителе ${this.currentMultiplier.toFixed(2)}x`);
       
+      // УЛУЧШЕННАЯ ОБРАБОТКА: Обрабатываем каждую ставку атомарно
       for (const bet of betsToProcess) {
         try {
-          const winAmount = bet.amount * bet.autoCashOut;
+          // КРИТИЧЕСКИ ВАЖНО: Используем точное значение автовывода, а не текущий множитель
+          const exactCashOutMultiplier = bet.autoCashOut;
+          const winAmount = bet.amount * exactCashOutMultiplier;
           const profit = winAmount - bet.amount;
+          
+          console.log(`💰 АВТОВЫВОД: Пользователь ${bet.user}, ставка ${bet.amount}, множитель ${exactCashOutMultiplier}x, выигрыш ${winAmount}`);
           
           // Обновляем локальную копию ставки
           bet.cashedOut = true;
-          bet.cashOutMultiplier = bet.autoCashOut;
+          bet.cashOutMultiplier = exactCashOutMultiplier;
           bet.profit = profit;
           bet.cashedOutAt = new Date();
           
           // Обновляем баланс пользователя
-          await User.findByIdAndUpdate(
+          const user = await User.findByIdAndUpdate(
             bet.user,
             { 
               $inc: { 
                 balance: winAmount,
                 totalWon: winAmount
               }
-            }
-          ).session(session);
+            },
+            { new: true, session }
+          );
+          
+          if (!user) {
+            console.error(`❌ АВТОВЫВОД: Пользователь ${bet.user} не найден`);
+            continue;
+          }
           
           // Создаем транзакцию выигрыша
           const winTransaction = new Transaction({
             user: bet.user,
             type: 'win',
             amount: winAmount,
-            description: `Автовывод в краш игре при ${bet.autoCashOut.toFixed(2)}x`,
+            description: `Автовывод в краш игре при ${exactCashOutMultiplier.toFixed(2)}x`,
             status: 'completed',
-            balanceBefore: 0, // Будет обновлено
-            balanceAfter: 0  // Будет обновлено
+            balanceBefore: user.balance - winAmount,
+            balanceAfter: user.balance
           });
           
           await winTransaction.save({ session });
           
-          // Получаем имя пользователя и новый баланс для события
-          const user = await User.findById(bet.user).select('username balance').session(session);
-          
-          // Эмитим событие автовывода
+          // НЕМЕДЛЕННО эмитим событие автовывода для конкретного пользователя
           this.emit('autoCashOut', {
             roundId: this.currentRound.roundId,
             userId: bet.user,
-            username: user?.username || 'Игрок',
+            username: user.username || 'Игрок',
             amount: bet.amount,
-            multiplier: bet.autoCashOut,
+            multiplier: exactCashOutMultiplier, // ВАЖНО: Точный множитель автовывода
             profit: profit,
-            balanceAfter: user?.balance || 0
+            balanceAfter: user.balance
           });
+          
+          console.log(`✅ АВТОВЫВОД: Успешно обработан для пользователя ${bet.user} при ${exactCashOutMultiplier.toFixed(2)}x`);
+          
         } catch (betError) {
-          console.error(`❌ CRASH SERVICE: Ошибка автовывода для пользователя ${bet.user}:`, betError);
+          console.error(`❌ АВТОВЫВОД: Ошибка обработки ставки пользователя ${bet.user}:`, betError);
         }
       }
       
-      // ИСПРАВЛЕНИЕ: Используем атомарные операции для обновления каждой ставки
-      for (const bet of betsToProcess) {
+      // АТОМАРНОЕ ОБНОВЛЕНИЕ: Обновляем все ставки в раунде одним запросом
+      const bulkOps = [];
+      betsToProcess.forEach((bet, index) => {
         const betIndex = this.currentRound.bets.findIndex(b => 
           b.user.toString() === bet.user.toString()
         );
         
         if (betIndex !== -1) {
-          await CrashRound.findByIdAndUpdate(
-            this.currentRound._id,
-            {
-              $set: {
-                [`bets.${betIndex}.cashedOut`]: true,
-                [`bets.${betIndex}.cashOutMultiplier`]: bet.autoCashOut,
-                [`bets.${betIndex}.profit`]: bet.profit,
-                [`bets.${betIndex}.cashedOutAt`]: bet.cashedOutAt
+          bulkOps.push({
+            updateOne: {
+              filter: { _id: this.currentRound._id },
+              update: {
+                $set: {
+                  [`bets.${betIndex}.cashedOut`]: true,
+                  [`bets.${betIndex}.cashOutMultiplier`]: bet.autoCashOut,
+                  [`bets.${betIndex}.profit`]: bet.profit,
+                  [`bets.${betIndex}.cashedOutAt`]: bet.cashedOutAt
+                }
               }
-            },
-            { session }
-          );
+            }
+          });
         }
+      });
+      
+      if (bulkOps.length > 0) {
+        await CrashRound.bulkWrite(bulkOps, { session });
       }
       
       await session.commitTransaction();
+      
+      // НОВОЕ: Обновляем отслеживание последнего обработанного множителя
+      this.lastProcessedMultiplier = this.currentMultiplier;
+      
+      console.log(`🎉 АВТОВЫВОД: Все автовыводы обработаны на множителе ${this.currentMultiplier.toFixed(2)}x`);
+      
     } catch (error) {
       await session.abortTransaction();
-      console.error('❌ CRASH SERVICE: Ошибка обработки автовыводов:', error);
+      console.error('❌ АВТОВЫВОД: Ошибка обработки автовыводов:', error);
     } finally {
       session.endSession();
     }
@@ -493,6 +536,7 @@ class CrashService extends EventEmitter {
       console.error('❌ CRASH SERVICE: Ошибка завершения раунда:', error);
     } finally {
       this.currentRound = null;
+      this.lastProcessedMultiplier = 1.00; // НОВОЕ: Сброс отслеживания
     }
   }
   
@@ -501,7 +545,6 @@ class CrashService extends EventEmitter {
     let randomValue = randomService.generateRandomNumber(serverSeed, 'crash-client', nonce);
     
     // ИНТЕГРАЦИЯ МОДИФИКАТОРА: Получаем глобальный модификатор для всей игры
-    // В будущем это может быть настройка администратора для всего казино
     const globalCrashModifier = this.globalCrashModifier || 0;
     
     if (globalCrashModifier !== 0) {
@@ -565,6 +608,15 @@ class CrashService extends EventEmitter {
         throw new Error('Недостаточно средств');
       }
       
+      // НОВОЕ: Валидация автовывода
+      if (autoCashOut > 0 && autoCashOut < 1.01) {
+        throw new Error('Минимальный автовывод: 1.01x');
+      }
+      
+      if (autoCashOut > 1000) {
+        throw new Error('Максимальный автовывод: 1000x');
+      }
+      
       // Создаем объект ставки
       const bet = {
         user: userId,
@@ -597,7 +649,7 @@ class CrashService extends EventEmitter {
         user: userId,
         type: 'bet',
         amount: -betAmount,
-        description: `Ставка в краш игре #${this.currentRound.roundId}`,
+        description: `Ставка в краш игре #${this.currentRound.roundId}${autoCashOut > 0 ? ` (автовывод ${autoCashOut}x)` : ''}`,
         status: 'completed',
         balanceBefore: user.balance + betAmount,
         balanceAfter: user.balance
@@ -606,6 +658,8 @@ class CrashService extends EventEmitter {
       await betTransaction.save({ session });
       
       await session.commitTransaction();
+      
+      console.log(`💰 СТАВКА: Размещена ставка ${betAmount} USDT пользователем ${userId}${autoCashOut > 0 ? ` с автовыводом ${autoCashOut}x` : ''}`);
       
       // Эмитим событие новой ставки
       this.emit('betPlaced', {
@@ -697,7 +751,7 @@ class CrashService extends EventEmitter {
         user: userId,
         type: 'win',
         amount: winAmount,
-        description: `Вывод в краш игре при ${this.currentMultiplier.toFixed(2)}x`,
+        description: `Ручной вывод в краш игре при ${this.currentMultiplier.toFixed(2)}x`,
         status: 'completed',
         balanceBefore: user.balance - winAmount,
         balanceAfter: user.balance
@@ -707,6 +761,8 @@ class CrashService extends EventEmitter {
       
       await session.commitTransaction();
       
+      console.log(`💸 РУЧНОЙ КЕШАУТ: Пользователь ${userId} вывел ${winAmount} USDT при ${this.currentMultiplier.toFixed(2)}x`);
+      
       // Эмитим событие ручного вывода
       this.emit('manualCashOut', {
         roundId: this.currentRound.roundId,
@@ -714,7 +770,8 @@ class CrashService extends EventEmitter {
         username: user.username || 'Игрок',
         amount: bet.amount,
         multiplier: this.currentMultiplier,
-        profit: profit
+        profit: profit,
+        balanceAfter: user.balance
       });
       
       return {

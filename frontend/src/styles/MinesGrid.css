@@ -4,10 +4,10 @@
   flex-direction: column;
   background-color: var(--card-background);
   border-radius: var(--border-radius);
-  padding: 15px;
+  padding: 20px; /* Увеличено с 15px */
   box-shadow: var(--shadow);
   width: 100%;
-  max-width: 500px;
+  max-width: 550px; /* Увеличено с 500px */
   margin: 0 auto;
   position: relative;
   transition: all 0.3s ease;
@@ -48,7 +48,7 @@
 .mines-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px; /* Увеличено с 10px */
 }
 
 .mines-row:last-child {
@@ -56,16 +56,16 @@
 }
 
 .mines-cell {
-  width: 50px;
-  height: 50px;
+  width: 60px; /* Увеличено с 50px */
+  height: 60px; /* Увеличено с 50px */
   background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border-radius: 10px; /* Увеличено с 8px */
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-right: 10px;
+  margin-right: 12px; /* Увеличено с 10px */
   position: relative;
   overflow: hidden;
 }
@@ -104,7 +104,7 @@
 }
 
 .gem-icon, .mine-icon {
-  font-size: 24px;
+  font-size: 28px; /* Увеличено с 24px */
   animation: popIn 0.3s ease;
 }
 
@@ -163,24 +163,33 @@
 
 @media (max-width: 500px) {
   .mines-cell {
-    width: 40px;
-    height: 40px;
-    margin-right: 8px;
+    width: 50px; /* Увеличено с 40px */
+    height: 50px; /* Увеличено с 40px */
+    margin-right: 10px; /* Увеличено с 8px */
   }
   
   .gem-icon, .mine-icon {
-    font-size: 20px;
+    font-size: 24px; /* Увеличено с 20px */
+  }
+  
+  .mines-grid {
+    padding: 15px;
+    max-width: 450px; /* Увеличено с 400px */
   }
 }
 
 @media (max-width: 400px) {
   .mines-cell {
-    width: 30px;
-    height: 30px;
-    margin-right: 6px;
+    width: 42px; /* Увеличено с 30px */
+    height: 42px; /* Увеличено с 30px */
+    margin-right: 8px; /* Увеличено с 6px */
   }
   
   .gem-icon, .mine-icon {
-    font-size: 16px;
+    font-size: 20px; /* Увеличено с 16px */
+  }
+  
+  .mines-grid {
+    max-width: 380px;
   }
 }

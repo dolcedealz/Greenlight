@@ -121,13 +121,13 @@
   transition: transform 0.3s ease;
 }
 
-/* ПРОСТАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ */
+/* АНИМАЦИЯ ПОДБРАСЫВАНИЯ */
 .coin.flipping {
-  animation: simpleCoinSpin 2.5s linear forwards;
+  animation: coinFlipAnimation 2.5s linear forwards;
 }
 
-/* ПРОСТАЯ АНИМАЦИЯ - ТОЛЬКО ВРАЩЕНИЕ ПО Y */
-@keyframes simpleCoinSpin {
+/* АНИМАЦИЯ ВРАЩЕНИЯ - ПОКАЗЫВАЕМ ОБЕ СТОРОНЫ */
+@keyframes coinFlipAnimation {
   0% {
     transform: rotateY(0deg);
   }
@@ -136,16 +136,16 @@
   }
 }
 
-/* ФИНАЛЬНЫЕ ПОЗИЦИИ - ИСПРАВЛЕНО */
+/* ФИНАЛЬНЫЕ ПОЗИЦИИ */
 .coin.final-result.heads {
-  transform: rotateY(0deg); /* Орел - лицевая сторона */
+  transform: rotateY(0deg); /* Орел - лицевая сторона (0 градусов) */
 }
 
 .coin.final-result.tails {
-  transform: rotateY(180deg); /* Решка - обратная сторона */
+  transform: rotateY(180deg); /* Решка - обратная сторона (180 градусов) */
 }
 
-/* СТОРОНЫ МОНЕТЫ - ИСПРАВЛЕНО ДЛЯ ПОКАЗА ОБЕИХ СТОРОН */
+/* СТОРОНЫ МОНЕТЫ - ИСПРАВЛЕНО ДЛЯ ПРАВИЛЬНОГО ОТОБРАЖЕНИЯ ДВУХ СТОРОН */
 .coin-side {
   position: absolute;
   width: 100%;
@@ -160,10 +160,10 @@
     inset 0 0 20px rgba(255, 255, 255, 0.1);
   border: 3px solid;
   overflow: hidden;
-  backface-visibility: visible; /* ИСПРАВЛЕНО: показываем обе стороны */
+  backface-visibility: hidden; /* КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: скрываем обратную сторону */
 }
 
-/* ДИЗАЙН ОРЛА (золотой) - лицевая сторона */
+/* ДИЗАЙН ОРЛА (золотой) - лицевая сторона (0 градусов) */
 .coin-side.heads {
   background: linear-gradient(135deg, 
     #ffd700 0%, 
@@ -172,14 +172,14 @@
     #e6c200 75%, 
     #ffd700 100%);
   border-color: #e6c200;
-  transform: rotateY(0deg);
+  transform: rotateY(0deg); /* Лицевая сторона */
   box-shadow: 
     0 0 0 4px #ffd700,
     0 0 20px rgba(255, 215, 0, 0.5),
     inset 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
-/* ДИЗАЙН РЕШКИ (серебряный) - обратная сторона */
+/* ДИЗАЙН РЕШКИ (серебряный) - обратная сторона (180 градусов) */
 .coin-side.tails {
   background: linear-gradient(135deg, 
     #c0c0c0 0%, 
@@ -188,7 +188,7 @@
     #d3d3d3 75%, 
     #c0c0c0 100%);
   border-color: #a0a0a0;
-  transform: rotateY(180deg);
+  transform: rotateY(180deg); /* Обратная сторона */
   box-shadow: 
     0 0 0 4px #c0c0c0,
     0 0 20px rgba(192, 192, 192, 0.5),

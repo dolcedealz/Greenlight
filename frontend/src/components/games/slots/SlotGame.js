@@ -176,9 +176,53 @@ const SlotGame = ({
         if (isAutoplayActiveRef.current) {
           console.log('СЛОТЫ: Запускаем первый автоспин');
           
-          // Inline выполнение первого спина
+          // Проверяем условия прямо здесь, без вызова performSpin
           if (betAmount > 0 && betAmount <= balance && !isSpinning && !loading && animationComplete) {
-            await performSpin();
+            // Inline выполнение спина без зависимости от performSpin
+            try {
+              setLoading(true);
+              setIsSpinning(true);
+              setAnimationComplete(false);
+              setError(null);
+              setLastResult(null);
+              
+              const response = await gameApi.playSlots(betAmount);
+              const data = response.data.data;
+              
+              if (!data.reels || !Array.isArray(data.reels)) {
+                throw new Error('Сервер вернул некорректные данные барабанов');
+              }
+              
+              setLastResult({
+                reels: data.reels,
+                winningLines: data.winningLines || [],
+                win: data.win,
+                profit: data.profit,
+                multiplier: data.multiplier || 0,
+                winningSymbols: data.winningSymbols || []
+              });
+              
+              if (data.balanceAfter !== undefined) {
+                setBalance(data.balanceAfter);
+              }
+              
+              setGameResult({
+                win: data.win,
+                amount: data.win ? Math.abs(data.profit) : betAmount,
+                newBalance: data.balanceAfter
+              });
+            } catch (err) {
+              console.error('СЛОТЫ: Ошибка автоспина:', err);
+              setError(err.response?.data?.message || 'Произошла ошибка при игре');
+              setIsSpinning(false);
+              setLoading(false);
+              setAnimationComplete(true);
+              setLastResult(null);
+              // Останавливаем автоспин при ошибке
+              isAutoplayActiveRef.current = false;
+              setAutoplay(false);
+              setAutoplayRemaining(0);
+            }
           } else {
             console.log('СЛОТЫ: Условия для автоспина не выполнены, останавливаем');
             isAutoplayActiveRef.current = false;
@@ -202,7 +246,7 @@ const SlotGame = ({
       setAutoplayRemaining(0);
       isAutoplayActiveRef.current = false;
     }
-  }, [autoplayCount, betAmount, balance, isSpinning, loading, animationComplete, performSpin]);
+  }, [autoplayCount]); // Убираем лишние зависимости
   
   // useEffect для продолжения автоспина после завершения спина
   useEffect(() => {

@@ -6,6 +6,7 @@ const errorMiddleware = require('./error.middleware');
 module.exports = {
   telegramAuthMiddleware,
   adminAuthMiddleware,
+  authMiddleware: telegramAuthMiddleware, // Добавляем алиас для PvP routes
   validateCoinFlip,
   validateTelegramAuth,
   validateMinesPlay,

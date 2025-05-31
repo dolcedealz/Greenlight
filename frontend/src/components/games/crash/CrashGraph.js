@@ -1,16 +1,16 @@
 // frontend/src/components/games/crash/CrashGraph.js
 import React, { useRef, useEffect, useState } from 'react';
-import { CRASH_GAME_CONFIG } from '../../../../../common/constants';
 import '../../../styles/CrashGraph.css';
 
-const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, className }) => {
+const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
-  const pointsRef = useRef([]);
+  const pathPointsRef = useRef([]);
+  const particlesRef = useRef([]);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const lastRoundIdRef = useRef(roundId);
   const gameStartTimeRef = useRef(null);
-  const isAnimatingRef = useRef(false); // НОВЫЙ РЕФ для контроля анимации
+  const isAnimatingRef = useRef(false);
   
   // Обновление размеров canvas
   useEffect(() => {
@@ -19,8 +19,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
       if (container) {
         const rect = container.getBoundingClientRect();
         setCanvasSize({
-          width: Math.max(rect.width, 300),
-          height: Math.max(rect.height, 250)
+          width: Math.max(rect.width, 400),
+          height: Math.max(rect.height, 300)
         });
       }
     };
@@ -31,36 +31,65 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
     return () => window.removeEventListener('resize', updateSize);
   }, []);
   
-  // ИСПРАВЛЕНО: Очистка точек только при новом раунде
+  // Сброс данных при новом раунде
   useEffect(() => {
     if (roundId !== lastRoundIdRef.current && roundId > 0) {
-      console.log('ГРАФИК: Новый раунд', roundId, '- очищаем точки');
-      pointsRef.current = [];
+      console.log('ГРАФИК: Новый раунд', roundId);
+      pathPointsRef.current = [];
+      particlesRef.current = [];
       gameStartTimeRef.current = null;
       lastRoundIdRef.current = roundId;
     }
   }, [roundId]);
   
-  // Запоминаем время начала полета
+  // Управление анимацией
   useEffect(() => {
     if (gameState === 'flying' && gameStartTimeRef.current === null) {
       gameStartTimeRef.current = Date.now();
       isAnimatingRef.current = true;
-      console.log('ГРАФИК: Начался полет, запускаем анимацию');
+      console.log('ГРАФИК: Полет начался');
     } else if (gameState !== 'flying') {
       isAnimatingRef.current = false;
     }
   }, [gameState]);
   
-  // ИСПРАВЛЕНО: Остановка анимации при смене состояния
-  useEffect(() => {
-    if (gameState !== 'flying' && animationRef.current) {
-      console.log('ГРАФИК: Останавливаем анимацию, состояние:', gameState);
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-      isAnimatingRef.current = false;
+  // Класс для частиц
+  class Particle {
+    constructor(x, y, type = 'trail') {
+      this.x = x;
+      this.y = y;
+      this.vx = (Math.random() - 0.5) * 4;
+      this.vy = (Math.random() - 0.5) * 4;
+      this.life = 1.0;
+      this.decay = 0.02 + Math.random() * 0.03;
+      this.size = 2 + Math.random() * 4;
+      this.type = type;
+      this.color = type === 'explosion' ? '#ff3b30' : '#0ba84a';
     }
-  }, [gameState]);
+    
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.life -= this.decay;
+      this.size *= 0.99;
+      
+      if (this.type === 'trail') {
+        this.vy += 0.1; // Гравитация
+      }
+      
+      return this.life > 0;
+    }
+    
+    draw(ctx) {
+      ctx.save();
+      ctx.globalAlpha = this.life;
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
   
   // Основная функция рисования
   useEffect(() => {
@@ -72,396 +101,401 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
     canvas.height = canvasSize.height;
     
     const draw = () => {
-      // Очищаем canvas
+      // Очищаем canvas с fade эффектом
+      ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Полная очистка для четкости
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Настройки графика
-      const padding = 40;
-      const graphWidth = canvas.width - padding * 2;
-      const graphHeight = canvas.height - padding * 2;
-      
-      // Фон градиент
+      // Градиентный фон
       const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       bgGradient.addColorStop(0, '#0a0a0a');
-      bgGradient.addColorStop(1, '#1a1a1a');
+      bgGradient.addColorStop(0.5, '#151515');
+      bgGradient.addColorStop(1, '#0a0a0a');
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Рисуем в зависимости от состояния игры
-      if (gameState === 'waiting') {
-        drawWaitingState(ctx, canvas.width, canvas.height, timeToStart);
-      } else if (gameState === 'flying') {
-        drawGrid(ctx, padding, graphWidth, graphHeight);
-        drawFlyingState(ctx, padding, graphWidth, graphHeight, multiplier);
-      } else if (gameState === 'crashed') {
-        drawGrid(ctx, padding, graphWidth, graphHeight);
-        drawCrashedState(ctx, padding, graphWidth, graphHeight, crashPoint);
+      // Рисуем в зависимости от состояния
+      switch (gameState) {
+        case 'waiting':
+          drawWaitingState(ctx);
+          break;
+        case 'flying':
+          drawGrid(ctx);
+          drawFlyingState(ctx);
+          break;
+        case 'crashed':
+          drawGrid(ctx);
+          drawCrashedState(ctx);
+          break;
+        default:
+          drawLoadingState(ctx);
       }
     };
     
-    // Функция отрисовки сетки
-    const drawGrid = (ctx, padding, width, height) => {
-      ctx.strokeStyle = '#333333';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([]);
+    // Сетка графика
+    const drawGrid = (ctx) => {
+      const padding = 50;
+      const width = canvas.width - padding * 2;
+      const height = canvas.height - padding * 2;
       
-      // Вертикальные линии
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      
+      // Горизонтальные линии (множители)
+      for (let i = 0; i <= 10; i++) {
+        const y = padding + (i * height / 10);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + width, y);
+        ctx.stroke();
+        
+        // Подписи множителей
+        if (i % 2 === 0) {
+          const mult = (10 - i) * 0.5 + 1;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.font = '12px monospace';
+          ctx.textAlign = 'right';
+          ctx.fillText(`${mult.toFixed(1)}x`, padding - 10, y + 4);
+        }
+      }
+      
+      // Вертикальные линии (время)
       for (let i = 0; i <= 10; i++) {
         const x = padding + (i * width / 10);
         ctx.beginPath();
         ctx.moveTo(x, padding);
         ctx.lineTo(x, padding + height);
         ctx.stroke();
-      }
-      
-      // Горизонтальные линии
-      for (let i = 0; i <= 8; i++) {
-        const y = padding + (i * height / 8);
-        ctx.beginPath();
-        ctx.moveTo(padding, y);
-        ctx.lineTo(padding + width, y);
-        ctx.stroke();
+        
+        // Подписи времени
+        if (i % 2 === 0) {
+          const time = i * 1;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.font = '12px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${time}s`, x, padding + height + 20);
+        }
       }
       
       // Оси
-      ctx.strokeStyle = '#555555';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.lineWidth = 2;
-      
-      // Ось X
-      ctx.beginPath();
-      ctx.moveTo(padding, padding + height);
-      ctx.lineTo(padding + width, padding + height);
-      ctx.stroke();
-      
-      // Ось Y
       ctx.beginPath();
       ctx.moveTo(padding, padding);
       ctx.lineTo(padding, padding + height);
+      ctx.lineTo(padding + width, padding + height);
       ctx.stroke();
-      
-      // Подписи осей
-      ctx.fillStyle = '#888888';
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'center';
-      
-      // Подписи по оси X (время)
-      for (let i = 0; i <= 5; i++) {
-        const x = padding + (i * width / 5);
-        const time = i * 2;
-        ctx.fillText(`${time.toFixed(1)}s`, x, padding + height + 20);
-      }
-      
-      // Подписи по оси Y (множитель)
-      ctx.textAlign = 'right';
-      for (let i = 0; i <= 8; i++) {
-        const y = padding + height - (i * height / 8);
-        const mult = 1 + i * 1.5;
-        ctx.fillText(`${mult.toFixed(1)}x`, padding - 10, y + 4);
-      }
     };
     
-    // УЛУЧШЕНО: Состояние ожидания с точным обратным отсчетом
-    const drawWaitingState = (ctx, width, height, timeToStart) => {
-      const waitingGradient = ctx.createRadialGradient(
-        width / 2, height / 2, 0,
-        width / 2, height / 2, Math.min(width, height) / 2
+    // Состояние ожидания
+    const drawWaitingState = (ctx) => {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      
+      // Пульсирующий круг
+      const time = Date.now() / 1000;
+      const pulse = Math.sin(time * 3) * 0.3 + 1;
+      const radius = 80 * pulse;
+      
+      // Градиент для круга
+      const circleGradient = ctx.createRadialGradient(
+        centerX, centerY, 0,
+        centerX, centerY, radius
       );
-      waitingGradient.addColorStop(0, 'rgba(11, 168, 74, 0.1)');
-      waitingGradient.addColorStop(1, 'rgba(11, 168, 74, 0.02)');
-      ctx.fillStyle = waitingGradient;
-      ctx.fillRect(0, 0, width, height);
+      circleGradient.addColorStop(0, 'rgba(11, 168, 74, 0.8)');
+      circleGradient.addColorStop(0.7, 'rgba(11, 168, 74, 0.3)');
+      circleGradient.addColorStop(1, 'rgba(11, 168, 74, 0)');
       
-      const centerX = width / 2;
-      const centerY = height / 2;
-      const radius = 80;
-      
+      ctx.fillStyle = circleGradient;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#0ba84a';
-      ctx.lineWidth = 4;
-      ctx.stroke();
       
-      // СИНХРОНИЗИРОВАНО: Точный прогресс для ${CRASH_GAME_CONFIG.WAITING_TIME_SECONDS} секунд
-      if (timeToStart > 0 && timeToStart <= CRASH_GAME_CONFIG.WAITING_TIME_SECONDS) {
-        const progress = (CRASH_GAME_CONFIG.WAITING_TIME_SECONDS - timeToStart) / CRASH_GAME_CONFIG.WAITING_TIME_SECONDS;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius - 2, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * progress));
+      // Прогресс-кольцо
+      if (timeToStart > 0 && timeToStart <= 7) {
+        const progress = (7 - timeToStart) / 7;
+        const angle = progress * Math.PI * 2 - Math.PI / 2;
+        
         ctx.strokeStyle = '#0ba84a';
-        ctx.lineWidth = 6;
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 100, -Math.PI / 2, angle);
         ctx.stroke();
       }
       
-      ctx.fillStyle = '#0ba84a';
+      // Основной текст
+      ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 32px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('СТАВКИ', centerX, centerY - 15);
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 10;
       
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 24px Arial';
-      ctx.fillText('ПРИНИМАЮТСЯ', centerX, centerY + 15);
+      ctx.fillText('СТАВКИ', centerX, centerY - 20);
+      ctx.fillText('ПРИНИМАЮТСЯ', centerX, centerY + 20);
       
+      // Таймер
       if (timeToStart > 0) {
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#0ba84a';
         ctx.font = 'bold 48px Arial';
-        ctx.textAlign = 'center';
-        
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 3;
-        ctx.strokeText(`${timeToStart}`, centerX, centerY + 80);
-        
-        ctx.fillText(`${timeToStart}`, centerX, centerY + 80);
+        ctx.fillText(Math.ceil(timeToStart).toString(), centerX, centerY + 80);
       }
       
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.font = '16px Arial';
-      ctx.fillText('Следующий раунд начнется через:', centerX, centerY - 60);
+      ctx.shadowBlur = 0;
     };
     
-    // ИСПРАВЛЕНО: Более плавная и стабильная траектория
-    const drawFlyingState = (ctx, padding, width, height, currentMultiplier) => {
-      if (gameStartTimeRef.current && currentMultiplier >= 1.0 && isAnimatingRef.current) {
-        const realTimeElapsed = (Date.now() - gameStartTimeRef.current) / 1000;
+    // Состояние полета
+    const drawFlyingState = (ctx) => {
+      if (!gameStartTimeRef.current || !isAnimatingRef.current) return;
+      
+      const padding = 50;
+      const width = canvas.width - padding * 2;
+      const height = canvas.height - padding * 2;
+      
+      // Вычисляем позицию точки
+      const timeElapsed = (Date.now() - gameStartTimeRef.current) / 1000;
+      
+      // Улучшенная формула траектории
+      const x = padding + Math.min(timeElapsed * 40, width * 0.95);
+      
+      // Экспоненциальная кривая для Y координаты
+      const multiplierForY = Math.max(multiplier, 1.0);
+      const logScale = Math.log(multiplierForY) / Math.log(1.1);
+      const y = padding + height - Math.min(logScale * 20, height * 0.9);
+      
+      // Добавляем точку в путь
+      if (timeElapsed > 0) {
+        pathPointsRef.current.push({ x, y, multiplier, time: Date.now() });
         
-        // УЛУЧШЕННАЯ ФОРМУЛА: Плавная траектория без рывков
-        const timeScale = Math.log(realTimeElapsed + 1) * 100; // Логарифмическое масштабирование
-        const x = padding + Math.min(timeScale, width * 0.9);
-        
-        // Y координата: плавная кривая роста
-        const multiplierScale = currentMultiplier - 1;
-        const smoothY = Math.log(multiplierScale + 1) * 120;
-        const y = padding + height - Math.min(smoothY, height * 0.9);
-        
-        const newPoint = {
-          x: Math.max(padding, Math.min(x, padding + width - 10)),
-          y: Math.max(padding + 10, Math.min(y, padding + height - 10)),
-          multiplier: currentMultiplier,
-          time: Date.now()
-        };
-        
-        // Добавляем точку только если игра активна
-        if (isAnimatingRef.current) {
-          pointsRef.current.push(newPoint);
+        // Ограничиваем количество точек
+        if (pathPointsRef.current.length > 500) {
+          pathPointsRef.current = pathPointsRef.current.slice(-400);
         }
         
-        // Ограничиваем массив для производительности
-        if (pointsRef.current.length > 800) {
-          pointsRef.current = pointsRef.current.slice(-600);
+        // Добавляем частицы каждые несколько кадров
+        if (Math.random() < 0.3) {
+          particlesRef.current.push(new Particle(x, y, 'trail'));
         }
       }
       
-      // Рисуем линию графика только если есть точки
-      if (pointsRef.current.length > 1) {
-        // Создаем градиент для линии в зависимости от высоты множителя
+      // Рисуем путь
+      if (pathPointsRef.current.length > 1) {
+        // Градиент для линии
         const lineGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
         if (multiplier < 2) {
           lineGradient.addColorStop(0, '#4ade80');
-          lineGradient.addColorStop(1, '#0ba84a');
+          lineGradient.addColorStop(1, '#22c55e');
         } else if (multiplier < 5) {
           lineGradient.addColorStop(0, '#fbbf24');
-          lineGradient.addColorStop(1, '#0ba84a');
+          lineGradient.addColorStop(1, '#f59e0b');
         } else {
           lineGradient.addColorStop(0, '#f87171');
-          lineGradient.addColorStop(1, '#fbbf24');
+          lineGradient.addColorStop(1, '#ef4444');
         }
         
         ctx.strokeStyle = lineGradient;
-        ctx.lineWidth = 5;
+        ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.setLineDash([]);
         
         // Рисуем плавную кривую
         ctx.beginPath();
+        ctx.moveTo(pathPointsRef.current[0].x, pathPointsRef.current[0].y);
         
-        if (pointsRef.current.length === 2) {
-          ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
-          ctx.lineTo(pointsRef.current[1].x, pointsRef.current[1].y);
-        } else {
-          ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
-          
-          // Используем кривые Безье для плавности
-          for (let i = 1; i < pointsRef.current.length - 1; i++) {
-            const current = pointsRef.current[i];
-            const next = pointsRef.current[i + 1];
-            const cpx = (current.x + next.x) / 2;
-            const cpy = (current.y + next.y) / 2;
-            
-            ctx.quadraticCurveTo(current.x, current.y, cpx, cpy);
-          }
-          
-          // Последняя точка
-          const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-          ctx.lineTo(lastPoint.x, lastPoint.y);
+        for (let i = 1; i < pathPointsRef.current.length - 1; i++) {
+          const current = pathPointsRef.current[i];
+          const next = pathPointsRef.current[i + 1];
+          const cpx = (current.x + next.x) / 2;
+          const cpy = (current.y + next.y) / 2;
+          ctx.quadraticCurveTo(current.x, current.y, cpx, cpy);
+        }
+        
+        if (pathPointsRef.current.length > 1) {
+          const last = pathPointsRef.current[pathPointsRef.current.length - 1];
+          ctx.lineTo(last.x, last.y);
         }
         
         ctx.stroke();
         
-        // Заливка под графиком с градиентом
+        // Заливка под кривой
         const fillGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
-        fillGradient.addColorStop(0, 'rgba(11, 168, 74, 0.4)');
-        fillGradient.addColorStop(0.5, 'rgba(11, 168, 74, 0.2)');
-        fillGradient.addColorStop(1, 'rgba(11, 168, 74, 0.05)');
+        fillGradient.addColorStop(0, 'rgba(34, 197, 94, 0.3)');
+        fillGradient.addColorStop(1, 'rgba(34, 197, 94, 0.05)');
         
         ctx.fillStyle = fillGradient;
         ctx.beginPath();
         ctx.moveTo(padding, padding + height);
         
-        pointsRef.current.forEach(point => {
+        pathPointsRef.current.forEach(point => {
           ctx.lineTo(point.x, point.y);
         });
         
-        if (pointsRef.current.length > 0) {
-          const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-          ctx.lineTo(lastPoint.x, padding + height);
+        if (pathPointsRef.current.length > 0) {
+          const last = pathPointsRef.current[pathPointsRef.current.length - 1];
+          ctx.lineTo(last.x, padding + height);
         }
         
         ctx.closePath();
         ctx.fill();
         
         // Анимированная точка на конце
-        const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-        const pulseSize = 8 + Math.sin(Date.now() / 200) * 3;
-        
-        ctx.beginPath();
-        ctx.arc(lastPoint.x, lastPoint.y, pulseSize, 0, 2 * Math.PI);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.strokeStyle = '#0ba84a';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        
-        // Свечение вокруг точки
-        ctx.shadowColor = '#0ba84a';
-        ctx.shadowBlur = 15;
-        ctx.beginPath();
-        ctx.arc(lastPoint.x, lastPoint.y, pulseSize - 2, 0, 2 * Math.PI);
-        ctx.fillStyle = '#0ba84a';
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        const lastPoint = pathPointsRef.current[pathPointsRef.current.length - 1];
+        if (lastPoint) {
+          const pulse = Math.sin(Date.now() / 200) * 0.5 + 1;
+          const pointSize = 6 * pulse;
+          
+          // Свечение
+          ctx.shadowColor = multiplier > 2 ? '#fbbf24' : '#22c55e';
+          ctx.shadowBlur = 20;
+          
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(lastPoint.x, lastPoint.y, pointSize, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.shadowBlur = 0;
+        }
       }
       
-      // Текущий множитель с эффектами
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 72px Arial';
-      ctx.textAlign = 'center';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 4;
+      // Обновляем и рисуем частицы
+      particlesRef.current = particlesRef.current.filter(particle => {
+        particle.update();
+        particle.draw(ctx);
+        return particle.life > 0;
+      });
       
-      // Анимированный размер текста
-      const textScale = 1 + Math.sin(Date.now() / 300) * 0.05;
+      // Главный текст множителя
+      const centerX = canvas.width / 2;
+      const textY = 80;
+      
+      // Эффект пульсации для высоких множителей
+      const textScale = multiplier > 2 ? 1 + Math.sin(Date.now() / 300) * 0.1 : 1;
+      
       ctx.save();
-      ctx.translate(canvas.width / 2, 120);
+      ctx.translate(centerX, textY);
       ctx.scale(textScale, textScale);
       
-      ctx.strokeText(`${currentMultiplier.toFixed(2)}x`, 0, 0);
-      ctx.fillText(`${currentMultiplier.toFixed(2)}x`, 0, 0);
+      // Тень
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 3;
+      
+      // Цвет текста зависит от множителя
+      if (multiplier < 2) {
+        ctx.fillStyle = '#22c55e';
+      } else if (multiplier < 5) {
+        ctx.fillStyle = '#fbbf24';
+      } else {
+        ctx.fillStyle = '#ef4444';
+      }
+      
+      ctx.font = 'bold 64px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${multiplier.toFixed(2)}x`, 0, 0);
+      
+      // Дополнительное свечение для высоких множителей
+      if (multiplier > 3) {
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 30;
+        ctx.fillText(`${multiplier.toFixed(2)}x`, 0, 0);
+      }
       
       ctx.restore();
-      
-      // Эффект свечения для высоких множителей
-      if (currentMultiplier > 2) {
-        const glowIntensity = Math.min((currentMultiplier - 2) / 5, 1);
-        ctx.shadowColor = currentMultiplier > 5 ? '#fbbf24' : '#0ba84a';
-        ctx.shadowBlur = 30 * glowIntensity;
-        
-        ctx.save();
-        ctx.translate(canvas.width / 2, 120);
-        ctx.scale(textScale, textScale);
-        ctx.fillText(`${currentMultiplier.toFixed(2)}x`, 0, 0);
-        ctx.restore();
-        
-        ctx.shadowBlur = 0;
-      }
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
     };
     
-    // Состояние краха
-    const drawCrashedState = (ctx, padding, width, height, crashPoint) => {
-      // Рисуем последний график красным
-      if (pointsRef.current.length > 1) {
-        ctx.strokeStyle = '#ff3b30';
-        ctx.lineWidth = 5;
-        ctx.setLineDash([5, 5]); // Пунктирная линия
+    // Состояние краша
+    const drawCrashedState = (ctx) => {
+      // Рисуем путь красным
+      if (pathPointsRef.current.length > 1) {
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([10, 5]);
         
         ctx.beginPath();
-        ctx.moveTo(pointsRef.current[0].x, pointsRef.current[0].y);
+        ctx.moveTo(pathPointsRef.current[0].x, pathPointsRef.current[0].y);
         
-        for (let i = 1; i < pointsRef.current.length; i++) {
-          ctx.lineTo(pointsRef.current[i].x, pointsRef.current[i].y);
-        }
-        
-        ctx.stroke();
-        
-        // Красная заливка
-        const fillGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
-        fillGradient.addColorStop(0, 'rgba(255, 59, 48, 0.3)');
-        fillGradient.addColorStop(1, 'rgba(255, 59, 48, 0.05)');
-        
-        ctx.fillStyle = fillGradient;
-        ctx.beginPath();
-        ctx.moveTo(padding, padding + height);
-        
-        pointsRef.current.forEach(point => {
+        pathPointsRef.current.forEach(point => {
           ctx.lineTo(point.x, point.y);
         });
         
-        if (pointsRef.current.length > 0) {
-          const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-          ctx.lineTo(lastPoint.x, padding + height);
-        }
-        
-        ctx.closePath();
-        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
       
-      // Анимация взрыва
+      // Эффект взрыва
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
       const time = Date.now() / 1000;
-      const explosionRadius = Math.sin(time * 15) * 30 + 80;
       
+      // Добавляем частицы взрыва
+      if (particlesRef.current.length < 50) {
+        for (let i = 0; i < 5; i++) {
+          particlesRef.current.push(new Particle(centerX, centerY, 'explosion'));
+        }
+      }
+      
+      // Обновляем частицы
+      particlesRef.current = particlesRef.current.filter(particle => {
+        particle.update();
+        particle.draw(ctx);
+        return particle.life > 0;
+      });
+      
+      // Анимация взрыва
+      const explosionSize = 100 + Math.sin(time * 10) * 20;
       const explosionGradient = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2 - 20, 0,
-        canvas.width / 2, canvas.height / 2 - 20, explosionRadius
+        centerX, centerY, 0,
+        centerX, centerY, explosionSize
       );
-      explosionGradient.addColorStop(0, 'rgba(255, 59, 48, 0.8)');
-      explosionGradient.addColorStop(0.7, 'rgba(255, 149, 0, 0.4)');
-      explosionGradient.addColorStop(1, 'rgba(255, 59, 48, 0.0)');
+      explosionGradient.addColorStop(0, 'rgba(239, 68, 68, 0.8)');
+      explosionGradient.addColorStop(0.5, 'rgba(251, 191, 36, 0.4)');
+      explosionGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
       
       ctx.fillStyle = explosionGradient;
       ctx.beginPath();
-      ctx.arc(canvas.width / 2, canvas.height / 2 - 20, explosionRadius, 0, 2 * Math.PI);
+      ctx.arc(centerX, centerY, explosionSize, 0, Math.PI * 2);
       ctx.fill();
       
-      // Текст краха с анимацией
-      const crashTextScale = 1 + Math.sin(time * 8) * 0.1;
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2 - 20);
-      ctx.scale(crashTextScale, crashTextScale);
-      
-      ctx.fillStyle = '#ff3b30';
-      ctx.font = 'bold 54px Arial';
+      // Текст "CRASHED"
+      ctx.fillStyle = '#ef4444';
+      ctx.font = 'bold 48px Arial';
       ctx.textAlign = 'center';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 4;
-      ctx.strokeText('CRASHED', 0, 0);
-      ctx.fillText('CRASHED', 0, 0);
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 10;
       
-      ctx.restore();
+      const shake = Math.sin(time * 20) * 2;
+      ctx.fillText('CRASHED', centerX + shake, centerY - 30);
       
-      // Множитель краха
+      // Финальный множитель
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 36px Arial';
+      ctx.fillText(`${crashPoint.toFixed(2)}x`, centerX, centerY + 30);
+      
+      ctx.shadowBlur = 0;
+    };
+    
+    // Состояние загрузки
+    const drawLoadingState = (ctx) => {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.font = '24px Arial';
       ctx.textAlign = 'center';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
-      ctx.strokeText(`${crashPoint.toFixed(2)}x`, canvas.width / 2, canvas.height / 2 + 50);
-      ctx.fillText(`${crashPoint.toFixed(2)}x`, canvas.width / 2, canvas.height / 2 + 50);
+      ctx.fillText('Загрузка игры...', centerX, centerY);
     };
     
     draw();
     
-    // ИСПРАВЛЕНО: Анимация только для активного состояния полета
+    // Анимация
     if (gameState === 'flying' && isAnimatingRef.current) {
+      animationRef.current = requestAnimationFrame(draw);
+    } else if (gameState === 'crashed') {
+      // Анимация взрыва
       animationRef.current = requestAnimationFrame(draw);
     }
     
@@ -473,14 +507,25 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId, c
     };
   }, [multiplier, gameState, crashPoint, timeToStart, canvasSize]);
   
+  // Очистка анимации при размонтировании
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+  
   return (
-    <div 
-      className={`crash-graph-container ${gameState === 'waiting' ? 'loading' : ''} ${className || ''}`} 
-      data-state={gameState}
-    >
+    <div className={`crash-graph-container ${gameState}`} data-state={gameState}>
       <canvas 
         ref={canvasRef}
         className="crash-graph-canvas"
+        style={{ 
+          width: '100%', 
+          height: '100%',
+          imageRendering: 'crisp-edges'
+        }}
       />
     </div>
   );

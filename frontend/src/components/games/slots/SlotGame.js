@@ -151,114 +151,114 @@ const SlotGame = ({
     }
   }, [autoplay, isSpinning, loading, animationComplete, performSpin]);
   
-  // НОВАЯ функция автоспина с правильным управлением
-  const performAutoplay = useCallback(async () => {
-    // Проверяем, что автоспин все еще активен
-    if (!isAutoplayActiveRef.current || autoplayRemaining <= 0) {
-      console.log('СЛОТЫ: Автоспин завершен (не активен или счетчик = 0)');
-      stopAutoplay();
-      return;
-    }
-    
-    // Проверяем базовые условия
-    if (betAmount > balance || isSpinning || loading || !animationComplete) {
-      console.log('СЛОТЫ: Автоспин остановлен, условия не выполнены:', { 
-        betAmount, balance, isSpinning, loading, animationComplete 
-      });
-      stopAutoplay();
-      return;
-    }
-    
-    console.log('СЛОТЫ: Автоспин выполняется, осталось:', autoplayRemaining);
-    
-    // Выполняем спин
-    const spinResult = await performSpin();
-    
-    if (!spinResult.success) {
-      console.log('СЛОТЫ: Автоспин остановлен из-за ошибки спина');
-      stopAutoplay();
-      return;
-    }
-    
-    // Ждем завершения анимации
-    const waitForAnimation = () => {
-      return new Promise(resolve => {
-        const checkInterval = setInterval(() => {
-          if (animationComplete) {
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 100);
-        
-        // Таймаут на случай зависания
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          resolve();
-        }, 10000); // 10 секунд максимум
-      });
-    };
-    
-    await waitForAnimation();
-    
-    // Проверяем, что автоспин все еще активен после анимации
-    if (!isAutoplayActiveRef.current) {
-      console.log('СЛОТЫ: Автоспин был остановлен во время анимации');
-      return;
-    }
-    
-    // Уменьшаем счетчик
-    const newRemaining = autoplayRemaining - 1;
-    setAutoplayRemaining(newRemaining);
-    
-    // Проверяем условия остановки
-    const currentBalance = spinResult.balanceAfter || balance;
-    const shouldStop = 
-      newRemaining <= 0 || 
-      betAmount > currentBalance ||
-      (spinResult.win && lastResult && Math.abs(lastResult.profit) >= betAmount * 10);
-    
-    if (shouldStop) {
-      console.log('СЛОТЫ: Автоспин завершен. Причина:', {
-        spinsComplete: newRemaining <= 0,
-        insufficientFunds: betAmount > currentBalance,
-        bigWin: spinResult.win && lastResult && Math.abs(lastResult.profit) >= betAmount * 10
-      });
-      stopAutoplay();
-      return;
-    }
-    
-    // Планируем следующий спин
-    if (isAutoplayActiveRef.current) {
-      console.log('СЛОТЫ: Планируем следующий автоспин через 2 сек');
-      autoplayTimeoutRef.current = setTimeout(() => {
-        if (isAutoplayActiveRef.current) {
-          performAutoplay();
-        }
-      }, 2000);
-    }
-  }, [autoplayRemaining, betAmount, balance, isSpinning, loading, animationComplete, performSpin, lastResult, stopAutoplay]);
+  // Функция остановки автоспина остается для кнопки остановки
   
-  // Обработчик включения/выключения автоигры
-  const handleAutoplayToggle = useCallback((enabled) => {
-    console.log('СЛОТЫ: Автоигра', enabled ? 'включена' : 'выключена');
+  // Обработчик включения/выключения автоигры - ИСПРАВЛЕННЫЙ
+  const handleAutoplayToggle = useCallback((newAutoplayState) => {
+    console.log('СЛОТЫ: Переключение автоигры на:', newAutoplayState);
     
-    if (enabled) {
+    if (newAutoplayState) {
       // Включаем автоспин
+      console.log('СЛОТЫ: Включаем автоспин');
+      
+      // Очищаем предыдущий таймаут если есть
+      if (autoplayTimeoutRef.current) {
+        clearTimeout(autoplayTimeoutRef.current);
+        autoplayTimeoutRef.current = null;
+      }
+      
       setAutoplay(true);
       setAutoplayRemaining(autoplayCount);
       isAutoplayActiveRef.current = true;
       
       // Запускаем первый спин через небольшую задержку
-      autoplayTimeoutRef.current = setTimeout(() => {
+      autoplayTimeoutRef.current = setTimeout(async () => {
         if (isAutoplayActiveRef.current) {
-          performAutoplay();
+          console.log('СЛОТЫ: Запускаем первый автоспин');
+          
+          // Inline выполнение первого спина
+          if (betAmount > 0 && betAmount <= balance && !isSpinning && !loading && animationComplete) {
+            await performSpin();
+          } else {
+            console.log('СЛОТЫ: Условия для автоспина не выполнены, останавливаем');
+            isAutoplayActiveRef.current = false;
+            setAutoplay(false);
+            setAutoplayRemaining(0);
+          }
         }
       }, 500);
     } else {
       // Выключаем автоспин
-      stopAutoplay();
+      console.log('СЛОТЫ: Выключаем автоспин');
+      
+      // Очищаем таймаут
+      if (autoplayTimeoutRef.current) {
+        clearTimeout(autoplayTimeoutRef.current);
+        autoplayTimeoutRef.current = null;
+      }
+      
+      // Обновляем состояние
+      setAutoplay(false);
+      setAutoplayRemaining(0);
+      isAutoplayActiveRef.current = false;
     }
-  }, [autoplayCount, performAutoplay, stopAutoplay]);
+  }, [autoplayCount, betAmount, balance, isSpinning, loading, animationComplete, performSpin]);
+  
+  // useEffect для продолжения автоспина после завершения спина
+  useEffect(() => {
+    // Запускаем следующий автоспин если:
+    // 1. Автоспин активен
+    // 2. Спин не выполняется
+    // 3. Анимация завершена
+    // 4. Есть оставшиеся спины
+    if (isAutoplayActiveRef.current && 
+        autoplay && 
+        !isSpinning && 
+        !loading && 
+        animationComplete && 
+        autoplayRemaining > 0 &&
+        betAmount > 0 && 
+        betAmount <= balance) {
+      
+      console.log('СЛОТЫ: Планируем следующий автоспин, осталось:', autoplayRemaining);
+      
+      // Очищаем предыдущий таймаут
+      if (autoplayTimeoutRef.current) {
+        clearTimeout(autoplayTimeoutRef.current);
+      }
+      
+      // Планируем следующий спин
+      autoplayTimeoutRef.current = setTimeout(async () => {
+        if (isAutoplayActiveRef.current && autoplayRemaining > 0) {
+          console.log('СЛОТЫ: Выполняем автоспин');
+          const spinResult = await performSpin();
+          
+          if (spinResult.success) {
+            // Уменьшаем счетчик после успешного спина
+            setAutoplayRemaining(prev => {
+              const newCount = prev - 1;
+              console.log('СЛОТЫ: Спинов осталось:', newCount);
+              
+              // Если спины закончились, останавливаем автоспин
+              if (newCount <= 0) {
+                console.log('СЛОТЫ: Все спины завершены, останавливаем автоспин');
+                isAutoplayActiveRef.current = false;
+                setAutoplay(false);
+              }
+              
+              return newCount;
+            });
+          } else {
+            // При ошибке останавливаем автоспин
+            console.log('СЛОТЫ: Ошибка спина, останавливаем автоспин');
+            isAutoplayActiveRef.current = false;
+            setAutoplay(false);
+            setAutoplayRemaining(0);
+          }
+        }
+      }, 2000); // 2 секунды между спинами
+    }
+  }, [autoplay, isSpinning, loading, animationComplete, autoplayRemaining, betAmount, balance, performSpin]);
   
   // Загрузочный экран
   if (isInitializing) {

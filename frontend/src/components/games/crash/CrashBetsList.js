@@ -14,13 +14,26 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
     }
   };
   
-  // Форматирование имени пользователя
-  const formatUsername = (username) => {
+  // Форматирование имени пользователя с маскированием
+  const formatUsername = (username, isCurrentUser = false) => {
     if (!username) return 'Игрок';
-    if (username.length > 8) {
-      return username.slice(0, 6) + '...';
+    
+    // Если это текущий пользователь, показываем полное имя
+    if (isCurrentUser) {
+      if (username.length > 8) {
+        return username.slice(0, 6) + '...';
+      }
+      return username;
     }
-    return username;
+    
+    // Для других пользователей маскируем имя
+    if (username.length <= 3) {
+      return username.charAt(0) + '*'.repeat(username.length - 1);
+    } else if (username.length <= 6) {
+      return username.charAt(0) + '*'.repeat(username.length - 2) + username.charAt(username.length - 1);
+    } else {
+      return username.slice(0, 2) + '*'.repeat(3) + username.slice(-1);
+    }
   };
   
   // Генерация цвета для пользователя
@@ -71,13 +84,13 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
             <span className="no-bets-icon">📊</span>
             <span className="no-bets-text">
               {activeTab === 'active' 
-                ? 'Нет активных ставок в этом раунде' 
-                : 'Никто еще не вывел средства в этом раунде'}
+                ? 'Пока нет ставок в этом раунде' 
+                : 'Пока никто не вывел средства'}
             </span>
             <span className="no-bets-subtext">
               {activeTab === 'active' 
-                ? 'Сделайте ставку, чтобы присоединиться к игре!' 
-                : 'Выведенные ставки появятся здесь'}
+                ? 'Станьте первым, кто сделает ставку!' 
+                : 'Выводы появятся здесь в реальном времени'}
             </span>
           </div>
         ) : (
@@ -92,10 +105,10 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
                     className="user-avatar"
                     style={{ backgroundColor: getUserColor(bet.userId) }}
                   >
-                    {formatUsername(bet.username).charAt(0).toUpperCase()}
+                    {formatUsername(bet.username, bet.isCurrentUser).charAt(0).toUpperCase()}
                   </div>
                   <span className="username">
-                    {formatUsername(bet.username)}
+                    {formatUsername(bet.username, bet.isCurrentUser)}
                     {bet.isCurrentUser && <span className="you-label">(Вы)</span>}
                   </span>
                 </div>
@@ -108,20 +121,24 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
                   {activeTab === 'active' && (
                     <div className="bet-auto">
                       {bet.autoCashOut && bet.autoCashOut > 0 ? (
-                        <span className="auto-cashout">@{bet.autoCashOut.toFixed(2)}x</span>
+                        <span className="auto-cashout" title={`Автовывод при ${bet.autoCashOut.toFixed(2)}x`}>
+                          🤖 {bet.autoCashOut.toFixed(2)}x
+                        </span>
                       ) : (
-                        <span className="manual">Ручной</span>
+                        <span className="manual" title="Ручной вывод">
+                          ✋ Ручной
+                        </span>
                       )}
                     </div>
                   )}
                   
                   {activeTab === 'cashed' && bet.cashOutMultiplier && (
                     <div className="cashout-info">
-                      <div className="cashout-multiplier">
+                      <div className="cashout-multiplier" title={`Вывел при множителе ${bet.cashOutMultiplier.toFixed(2)}x`}>
                         🚀 {bet.cashOutMultiplier.toFixed(2)}x
                       </div>
-                      <div className="win-amount">
-                        +{bet.winAmount ? bet.winAmount.toFixed(2) : '0.00'} USDT
+                      <div className="win-amount" title={`Выигрыш: ${bet.winAmount ? bet.winAmount.toFixed(2) : '0.00'} USDT`}>
+                        💰 +{bet.winAmount ? bet.winAmount.toFixed(2) : '0.00'} USDT
                       </div>
                     </div>
                   )}

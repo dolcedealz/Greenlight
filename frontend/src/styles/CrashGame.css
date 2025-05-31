@@ -248,6 +248,25 @@
     box-shadow: 0 8px 30px rgba(255, 193, 7, 0.6);
   }
   
+  /* НОВОЕ: Стиль для приближения к автовыводу */
+  .crash-main-action-btn.approaching-auto {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+    animation: approachingAutoPulse 0.5s ease-in-out infinite;
+  }
+  
+  @keyframes approachingAutoPulse {
+    0%, 100% {
+      box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 6px 25px rgba(255, 107, 53, 0.8);
+      transform: scale(1.02);
+    }
+  }
+  
   .crash-main-action-btn.placed {
     background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
     color: white;
@@ -405,6 +424,7 @@
     }
   }
   
+  /* Отключение анимаций для пользователей с предпочтением уменьшенного движения */
   @media (prefers-reduced-motion: reduce) {
     .crash-loading-screen,
     .crash-loading-content,
@@ -415,5 +435,31 @@
     .loading-text,
     .crash-main-action-btn {
       animation: none;
+    }
+    
+    .crash-main-action-btn:hover {
+      transform: none;
+    }
+  }
+  
+  /* Высокий контраст для пользователей с нарушениями зрения */
+  @media (prefers-contrast: high) {
+    .crash-main-action-btn {
+      border: 2px solid white;
+    }
+    
+    .crash-main-action-btn.bet {
+      border-color: var(--primary-color);
+    }
+    
+    .crash-main-action-btn.cashout {
+      border-color: #ffc107;
+    }
+  }
+  
+  /* Темная тема */
+  @media (prefers-color-scheme: dark) {
+    .crash-loading-screen {
+      background: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #000000 100%);
     }
   }

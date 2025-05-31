@@ -18,8 +18,8 @@ const CrashControls = ({
   userCashOutMultiplier,
   loading,
   currentMultiplier,
-  autoWithdrawn = false, // НОВОЕ: статус автовывода
-  isApproachingAutoCashOut = false // НОВОЕ: приближение к автовыводу
+  autoWithdrawn = false,
+  isApproachingAutoCashOut = false
 }) => {
   
   const { 
@@ -33,17 +33,15 @@ const CrashControls = ({
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
     
-    // Разрешаем пустое значение для полной очистки поля
     if (inputValue === '') {
       setBetAmount('');
       return;
     }
     
     const value = parseFloat(inputValue);
-    // Проверяем, что значение корректное и в пределах баланса
     if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
-      buttonPressFeedback(); // Легкая вибрация при изменении ставки
+      buttonPressFeedback();
     }
   };
   
@@ -51,7 +49,6 @@ const CrashControls = ({
   const handleAutoCashOutChange = (e) => {
     const inputValue = e.target.value;
     
-    // Разрешаем пустое значение для полной очистки поля
     if (inputValue === '') {
       setAutoCashOut('');
       return;
@@ -60,7 +57,7 @@ const CrashControls = ({
     const value = parseFloat(inputValue);
     if (!isNaN(value) && value >= 1.01 && value <= 1000) {
       setAutoCashOut(value);
-      buttonPressFeedback(); // Легкая вибрация при изменении автовывода
+      buttonPressFeedback();
     }
   };
   
@@ -68,7 +65,7 @@ const CrashControls = ({
   const handleQuickBet = (multiplier) => {
     if (gameState !== 'waiting' || hasBet || loading) return;
     
-    buttonPressFeedback(); // Вибрация при быстрой ставке
+    buttonPressFeedback();
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
@@ -77,11 +74,11 @@ const CrashControls = ({
   const handleQuickAutoCashOut = (value) => {
     if (gameState === 'flying' && hasBet) return;
     
-    selectionChanged(); // Вибрация при смене выбора автовывода
+    selectionChanged();
     setAutoCashOut(value);
   };
   
-  // Получение потенциального выигрыша
+  // УЛУЧШЕННАЯ функция получения потенциального выигрыша с учетом автовывода
   const getPotentialWin = () => {
     if (gameState === 'flying' && hasBet) {
       if (cashedOut && userCashOutMultiplier > 0) {
@@ -91,11 +88,16 @@ const CrashControls = ({
       // Если еще не вывели - показываем текущий возможный выигрыш
       return (userBet.amount * currentMultiplier).toFixed(2);
     }
-    // Иначе показываем потенциальный выигрыш при автовыводе
-    return (betAmount * autoCashOut).toFixed(2);
+    // ИСПРАВЛЕНИЕ: Учитываем включен ли автовывод
+    if (autoCashOutEnabled && autoCashOut > 0) {
+      return (betAmount * autoCashOut).toFixed(2);
+    } else {
+      // Если автовывод выключен, показываем ручной режим
+      return '???.??';
+    }
   };
   
-  // Получение текущей прибыли
+  // УЛУЧШЕННАЯ функция получения текущей прибыли
   const getCurrentProfit = () => {
     if (gameState === 'flying' && hasBet) {
       if (cashedOut && userCashOutMultiplier > 0) {
@@ -105,7 +107,13 @@ const CrashControls = ({
       // Если еще не вывели - показываем текущую прибыль
       return (parseFloat(getPotentialWin()) - userBet.amount).toFixed(2);
     }
-    return (parseFloat(getPotentialWin()) - betAmount).toFixed(2);
+    
+    // ИСПРАВЛЕНИЕ: Учитываем включен ли автовывод
+    if (autoCashOutEnabled && autoCashOut > 0) {
+      return (parseFloat(getPotentialWin()) - betAmount).toFixed(2);
+    } else {
+      return '???.??';
+    }
   };
   
   // Можно ли изменять ставку
@@ -113,6 +121,37 @@ const CrashControls = ({
   
   // Можно ли изменять автовывод
   const canEditAutoCashOut = (gameState === 'waiting' || gameState === 'crashed') && !loading;
+  
+  // НОВАЯ функция: Получение статуса автовывода для отображения
+  const getAutoCashOutStatus = () => {
+    if (!autoCashOutEnabled) {
+      return 'Ручной режим - нажимайте "Вывести"';
+    }
+    
+    if (gameState === 'flying' && hasBet) {
+      if (cashedOut) {
+        if (autoWithdrawn) {
+          return `✅ Автовыведено при ${userCashOutMultiplier.toFixed(2)}x`;
+        } else {
+          return `✅ Выведено при ${userCashOutMultiplier.toFixed(2)}x`;
+        }
+      } else {
+        if (isApproachingAutoCashOut && userBet && userBet.autoCashOut > 0) {
+          return `⚡ Скоро автовывод при ${userBet.autoCashOut}x!`;
+        } else if (userBet && userBet.autoCashOut > 0) {
+          return `🎯 Автовывод при ${userBet.autoCashOut}x`;
+        } else {
+          return `Текущий выигрыш: ${getPotentialWin()} USDT`;
+        }
+      }
+    }
+    
+    if (autoCashOut > 0) {
+      return `При ${autoCashOut}x: ${getPotentialWin()} USDT`;
+    }
+    
+    return 'Установите множитель автовывода';
+  };
   
   return (
     <div className="crash-controls">
@@ -193,17 +232,7 @@ const CrashControls = ({
               </label>
             </div>
             <span className="potential-win">
-              {autoCashOutEnabled ? (
-                gameState === 'flying' && hasBet && cashedOut 
-                  ? autoWithdrawn 
-                    ? `Автовыведено: ${getPotentialWin()} USDT`
-                    : `Выведено: ${getPotentialWin()} USDT`
-                  : gameState === 'flying' && hasBet && !cashedOut 
-                    ? `Сейчас: ${getPotentialWin()} USDT`
-                    : `При ${autoCashOut}x: ${getPotentialWin()} USDT`
-              ) : (
-                'Ручной режим - нажимайте "Вывести"'
-              )}
+              {getAutoCashOutStatus()}
             </span>
           </div>
           
@@ -254,7 +283,7 @@ const CrashControls = ({
         </div>
       </div>
       
-      {/* Информация о текущей ставке */}
+      {/* УЛУЧШЕННАЯ информация о текущей ставке */}
       {hasBet && userBet && (
         <div className="current-bet-info">
           <div className="bet-info-row">
@@ -262,75 +291,77 @@ const CrashControls = ({
             <span className="bet-amount">{userBet.amount} USDT</span>
           </div>
           
-          {/* Показываем текущий выигрыш только если игра идет и не вывели */}
-          {gameState === 'flying' && !cashedOut && (
+          {/* УЛУЧШЕННАЯ логика отображения текущего выигрыша */}
+          {gameState === 'flying' && (
             <>
-              <div className="bet-info-row">
-                <span>🚀 Текущий выигрыш:</span>
-                <span className="current-win">{getPotentialWin()} USDT</span>
-              </div>
-              <div className="bet-info-row">
-                <span>💎 Прибыль:</span>
-                <span className="current-win">+{getCurrentProfit()} USDT</span>
-              </div>
-              <div className="bet-info-row">
-                <span>📈 Рост в реальном времени:</span>
-                <span className="current-win">{currentMultiplier.toFixed(2)}x</span>
-              </div>
+              {!cashedOut ? (
+                <>
+                  <div className="bet-info-row">
+                    <span>🚀 Текущий выигрыш:</span>
+                    <span className="current-win">{getPotentialWin()} USDT</span>
+                  </div>
+                  <div className="bet-info-row">
+                    <span>💎 Прибыль:</span>
+                    <span className="current-win">+{getCurrentProfit()} USDT</span>
+                  </div>
+                  <div className="bet-info-row">
+                    <span>📈 Множитель:</span>
+                    <span className="current-win">{currentMultiplier.toFixed(2)}x</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bet-info-row">
+                    <span>{autoWithdrawn ? '🤖 Автовыведено:' : '✅ Выведено:'}</span>
+                    <span className="current-win">{getPotentialWin()} USDT</span>
+                  </div>
+                  <div className="bet-info-row">
+                    <span>🎉 Прибыль:</span>
+                    <span className="current-win">+{getCurrentProfit()} USDT</span>
+                  </div>
+                  <div className="bet-info-row">
+                    <span>📊 При множителе:</span>
+                    <span className="current-win">{userCashOutMultiplier.toFixed(2)}x</span>
+                  </div>
+                  <div className="bet-info-row">
+                    <span>📈 Игра продолжается:</span>
+                    <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
+                  </div>
+                </>
+              )}
             </>
           )}
           
-          {/* НОВОЕ: Показываем статус автовывода с индикацией приближения */}
-          {userBet.autoCashOut > 0 && !cashedOut && autoCashOutEnabled && (
-            <div className="bet-info-row">
-              <span>🎯 Автовывод при:</span>
-              <span className={`auto-cashout ${isApproachingAutoCashOut ? 'approaching' : ''}`}>
-                {userBet.autoCashOut}x
-                {isApproachingAutoCashOut && ' ⚡'}
-              </span>
-            </div>
-          )}
-          
-          {/* Показываем ручной режим если автовывод выключен */}
-          {!autoCashOutEnabled && gameState === 'flying' && !cashedOut && (
-            <div className="bet-info-row">
-              <span>✋ Ручной режим:</span>
-              <span className="manual-mode">Нажмите "Вывести" вовремя</span>
-            </div>
-          )}
-          
-          {/* Показываем информацию о выводе если уже вывели */}
-          {cashedOut && userCashOutMultiplier && (
+          {/* УЛУЧШЕННАЯ информация об автовыводе */}
+          {!cashedOut && (
             <>
-              <div className="bet-info-row">
-                <span>✅ {autoWithdrawn ? 'Автовыведено' : 'Выведено'} при:</span>
-                <span className="auto-cashout">{userCashOutMultiplier.toFixed(2)}x</span>
-              </div>
-              <div className="bet-info-row">
-                <span>💰 Получено:</span>
-                <span className="current-win">{(userBet.amount * userCashOutMultiplier).toFixed(2)} USDT</span>
-              </div>
-              <div className="bet-info-row">
-                <span>🎉 Прибыль:</span>
-                <span className="current-win">+{(userBet.amount * userCashOutMultiplier - userBet.amount).toFixed(2)} USDT</span>
-              </div>
-              <div className="bet-info-row">
-                <span>📊 Игра продолжается:</span>
-                <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
-              </div>
+              {autoCashOutEnabled && userBet.autoCashOut > 0 ? (
+                <div className="bet-info-row">
+                  <span>🎯 Автовывод при:</span>
+                  <span className={`auto-cashout ${isApproachingAutoCashOut ? 'approaching' : ''}`}>
+                    {userBet.autoCashOut}x
+                    {isApproachingAutoCashOut && ' ⚡ Скоро!'}
+                  </span>
+                </div>
+              ) : (
+                <div className="bet-info-row">
+                  <span>✋ Режим:</span>
+                  <span className="manual-mode">Ручной вывод</span>
+                </div>
+              )}
             </>
           )}
         </div>
       )}
       
-      {/* ИСПРАВЛЕНО: Информация о состоянии игры с уточненными описаниями */}
+      {/* ИСПРАВЛЕННАЯ информация о состоянии игры */}
       <div className="game-state-info">
         <div className="state-indicator">
           <span className="state-label">🎮 Состояние:</span>
           <span className={`state-value ${gameState}`}>
-            {gameState === 'waiting' && '⏳ Прием ставок (ровно 7 сек)'}
-            {gameState === 'flying' && '🚀 Полет (ракетка растет вверх)'}
-            {gameState === 'crashed' && '💥 Краш (новый раунд через 3 сек)'}
+            {gameState === 'waiting' && '⏳ Прием ставок (7 сек)'}
+            {gameState === 'flying' && '🚀 Полет (множитель растет)'}
+            {gameState === 'crashed' && '💥 Краш (пауза 3 сек)'}
           </span>
         </div>
         
@@ -345,21 +376,21 @@ const CrashControls = ({
         {/* Дополнительная информация для пользователей без ставок */}
         {gameState === 'flying' && !hasBet && (
           <div className="multiplier-info">
-            <span className="multiplier-label">⚠️ Вы наблюдаете:</span>
-            <span className="multiplier-value">Ставка не размещена</span>
+            <span className="multiplier-label">⚠️ Статус:</span>
+            <span className="multiplier-value">Наблюдение (без ставки)</span>
           </div>
         )}
         
         {/* Информация о продолжении игры после кешаута */}
         {gameState === 'flying' && cashedOut && (
           <div className="multiplier-info">
-            <span className="multiplier-label">👀 Наблюдаете за другими:</span>
-            <span className="multiplier-value">График продолжает расти</span>
+            <span className="multiplier-label">👀 Наблюдение:</span>
+            <span className="multiplier-value">График растет дальше</span>
           </div>
         )}
       </div>
       
-      {/* НОВОЕ: Индикатор скорости роста с улучшениями */}
+      {/* УЛУЧШЕННЫЙ индикатор скорости роста */}
       {gameState === 'flying' && (
         <div className="game-state-info">
           <div className="state-indicator">
@@ -379,19 +410,34 @@ const CrashControls = ({
           <div className="state-indicator">
             <span className="state-label">💡 Подсказка:</span>
             <span className="state-value">
-              Ракетка летит более плавно вверх для лучшего опыта!
+              {autoCashOutEnabled ? 
+                `Автовывод при ${autoCashOut}x поможет защитить прибыль` :
+                'Включите автовывод для защиты от потерь'}
             </span>
           </div>
         </div>
       )}
       
-      {/* НОВОЕ: Предупреждение о приближении автовывода */}
+      {/* УЛУЧШЕННОЕ предупреждение о приближении автовывода */}
       {isApproachingAutoCashOut && hasBet && !cashedOut && (
         <div className="game-state-info approaching-auto-info">
           <div className="state-indicator">
-            <span className="state-label">⚡ Автовывод близко:</span>
+            <span className="state-label">⚡ Внимание:</span>
             <span className="state-value approaching">
-              Ракетка приближается к {userBet.autoCashOut}x!
+              Множитель приближается к {userBet.autoCashOut}x! Автовывод скоро сработает!
+            </span>
+          </div>
+        </div>
+      )}
+      
+      {/* НОВОЕ: Информация об успешном автовыводе */}
+      {cashedOut && autoWithdrawn && gameState === 'flying' && (
+        <div className="game-state-info">
+          <div className="state-indicator">
+            <span className="state-label">🤖 Автовывод:</span>
+            <span className="state-value">
+              Сработал автоматически при {userCashOutMultiplier.toFixed(2)}x! 
+              Ваши средства в безопасности.
             </span>
           </div>
         </div>

@@ -339,9 +339,46 @@ const SlotMachine = ({
                 </div>
               )}
               {finalResultRef.current.winningLines && finalResultRef.current.winningLines.length > 0 && (
-                <div className="winning-lines-count">
-                  🎯 Выигрышных линий: {finalResultRef.current.winningLines.length} | Множитель: ×{(finalResultRef.current.multiplier || 0).toFixed(2)}
-                </div>
+                <>
+                  <div className="winning-lines-count">
+                    🎯 Выигрышных линий: {finalResultRef.current.winningLines.length} | Множитель: ×{(finalResultRef.current.multiplier || 0).toFixed(2)}
+                  </div>
+                  <div className="winning-lines-details">
+                    {finalResultRef.current.winningLines.map((line, index) => {
+                      // Определяем тип линии
+                      let lineType = 'Неизвестная';
+                      if (line.length >= 3) {
+                        const firstPos = line[0].split('-');
+                        const lastPos = line[line.length - 1].split('-');
+                        
+                        // Проверяем горизонтальную линию
+                        if (firstPos[1] === lastPos[1]) {
+                          lineType = `Строка ${parseInt(firstPos[1]) + 1}`;
+                        }
+                        // Проверяем главную диагональ
+                        else if (line.every((pos, i) => {
+                          const [col, row] = pos.split('-');
+                          return col === String(i) && row === String(i);
+                        })) {
+                          lineType = 'Главная диагональ';
+                        }
+                        // Проверяем побочную диагональ
+                        else if (line.every((pos, i) => {
+                          const [col, row] = pos.split('-');
+                          return col === String(i) && row === String(3 - i);
+                        })) {
+                          lineType = 'Побочная диагональ';
+                        }
+                      }
+                      
+                      return (
+                        <div key={index} className="line-detail">
+                          • {lineType}: {line.length} в ряд
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           ) : (

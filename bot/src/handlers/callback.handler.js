@@ -434,7 +434,106 @@ function registerCallbackHandlers(bot) {
 
   // ===== PvP ДУЭЛИ ОБРАБОТЧИКИ =====
 
-  // Обработка принятия PvP дуэли
+  // Обработка входа в PvP комнату (новая упрощенная логика)
+  bot.action(/^pvp_join_(\d+)_(\d+(?:\.\d+)?)_(.*)$/, async (ctx) => {
+    try {
+      const challengerId = ctx.match[1];
+      const amount = parseFloat(ctx.match[2]);
+      const targetUsername = ctx.match[3] || '';
+      const playerId = ctx.from.id.toString();
+      const playerUsername = ctx.from.username;
+
+      console.log(`PVP: ${playerUsername} (${playerId}) входит в комнату дуэли от ${challengerId} на ${amount} USDT`);
+
+      await ctx.answerCbQuery('⏳ Создаем игровую комнату...');
+
+      // Если это инициатор, создаем дуэль
+      let duelData, sessionId;
+      
+      if (challengerId === playerId) {
+        // Инициатор создает дуэль
+        if (!targetUsername) {
+          // Открытая дуэль - пока создаем с временным оппонентом
+          await ctx.answerCbQuery('⏳ Ожидание второго игрока...', true);
+          return;
+        }
+        
+        // Создаем дуэль через API
+        duelData = await apiService.createPvPChallenge({
+          challengerId,
+          challengerUsername: playerUsername,
+          opponentId: 'pending', // Будет заполнено когда оппонент присоединится
+          opponentUsername: targetUsername,
+          amount,
+          chatId: ctx.chat.id.toString(),
+          chatType: ctx.chat.type,
+          messageId: ctx.callbackQuery.message.message_id
+        });
+
+        sessionId = duelData.data.sessionId;
+        console.log('PVP: Дуэль создана инициатором:', duelData);
+      } else {
+        // Второй игрок присоединяется к дуэли
+        // Проверяем, что вызов адресован этому пользователю или это открытый вызов
+        if (targetUsername && targetUsername !== playerUsername) {
+          await ctx.answerCbQuery('❌ Этот вызов адресован другому игроку', true);
+          return;
+        }
+
+        // Находим существующую дуэль или создаем новую как оппонент
+        try {
+          duelData = await apiService.createPvPChallenge({
+            challengerId,
+            challengerUsername: '', // Получим из API
+            opponentId: playerId,
+            opponentUsername: playerUsername,
+            amount,
+            chatId: ctx.chat.id.toString(),
+            chatType: ctx.chat.type,
+            messageId: ctx.callbackQuery.message.message_id
+          });
+
+          sessionId = duelData.data.sessionId;
+          console.log('PVP: Дуэль создана оппонентом:', duelData);
+        } catch (error) {
+          if (error.message.includes('уже существует')) {
+            // Дуэль уже создана, присоединяемся
+            // TODO: Реализовать получение существующей сессии
+            await ctx.answerCbQuery('❌ Дуэль уже создана', true);
+            return;
+          }
+          throw error;
+        }
+      }
+
+      // Перенаправляем в WebApp
+      const { webAppUrl } = config;
+      const gameUrl = `${webAppUrl}?pvp=${sessionId}`;
+
+      await ctx.editMessageText(
+        `🎯 **ИГРОВАЯ КОМНАТА АКТИВНА** 🪙\n\n` +
+        `💰 Ставка: ${amount} USDT каждый\n` +
+        `🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n` +
+        `🆔 Сессия: ${sessionId}\n\n` +
+        `🚪 Игроки входят в комнату...`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: Markup.inlineKeyboard([
+            [Markup.button.webApp('🎮 Войти в игру', gameUrl)],
+            [Markup.button.callback('📊 Обновить статус', `pvp_status_${sessionId}`)]
+          ])
+        }
+      );
+
+      console.log(`PVP: Перенаправление в WebApp: ${gameUrl}`);
+
+    } catch (error) {
+      console.error('PVP: Ошибка при входе в комнату:', error);
+      await ctx.answerCbQuery('❌ Ошибка создания комнаты', true);
+    }
+  });
+
+  // Обработка принятия PvP дуэли (СТАРАЯ ЛОГИКА - ОСТАВЛЯЕМ ДЛЯ СОВМЕСТИМОСТИ)
   bot.action(/^pvp_accept_(\d+)_(\d+(?:\.\d+)?)_(.*)$/, async (ctx) => {
     try {
       const challengerId = ctx.match[1];
@@ -654,6 +753,34 @@ function registerCallbackHandlers(bot) {
 
     } catch (error) {
       console.error('PVP: Ошибка при проверке статуса:', error);
+      await ctx.answerCbQuery('❌ Произошла ошибка', true);
+    }
+  });
+
+  // Обработка статуса игровой комнаты (для inline кнопок)
+  bot.action(/^pvp_room_status_(\d+)_(\d+(?:\.\d+)?)$/, async (ctx) => {
+    try {
+      const challengerId = ctx.match[1];
+      const amount = parseFloat(ctx.match[2]);
+
+      await ctx.answerCbQuery('📊 Показываем статус комнаты...');
+
+      await ctx.reply(
+        `📊 **Статус игровой комнаты**\n\n` +
+        `👤 Инициатор: ${challengerId}\n` +
+        `💰 Ставка: ${amount} USDT каждый\n` +
+        `🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT\n\n` +
+        `⏳ Ожидание входа игроков в комнату...`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback('🔄 Обновить статус', `pvp_room_status_${challengerId}_${amount}`)]
+          ])
+        }
+      );
+
+    } catch (error) {
+      console.error('PVP: Ошибка при показе статуса комнаты:', error);
       await ctx.answerCbQuery('❌ Произошла ошибка', true);
     }
   });

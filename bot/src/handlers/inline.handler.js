@@ -43,13 +43,13 @@ function registerInlineHandlers(bot) {
             thumb_url: 'https://i.imgur.com/duel-coin.png',
             input_message_content: {
               message_text: targetUsername 
-                ? `🎯 **ДУЭЛЬ МОНЕТОК** 🪙\n\n👤 @${username} вызывает @${targetUsername} на дуэль!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n⚔️ Принимаешь вызов?`
-                : `🎯 **ДУЭЛЬ МОНЕТОК** 🪙\n\n👤 @${username} предлагает дуэль!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n⚔️ Кто готов принять вызов?`,
+                ? `🎯 **ИГРОВАЯ КОМНАТА СОЗДАНА** 🪙\n\n👤 @${username} создал(а) дуэль с @${targetUsername}!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n🚪 Оба игрока должны войти в комнату и подтвердить готовность!`
+                : `🎯 **ИГРОВАЯ КОМНАТА СОЗДАНА** 🪙\n\n👤 @${username} создал(а) открытую дуэль!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n🚪 Любой может войти в комнату и принять вызов!`,
               parse_mode: 'Markdown'
             },
             reply_markup: Markup.inlineKeyboard([
-              [Markup.button.callback('✅ Принять', `pvp_accept_${userId}_${amount}_${targetUsername || ''}`),
-               Markup.button.callback('❌ Отказаться', `pvp_decline_${userId}`)],
+              [Markup.button.callback('🚪 Войти в комнату', `pvp_join_${userId}_${amount}_${targetUsername || ''}`)],
+              [Markup.button.callback('📊 Статус игры', `pvp_room_status_${userId}_${amount}`)]
             ])
           });
         } else if (duelMatch[1] && !amount) {
@@ -66,12 +66,12 @@ function registerInlineHandlers(bot) {
             description: 'Предложить дуэль всем участникам чата',
             thumb_url: 'https://i.imgur.com/duel-coin.png',
             input_message_content: {
-              message_text: `🎯 **ОТКРЫТАЯ ДУЭЛЬ** 🪙\n\n👤 @${username} предлагает дуэль!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n⚔️ Кто готов принять вызов?`,
+              message_text: `🎯 **ОТКРЫТАЯ ИГРОВАЯ КОМНАТА** 🪙\n\n👤 @${username} создал(а) открытую дуэль!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n🚪 Любой может войти в комнату и принять вызов!`,
               parse_mode: 'Markdown'
             },
             reply_markup: Markup.inlineKeyboard([
-              [Markup.button.callback('✅ Принять', `pvp_accept_${userId}_${amount}_`),
-               Markup.button.callback('❌ Отказаться', `pvp_decline_${userId}`)]
+              [Markup.button.callback('🚪 Войти в комнату', `pvp_join_${userId}_${amount}_`)],
+              [Markup.button.callback('📊 Статус игры', `pvp_room_status_${userId}_${amount}`)]
             ])
           });
         }
@@ -166,12 +166,12 @@ function generateDuelAmountOptions(challengerId, challengerUsername, targetUsern
     description: `Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (комиссия 5%)`,
     thumb_url: 'https://i.imgur.com/coin-stack.png',
     input_message_content: {
-      message_text: `🎯 **ДУЭЛЬ МОНЕТОК** 🪙\n\n👤 @${challengerUsername} вызывает @${targetUsername} на дуэль!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n⚔️ Принимаешь вызов?`,
+      message_text: `🎯 **ИГРОВАЯ КОМНАТА СОЗДАНА** 🪙\n\n👤 @${challengerUsername} создал(а) дуэль с @${targetUsername}!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n🚪 Оба игрока должны войти в комнату и подтвердить готовность!`,
       parse_mode: 'Markdown'
     },
     reply_markup: Markup.inlineKeyboard([
-      [Markup.button.callback('✅ Принять', `pvp_accept_${challengerId}_${amount}_${targetUsername}`),
-       Markup.button.callback('❌ Отказаться', `pvp_decline_${challengerId}`)]
+      [Markup.button.callback('🚪 Войти в комнату', `pvp_join_${challengerId}_${amount}_${targetUsername}`)],
+      [Markup.button.callback('📊 Статус игры', `pvp_room_status_${challengerId}_${amount}`)]
     ])
   }));
 }

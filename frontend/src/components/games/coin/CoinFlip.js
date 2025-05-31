@@ -13,7 +13,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       const coin = coinRef.current;
       if (!coin) return;
       
-      console.log('🪙 АНИМАЦИЯ: Начинаем простую анимацию, результат:', result);
+      console.log('🪙 АНИМАЦИЯ: Начинаем анимацию, результат:', result);
       
       setAnimationPhase('flipping');
       setShowResult(false);
@@ -31,11 +31,15 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       // Фаза приземления (через 2.5 секунды - когда заканчивается анимация)
       setTimeout(() => {
         setAnimationPhase('landing');
+        
         // Убираем анимацию вращения
         coin.classList.remove('flipping');
-        // Устанавливаем финальную позицию ПРАВИЛЬНО
+        
+        // Устанавливаем финальную позицию в зависимости от результата
         coin.classList.add('final-result', result);
+        
         console.log('🪙 АНИМАЦИЯ: Приземление на', result);
+        console.log('🪙 АНИМАЦИЯ: Классы монеты:', coin.className);
       }, 2500);
       
       // Показываем результат (через 3 секунды)
@@ -82,7 +86,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       {/* Основная монета */}
       <div className="coin-wrapper">
         <div className="coin" ref={coinRef}>
-          {/* Сторона "Орёл" */}
+          {/* Сторона "Орёл" - лицевая (0 градусов) */}
           <div className="coin-side heads">
             <div className="coin-face">
               <div className="coin-inner-ring">
@@ -99,7 +103,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
             </div>
           </div>
           
-          {/* Сторона "Решка" */}
+          {/* Сторона "Решка" - обратная (180 градусов) */}
           <div className="coin-side tails">
             <div className="coin-face">
               <div className="coin-inner-ring">

@@ -16,7 +16,6 @@ const CoinGame = ({
   const [isFlipping, setIsFlipping] = useState(false);
   const [result, setResult] = useState(null);
   const [lastResults, setLastResults] = useState([]);
-  const [gameCount, setGameCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [gameResultData, setGameResultData] = useState(null); // Сохраняем данные игры
   
@@ -27,7 +26,6 @@ const CoinGame = ({
         
         // Загружаем сохраненную историю из localStorage
         const savedResults = localStorage.getItem('coinGameResults');
-        const savedCount = localStorage.getItem('coinGameCount');
         
         if (savedResults) {
           try {
@@ -36,16 +34,6 @@ const CoinGame = ({
           } catch (e) {
             console.error('Ошибка загрузки истории:', e);
             setLastResults([]);
-          }
-        }
-        
-        if (savedCount) {
-          try {
-            const parsedCount = parseInt(savedCount, 10);
-            setGameCount(parsedCount);
-          } catch (e) {
-            console.error('Ошибка загрузки счетчика:', e);
-            setGameCount(0);
           }
         }
         
@@ -65,36 +53,16 @@ const CoinGame = ({
     initializeGame();
   }, [setError]);
   
-  // Функция очистки истории каждые 8 игр
-  const manageHistory = (newResult, newCount) => {
+  // Функция для управления историей - УБРАНА ОЧИСТКА
+  const manageHistory = (newResult) => {
     let updatedResults = [...lastResults, newResult];
-    let updatedCount = newCount;
     
-    // Очищаем историю каждые 8 игр
-    if (updatedCount % 8 === 0 && updatedCount > 0) {
-      console.log('🧹 МОНЕТКА: Очищаем историю после 8 игр');
-      updatedResults = []; // Полная очистка истории
-      
-      // Показываем уведомление об очистке
-      setGameResult({
-        win: null,
-        amount: 0,
-        newBalance: balance,
-        historyCleaned: true
-      });
-      
-      // Убираем уведомление через 3 секунды
-      setTimeout(() => {
-        setGameResult(null);
-      }, 3000);
-    }
+    // УБРАНО: Логика очистки истории каждые 8 игр
     
     // Сохраняем в localStorage
     localStorage.setItem('coinGameResults', JSON.stringify(updatedResults));
-    localStorage.setItem('coinGameCount', updatedCount.toString());
     
     setLastResults(updatedResults);
-    setGameCount(updatedCount);
   };
   
   // Обработчик игры
@@ -120,17 +88,14 @@ const CoinGame = ({
       const gameData = response.data.data;
       console.log('🪙 МОНЕТКА: Результат с сервера:', gameData);
       
-      // ИСПРАВЛЕНИЕ: Сохраняем данные игры, но не показываем результат сразу
+      // Сохраняем данные игры, но не показываем результат сразу
       setGameResultData(gameData);
       
       // Устанавливаем результат для анимации
       setResult(gameData.result);
       
-      // Обновляем счетчик игр
-      const newGameCount = gameCount + 1;
-      
-      // Управляем историей
-      manageHistory(gameData.result, newGameCount);
+      // Управляем историей - УБРАНА ОЧИСТКА
+      manageHistory(gameData.result);
       
       // Обновляем баланс
       if (gameData.balanceAfter !== undefined) {
@@ -147,14 +112,14 @@ const CoinGame = ({
     }
   };
   
-  // ИСПРАВЛЕНИЕ: Обработчик завершения анимации
+  // Обработчик завершения анимации
   const handleAnimationEnd = () => {
     console.log('🪙 МОНЕТКА: Анимация завершена');
     setIsFlipping(false);
     setLoading(false);
     
-    // ТЕПЕРЬ показываем результат игры
-    if (gameResultData && gameCount % 8 !== 0) {
+    // Показываем результат игры
+    if (gameResultData) {
       console.log('🪙 МОНЕТКА: Показываем результат:', gameResultData);
       setGameResult({
         win: gameResultData.win,
@@ -220,21 +185,10 @@ const CoinGame = ({
           onAnimationEnd={handleAnimationEnd}
         />
         
-        {/* История результатов с индикатором очистки */}
+        {/* История результатов - УБРАНО ОТОБРАЖЕНИЕ СЧЕТЧИКА ОЧИСТКИ */}
         <div className="results-section">
           <div className="results-header">
             <h3>Последние результаты</h3>
-            <div className="games-counter">
-              <span className="counter-text">
-                {gameCount % 8}/8
-              </span>
-              <div className="counter-progress">
-                <div 
-                  className="counter-fill"
-                  style={{ width: `${(gameCount % 8) * 12.5}%` }}
-                ></div>
-              </div>
-            </div>
           </div>
           
           <div className="results-container">
@@ -259,12 +213,6 @@ const CoinGame = ({
               </div>
             )}
           </div>
-          
-          {gameCount > 0 && gameCount % 8 !== 0 && (
-            <div className="next-clear-info">
-              История очистится через {8 - (gameCount % 8)} игр
-            </div>
-          )}
         </div>
       </div>
       

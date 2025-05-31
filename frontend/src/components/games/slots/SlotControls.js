@@ -30,7 +30,7 @@ const SlotControls = ({
   
   // Рассчитываем максимальный возможный выигрыш
   useEffect(() => {
-    const jackpotMultiplier = 100; // Максимальный множитель для jackpot
+    const jackpotMultiplier = 50; // ИСПРАВЛЕНО: было 100, стало 50 (урезано в 2 раза)
     setMaxWin(betAmount * jackpotMultiplier);
   }, [betAmount]);
   
@@ -102,16 +102,16 @@ const SlotControls = ({
     }
   };
   
-  // Символы с эмодзи fallback
+  // ИСПРАВЛЕННЫЕ КОЭФФИЦИЕНТЫ (урезаны в 2 раза)
   const slotSymbols = [
-    { symbol: 'cherry', payout: 4, threeInRow: 2, emoji: '🍒' },
-    { symbol: 'lemon', payout: 6, threeInRow: 3, emoji: '🍋' },
-    { symbol: 'persik', payout: 8, threeInRow: 4, emoji: '🍑' },
-    { symbol: 'grape', payout: 12, threeInRow: 6, emoji: '🍇' },
-    { symbol: 'bell', payout: 18, threeInRow: 9, emoji: '🔔' },
-    { symbol: 'diamond', payout: 30, threeInRow: 15, emoji: '💎' },
-    { symbol: 'star', payout: 50, threeInRow: 25, emoji: '⭐' },
-    { symbol: 'jackpot', payout: 100, threeInRow: 50, emoji: '🎰' }
+    { symbol: 'cherry', payout: 2, threeInRow: 1, emoji: '🍒' },        // было 4→2, было 2→1
+    { symbol: 'lemon', payout: 3, threeInRow: 1.5, emoji: '🍋' },      // было 6→3, было 3→1.5
+    { symbol: 'persik', payout: 4, threeInRow: 2, emoji: '🍑' },       // было 8→4, было 4→2
+    { symbol: 'grape', payout: 6, threeInRow: 3, emoji: '🍇' },        // было 12→6, было 6→3
+    { symbol: 'bell', payout: 9, threeInRow: 4.5, emoji: '🔔' },       // было 18→9, было 9→4.5
+    { symbol: 'diamond', payout: 15, threeInRow: 7.5, emoji: '💎' },   // было 30→15, было 15→7.5
+    { symbol: 'star', payout: 25, threeInRow: 12.5, emoji: '⭐' },     // было 50→25, было 25→12.5
+    { symbol: 'jackpot', payout: 50, threeInRow: 25, emoji: '🎰' }     // было 100→50, было 50→25
   ];
   
   return (
@@ -232,16 +232,16 @@ const SlotControls = ({
         )}
       </div>
       
-      {/* Таблица выплат с эмодзи */}
+      {/* Таблица выплат с обновленными коэффициентами */}
       <div className="payout-table">
         <h4>Таблица выплат</h4>
         <div className="payout-rules">
           <div className="payout-rule">
-            <span className="rule-text">3 в ряд</span>
+            <span className="rule-text">3 в ряд (горизонталь/диагональ)</span>
             <span className="rule-multiplier">×(половина коэффициента)</span>
           </div>
           <div className="payout-rule">
-            <span className="rule-text">4 в ряд</span>
+            <span className="rule-text">4 в ряд (горизонталь/диагональ)</span>
             <span className="rule-multiplier">×(полный коэффициент)</span>
           </div>
         </div>
@@ -254,7 +254,11 @@ const SlotControls = ({
           ))}
         </div>
         <div className="payout-note">
+          * Выигрышные линии: горизонтальные (строки) и диагональные
+          <br />
           * Первое число - выигрыш за 4 в ряд, второе - за 3 в ряд
+          <br />
+          * Коэффициенты урезаны для более сбалансированной игры
         </div>
       </div>
       

@@ -86,7 +86,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
         </div>
       </button>
       
-      {/* Выбор стороны */}
+      {/* Выбор стороны - ИСПРАВЛЕНО: добавлена правильная иконка для решки */}
       <div className="side-selection">
         <h3 className="selection-title">Выберите сторону</h3>
         <div className="side-options">

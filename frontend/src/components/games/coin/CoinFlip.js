@@ -13,26 +13,27 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       const coin = coinRef.current;
       if (!coin) return;
       
-      console.log('🪙 АНИМАЦИЯ: Начинаем анимацию, результат:', result);
+      console.log('🪙 АНИМАЦИЯ: Начинаем простую анимацию, результат:', result);
       
       setAnimationPhase('flipping');
       setShowResult(false);
-      setFinalResult(result); // Сохраняем финальный результат
+      setFinalResult(result);
       
-      // ИСПРАВЛЕНО: Полностью сбрасываем все классы
+      // Полностью сбрасываем все классы
       coin.className = 'coin';
-      coin.classList.remove('flipping', 'final-result', 'heads', 'tails');
       
       // Небольшая задержка для сброса состояния
       setTimeout(() => {
+        // Начинаем анимацию вращения
         coin.classList.add('flipping');
       }, 50);
       
-      // Фаза приземления (через 2.5 секунды)
+      // Фаза приземления (через 2.5 секунды - когда заканчивается анимация)
       setTimeout(() => {
         setAnimationPhase('landing');
+        // Убираем анимацию вращения
         coin.classList.remove('flipping');
-        // ИСПРАВЛЕНО: Устанавливаем финальную сторону правильно
+        // Устанавливаем финальную позицию
         coin.classList.add('final-result', result);
         console.log('🪙 АНИМАЦИЯ: Приземление на', result);
       }, 2500);
@@ -44,10 +45,9 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         console.log('🪙 АНИМАЦИЯ: Показываем результат');
       }, 3000);
       
-      // Вызываем callback после завершения анимации (через 4 секунды)
+      // Завершаем анимацию (через 4 секунды)
       setTimeout(() => {
         setAnimationPhase('idle');
-        // НЕ сбрасываем классы здесь - оставляем финальный результат видимым
         if (onAnimationEnd) {
           onAnimationEnd();
         }
@@ -59,7 +59,6 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       const coin = coinRef.current;
       if (coin) {
         coin.className = 'coin';
-        coin.classList.remove('flipping', 'final-result', 'heads', 'tails');
         setShowResult(false);
         setAnimationPhase('idle');
         setFinalResult(null);

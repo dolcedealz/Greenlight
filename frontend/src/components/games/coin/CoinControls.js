@@ -65,6 +65,27 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
 
   return (
     <div className="coin-controls">
+      {/* КНОПКА ИГРЫ ПЕРЕМЕЩЕНА ВВЕРХ */}
+      <button 
+        className="flip-button" 
+        onClick={handleFlipClick}
+        disabled={isFlipping || betAmount <= 0 || betAmount > balance}
+      >
+        <div className="button-content">
+          {isFlipping ? (
+            <>
+              <div className="button-spinner"></div>
+              <span>Подбрасываем...</span>
+            </>
+          ) : (
+            <>
+              <span className="button-icon">🪙</span>
+              <span>Подбросить монету</span>
+            </>
+          )}
+        </div>
+      </button>
+      
       {/* Выбор стороны */}
       <div className="side-selection">
         <h3 className="selection-title">Выберите сторону</h3>
@@ -168,27 +189,6 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
             </button>
           </div>
         </div>
-        
-        {/* Кнопка игры */}
-        <button 
-          className="flip-button" 
-          onClick={handleFlipClick}
-          disabled={isFlipping || betAmount <= 0 || betAmount > balance}
-        >
-          <div className="button-content">
-            {isFlipping ? (
-              <>
-                <div className="button-spinner"></div>
-                <span>Подбрасываем...</span>
-              </>
-            ) : (
-              <>
-                <span className="button-icon">🪙</span>
-                <span>Подбросить монету</span>
-              </>
-            )}
-          </div>
-        </button>
       </div>
     </div>
   );

@@ -19,8 +19,9 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       setShowResult(false);
       setFinalResult(result); // Сохраняем финальный результат
       
-      // Сбрасываем классы и добавляем анимацию
-      coin.classList.remove('heads', 'tails', 'flipping');
+      // ИСПРАВЛЕНО: Полностью сбрасываем все классы
+      coin.className = 'coin';
+      
       // Небольшая задержка для сброса состояния
       setTimeout(() => {
         coin.classList.add('flipping');
@@ -30,8 +31,8 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       setTimeout(() => {
         setAnimationPhase('landing');
         coin.classList.remove('flipping');
-        // Устанавливаем финальную сторону
-        coin.classList.add(result === 'heads' ? 'heads' : 'tails');
+        // ИСПРАВЛЕНО: Устанавливаем финальную сторону
+        coin.classList.add(result);
         console.log('🪙 АНИМАЦИЯ: Приземление на', result);
       }, 2500);
       
@@ -55,7 +56,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       // Сбрасываем состояние, если не в режиме флипа
       const coin = coinRef.current;
       if (coin) {
-        coin.classList.remove('flipping', 'heads', 'tails');
+        coin.className = 'coin';
         setShowResult(false);
         setAnimationPhase('idle');
         setFinalResult(null);
@@ -96,7 +97,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
             </div>
           </div>
           
-          {/* Сторона "Решка" - ИСПРАВЛЕНО: добавлен уникальный дизайн */}
+          {/* Сторона "Решка" */}
           <div className="coin-side tails">
             <div className="coin-face">
               <div className="coin-inner-ring">

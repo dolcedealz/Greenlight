@@ -1,4 +1,4 @@
-/* frontend/src/styles/CrashControls.css */
+/* frontend/src/styles/CrashControls.css - ПОЛНАЯ УЛУЧШЕННАЯ ВЕРСИЯ */
 .crash-controls {
     background-color: var(--card-background);
     border-radius: var(--border-radius);
@@ -40,7 +40,7 @@
     align-items: center;
   }
   
-  /* Стили для тумблера автовывода */
+  /* УЛУЧШЕННЫЕ стили для тумблера автовывода */
   .auto-toggle {
     display: flex;
     align-items: center;
@@ -48,6 +48,11 @@
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .auto-toggle:hover {
+    transform: scale(1.02);
   }
   
   .auto-toggle input[type="checkbox"] {
@@ -56,12 +61,13 @@
   
   .toggle-slider {
     position: relative;
-    width: 44px;
-    height: 22px;
+    width: 48px;
+    height: 24px;
     background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 11px;
+    border-radius: 12px;
     transition: all 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
   }
   
   .toggle-slider::before {
@@ -69,22 +75,41 @@
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     background-color: white;
     border-radius: 50%;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   }
   
+  /* НОВЫЕ стили для включенного автовывода */
   .auto-toggle input[type="checkbox"]:checked + .toggle-slider {
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color) 0%, #4ade80 100%);
     border-color: var(--primary-color);
-    box-shadow: 0 0 10px rgba(11, 168, 74, 0.4);
+    box-shadow: 
+      inset 0 2px 4px rgba(0, 0, 0, 0.2),
+      0 0 15px rgba(11, 168, 74, 0.4);
+    animation: toggleGlow 2s ease-in-out infinite;
+  }
+  
+  @keyframes toggleGlow {
+    0%, 100% {
+      box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        0 0 15px rgba(11, 168, 74, 0.4);
+    }
+    50% {
+      box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(11, 168, 74, 0.6);
+    }
   }
   
   .auto-toggle input[type="checkbox"]:checked + .toggle-slider::before {
-    transform: translateX(22px);
+    transform: translateX(24px);
+    background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   }
   
   .auto-toggle input[type="checkbox"]:disabled + .toggle-slider {
@@ -95,18 +120,19 @@
   .toggle-label {
     color: var(--text-color);
     transition: color 0.3s ease;
+    font-weight: 500;
   }
   
   .auto-toggle input[type="checkbox"]:checked ~ .toggle-label {
     color: var(--primary-color);
-    font-weight: 600;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(11, 168, 74, 0.3);
   }
   
   .panel-title {
     font-size: 16px;
     font-weight: 600;
     color: var(--primary-color);
-    /* Анимация для заголовков быстрой игры */
     animation: panelTitleGlow 2s ease-in-out infinite;
   }
   
@@ -119,16 +145,73 @@
     }
   }
   
-  .balance-info,
-  .potential-win {
+  .balance-info {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
   }
   
+  /* УЛУЧШЕННЫЕ стили для статуса потенциального выигрыша */
   .potential-win {
-    color: var(--primary-color);
+    font-size: 12px;
     font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    text-align: center;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Разные стили для разных состояний автовывода */
+  .potential-win:has-text("При") {
+    background: linear-gradient(135deg, rgba(11, 168, 74, 0.15) 0%, rgba(74, 222, 128, 0.15) 100%);
+    border: 1px solid rgba(11, 168, 74, 0.3);
+    color: var(--primary-color);
+  }
+  
+  .potential-win:has-text("Автовыведено") {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(74, 222, 128, 0.2) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    color: #22c55e;
+    animation: successPulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes successPulse {
+    0%, 100% {
+      border-color: rgba(34, 197, 94, 0.5);
+      box-shadow: 0 0 5px rgba(34, 197, 94, 0.3);
+    }
+    50% {
+      border-color: rgba(34, 197, 94, 0.8);
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+    }
+  }
+  
+  .potential-win:has-text("Скоро") {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 149, 0, 0.2) 100%);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+    color: #ffc107;
+    animation: warningPulse 0.8s ease-in-out infinite;
+  }
+  
+  @keyframes warningPulse {
+    0%, 100% {
+      border-color: rgba(255, 193, 7, 0.5);
+      box-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
+    }
+    50% {
+      border-color: rgba(255, 149, 0, 0.8);
+      box-shadow: 0 0 15px rgba(255, 149, 0, 0.5);
+    }
+  }
+  
+  .potential-win:has-text("Ручной режим") {
+    background: linear-gradient(135deg, rgba(156, 163, 175, 0.15) 0%, rgba(107, 114, 128, 0.15) 100%);
+    border: 1px solid rgba(156, 163, 175, 0.3);
+    color: #9ca3af;
   }
   
   .input-group {
@@ -154,10 +237,9 @@
   .multiplier-input:focus {
     border-color: var(--primary-color);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(11, 168, 74, 0.2);
+    box-shadow: 0 0 0 3px rgba(11, 168, 74, 0.2);
     background-color: rgba(255, 255, 255, 0.15);
-    /* Более яркое свечение для быстрой игры */
-    box-shadow: 0 0 0 2px rgba(11, 168, 74, 0.4), 0 0 10px rgba(11, 168, 74, 0.2);
+    transform: scale(1.02);
   }
   
   .amount-input:disabled,
@@ -191,6 +273,16 @@
   .manual-mode {
     color: #FFA500;
     font-weight: 600;
+    animation: manualModeFlash 2s ease-in-out infinite;
+  }
+  
+  @keyframes manualModeFlash {
+    0%, 100% {
+      opacity: 0.8;
+    }
+    50% {
+      opacity: 1;
+    }
   }
   
   .quick-buttons {
@@ -215,7 +307,6 @@
     background-color: rgba(255, 255, 255, 0.2);
     border-color: var(--primary-color);
     transform: translateY(-2px);
-    /* Быстрая анимация для ускоренной игры */
     box-shadow: 0 4px 8px rgba(11, 168, 74, 0.2);
   }
   
@@ -224,156 +315,32 @@
     cursor: not-allowed;
   }
   
-  /* Основная кнопка действия - УСКОРЕННАЯ */
-  .main-action-btn {
-    width: 100%;
-    padding: 16px 20px;
-    border: none;
-    border-radius: 12px;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s ease; /* Быстрее transition */
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 15px;
-    /* Добавляем базовое свечение */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-  
-  .main-action-btn.bet {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #0c9740 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(11, 168, 74, 0.4);
-    /* Пульсация для быстрой игры */
-    animation: betButtonPulse 1.5s ease-in-out infinite;
-  }
-  
-  @keyframes betButtonPulse {
-    0%, 100% {
-      box-shadow: 0 4px 15px rgba(11, 168, 74, 0.4);
-      transform: scale(1);
-    }
-    50% {
-      box-shadow: 0 6px 20px rgba(11, 168, 74, 0.6);
-      transform: scale(1.02);
-    }
-  }
-  
-  .main-action-btn.bet:hover:not(:disabled) {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(11, 168, 74, 0.5);
-  }
-  
-  .main-action-btn.cashout {
-    background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%);
-    color: #000;
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
-    /* Быстрая пульсация для кешаута */
-    animation: cashoutPulseFast 0.8s ease-in-out infinite;
-  }
-  
-  @keyframes cashoutPulseFast {
-    0%, 100% {
-      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
-      transform: scale(1);
-    }
-    50% {
-      box-shadow: 0 6px 25px rgba(255, 193, 7, 0.7);
-      transform: scale(1.03);
-    }
-  }
-  
-  .main-action-btn.cashout:hover:not(:disabled) {
-    transform: translateY(-3px) scale(1.03);
-    box-shadow: 0 8px 30px rgba(255, 193, 7, 0.6);
-  }
-  
-  /* НОВОЕ: Стиль для приближения к автовыводу */
-  .main-action-btn.approaching-auto {
-    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
-    animation: approachingAutoPulse 0.5s ease-in-out infinite;
-  }
-  
-  @keyframes approachingAutoPulse {
-    0%, 100% {
-      box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
-      transform: scale(1);
-    }
-    50% {
-      box-shadow: 0 6px 25px rgba(255, 107, 53, 0.8);
-      transform: scale(1.02);
-    }
-  }
-  
-  .main-action-btn.placed {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    color: white;
-    animation: placedButtonGlow 2s ease-in-out infinite;
-  }
-  
-  @keyframes placedButtonGlow {
-    0%, 100% {
-      box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
-    }
-    50% {
-      box-shadow: 0 4px 12px rgba(108, 117, 125, 0.5);
-    }
-  }
-  
-  .main-action-btn.won {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    animation: wonButtonCelebration 1s ease-in-out infinite;
-  }
-  
-  @keyframes wonButtonCelebration {
-    0%, 100% {
-      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.5);
-      transform: scale(1);
-    }
-    50% {
-      box-shadow: 0 6px 20px rgba(40, 167, 69, 0.7);
-      transform: scale(1.02);
-    }
-  }
-  
-  .main-action-btn.lost {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
-    animation: lostButtonShake 0.5s ease-in-out;
-  }
-  
-  @keyframes lostButtonShake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-2px); }
-    75% { transform: translateX(2px); }
-  }
-  
-  .main-action-btn.loading,
-  .main-action-btn.disabled,
-  .main-action-btn.waiting {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    color: rgba(255, 255, 255, 0.8);
-    cursor: not-allowed;
-    animation: none;
-  }
-  
-  .main-action-btn:disabled {
-    transform: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Информация о текущей ставке - УЛУЧШЕННАЯ */
+  /* УЛУЧШЕННАЯ информация о текущей ставке */
   .current-bet-info {
     margin-bottom: 15px;
-    padding: 12px;
+    padding: 15px;
     background: linear-gradient(135deg, rgba(11, 168, 74, 0.1) 0%, rgba(52, 199, 89, 0.1) 100%);
     border: 1px solid rgba(11, 168, 74, 0.3);
-    border-radius: 8px;
+    border-radius: 12px;
     animation: betInfoGlow 2s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* НОВЫЙ эффект для фона карточки ставки */
+  .current-bet-info::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+  }
+  
+  .current-bet-info:hover::before {
+    left: 100%;
   }
   
   @keyframes betInfoGlow {
@@ -391,7 +358,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
   }
   
   .bet-info-row:last-child {
@@ -405,32 +374,52 @@
   }
   
   .bet-amount,
-  .current-win,
-  .auto-cashout {
+  .current-win {
     font-weight: bold;
     color: var(--primary-color);
     font-size: 14px;
+    text-shadow: 0 0 10px rgba(11, 168, 74, 0.3);
   }
   
-  /* НОВОЕ: Стиль для приближающегося автовывода */
+  /* УЛУЧШЕННЫЕ стили для автовывода */
+  .auto-cashout {
+    font-weight: bold;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+  
+  /* НОВЫЕ стили для приближающегося автовывода */
   .auto-cashout.approaching {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.2) 0%, rgba(247, 147, 30, 0.2) 100%);
+    border: 1px solid rgba(255, 107, 53, 0.5);
     color: #ff6b35;
     animation: approachingAutoCashout 0.6s ease-in-out infinite;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
   }
   
   @keyframes approachingAutoCashout {
     0%, 100% {
       color: #ff6b35;
-      text-shadow: 0 0 5px rgba(255, 107, 53, 0.5);
+      text-shadow: 0 0 8px rgba(255, 107, 53, 0.5);
+      border-color: rgba(255, 107, 53, 0.5);
     }
     50% {
       color: #f7931e;
-      text-shadow: 0 0 10px rgba(247, 147, 30, 0.8);
+      text-shadow: 0 0 15px rgba(247, 147, 30, 0.8);
+      border-color: rgba(247, 147, 30, 0.8);
     }
   }
   
+  .auto-cashout:not(.approaching) {
+    color: var(--primary-color);
+    background: rgba(11, 168, 74, 0.1);
+    border: 1px solid rgba(11, 168, 74, 0.3);
+  }
+  
   .current-win {
-    /* Быстрая анимация для текущего выигрыша */
     animation: winAmountPulseFast 1s ease-in-out infinite;
   }
   
@@ -445,34 +434,40 @@
     }
   }
   
-  /* Информация о состоянии игры - УСКОРЕННАЯ */
+  /* УЛУЧШЕННАЯ информация о состоянии игры */
   .game-state-info {
     padding: 12px;
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 12px;
+    transition: all 0.3s ease;
+  }
+  
+  .game-state-info:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
   }
   
   .game-state-info:last-child {
     margin-bottom: 0;
   }
   
-  /* НОВОЕ: Специальная информация о приближении автовывода */
+  /* НОВАЯ специальная информация о приближении автовывода */
   .approaching-auto-info {
-    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(247, 147, 30, 0.1) 100%);
-    border-color: rgba(255, 107, 53, 0.4);
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.15) 0%, rgba(247, 147, 30, 0.15) 100%);
+    border: 1px solid rgba(255, 107, 53, 0.4);
     animation: approachingAutoInfo 0.8s ease-in-out infinite;
   }
   
   @keyframes approachingAutoInfo {
     0%, 100% {
       border-color: rgba(255, 107, 53, 0.4);
-      box-shadow: 0 0 5px rgba(255, 107, 53, 0.2);
+      box-shadow: 0 0 8px rgba(255, 107, 53, 0.2);
     }
     50% {
       border-color: rgba(255, 107, 53, 0.7);
-      box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+      box-shadow: 0 0 18px rgba(255, 107, 53, 0.4);
     }
   }
   
@@ -517,7 +512,6 @@
   
   .state-value.flying {
     color: var(--primary-color);
-    /* Быстрая анимация для состояния полета */
     animation: flyingStatePulseFast 0.6s ease-in-out infinite;
   }
   
@@ -532,7 +526,7 @@
     }
   }
   
-  /* НОВОЕ: Стиль для приближающегося автовывода */
+  /* НОВЫЕ стили для приближающегося автовывода */
   .state-value.approaching {
     color: #ff6b35;
     animation: approachingStateFlash 0.5s ease-in-out infinite;
@@ -541,11 +535,11 @@
   @keyframes approachingStateFlash {
     0%, 100% {
       color: #ff6b35;
-      text-shadow: 0 0 5px rgba(255, 107, 53, 0.5);
+      text-shadow: 0 0 8px rgba(255, 107, 53, 0.5);
     }
     50% {
       color: #f7931e;
-      text-shadow: 0 0 15px rgba(247, 147, 30, 0.8);
+      text-shadow: 0 0 18px rgba(247, 147, 30, 0.8);
     }
   }
   
@@ -567,7 +561,6 @@
     font-weight: bold;
     font-size: 16px;
     color: var(--primary-color);
-    /* Очень быстрая анимация множителя */
     animation: multiplierGlowFast 0.8s ease-in-out infinite;
   }
   
@@ -581,6 +574,79 @@
       color: #4ade80;
       text-shadow: 0 0 15px rgba(11, 168, 74, 0.8);
       transform: scale(1.05);
+    }
+  }
+  
+  /* НОВЫЕ утилитарные классы для специальных состояний */
+  .control-panel.bet-placed {
+    border-color: rgba(11, 168, 74, 0.4);
+    background: linear-gradient(135deg, rgba(11, 168, 74, 0.05) 0%, rgba(52, 199, 89, 0.05) 100%);
+  }
+  
+  .control-panel.auto-enabled {
+    border-color: rgba(255, 193, 7, 0.4);
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 149, 0, 0.05) 100%);
+  }
+  
+  .control-panel.critical-moment {
+    border-color: rgba(255, 107, 53, 0.6);
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(247, 147, 30, 0.1) 100%);
+    animation: criticalPanelGlow 0.5s ease-in-out infinite;
+  }
+  
+  @keyframes criticalPanelGlow {
+    0%, 100% {
+      border-color: rgba(255, 107, 53, 0.6);
+      box-shadow: 0 0 10px rgba(255, 107, 53, 0.2);
+    }
+    50% {
+      border-color: rgba(255, 107, 53, 0.9);
+      box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+    }
+  }
+  
+  /* НОВЫЕ стили для индикаторов успеха и ошибок */
+  .success-indicator {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(74, 222, 128, 0.15) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: #22c55e;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    animation: successIndicatorPulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes successIndicatorPulse {
+    0%, 100% {
+      border-color: rgba(34, 197, 94, 0.4);
+      box-shadow: 0 0 5px rgba(34, 197, 94, 0.2);
+    }
+    50% {
+      border-color: rgba(34, 197, 94, 0.7);
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
+    }
+  }
+  
+  .error-indicator {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    animation: errorIndicatorFlash 1s ease-in-out 3;
+  }
+  
+  @keyframes errorIndicatorFlash {
+    0%, 100% {
+      border-color: rgba(239, 68, 68, 0.4);
+      opacity: 1;
+    }
+    50% {
+      border-color: rgba(220, 38, 38, 0.7);
+      opacity: 0.7;
     }
   }
   
@@ -600,9 +666,27 @@
       gap: 8px;
     }
     
-    .main-action-btn {
-      padding: 14px 18px;
-      font-size: 16px;
+    .toggle-slider {
+      width: 44px;
+      height: 22px;
+    }
+    
+    .toggle-slider::before {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .auto-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
+    
+    .current-bet-info {
+      padding: 12px;
+    }
+    
+    .potential-win {
+      font-size: 11px;
+      padding: 3px 6px;
     }
   }
   
@@ -621,27 +705,132 @@
       padding: 10px 40px 10px 10px;
     }
     
-    .main-action-btn {
-      padding: 12px 16px;
-      font-size: 15px;
+    .potential-win {
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+    
+    .toggle-slider {
+      width: 40px;
+      height: 20px;
+    }
+    
+    .toggle-slider::before {
+      width: 14px;
+      height: 14px;
+    }
+    
+    .auto-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+      transform: translateX(18px);
+    }
+    
+    .quick-buttons {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    
+    .quick-btn {
+      padding: 6px 8px;
+      font-size: 11px;
+    }
+    
+    .bet-info-row {
+      margin-bottom: 6px;
     }
   }
   
   /* Эффекты для пользователей с предпочтением уменьшенного движения */
   @media (prefers-reduced-motion: reduce) {
     .crash-controls *,
-    .main-action-btn,
+    .auto-toggle,
+    .potential-win,
     .current-bet-info,
     .auto-cashout,
     .current-win,
     .multiplier-value,
     .state-value,
-    .game-state-info {
+    .game-state-info,
+    .control-panel,
+    .success-indicator,
+    .error-indicator {
       animation: none !important;
     }
     
-    .main-action-btn:hover,
-    .quick-btn:hover {
+    .auto-toggle:hover,
+    .quick-btn:hover,
+    .current-bet-info::before,
+    .control-panel:hover {
       transform: none !important;
     }
+  }
+  
+  /* Высокий контраст для пользователей с нарушениями зрения */
+  @media (prefers-contrast: high) {
+    .control-panel {
+      border-width: 2px;
+      border-color: var(--primary-color);
+    }
+    
+    .current-bet-info {
+      border-width: 2px;
+    }
+    
+    .auto-cashout.approaching {
+      border-width: 2px;
+    }
+    
+    .toggle-slider {
+      border-width: 2px;
+    }
+    
+    .amount-input,
+    .multiplier-input {
+      border-width: 2px;
+    }
+    
+    .quick-btn {
+      border-width: 2px;
+    }
+  }
+  
+  /* Темная тема */
+  @media (prefers-color-scheme: dark) {
+    .control-panel {
+      background-color: rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .current-bet-info {
+      background: linear-gradient(135deg, rgba(11, 168, 74, 0.15) 0%, rgba(52, 199, 89, 0.15) 100%);
+    }
+    
+    .game-state-info {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+  }
+  
+  /* Финальные оптимизации производительности */
+  .crash-controls {
+    contain: layout style paint;
+    will-change: auto;
+  }
+  
+  .current-bet-info,
+  .control-panel {
+    contain: layout style;
+  }
+  
+  .toggle-slider,
+  .quick-btn,
+  .amount-input,
+  .multiplier-input {
+    will-change: transform, box-shadow;
+  }
+  
+  /* Сброс will-change после анимаций для экономии памяти */
+  .toggle-slider:not(:hover):not(:focus),
+  .quick-btn:not(:hover):not(:focus),
+  .amount-input:not(:focus),
+  .multiplier-input:not(:focus) {
+    will-change: auto;
   }

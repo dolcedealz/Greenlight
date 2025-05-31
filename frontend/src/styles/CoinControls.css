@@ -1,240 +1,617 @@
 /* frontend/src/styles/CoinControls.css */
 .coin-controls {
-  padding: 20px;
-  background-color: var(--card-background);
-  border-radius: var(--border-radius);
-  margin-top: 20px;
-  box-shadow: var(--shadow);
-}
-
-.side-selection {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.side-option {
-  width: 48%;
-  padding: 15px;
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: linear-gradient(145deg, #1e1e1e 0%, #2a2a2a 100%);
+  border-radius: 20px;
+  padding: 25px 20px;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   position: relative;
+  z-index: 2;
   overflow: hidden;
 }
 
-.side-option:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+.coin-controls::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(11, 168, 74, 0.02) 0%, 
+    transparent 30%, 
+    rgba(255, 215, 0, 0.01) 70%, 
+    transparent 100%);
+  pointer-events: none;
+}
+
+/* Выбор стороны */
+.side-selection {
+  margin-bottom: 25px;
+  position: relative;
+  z-index: 3;
+}
+
+.selection-title {
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--primary-color);
+  font-size: 18px;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(11, 168, 74, 0.3);
+}
+
+.side-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.side-option {
+  position: relative;
+  padding: 20px;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.02) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.side-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.1), 
+    transparent);
+  transition: left 0.6s ease;
+}
+
+.side-option:hover::before {
+  left: 100%;
+}
+
+.side-option:hover:not(.selected) {
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .side-option.selected {
-  background-color: rgba(11, 168, 74, 0.2);
-  border: 1px solid var(--primary-color);
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, 
+    rgba(11, 168, 74, 0.25) 0%, 
+    rgba(11, 168, 74, 0.1) 100%);
+  box-shadow: 
+    0 0 30px rgba(11, 168, 74, 0.4),
+    0 8px 25px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
 }
 
-.side-option.selected::after {
-  content: '✓';
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  color: var(--primary-color);
-  font-size: 14px;
-  font-weight: bold;
+.side-option.heads.selected {
+  box-shadow: 
+    0 0 30px rgba(255, 215, 0, 0.4),
+    0 8px 25px rgba(0, 0, 0, 0.3);
+  border-color: #ffd700;
+}
+
+.side-option.tails.selected {
+  box-shadow: 
+    0 0 30px rgba(192, 192, 192, 0.4),
+    0 8px 25px rgba(0, 0, 0, 0.3);
+  border-color: #c0c0c0;
+}
+
+.side-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .side-icon {
-  font-size: 30px;
-  margin-bottom: 8px;
+  font-size: 36px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+  transition: all 0.3s ease;
+  z-index: 2;
+  position: relative;
+}
+
+.side-option:hover .side-icon {
+  transform: scale(1.1);
+}
+
+.side-option.selected .side-icon {
+  transform: scale(1.15);
+  animation: selectedPulse 2s ease-in-out infinite;
+}
+
+@keyframes selectedPulse {
+  0%, 100% { transform: scale(1.15); }
+  50% { transform: scale(1.25); }
+}
+
+.side-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle, 
+    rgba(255, 255, 255, 0.2) 0%, 
+    transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.side-option.selected .side-glow {
+  opacity: 1;
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { 
+    transform: translate(-50%, -50%) scale(1); 
+    opacity: 0.3; 
+  }
+  50% { 
+    transform: translate(-50%, -50%) scale(1.2); 
+    opacity: 0.6; 
+  }
+}
+
+.side-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 .side-name {
   font-size: 16px;
   font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.side-odds {
+  font-size: 14px;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.side-option.heads.selected .side-odds {
+  color: #ffd700;
+}
+
+.side-option.tails.selected .side-odds {
+  color: #c0c0c0;
+}
+
+.selection-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  animation: indicatorAppear 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes indicatorAppear {
+  0% { 
+    transform: scale(0) rotate(180deg); 
+    opacity: 0; 
+  }
+  100% { 
+    transform: scale(1) rotate(0deg); 
+    opacity: 1; 
+  }
+}
+
+/* Управление ставкой */
+.bet-control-section {
+  position: relative;
+  z-index: 3;
 }
 
 .bet-control {
-  margin-bottom: 15px;
-}
-
-.bet-control label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.bet-input-container {
-  position: relative;
-}
-
-.bet-control input {
-  width: 100%;
-  padding: 12px;
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: white;
-  font-size: 18px;
-  text-align: center;
-  transition: border-color 0.2s ease;
-}
-
-.bet-control input:focus {
-  border-color: var(--primary-color);
-  outline: none;
-}
-
-.potential-win {
-  display: block;
-  text-align: right;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-top: 5px;
-}
-
-.potential-win strong {
-  color: var(--primary-color);
-}
-
-.quick-bets {
-  display: flex;
-  justify-content: space-between;
   margin-bottom: 20px;
 }
 
-.quick-bets button {
-  width: 23%;
-  padding: 8px 0;
-  background-color: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 4px;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+.bet-label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
 }
 
-.quick-bets button:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+.bet-input-container {
+  margin-bottom: 15px;
 }
 
-.flip-button {
-  width: 100%;
-  padding: 14px;
-  background-color: var(--primary-color);
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.03) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 
+    0 0 20px rgba(11, 168, 74, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.bet-input {
+  flex: 1;
+  padding: 16px 20px;
+  background: transparent;
   border: none;
-  border-radius: 8px;
   color: white;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.bet-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.bet-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.input-currency {
+  padding: 16px 20px;
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(11, 168, 74, 0.1);
+}
+
+.bet-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.05) 0%, 
+    rgba(255, 255, 255, 0.02) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.potential-win, .win-chance {
+  text-align: center;
+}
+
+.info-label {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.info-value {
   font-size: 16px;
   font-weight: bold;
+  color: var(--primary-color);
+  text-shadow: 0 0 10px rgba(11, 168, 74, 0.3);
+}
+
+/* Быстрые ставки */
+.quick-bets {
+  margin-bottom: 25px;
+}
+
+.quick-bets-label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.quick-bets-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.quick-bet-btn {
+  padding: 12px 8px;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
-.flip-button:hover {
-  background-color: #0c9740;
+.quick-bet-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.2), 
+    transparent);
+  transition: left 0.5s ease;
+}
+
+.quick-bet-btn:hover::before {
+  left: 100%;
+}
+
+.quick-bet-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, 
+    rgba(11, 168, 74, 0.3) 0%, 
+    rgba(11, 168, 74, 0.1) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(11, 168, 74, 0.3);
+  box-shadow: 0 5px 15px rgba(11, 168, 74, 0.2);
+}
+
+.quick-bet-btn.max {
+  background: linear-gradient(135deg, 
+    rgba(255, 215, 0, 0.2) 0%, 
+    rgba(255, 215, 0, 0.1) 100%);
+  border-color: rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+}
+
+.quick-bet-btn.max:hover:not(:disabled) {
+  border-color: #ffd700;
+  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+}
+
+.quick-bet-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Кнопка игры */
+.flip-button {
+  width: 100%;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, 
+    var(--primary-color) 0%, 
+    #0c9740 100%);
+  border: none;
+  border-radius: 16px;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 0 20px rgba(11, 168, 74, 0.3),
+    0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.flip-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.3), 
+    transparent);
+  transition: left 0.6s ease;
+}
+
+.flip-button:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.flip-button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 0 30px rgba(11, 168, 74, 0.5),
+    0 12px 35px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, 
+    #0c9740 0%, 
+    var(--primary-color) 100%);
+}
+
+.flip-button:active:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .flip-button:disabled {
-  background-color: #666;
+  background: linear-gradient(135deg, #666 0%, #555 100%);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  opacity: 0.6;
 }
 
-.advanced-options {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.seed-toggle {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
-}
-
-.seed-toggle:hover {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.seed-input {
-  margin-top: 10px;
-}
-
-.seed-input label {
-  display: block;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 5px;
-}
-
-.seed-input input {
-  width: 100%;
-  padding: 10px;
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  color: white;
-  font-size: 14px;
-}
-
-.seed-info {
-  display: block;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 5px;
-}
-
-.last-results {
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.last-results h4 {
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.results-row {
+.button-content {
   display: flex;
-  justify-content: flex-start;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 5px;
-}
-
-.result-indicator {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
   align-items: center;
-  font-size: 14px;
-  font-weight: bold;
+  justify-content: center;
+  gap: 10px;
 }
 
-.result-indicator.heads {
-  background-color: #ffd700;
-  color: #000;
+.button-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
-.result-indicator.tails {
-  background-color: #c0c0c0;
-  color: #000;
+.button-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: buttonSpinnerRotate 1s linear infinite;
+}
+
+@keyframes buttonSpinnerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Адаптивность */
+@media (max-width: 500px) {
+  .coin-controls {
+    padding: 20px 15px;
+    gap: 20px;
+  }
+  
+  .side-options {
+    gap: 12px;
+  }
+  
+  .side-option {
+    padding: 16px;
+    gap: 10px;
+  }
+  
+  .side-icon {
+    font-size: 30px;
+  }
+  
+  .side-name {
+    font-size: 14px;
+  }
+  
+  .side-odds {
+    font-size: 12px;
+  }
+  
+  .bet-input {
+    padding: 14px 16px;
+    font-size: 18px;
+  }
+  
+  .input-currency {
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+  
+  .bet-info {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+  
+  .info-value {
+    font-size: 14px;
+  }
+  
+  .quick-bets-buttons {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  .quick-bet-btn {
+    padding: 10px 6px;
+    font-size: 13px;
+  }
+  
+  .flip-button {
+    padding: 16px 18px;
+    font-size: 16px;
+  }
+  
+  .button-icon {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 380px) {
+  .side-icon {
+    font-size: 26px;
+  }
+  
+  .side-name {
+    font-size: 13px;
+  }
+  
+  .bet-input {
+    font-size: 16px;
+  }
+  
+  .selection-title {
+    font-size: 16px;
+  }
+  
+  .bet-label {
+    font-size: 14px;
+  }
+  
+  .flip-button {
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-option.selected .side-icon,
+  .side-option.selected .side-glow,
+  .selection-indicator,
+  .button-spinner {
+    animation: none;
+  }
+  
+  .side-option,
+  .quick-bet-btn,
+  .flip-button,
+  .input-wrapper {
+    transition: none;
+  }
 }

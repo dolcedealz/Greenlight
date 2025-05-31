@@ -6,39 +6,50 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
   const coinRef = useRef(null);
   const [showResult, setShowResult] = useState(false);
   const [animationPhase, setAnimationPhase] = useState('idle'); // 'idle', 'flipping', 'landing', 'showing'
+  const [finalResult, setFinalResult] = useState(null);
   
   useEffect(() => {
     if (flipping && result !== null) {
       const coin = coinRef.current;
       if (!coin) return;
       
+      console.log('🪙 АНИМАЦИЯ: Начинаем анимацию, результат:', result);
+      
       setAnimationPhase('flipping');
       setShowResult(false);
+      setFinalResult(result); // Сохраняем финальный результат
       
-      // Добавляем класс анимации
-      coin.classList.add('flipping');
-      coin.classList.remove('heads', 'tails');
+      // Сбрасываем классы и добавляем анимацию
+      coin.classList.remove('heads', 'tails', 'flipping');
+      // Небольшая задержка для сброса состояния
+      setTimeout(() => {
+        coin.classList.add('flipping');
+      }, 50);
       
-      // Фаза приземления (через 2 секунды)
+      // Фаза приземления (через 2.5 секунды)
       setTimeout(() => {
         setAnimationPhase('landing');
         coin.classList.remove('flipping');
+        // Устанавливаем финальную сторону
         coin.classList.add(result === 'heads' ? 'heads' : 'tails');
-      }, 2000);
+        console.log('🪙 АНИМАЦИЯ: Приземление на', result);
+      }, 2500);
       
-      // Показываем результат (через 2.5 секунды)
+      // Показываем результат (через 3 секунды)
       setTimeout(() => {
         setAnimationPhase('showing');
         setShowResult(true);
-      }, 2500);
+        console.log('🪙 АНИМАЦИЯ: Показываем результат');
+      }, 3000);
       
-      // Вызываем callback после завершения анимации (через 3 секунды)
+      // Вызываем callback после завершения анимации (через 4 секунды)
       setTimeout(() => {
         setAnimationPhase('idle');
         if (onAnimationEnd) {
           onAnimationEnd();
         }
-      }, 3000);
+        console.log('🪙 АНИМАЦИЯ: Завершено');
+      }, 4000);
       
     } else if (!flipping) {
       // Сбрасываем состояние, если не в режиме флипа
@@ -47,6 +58,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         coin.classList.remove('flipping', 'heads', 'tails');
         setShowResult(false);
         setAnimationPhase('idle');
+        setFinalResult(null);
       }
     }
   }, [flipping, result, onAnimationEnd]);
@@ -115,14 +127,14 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         </div>
       )}
       
-      {/* Результат */}
-      {showResult && result && (
-        <div className={`coin-result ${result}`}>
+      {/* Результат - показываем только после завершения анимации */}
+      {showResult && finalResult && (
+        <div className={`coin-result ${finalResult}`}>
           <div className="result-icon">
-            {result === 'heads' ? '₿' : '💎'}
+            {finalResult === 'heads' ? '₿' : '💎'}
           </div>
           <div className="result-text">
-            {result === 'heads' ? 'ОРЁЛ!' : 'РЕШКА!'}
+            {finalResult === 'heads' ? 'ОРЁЛ!' : 'РЕШКА!'}
           </div>
           <div className="result-celebration">
             <div className="celebration-particle"></div>

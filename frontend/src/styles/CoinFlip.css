@@ -118,59 +118,34 @@
   height: 160px;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.5s ease;
+  transition: transform 0.3s ease;
 }
 
-/* УПРОЩЕННАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ */
+/* ПРОСТАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ - ТОЛЬКО ВРАЩЕНИЕ */
 .coin.flipping {
-  animation: simpleCoinFlip 2.5s ease-in-out forwards;
+  animation: simpleCoinSpin 2.5s linear forwards;
 }
 
-/* НОВАЯ УЛУЧШЕННАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ */
-@keyframes simpleCoinFlip {
+/* ПРОСТАЯ АНИМАЦИЯ - ТОЛЬКО ВРАЩЕНИЕ ПО Y */
+@keyframes simpleCoinSpin {
   0% {
-    transform: rotateY(0deg) rotateX(0deg) translateY(0px);
-  }
-  15% {
-    transform: rotateY(180deg) rotateX(45deg) translateY(-40px);
-  }
-  30% {
-    transform: rotateY(360deg) rotateX(90deg) translateY(-60px);
-  }
-  45% {
-    transform: rotateY(540deg) rotateX(135deg) translateY(-70px);
-  }
-  60% {
-    transform: rotateY(720deg) rotateX(180deg) translateY(-80px);
-  }
-  75% {
-    transform: rotateY(900deg) rotateX(225deg) translateY(-60px);
-  }
-  90% {
-    transform: rotateY(1080deg) rotateX(270deg) translateY(-20px);
+    transform: rotateY(0deg);
   }
   100% {
-    transform: rotateY(1260deg) rotateX(315deg) translateY(0px);
+    transform: rotateY(1800deg); /* 5 полных оборотов */
   }
 }
 
 /* ФИНАЛЬНЫЕ ПОЗИЦИИ - ИСПРАВЛЕНО */
-.coin.heads,
 .coin.final-result.heads {
-  transform: rotateY(1260deg) rotateX(0deg); /* Показывает орла */
+  transform: rotateY(1800deg); /* Четное количество полуоборотов = орел */
 }
 
-.coin.tails,
 .coin.final-result.tails {
-  transform: rotateY(1440deg) rotateX(0deg); /* Показывает решку (1260 + 180) */
+  transform: rotateY(1980deg); /* 1800 + 180 = решка */
 }
 
-/* Плавный переход к финальной позиции */
-.coin.final-result {
-  transition: transform 0.5s ease-out;
-}
-
-/* СТОРОНЫ МОНЕТЫ - ИСПРАВЛЕНО ДЛЯ ПРАВИЛЬНОГО 3D */
+/* СТОРОНЫ МОНЕТЫ - ПРАВИЛЬНАЯ 3D НАСТРОЙКА */
 .coin-side {
   position: absolute;
   width: 100%;
@@ -185,7 +160,7 @@
     inset 0 0 20px rgba(255, 255, 255, 0.1);
   border: 3px solid;
   overflow: hidden;
-  backface-visibility: visible; /* ИЗМЕНЕНО: показываем обе стороны */
+  backface-visibility: hidden; /* ВОЗВРАЩАЕМ для правильного 3D */
 }
 
 /* ДИЗАЙН ОРЛА (золотой) - лицевая сторона */
@@ -202,7 +177,6 @@
     0 0 0 4px #ffd700,
     0 0 20px rgba(255, 215, 0, 0.5),
     inset 0 0 20px rgba(255, 255, 255, 0.2);
-  z-index: 2; /* ДОБАВЛЕНО: приоритет для орла */
 }
 
 /* ДИЗАЙН РЕШКИ (серебряный) - обратная сторона */
@@ -219,7 +193,6 @@
     0 0 0 4px #c0c0c0,
     0 0 20px rgba(192, 192, 192, 0.5),
     inset 0 0 20px rgba(255, 255, 255, 0.3);
-  z-index: 1; /* ДОБАВЛЕНО: приоритет для решки */
 }
 
 /* Лицевая сторона монеты */

@@ -329,8 +329,8 @@ class CrashService extends EventEmitter {
           
           await winTransaction.save({ session });
           
-          // Получаем имя пользователя для события
-          const user = await User.findById(bet.user).select('username').lean();
+          // Получаем имя пользователя и новый баланс для события
+          const user = await User.findById(bet.user).select('username balance').session(session);
           
           // Эмитим событие автовывода
           this.emit('autoCashOut', {
@@ -339,7 +339,8 @@ class CrashService extends EventEmitter {
             username: user?.username || 'Игрок',
             amount: bet.amount,
             multiplier: bet.autoCashOut,
-            profit: profit
+            profit: profit,
+            balanceAfter: user?.balance || 0
           });
         } catch (betError) {
           console.error(`❌ CRASH SERVICE: Ошибка автовывода для пользователя ${bet.user}:`, betError);

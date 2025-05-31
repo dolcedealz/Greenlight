@@ -268,6 +268,7 @@ const CrashGame = ({
       // Если это наш кешаут, обновляем UI немедленно
       if (data.userId === userTelegramId) {
         console.log('Это наш кешаут! Обновляем UI');
+        console.log('Автовывод - обновляем cashedOut на true');
         setCashedOut(true);
         setUserCashOutMultiplier(data.multiplier);
         

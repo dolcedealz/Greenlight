@@ -1,0 +1,414 @@
+/* frontend/src/styles/PvPLobby.css */
+.pvp-lobby {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  color: white;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.pvp-lobby.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pvp-lobby.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.pvp-lobby.completed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Header */
+.lobby-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.lobby-header h1 {
+  font-size: 2.5rem;
+  margin: 0 0 10px 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.session-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 15px;
+  margin-top: 15px;
+}
+
+.session-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.session-info code {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+}
+
+.prize-pool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.prize-pool .amount {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #FFD700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.prize-pool .label {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Players Grid */
+.players-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.player-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.player-card.ready {
+  border-color: #4CAF50;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+}
+
+.player-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.player-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+}
+
+.username {
+  font-size: 1rem;
+  opacity: 0.8;
+  font-weight: bold;
+}
+
+.player-side {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.coin-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.coin-emoji {
+  font-size: 3rem;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.side-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #FFD700;
+}
+
+.player-status {
+  margin: 20px 0;
+}
+
+.join-button, .ready-button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.join-button {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+}
+
+.join-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.ready-button {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+}
+
+.ready-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+}
+
+.status-indicator {
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.status-indicator.waiting {
+  background: rgba(255, 193, 7, 0.2);
+  color: #FFC107;
+}
+
+.status-indicator.ready {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+}
+
+.player-info {
+  margin-top: 20px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.info-item .label {
+  opacity: 0.7;
+}
+
+.info-item .value {
+  font-weight: bold;
+}
+
+/* VS Section */
+.vs-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.vs-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.coin-preview {
+  text-align: center;
+}
+
+.coin-animation {
+  font-size: 2rem;
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Game Status */
+.game-status {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.status-message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-message p:first-child {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.status-message p:last-child {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
+.status-message.waiting {
+  color: #FFC107;
+}
+
+.status-message.preparing {
+  color: #2196F3;
+}
+
+.status-message.ready {
+  color: #4CAF50;
+}
+
+/* Game Rules */
+.game-rules {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.game-rules h4 {
+  margin: 0 0 15px 0;
+  color: #FFD700;
+}
+
+.game-rules ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.game-rules li {
+  margin-bottom: 10px;
+  padding-left: 10px;
+  position: relative;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .pvp-lobby {
+    padding: 15px;
+  }
+
+  .lobby-header h1 {
+    font-size: 2rem;
+  }
+
+  .players-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .vs-section {
+    order: 2;
+    grid-column: 1;
+  }
+
+  .vs-circle {
+    width: 60px;
+    height: 60px;
+    font-size: 1.2rem;
+  }
+
+  .player-card {
+    min-height: auto;
+    padding: 15px;
+  }
+
+  .coin-emoji {
+    font-size: 2.5rem;
+  }
+
+  .session-info {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .pvp-lobby {
+    padding: 10px;
+  }
+
+  .lobby-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .prize-pool .amount {
+    font-size: 1.5rem;
+  }
+
+  .player-card {
+    padding: 12px;
+  }
+
+  .coin-emoji {
+    font-size: 2rem;
+  }
+}

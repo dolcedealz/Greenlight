@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { MainScreen, GameScreen, ProfileScreen, HistoryScreen } from './screens';
 import { Navigation } from './components/layout';
+import { PvPGame } from './components/pvp';
 import { initTelegram } from './utils/telegram';
 import { userApi } from './services';
 import './styles/global.css';
@@ -9,6 +10,7 @@ import './styles/global.css';
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState('main');
   const [gameType, setGameType] = useState(null);
+  const [pvpSessionId, setPvpSessionId] = useState(null);
   const [userData, setUserData] = useState(null);
   const [telegramWebApp, setTelegramWebApp] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,8 +65,13 @@ const App = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const screenParam = urlParams.get('screen');
         const gameParam = urlParams.get('game');
+        const pvpParam = urlParams.get('pvp');
         
-        if (gameParam) {
+        if (pvpParam) {
+          // PvP режим - приоритет над обычными играми
+          setPvpSessionId(pvpParam);
+          setCurrentScreen('pvp');
+        } else if (gameParam) {
           setGameType(gameParam);
           setCurrentScreen('game');
         } else if (screenParam) {
@@ -112,6 +119,13 @@ const App = () => {
   // Обработчик возврата из игры
   const handleBackFromGame = () => {
     updateBalanceFromServer();
+    setCurrentScreen('main');
+  };
+
+  // Обработчик закрытия PvP
+  const handleClosePvP = () => {
+    updateBalanceFromServer();
+    setPvpSessionId(null);
     setCurrentScreen('main');
   };
 
@@ -176,12 +190,22 @@ const App = () => {
           balance={balance}
         />
       )}
+
+      {currentScreen === 'pvp' && pvpSessionId && (
+        <PvPGame
+          sessionId={pvpSessionId}
+          userData={userData}
+          onClose={handleClosePvP}
+        />
+      )}
       
-      {/* Навигация */}
-      <Navigation 
-        currentScreen={currentScreen} 
-        onScreenChange={handleScreenChange} 
-      />
+      {/* Навигация - скрывается в PvP режиме */}
+      {currentScreen !== 'pvp' && (
+        <Navigation 
+          currentScreen={currentScreen} 
+          onScreenChange={handleScreenChange} 
+        />
+      )}
     </div>
   );
 };

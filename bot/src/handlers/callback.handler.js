@@ -431,6 +431,232 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('❌ Ошибка проверки');
     }
   });
+
+  // ===== PvP ДУЭЛИ ОБРАБОТЧИКИ =====
+
+  // Обработка принятия PvP дуэли
+  bot.action(/^pvp_accept_(\d+)_(\d+(?:\.\d+)?)_(.*)$/, async (ctx) => {
+    try {
+      const challengerId = ctx.match[1];
+      const amount = parseFloat(ctx.match[2]);
+      const targetUsername = ctx.match[3] || '';
+      const opponentId = ctx.from.id.toString();
+      const opponentUsername = ctx.from.username;
+
+      console.log(`PVP: ${opponentUsername} (${opponentId}) принимает дуэль от ${challengerId} на ${amount} USDT`);
+
+      // Проверяем, что это не тот же пользователь
+      if (challengerId === opponentId) {
+        await ctx.answerCbQuery('❌ Нельзя принять свой собственный вызов', true);
+        return;
+      }
+
+      // Проверяем, что вызов адресован этому пользователю или это открытый вызов
+      if (targetUsername && targetUsername !== opponentUsername) {
+        await ctx.answerCbQuery('❌ Этот вызов адресован другому игроку', true);
+        return;
+      }
+
+      await ctx.answerCbQuery('⏳ Создаем дуэль...');
+
+      try {
+        // Создаем дуэль через API
+        const duelData = await apiService.createPvPChallenge({
+          challengerId,
+          challengerUsername: '', // Получим из API
+          opponentId,
+          opponentUsername,
+          amount,
+          chatId: ctx.chat.id.toString(),
+          chatType: ctx.chat.type,
+          messageId: ctx.callbackQuery.message.message_id
+        });
+
+        console.log('PVP: Дуэль создана:', duelData);
+
+        // Принимаем дуэль
+        const responseData = await apiService.respondToPvPChallenge(
+          duelData.data.duelId, 
+          opponentId, 
+          'accept'
+        );
+
+        console.log('PVP: Дуэль принята:', responseData);
+
+        // Обновляем сообщение
+        const { webAppUrl } = config;
+        const sessionUrl = `${webAppUrl}?pvp=${responseData.data.sessionId}`;
+
+        await ctx.editMessageText(
+          `🎯 **ДУЭЛЬ ПРИНЯТА!** 🪙\n\n` +
+          `✅ @${opponentUsername} принял(а) вызов!\n` +
+          `💰 Ставка: ${amount} USDT каждый\n` +
+          `🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n` +
+          `🆔 Сессия: ${responseData.data.sessionId}\n\n` +
+          `⚔️ Игроки должны войти в игровую комнату!`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: Markup.inlineKeyboard([
+              [Markup.button.webApp('🚪 Войти в комнату', sessionUrl)],
+              [Markup.button.callback('📊 Статус игры', `pvp_status_${responseData.data.sessionId}`)]
+            ])
+          }
+        );
+
+        // Уведомляем инициатора
+        try {
+          await ctx.telegram.sendMessage(
+            challengerId,
+            `🎯 **Ваш вызов принят!** 🪙\n\n` +
+            `✅ @${opponentUsername} принял(а) дуэль на ${amount} USDT!\n` +
+            `🚪 Войдите в игровую комнату для начала игры\n\n` +
+            `🆔 Сессия: ${responseData.data.sessionId}`,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: Markup.inlineKeyboard([
+                [Markup.button.webApp('🚪 Войти в комнату', sessionUrl)]
+              ])
+            }
+          );
+        } catch (notifyError) {
+          console.warn('PVP: Не удалось уведомить инициатора:', notifyError.message);
+        }
+
+      } catch (apiError) {
+        console.error('PVP: Ошибка API при создании/принятии дуэли:', apiError);
+        
+        let errorMessage = '❌ Не удалось принять дуэль\n\n';
+        if (apiError.message?.includes('Недостаточно средств')) {
+          errorMessage += 'У вас недостаточно средств для дуэли';
+        } else if (apiError.message?.includes('активная дуэль')) {
+          errorMessage += 'У вас уже есть активная дуэль с этим игроком';
+        } else if (apiError.message?.includes('лимит')) {
+          errorMessage += 'Превышен лимит активных дуэлей (максимум 3)';
+        } else {
+          errorMessage += apiError.message || 'Попробуйте позже';
+        }
+
+        await ctx.editMessageText(errorMessage);
+      }
+
+    } catch (error) {
+      console.error('PVP: Ошибка при принятии дуэли:', error);
+      await ctx.answerCbQuery('❌ Произошла ошибка', true);
+    }
+  });
+
+  // Обработка отклонения PvP дуэли
+  bot.action(/^pvp_decline_(\d+)$/, async (ctx) => {
+    try {
+      const challengerId = ctx.match[1];
+      const opponentId = ctx.from.id.toString();
+      const opponentUsername = ctx.from.username;
+
+      console.log(`PVP: ${opponentUsername} (${opponentId}) отклоняет дуэль от ${challengerId}`);
+
+      // Проверяем, что это не тот же пользователь
+      if (challengerId === opponentId) {
+        await ctx.answerCbQuery('❌ Нельзя отклонить свой собственный вызов', true);
+        return;
+      }
+
+      await ctx.answerCbQuery('❌ Дуэль отклонена');
+
+      // Обновляем сообщение
+      await ctx.editMessageText(
+        `🎯 **ДУЭЛЬ ОТКЛОНЕНА** 🪙\n\n` +
+        `❌ @${opponentUsername} отклонил(а) вызов\n\n` +
+        `💡 Попробуйте предложить дуэль другому игроку!`,
+        { parse_mode: 'Markdown' }
+      );
+
+      // Уведомляем инициатора
+      try {
+        await ctx.telegram.sendMessage(
+          challengerId,
+          `🎯 **Ваш вызов отклонен** 😔\n\n` +
+          `❌ @${opponentUsername} отклонил(а) дуэль\n\n` +
+          `💡 Не расстраивайтесь! Попробуйте вызвать других игроков`,
+          { parse_mode: 'Markdown' }
+        );
+      } catch (notifyError) {
+        console.warn('PVP: Не удалось уведомить инициатора об отклонении:', notifyError.message);
+      }
+
+    } catch (error) {
+      console.error('PVP: Ошибка при отклонении дуэли:', error);
+      await ctx.answerCbQuery('❌ Произошла ошибка', true);
+    }
+  });
+
+  // Обработка проверки статуса PvP игры
+  bot.action(/^pvp_status_(.+)$/, async (ctx) => {
+    try {
+      const sessionId = ctx.match[1];
+      const userId = ctx.from.id.toString();
+
+      console.log(`PVP: Проверка статуса сессии ${sessionId} для пользователя ${userId}`);
+
+      await ctx.answerCbQuery('⏳ Проверяем статус игры...');
+
+      try {
+        const sessionData = await apiService.getPvPSession(sessionId, userId);
+        
+        let statusMessage = `🎯 **Статус дуэли** 🪙\n\n`;
+        statusMessage += `🆔 Сессия: ${sessionId}\n`;
+        statusMessage += `👥 Игроки:\n`;
+        statusMessage += `   • ${sessionData.data.challengerUsername} ${sessionData.data.challengerJoined ? '✅' : '⏳'} ${sessionData.data.challengerReady ? '🟢' : '🔴'}\n`;
+        statusMessage += `   • ${sessionData.data.opponentUsername} ${sessionData.data.opponentJoined ? '✅' : '⏳'} ${sessionData.data.opponentReady ? '🟢' : '🔴'}\n\n`;
+        statusMessage += `💰 Ставка: ${sessionData.data.amount} USDT каждый\n`;
+        statusMessage += `🏆 Банк: ${sessionData.data.winAmount} USDT\n\n`;
+
+        switch (sessionData.data.status) {
+          case 'accepted':
+            statusMessage += `📊 Статус: Ожидание игроков\n`;
+            if (!sessionData.data.bothJoined) {
+              statusMessage += `⏳ Игроки должны войти в комнату\n`;
+            } else if (!sessionData.data.bothReady) {
+              statusMessage += `⏳ Игроки должны подтвердить готовность\n`;
+            } else {
+              statusMessage += `✅ Готовы к игре!\n`;
+            }
+            break;
+          case 'active':
+            statusMessage += `📊 Статус: Игра идет...\n`;
+            break;
+          case 'completed':
+            statusMessage += `📊 Статус: Игра завершена\n`;
+            statusMessage += `🏆 Победитель: @${sessionData.data.winnerUsername}\n`;
+            statusMessage += `🪙 Результат: ${sessionData.data.coinResult === 'heads' ? 'Орел' : 'Решка'}\n`;
+            break;
+          default:
+            statusMessage += `📊 Статус: ${sessionData.data.status}\n`;
+        }
+
+        const { webAppUrl } = config;
+        const sessionUrl = `${webAppUrl}?pvp=${sessionId}`;
+
+        const buttons = [];
+        if (sessionData.data.status === 'accepted') {
+          buttons.push([Markup.button.webApp('🚪 Войти в комнату', sessionUrl)]);
+        }
+        buttons.push([Markup.button.callback('🔄 Обновить', `pvp_status_${sessionId}`)]);
+
+        await ctx.reply(statusMessage, {
+          parse_mode: 'Markdown',
+          reply_markup: Markup.inlineKeyboard(buttons)
+        });
+
+      } catch (apiError) {
+        console.error('PVP: Ошибка API при получении статуса:', apiError);
+        await ctx.reply('❌ Не удалось получить статус игры\n\nВозможно, сессия не найдена или истекла');
+      }
+
+    } catch (error) {
+      console.error('PVP: Ошибка при проверке статуса:', error);
+      await ctx.answerCbQuery('❌ Произошла ошибка', true);
+    }
+  });
   
   return bot;
 }

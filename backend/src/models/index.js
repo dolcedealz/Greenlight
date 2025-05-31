@@ -9,6 +9,7 @@ const CasinoFinance = require('./casino-finance.model');
 const ReferralEarning = require('./referral-earning.model');
 const ReferralPayout = require('./referral-payout.model');
 const GameSettings = require('./game-settings.model');
+const PvPDuel = require('./pvp-duel.model');
 
 module.exports = {
   User,
@@ -20,5 +21,6 @@ module.exports = {
   CasinoFinance,
   ReferralEarning,
   ReferralPayout,
-  GameSettings
+  GameSettings,
+  PvPDuel
 };

@@ -24,6 +24,7 @@ class CrashService extends EventEmitter {
     this.WAITING_TIME = CRASH_GAME_CONFIG.WAITING_TIME; // 7000мс
     this.CRASH_DELAY = CRASH_GAME_CONFIG.CRASH_DELAY; // 3000мс
     this.MULTIPLIER_UPDATE_INTERVAL = CRASH_GAME_CONFIG.MULTIPLIER_UPDATE_INTERVAL; // 80мс
+    this.MAX_MULTIPLIER = 100.00; // Максимальный множитель
     
     // Привязываем контекст для всех методов
     this.startGameCycle = this.startGameCycle.bind(this);
@@ -347,14 +348,27 @@ class CrashService extends EventEmitter {
         }
       }
       
-      // ИСПРАВЛЕНИЕ: Используем одну атомарную операцию для обновления всех ставок
-      await CrashRound.findByIdAndUpdate(
-        this.currentRound._id,
-        { 
-          $set: { bets: this.currentRound.bets }
-        },
-        { session }
-      );
+      // ИСПРАВЛЕНИЕ: Используем атомарные операции для обновления каждой ставки
+      for (const bet of betsToProcess) {
+        const betIndex = this.currentRound.bets.findIndex(b => 
+          b.user.toString() === bet.user.toString()
+        );
+        
+        if (betIndex !== -1) {
+          await CrashRound.findByIdAndUpdate(
+            this.currentRound._id,
+            {
+              $set: {
+                [`bets.${betIndex}.cashedOut`]: true,
+                [`bets.${betIndex}.cashOutMultiplier`]: bet.autoCashOut,
+                [`bets.${betIndex}.profit`]: bet.profit,
+                [`bets.${betIndex}.cashedOutAt`]: bet.cashedOutAt
+              }
+            },
+            { session }
+          );
+        }
+      }
       
       await session.commitTransaction();
     } catch (error) {
@@ -511,8 +525,10 @@ class CrashService extends EventEmitter {
       return 1.8 + (randomValue - 0.4) * 4.0; // 1.8-3.0x (30%)
     } else if (randomValue < 0.9) {
       return 3.0 + (randomValue - 0.7) * 20.0; // 3.0-7.0x (20%)
+    } else if (randomValue < 0.98) {
+      return 7.0 + (randomValue - 0.9) * 112.5; // 7.0-16.0x (8%)
     } else {
-      return 7.0 + (randomValue - 0.9) * 130.0; // 7.0-20.0x (10%)
+      return 16.0 + (randomValue - 0.98) * 4200.0; // 16.0-100.0x (2%)
     }
   }
   

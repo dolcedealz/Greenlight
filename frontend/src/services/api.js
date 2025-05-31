@@ -363,9 +363,85 @@ const paymentApi = {
   }
 };
 
+// PvP API методы
+const pvpApi = {
+  // Создать вызов на дуэль
+  createChallenge: (challengeData) => {
+    console.log('Создание PvP вызова:', challengeData);
+    return api.post('/pvp/challenge', challengeData);
+  },
+
+  // Ответить на вызов
+  respondToChallenge: (duelId, action) => {
+    console.log(`Ответ на PvP вызов ${duelId}:`, action);
+    return api.post(`/pvp/respond/${duelId}`, { action });
+  },
+
+  // Получить информацию о сессии
+  getSession: (sessionId) => {
+    console.log('Получение PvP сессии:', sessionId);
+    return api.get(`/pvp/session/${sessionId}`);
+  },
+
+  // Присоединиться к сессии
+  joinSession: (sessionId) => {
+    console.log('Присоединение к PvP сессии:', sessionId);
+    return api.post(`/pvp/join/${sessionId}`);
+  },
+
+  // Установить готовность
+  setReady: (sessionId, ready = true) => {
+    console.log(`Установка готовности PvP ${sessionId}:`, ready);
+    return api.post(`/pvp/ready/${sessionId}`, { ready });
+  },
+
+  // Запустить игру
+  startGame: (sessionId) => {
+    console.log('Запуск PvP игры:', sessionId);
+    return api.post(`/pvp/start/${sessionId}`);
+  },
+
+  // Получить активные дуэли
+  getActiveDuels: () => {
+    console.log('Получение активных PvP дуэлей');
+    return api.get('/pvp/active');
+  },
+
+  // Получить историю PvP
+  getHistory: (limit = 20) => {
+    console.log('Получение истории PvP:', limit);
+    return api.get(`/pvp/history?limit=${limit}`);
+  },
+
+  // Получить статистику PvP
+  getStats: () => {
+    console.log('Получение статистики PvP');
+    return api.get('/pvp/stats');
+  },
+
+  // Создать реванш
+  createRematch: (duelId) => {
+    console.log('Создание реванша для дуэли:', duelId);
+    return api.post(`/pvp/rematch/${duelId}`);
+  },
+
+  // Отменить вызов
+  cancelChallenge: (duelId) => {
+    console.log('Отмена PvP вызова:', duelId);
+    return api.post(`/pvp/cancel/${duelId}`);
+  },
+
+  // Валидировать вызов
+  validateChallenge: (opponentId, amount) => {
+    console.log('Валидация PvP вызова:', { opponentId, amount });
+    return api.post('/pvp/validate-challenge', { opponentId, amount });
+  }
+};
+
 export {
   api as default,
   userApi,
   gameApi,
-  paymentApi // Добавьте paymentApi в экспорт
+  paymentApi,
+  pvpApi // Добавляем PvP API
 };

@@ -8,6 +8,7 @@ const financeController = require('./finance.controller');
 const referralController = require('./referral.controller');
 const crashController = require('./crash.controller');
 const authController = require('./auth.controller'); // ДОБАВЛЯЕМ
+const pvpController = require('./pvp.controller'); // ДОБАВЛЯЕМ PvP
 
 module.exports = {
   gameController,
@@ -18,5 +19,6 @@ module.exports = {
   financeController,
   referralController,
   crashController,
-  authController // ДОБАВЛЯЕМ
+  authController,
+  pvpController // ДОБАВЛЯЕМ PvP
 };

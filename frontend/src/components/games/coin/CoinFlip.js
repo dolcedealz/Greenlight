@@ -96,7 +96,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
             </div>
           </div>
           
-          {/* Сторона "Решка" */}
+          {/* Сторона "Решка" - ИСПРАВЛЕНО: добавлен уникальный дизайн */}
           <div className="coin-side tails">
             <div className="coin-face">
               <div className="coin-inner-ring">

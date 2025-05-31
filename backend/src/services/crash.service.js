@@ -2,6 +2,7 @@
 const { CrashRound, User, Game, Transaction } = require('../models');
 const randomService = require('./random.service');
 const oddsService = require('./odds.service');
+const referralService = require('./referral.service');
 const { CRASH_GAME_CONFIG } = require('../../../common/constants');
 const mongoose = require('mongoose');
 const EventEmitter = require('events');
@@ -420,6 +421,22 @@ class CrashService extends EventEmitter {
           }
           
           await user.save({ session });
+          
+          // Обрабатываем реферальную комиссию при проигрыше
+          if (!win) {
+            try {
+              await referralService.processGameLoss({
+                userId: bet.user,
+                gameId: game._id,
+                gameType: 'crash',
+                bet: bet.amount,
+                profit: profit
+              });
+              console.log(`💰 CRASH REFERRAL: Обработана реферальная комиссия для пользователя ${bet.user}, ставка ${bet.amount}`);
+            } catch (refError) {
+              console.error('❌ CRASH REFERRAL: Ошибка обработки реферальной комиссии:', refError);
+            }
+          }
         } catch (betError) {
           console.error(`❌ CRASH SERVICE: Ошибка обработки результата для ставки:`, betError);
         }

@@ -66,6 +66,41 @@ class ReferralService {
         return null;
       }
       
+      // БЕЗОПАСНОСТЬ: Анти-фрод проверки
+      // 1. Проверяем что реферер не заблокирован
+      if (partner.isBlocked) {
+        console.warn(`REFERRAL SECURITY: Партнер ${partner._id} заблокирован, комиссия не начисляется`);
+        await session.abortTransaction();
+        return null;
+      }
+      
+      // 2. Проверяем что реферал не тот же пользователь (самореферал)
+      if (user._id.equals(partner._id)) {
+        console.warn(`REFERRAL SECURITY: Попытка самореферала пользователем ${user._id}`);
+        await session.abortTransaction();
+        return null;
+      }
+      
+      // 3. Проверяем минимальную ставку для предотвращения спама
+      if (Math.abs(profit) < 0.1) {
+        console.warn(`REFERRAL SECURITY: Ставка слишком мала для реферальной комиссии: ${Math.abs(profit)}`);
+        await session.abortTransaction();
+        return null;
+      }
+      
+      // 4. Проверяем что пользователь достаточно активен (защита от ботов)
+      const userGameCount = await User.aggregate([
+        { $match: { _id: user._id } },
+        { $lookup: { from: 'games', localField: '_id', foreignField: 'user', as: 'games' } },
+        { $project: { gameCount: { $size: '$games' } } }
+      ]).session(session);
+      
+      if (userGameCount[0]?.gameCount < 3) {
+        console.warn(`REFERRAL SECURITY: Пользователь ${user._id} недостаточно активен для реферальной комиссии (игр: ${userGameCount[0]?.gameCount || 0})`);
+        await session.abortTransaction();
+        return null;
+      }
+      
       // Обновляем статистику партнера
       await this.updatePartnerLevel(partner._id, session);
       

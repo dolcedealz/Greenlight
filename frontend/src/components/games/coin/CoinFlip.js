@@ -21,6 +21,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       
       // ИСПРАВЛЕНО: Полностью сбрасываем все классы
       coin.className = 'coin';
+      coin.classList.remove('flipping', 'final-result', 'heads', 'tails');
       
       // Небольшая задержка для сброса состояния
       setTimeout(() => {
@@ -31,8 +32,8 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       setTimeout(() => {
         setAnimationPhase('landing');
         coin.classList.remove('flipping');
-        // ИСПРАВЛЕНО: Устанавливаем финальную сторону
-        coin.classList.add(result);
+        // ИСПРАВЛЕНО: Устанавливаем финальную сторону правильно
+        coin.classList.add('final-result', result);
         console.log('🪙 АНИМАЦИЯ: Приземление на', result);
       }, 2500);
       
@@ -46,6 +47,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       // Вызываем callback после завершения анимации (через 4 секунды)
       setTimeout(() => {
         setAnimationPhase('idle');
+        // НЕ сбрасываем классы здесь - оставляем финальный результат видимым
         if (onAnimationEnd) {
           onAnimationEnd();
         }
@@ -57,6 +59,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       const coin = coinRef.current;
       if (coin) {
         coin.className = 'coin';
+        coin.classList.remove('flipping', 'final-result', 'heads', 'tails');
         setShowResult(false);
         setAnimationPhase('idle');
         setFinalResult(null);

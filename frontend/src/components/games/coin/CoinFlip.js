@@ -5,7 +5,7 @@ import '../../../styles/CoinFlip.css';
 const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
   const coinRef = useRef(null);
   const [showResult, setShowResult] = useState(false);
-  const [animationPhase, setAnimationPhase] = useState('idle'); // 'idle', 'flipping', 'landing', 'showing'
+  const [animationPhase, setAnimationPhase] = useState('idle');
   const [finalResult, setFinalResult] = useState(null);
   
   useEffect(() => {
@@ -33,7 +33,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         setAnimationPhase('landing');
         // Убираем анимацию вращения
         coin.classList.remove('flipping');
-        // Устанавливаем финальную позицию
+        // Устанавливаем финальную позицию ПРАВИЛЬНО
         coin.classList.add('final-result', result);
         console.log('🪙 АНИМАЦИЯ: Приземление на', result);
       }, 2500);

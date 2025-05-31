@@ -48,10 +48,67 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       gameStartTimeRef.current = Date.now();
       isAnimatingRef.current = true;
       console.log('ГРАФИК: Полет начался');
+      
+      // ИСПРАВЛЕНИЕ: При входе в активную игру пересоздаем траекторию
+      if (multiplier > 1.0) {
+        console.log('ГРАФИК: Восстанавливаем траекторию для активной игры, множитель:', multiplier);
+        rebuildTrajectoryForActiveGame();
+      }
     } else if (gameState !== 'flying') {
       isAnimatingRef.current = false;
     }
-  }, [gameState]);
+  }, [gameState, multiplier]);
+  
+  // НОВАЯ ФУНКЦИЯ: Восстановление траектории для активной игры
+  const rebuildTrajectoryForActiveGame = () => {
+    if (!gameStartTimeRef.current) return;
+    
+    const padding = 50;
+    const width = canvasSize.width - padding * 2;
+    const height = canvasSize.height - padding * 2;
+    
+    // Очищаем старую траекторию
+    pathPointsRef.current = [];
+    
+    // Вычисляем примерное время игры на основе текущего множителя
+    // Используем обратную формулу роста множителя
+    const estimatedTimeElapsed = Math.log(multiplier) / 0.06; // Приблизительная обратная формула
+    
+    // Создаем точки траектории от начала до текущего момента
+    const pointsCount = Math.min(50, Math.max(10, Math.floor(estimatedTimeElapsed * 2)));
+    
+    for (let i = 0; i <= pointsCount; i++) {
+      const timeStep = (estimatedTimeElapsed * i) / pointsCount;
+      const stepMultiplier = 1 + timeStep * 0.06; // Используем ту же формулу роста
+      
+      // ИСПРАВЛЕННАЯ формула X координаты - более медленный рост
+      const x = padding + Math.min(timeStep * 20, width * 0.85); // Уменьшили скорость с 40 до 20
+      
+      // ИСПРАВЛЕННАЯ формула Y координаты - более плавная кривая до 10x
+      const y = calculateYCoordinate(stepMultiplier, padding, height);
+      
+      pathPointsRef.current.push({ 
+        x, 
+        y, 
+        multiplier: stepMultiplier, 
+        time: gameStartTimeRef.current + (timeStep * 1000) 
+      });
+    }
+    
+    console.log('ГРАФИК: Восстановлена траектория с', pathPointsRef.current.length, 'точками');
+  };
+  
+  // НОВАЯ ФУНКЦИЯ: Расчет Y координаты с улучшенной формулой
+  const calculateYCoordinate = (currentMultiplier, padding, height) => {
+    const multiplierForY = Math.max(currentMultiplier, 1.0);
+    
+    // ИСПРАВЛЕННАЯ формула: более плавная кривая до 10x
+    // Используем корень для более медленного роста в начале
+    const normalizedMultiplier = (multiplierForY - 1) / 9; // Нормализуем от 0 до 1 для диапазона 1x-10x
+    const curveValue = Math.pow(normalizedMultiplier, 0.7); // Степень меньше 1 для более плавной кривой
+    
+    return padding + height - Math.min(curveValue * height * 0.9, height * 0.9);
+  };
   
   // Класс для частиц
   class Particle {
@@ -134,7 +191,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       }
     };
     
-    // Сетка графика
+    // ИСПРАВЛЕННАЯ сетка графика - увеличена до 10x
     const drawGrid = (ctx) => {
       const padding = 50;
       const width = canvas.width - padding * 2;
@@ -143,7 +200,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.lineWidth = 1;
       
-      // Горизонтальные линии (множители)
+      // Горизонтальные линии (множители) - ИСПРАВЛЕНО: увеличено до 10x
       for (let i = 0; i <= 10; i++) {
         const y = padding + (i * height / 10);
         ctx.beginPath();
@@ -151,26 +208,28 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
         ctx.lineTo(padding + width, y);
         ctx.stroke();
         
-        // Подписи множителей
+        // Подписи множителей - ИСПРАВЛЕНО: новая формула для 1x-10x
         if (i % 2 === 0) {
-          const mult = (10 - i) * 0.5 + 1;
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-          ctx.font = '12px monospace';
-          ctx.textAlign = 'right';
-          ctx.fillText(`${mult.toFixed(1)}x`, padding - 10, y + 4);
+          const mult = 10 - (i * 0.9); // Диапазон от 10x до 1x
+          if (mult >= 1) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(`${mult.toFixed(1)}x`, padding - 10, y + 4);
+          }
         }
       }
       
-      // Вертикальные линии (время)
-      for (let i = 0; i <= 10; i++) {
-        const x = padding + (i * width / 10);
+      // Вертикальные линии (время) - увеличили до 15 секунд
+      for (let i = 0; i <= 15; i++) {
+        const x = padding + (i * width / 15);
         ctx.beginPath();
         ctx.moveTo(x, padding);
         ctx.lineTo(x, padding + height);
         ctx.stroke();
         
         // Подписи времени
-        if (i % 2 === 0) {
+        if (i % 3 === 0) {
           const time = i * 1;
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.font = '12px monospace';
@@ -246,7 +305,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       ctx.shadowBlur = 0;
     };
     
-    // Состояние полета
+    // ИСПРАВЛЕННОЕ состояние полета
     const drawFlyingState = (ctx) => {
       if (!gameStartTimeRef.current || !isAnimatingRef.current) return;
       
@@ -257,13 +316,11 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       // Вычисляем позицию точки
       const timeElapsed = (Date.now() - gameStartTimeRef.current) / 1000;
       
-      // Улучшенная формула траектории
-      const x = padding + Math.min(timeElapsed * 40, width * 0.95);
+      // ИСПРАВЛЕННАЯ формула X координаты - более медленная и плавная
+      const x = padding + Math.min(timeElapsed * 20, width * 0.85); // Уменьшили скорость с 40 до 20, максимум 85% вместо 95%
       
-      // Экспоненциальная кривая для Y координаты
-      const multiplierForY = Math.max(multiplier, 1.0);
-      const logScale = Math.log(multiplierForY) / Math.log(1.1);
-      const y = padding + height - Math.min(logScale * 20, height * 0.9);
+      // ИСПРАВЛЕННАЯ формула Y координаты - используем новую функцию
+      const y = calculateYCoordinate(multiplier, padding, height);
       
       // Добавляем точку в путь
       if (timeElapsed > 0) {

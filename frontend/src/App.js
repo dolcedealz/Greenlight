@@ -69,8 +69,23 @@ const App = () => {
         
         if (pvpParam) {
           // PvP режим - приоритет над обычными играми
-          setPvpSessionId(pvpParam);
-          setCurrentScreen('pvp');
+          if (pvpParam === 'create') {
+            // Создание новой PvP дуэли из inline кнопки
+            const challengerId = urlParams.get('challengerId');
+            const amount = urlParams.get('amount');
+            const target = urlParams.get('target');
+            
+            console.log('PvP: Создание дуэли через WebApp', { challengerId, amount, target });
+            
+            // Создаем уникальный session ID для новой дуэли
+            const sessionId = `create_${challengerId}_${amount}_${target}_${Date.now()}`;
+            setPvpSessionId(sessionId);
+            setCurrentScreen('pvp');
+          } else {
+            // Существующая сессия
+            setPvpSessionId(pvpParam);
+            setCurrentScreen('pvp');
+          }
         } else if (gameParam) {
           setGameType(gameParam);
           setCurrentScreen('game');

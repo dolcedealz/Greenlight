@@ -48,8 +48,8 @@ function registerInlineHandlers(bot) {
               parse_mode: 'Markdown'
             },
             reply_markup: Markup.inlineKeyboard([
-              [Markup.button.callback('🚪 Войти в комнату', `pvp_join_${userId}_${amount}_${targetUsername || ''}`)],
-              [Markup.button.callback('📊 Статус игры', `pvp_room_status_${userId}_${amount}`)]
+              [Markup.button.webApp('🎮 Создать дуэль', `${webAppUrl}?pvp=create&challengerId=${userId}&amount=${amount}&target=${targetUsername || 'open'}`)],
+              [Markup.button.switchToPM('💬 Управление через бота', `pvp_manage_${userId}_${amount}`)]
             ])
           });
         } else if (duelMatch[1] && !amount) {
@@ -70,8 +70,8 @@ function registerInlineHandlers(bot) {
               parse_mode: 'Markdown'
             },
             reply_markup: Markup.inlineKeyboard([
-              [Markup.button.callback('🚪 Войти в комнату', `pvp_join_${userId}_${amount}_`)],
-              [Markup.button.callback('📊 Статус игры', `pvp_room_status_${userId}_${amount}`)]
+              [Markup.button.webApp('🎮 Создать дуэль', `${webAppUrl}?pvp=create&challengerId=${userId}&amount=${amount}&target=open`)],
+              [Markup.button.switchToPM('💬 Управление через бота', `pvp_manage_${userId}_${amount}`)]
             ])
           });
         }
@@ -170,8 +170,8 @@ function generateDuelAmountOptions(challengerId, challengerUsername, targetUsern
       parse_mode: 'Markdown'
     },
     reply_markup: Markup.inlineKeyboard([
-      [Markup.button.callback('🚪 Войти в комнату', `pvp_join_${challengerId}_${amount}_${targetUsername}`)],
-      [Markup.button.callback('📊 Статус игры', `pvp_room_status_${challengerId}_${amount}`)]
+      [Markup.button.webApp('🎮 Создать дуэль', `${webAppUrl}?pvp=create&challengerId=${challengerId}&amount=${amount}&target=${targetUsername}`)],
+      [Markup.button.switchToPM('💬 Управление через бота', `pvp_manage_${challengerId}_${amount}`)]
     ])
   }));
 }

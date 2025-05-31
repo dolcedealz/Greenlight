@@ -342,6 +342,32 @@ function registerMessageHandlers(bot) {
       return;
     }
     
+    // Обработка PvP команд из switchToPM
+    if (ctx.message.text.startsWith('pvp_manage_')) {
+      const parts = ctx.message.text.split('_');
+      if (parts.length >= 4) {
+        const challengerId = parts[2];
+        const amount = parseFloat(parts[3]);
+        
+        await ctx.reply(
+          `🎯 **Управление дуэлью** 🪙\n\n` +
+          `👤 Инициатор: ${challengerId}\n` +
+          `💰 Ставка: ${amount} USDT каждый\n` +
+          `🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT\n\n` +
+          `🎮 Выберите действие:`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: Markup.inlineKeyboard([
+              [Markup.button.webApp('🚪 Войти в комнату', `${config.webAppUrl}?pvp=create&challengerId=${challengerId}&amount=${amount}`)],
+              [Markup.button.callback('📊 Статус дуэли', `pvp_check_status_${challengerId}_${amount}`)],
+              [Markup.button.callback('❌ Отменить дуэль', `pvp_cancel_${challengerId}_${amount}`)]
+            ])
+          }
+        );
+        return;
+      }
+    }
+
     // Обработка обычных сообщений
     const messageText = ctx.message.text.toLowerCase();
     

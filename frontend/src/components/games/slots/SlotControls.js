@@ -68,11 +68,15 @@ const SlotControls = ({
     onSpin();
   };
   
-  // Обработчик автоигры
+  // Обработчик автоигры - ИСПРАВЛЕННЫЙ
   const handleAutoplayToggle = () => {
     if (isSpinning || loading) return; // БЛОКИРУЕМ при спине
     
     selectionChanged(); // Вибрация при переключении
+    console.log('СЛОТЫ CONTROLS: Переключение автоспина, текущее состояние:', autoplay);
+    
+    // Передаем правильный параметр в родительский компонент
+    // setAutoplay ожидает enabled параметр, а не setState логику
     setAutoplay(!autoplay);
   };
   

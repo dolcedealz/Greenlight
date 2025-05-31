@@ -72,9 +72,15 @@ const CrashGame = ({
         }
         
         // Загружаем историю
+        console.log('КРАШ: Загружаем историю...');
         const historyResponse = await gameApi.getCrashHistory();
+        console.log('КРАШ: Ответ истории:', historyResponse);
         if (historyResponse.success) {
+          console.log('КРАШ: Данные истории:', historyResponse.data);
           setHistory(historyResponse.data);
+        } else {
+          console.log('КРАШ: История не загружена - ответ не успешный');
+          setHistory([]);
         }
         
         setIsInitializing(false);
@@ -371,12 +377,19 @@ const CrashGame = ({
   // Загрузка истории
   const loadHistory = useCallback(async () => {
     try {
+      console.log('КРАШ: Перезагружаем историю...');
       const response = await gameApi.getCrashHistory();
+      console.log('КРАШ: Ответ перезагрузки истории:', response);
       if (response.success) {
+        console.log('КРАШ: Новые данные истории:', response.data);
         setHistory(response.data);
+      } else {
+        console.log('КРАШ: Перезагрузка истории не успешна');
+        setHistory([]);
       }
     } catch (err) {
       console.error('Ошибка загрузки истории:', err);
+      setHistory([]);
     }
   }, []);
 

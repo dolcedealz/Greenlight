@@ -39,6 +39,7 @@ const CrashGame = ({
   // Состояние ставки пользователя
   const [betAmount, setBetAmount] = useState(10);
   const [autoCashOut, setAutoCashOut] = useState(2.0);
+  const [autoCashOutEnabled, setAutoCashOutEnabled] = useState(true);
   const [hasBet, setHasBet] = useState(false);
   const [cashedOut, setCashedOut] = useState(false);
   const [userBet, setUserBet] = useState(null);
@@ -167,32 +168,51 @@ const CrashGame = ({
       // Обновляем историю
       loadHistory();
       
-      // Если у пользователя была ставка и он не вывел
-      if (hasBet && !cashedOut) {
-        console.log('Пользователь проиграл - не успел вывести');
-        gameLoseFeedback();
-        // Проверяем, что нет активного результата выигрыша перед установкой проигрыша
-        // И дополнительно проверяем текущее состояние cashedOut
-        setGameResult(prevResult => {
-          if (prevResult && prevResult.win) {
-            console.log('Есть активный выигрыш, не перезаписываем проигрышем');
+      // НОВАЯ ЛОГИКА: Проверяем автовывод с учетом тумблера
+      const checkForLoss = () => {
+        // Получаем актуальное состояние на момент проверки
+        setCashedOut(currentCashedOut => {
+          setGameResult(prevResult => {
+            // Если уже есть результат выигрыша, не перезаписываем
+            if (prevResult && prevResult.win) {
+              console.log('Есть активный выигрыш, не перезаписываем проигрышем');
+              return prevResult;
+            }
+            
+            // Если пользователь успел вывести средства, не показываем проигрыш
+            if (currentCashedOut) {
+              console.log('Пользователь успел вывести, не показываем проигрыш');
+              return prevResult;
+            }
+            
+            // Проверяем наличие ставки и автовывод
+            if (hasBet && userBet) {
+              // Если автовывод был включен и сработал бы
+              if (autoCashOutEnabled && userBet.autoCashOut > 0 && data.crashPoint >= userBet.autoCashOut) {
+                console.log('Автовывод должен был сработать, но не сработал - возможно краш произошел одновременно');
+                // В этом случае не показываем ни выигрыш, ни проигрыш - ждем от сервера
+                return prevResult;
+              }
+              
+              // Если автовывод выключен или не должен был сработать - проигрыш
+              console.log('Пользователь проиграл - не успел вывести или автовывод выключен');
+              gameLoseFeedback();
+              return {
+                win: false,
+                amount: userBet.amount || 0,
+                newBalance: balance
+              };
+            }
+            
             return prevResult;
-          }
-          // Еще раз проверяем cashedOut на случай быстрого обновления состояния
-          if (cashedOut) {
-            console.log('cashedOut стал true, не показываем проигрыш');
-            return prevResult;
-          }
-          return {
-            win: false,
-            amount: userBet?.amount || 0,
-            newBalance: balance
-          };
+          });
+          
+          return currentCashedOut; // Не изменяем состояние cashedOut здесь
         });
-      } else if (hasBet && cashedOut) {
-        // Если пользователь уже вывел (вручную или автоматически), не показываем проигрыш
-        console.log('Пользователь уже вывел средства, не показываем проигрыш');
-      }
+      };
+      
+      // Небольшая задержка чтобы дать автовыводу время сработать
+      setTimeout(checkForLoss, 50);
     });
 
     // Новая ставка
@@ -291,6 +311,8 @@ const CrashGame = ({
       if (data.userId === userTelegramId) {
         console.log('Это наш кешаут! Обновляем UI');
         console.log('Автовывод - обновляем cashedOut на true');
+        
+        // Атомарное обновление всех связанных состояний
         setCashedOut(true);
         setUserCashOutMultiplier(data.multiplier);
         
@@ -302,17 +324,15 @@ const CrashGame = ({
           setBalance(prev => prev + data.profit);
         }
         
-        // Показываем результат игры с небольшой задержкой для визуального эффекта
-        setTimeout(() => {
-          console.log('Устанавливаем результат автовывода для отображения окна');
-          setGameResult({
-            win: true,
-            amount: data.profit || (data.amount * data.multiplier - data.amount), // Прибыль
-            newBalance: data.balanceAfter,
-            isAutoCashOut: true,
-            multiplier: data.multiplier
-          });
-        }, 100);
+        // Немедленно показываем результат без задержки
+        console.log('Устанавливаем результат автовывода для отображения окна');
+        setGameResult({
+          win: true,
+          amount: data.profit || (data.amount * data.multiplier - data.amount), // Прибыль
+          newBalance: data.balanceAfter,
+          isAutoCashOut: true,
+          multiplier: data.multiplier
+        });
         
         gameWinFeedback();
       }
@@ -331,7 +351,7 @@ const CrashGame = ({
       unsubGameState();
       unsubRoundCompleted();
     };
-  }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, gameLoseFeedback, gameWinFeedback, setGameResult, startCountdown, loadHistory, updateGameState]);
+  }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, autoCashOutEnabled, gameLoseFeedback, gameWinFeedback, setGameResult, startCountdown, loadHistory, updateGameState]);
 
   // Обновление состояния игры - ИСПРАВЛЕННОЕ
   const updateGameState = useCallback((state) => {
@@ -463,8 +483,8 @@ const CrashGame = ({
       setLoading(true);
       gameActionFeedback();
       
-      // Если autoCashOut пустое или не число, отправляем 0
-      const finalAutoCashOut = autoCashOut === '' || isNaN(autoCashOut) ? 0 : autoCashOut;
+      // Определяем автовывод на основе тумблера
+      const finalAutoCashOut = autoCashOutEnabled && autoCashOut && !isNaN(autoCashOut) ? autoCashOut : 0;
       const response = await gameApi.placeCrashBet(betAmount, finalAutoCashOut);
       
       if (response.success) {
@@ -492,7 +512,7 @@ const CrashGame = ({
     } finally {
       setLoading(false);
     }
-  }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, userTelegramId, setBalance, setError, gameActionFeedback]);
+  }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, autoCashOutEnabled, userTelegramId, setBalance, setError, gameActionFeedback]);
 
   // Кешаут
   const cashOut = useCallback(async () => {
@@ -640,6 +660,8 @@ const CrashGame = ({
         setBetAmount={setBetAmount}
         autoCashOut={autoCashOut}
         setAutoCashOut={setAutoCashOut}
+        autoCashOutEnabled={autoCashOutEnabled}
+        setAutoCashOutEnabled={setAutoCashOutEnabled}
         balance={balance}
         gameState={gameState}
         hasBet={hasBet}

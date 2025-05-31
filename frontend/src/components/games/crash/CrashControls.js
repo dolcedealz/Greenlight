@@ -8,6 +8,8 @@ const CrashControls = ({
   setBetAmount,
   autoCashOut,
   setAutoCashOut,
+  autoCashOutEnabled,
+  setAutoCashOutEnabled,
   balance,
   gameState,
   hasBet,
@@ -170,25 +172,45 @@ const CrashControls = ({
         {/* Правая панель - Автовывод */}
         <div className="control-panel auto-panel">
           <div className="panel-header">
-            <span className="panel-title">🎯 Автовывод</span>
+            <div className="auto-header-row">
+              <span className="panel-title">🎯 Автовывод</span>
+              <label className="auto-toggle">
+                <input
+                  type="checkbox"
+                  checked={autoCashOutEnabled}
+                  onChange={(e) => {
+                    setAutoCashOutEnabled(e.target.checked);
+                    selectionChanged();
+                  }}
+                  disabled={gameState === 'flying' && hasBet}
+                />
+                <span className="toggle-slider"></span>
+                <span className="toggle-label">
+                  {autoCashOutEnabled ? 'Вкл' : 'Выкл'}
+                </span>
+              </label>
+            </div>
             <span className="potential-win">
-              {gameState === 'flying' && hasBet && cashedOut 
-                ? `Выведено: ${getPotentialWin()} USDT`
-                : gameState === 'flying' && hasBet && !cashedOut 
-                  ? `Сейчас: ${getPotentialWin()} USDT`
-                  : `При ${autoCashOut}x: ${getPotentialWin()} USDT`
-              }
+              {autoCashOutEnabled ? (
+                gameState === 'flying' && hasBet && cashedOut 
+                  ? `Выведено: ${getPotentialWin()} USDT`
+                  : gameState === 'flying' && hasBet && !cashedOut 
+                    ? `Сейчас: ${getPotentialWin()} USDT`
+                    : `При ${autoCashOut}x: ${getPotentialWin()} USDT`
+              ) : (
+                'Ручной режим - нажимайте "Вывести"'
+              )}
             </span>
           </div>
           
-          <div className="input-group">
+          <div className={`input-group ${!autoCashOutEnabled ? 'disabled' : ''}`}>
             <input
               type="number"
               min="1.01"
               step="0.01"
               value={autoCashOut}
               onChange={handleAutoCashOutChange}
-              disabled={!canEditAutoCashOut}
+              disabled={!autoCashOutEnabled || !canEditAutoCashOut}
               className="multiplier-input"
               placeholder="2.00"
             />
@@ -198,28 +220,28 @@ const CrashControls = ({
           <div className="quick-buttons">
             <button 
               onClick={() => handleQuickAutoCashOut(1.25)} 
-              disabled={!canEditAutoCashOut}
+              disabled={!autoCashOutEnabled || !canEditAutoCashOut}
               className="quick-btn"
             >
               1.25x
             </button>
             <button 
               onClick={() => handleQuickAutoCashOut(1.5)} 
-              disabled={!canEditAutoCashOut}
+              disabled={!autoCashOutEnabled || !canEditAutoCashOut}
               className="quick-btn"
             >
               1.5x
             </button>
             <button 
               onClick={() => handleQuickAutoCashOut(2)} 
-              disabled={!canEditAutoCashOut}
+              disabled={!autoCashOutEnabled || !canEditAutoCashOut}
               className="quick-btn"
             >
               2x
             </button>
             <button 
               onClick={() => handleQuickAutoCashOut(3)} 
-              disabled={!canEditAutoCashOut}
+              disabled={!autoCashOutEnabled || !canEditAutoCashOut}
               className="quick-btn"
             >
               3x
@@ -254,11 +276,19 @@ const CrashControls = ({
             </>
           )}
           
-          {/* Показываем автовывод только если не вывели */}
-          {userBet.autoCashOut > 0 && !cashedOut && (
+          {/* Показываем автовывод только если включен и не вывели */}
+          {userBet.autoCashOut > 0 && !cashedOut && autoCashOutEnabled && (
             <div className="bet-info-row">
               <span>🎯 Автовывод при:</span>
               <span className="auto-cashout">{userBet.autoCashOut}x</span>
+            </div>
+          )}
+          
+          {/* Показываем ручной режим если автовывод выключен */}
+          {!autoCashOutEnabled && gameState === 'flying' && !cashedOut && (
+            <div className="bet-info-row">
+              <span>✋ Ручной режим:</span>
+              <span className="manual-mode">Нажмите "Вывести" вовремя</span>
             </div>
           )}
           

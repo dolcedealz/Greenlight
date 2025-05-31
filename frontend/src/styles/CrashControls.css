@@ -29,9 +29,77 @@
   
   .panel-header {
     display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  
+  .auto-header-row {
+    display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+  }
+  
+  /* Стили для тумблера автовывода */
+  .auto-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  .auto-toggle input[type="checkbox"] {
+    display: none;
+  }
+  
+  .toggle-slider {
+    position: relative;
+    width: 44px;
+    height: 22px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 11px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background-color: white;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .auto-toggle input[type="checkbox"]:checked + .toggle-slider {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px rgba(11, 168, 74, 0.4);
+  }
+  
+  .auto-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+    transform: translateX(22px);
+  }
+  
+  .auto-toggle input[type="checkbox"]:disabled + .toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .toggle-label {
+    color: var(--text-color);
+    transition: color 0.3s ease;
+  }
+  
+  .auto-toggle input[type="checkbox"]:checked ~ .toggle-label {
+    color: var(--primary-color);
+    font-weight: 600;
   }
   
   .panel-title {
@@ -107,6 +175,22 @@
     font-size: 14px;
     font-weight: 500;
     pointer-events: none;
+  }
+  
+  /* Стили для отключенного автовывода */
+  .input-group.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  
+  .input-group.disabled .multiplier-input {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .manual-mode {
+    color: #FFA500;
+    font-weight: 600;
   }
   
   .quick-buttons {

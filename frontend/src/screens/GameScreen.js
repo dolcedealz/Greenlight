@@ -243,6 +243,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
               gameStats={gameStats}
               setGameResult={setGameResult}
               setError={setError}
+              userTelegramId={userData?.telegramId}
             />
             
             {error && (

@@ -54,6 +54,15 @@ const CrashGame = ({
   // Таймеры для обратного отсчета
   const countdownTimerRef = useRef(null);
 
+  // ИСПРАВЛЕНИЕ: Функция для вычисления времени начала игры по множителю
+  const calculateGameStartTime = useCallback((currentMultiplier) => {
+    // Используем обратную формулу роста множителя
+    // Множитель растет как 1 + время * 0.06
+    // Отсюда: время = (множитель - 1) / 0.06
+    const elapsedSeconds = (currentMultiplier - 1) / 0.06;
+    return Date.now() - (elapsedSeconds * 1000);
+  }, []);
+
   // Инициализация WebSocket и загрузка начальных данных
   useEffect(() => {
     const initializeGame = async () => {
@@ -353,7 +362,7 @@ const CrashGame = ({
     };
   }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, autoCashOutEnabled, gameLoseFeedback, gameWinFeedback, setGameResult, startCountdown, loadHistory, updateGameState]);
 
-  // Обновление состояния игры - ИСПРАВЛЕННОЕ
+  // ИСПРАВЛЕННОЕ обновление состояния игры
   const updateGameState = useCallback((state) => {
     console.log('📊 Обновление состояния игры:', state);
     
@@ -365,8 +374,22 @@ const CrashGame = ({
     setGameState(state.status || 'waiting');
     setRoundId(state.roundId || null);
     
-    // Обновляем множитель только если он валидный
-    if (state.currentMultiplier !== undefined && state.currentMultiplier > 0) {
+    // ИСПРАВЛЕНИЕ: Правильная обработка активной игры
+    if (state.status === 'flying' && state.currentMultiplier > 1.0) {
+      console.log('КРАШ: Восстанавливаем активную игру с множителем:', state.currentMultiplier);
+      
+      // Вычисляем правильное время начала игры
+      const calculatedStartTime = calculateGameStartTime(state.currentMultiplier);
+      console.log('КРАШ: Вычисленное время начала игры:', new Date(calculatedStartTime));
+      
+      // Устанавливаем множитель и информируем график о необходимости восстановления траектории
+      setCurrentMultiplier(state.currentMultiplier);
+      
+      // Передаем вычисленное время в глобальное состояние для использования в графике
+      // Это будет обработано в CrashGraph.js
+      window.crashGameStartTime = calculatedStartTime;
+    } else if (state.currentMultiplier !== undefined && state.currentMultiplier > 0) {
+      // Обычное обновление множителя
       setCurrentMultiplier(state.currentMultiplier);
     }
     
@@ -432,7 +455,7 @@ const CrashGame = ({
         setCashedOutBets([]);
       }
     }
-  }, [userTelegramId, startCountdown]);
+  }, [userTelegramId, startCountdown, calculateGameStartTime]);
 
   // Обратный отсчет
   const startCountdown = useCallback((seconds) => {

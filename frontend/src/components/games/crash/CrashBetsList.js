@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import '../../../styles/CrashBetsList.css';
 
-const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
+const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier }) => {
   const [activeTab, setActiveTab] = useState('active'); // active, cashed
   
   // Получаем только реальные данные
@@ -119,17 +119,33 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState }) => {
                   </div>
                   
                   {activeTab === 'active' && (
-                    <div className="bet-auto">
-                      {bet.autoCashOut && bet.autoCashOut > 0 ? (
-                        <span className="auto-cashout" title={`Автовывод при ${bet.autoCashOut.toFixed(2)}x`}>
-                          🤖 {bet.autoCashOut.toFixed(2)}x
-                        </span>
-                      ) : (
-                        <span className="manual" title="Ручной вывод">
-                          ✋ Ручной
-                        </span>
+                    <>
+                      <div className="bet-auto">
+                        {bet.autoCashOut && bet.autoCashOut > 0 ? (
+                          <span className="auto-cashout" title={`Автовывод при ${bet.autoCashOut.toFixed(2)}x`}>
+                            🤖 {bet.autoCashOut.toFixed(2)}x
+                          </span>
+                        ) : (
+                          <span className="manual" title="Ручной вывод">
+                            ✋ Ручной
+                          </span>
+                        )}
+                      </div>
+                      {/* Показываем текущий потенциальный выигрыш во время полета */}
+                      {gameState === 'flying' && currentMultiplier && (
+                        <div className="current-value">
+                          <span className="potential-win">
+                            💸 {(bet.amount * currentMultiplier).toFixed(2)} USDT
+                          </span>
+                          {/* Визуальный индикатор приближения к автовыводу */}
+                          {bet.autoCashOut && bet.autoCashOut > 0 && currentMultiplier >= bet.autoCashOut * 0.9 && (
+                            <span className="approaching-auto" title="Скоро автовывод!">
+                              ⚡
+                            </span>
+                          )}
+                        </div>
                       )}
-                    </div>
+                    </>
                   )}
                   
                   {activeTab === 'cashed' && bet.cashOutMultiplier && (

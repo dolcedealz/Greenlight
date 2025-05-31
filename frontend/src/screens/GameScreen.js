@@ -281,11 +281,18 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       {gameResult && (gameType !== 'crash' || gameResult.win !== null) && (
         <div className={`game-result ${gameResult.win ? 'win' : 'lose'}`}>
           <div className="result-text">
-            {gameResult.win ? 'ВЫИГРЫШ!' : 'ПРОИГРЫШ'}
+            {gameResult.win ? 
+              (gameResult.isAutoCashOut ? '🤖 АВТОВЫВОД!' : 'ВЫИГРЫШ!') : 
+              'ПРОИГРЫШ'}
           </div>
           <div className="result-amount">
             {gameResult.win ? '+' : '-'}{gameResult.amount.toFixed(2)} USDT
           </div>
+          {gameResult.isAutoCashOut && gameResult.multiplier && (
+            <div className="result-multiplier">
+              Выведено при {gameResult.multiplier.toFixed(2)}x
+            </div>
+          )}
         </div>
       )}
       

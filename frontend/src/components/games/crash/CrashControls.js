@@ -45,8 +45,16 @@ const CrashControls = ({
   
   // Обработчик изменения автовывода
   const handleAutoCashOutChange = (e) => {
-    const value = parseFloat(e.target.value) || 0;
-    if (value >= 1.01) {
+    const inputValue = e.target.value;
+    
+    // Разрешаем пустое значение для полной очистки поля
+    if (inputValue === '') {
+      setAutoCashOut('');
+      return;
+    }
+    
+    const value = parseFloat(inputValue);
+    if (!isNaN(value) && value >= 1.01 && value <= 1000) {
       setAutoCashOut(value);
       buttonPressFeedback(); // Легкая вибрация при изменении автовывода
     }

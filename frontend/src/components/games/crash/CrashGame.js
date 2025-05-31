@@ -123,6 +123,11 @@ const CrashGame = ({
       setUserGameId(null);
       setUserCashOutMultiplier(0);
       
+      // Сбрасываем результат с задержкой, чтобы пользователь успел увидеть окно
+      setTimeout(() => {
+        setGameResult(null);
+      }, 3000);
+      
       // Очищаем списки ставок
       setActiveBets([]);
       setCashedOutBets([]);
@@ -164,12 +169,16 @@ const CrashGame = ({
       
       // Если у пользователя была ставка и он не вывел
       if (hasBet && !cashedOut) {
+        console.log('Пользователь проиграл - не успел вывести');
         gameLoseFeedback();
         setGameResult({
           win: false,
           amount: userBet.amount,
           newBalance: balance
         });
+      } else if (hasBet && cashedOut) {
+        // Если пользователь уже вывел (вручную или автоматически), не показываем проигрыш
+        console.log('Пользователь уже вывел средства, не показываем проигрыш');
       }
     });
 
@@ -280,12 +289,17 @@ const CrashGame = ({
           setBalance(prev => prev + data.profit);
         }
         
-        // Показываем результат игры
-        setGameResult({
-          win: true,
-          amount: data.profit || (data.amount * data.multiplier - data.amount), // Прибыль
-          newBalance: data.balanceAfter
-        });
+        // Показываем результат игры с небольшой задержкой для визуального эффекта
+        setTimeout(() => {
+          console.log('Устанавливаем результат автовывода для отображения окна');
+          setGameResult({
+            win: true,
+            amount: data.profit || (data.amount * data.multiplier - data.amount), // Прибыль
+            newBalance: data.balanceAfter,
+            isAutoCashOut: true,
+            multiplier: data.multiplier
+          });
+        }, 100);
         
         gameWinFeedback();
       }
@@ -436,7 +450,9 @@ const CrashGame = ({
       setLoading(true);
       gameActionFeedback();
       
-      const response = await gameApi.placeCrashBet(betAmount, autoCashOut);
+      // Если autoCashOut пустое или не число, отправляем 0
+      const finalAutoCashOut = autoCashOut === '' || isNaN(autoCashOut) ? 0 : autoCashOut;
+      const response = await gameApi.placeCrashBet(betAmount, finalAutoCashOut);
       
       if (response.success) {
         console.log('✅ Ставка размещена:', response.data);
@@ -449,7 +465,7 @@ const CrashGame = ({
         setCashedOut(false);
         setUserBet({
           amount: betAmount,
-          autoCashOut: autoCashOut
+          autoCashOut: finalAutoCashOut
         });
         setUserGameId(response.data.gameId);
         
@@ -627,6 +643,7 @@ const CrashGame = ({
           activeBets={activeBets}
           cashedOutBets={cashedOutBets}
           gameState={gameState}
+          currentMultiplier={currentMultiplier}
         />
         
         <CrashHistory 

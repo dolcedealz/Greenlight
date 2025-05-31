@@ -318,6 +318,44 @@
     white-space: nowrap; /* ИСПРАВЛЕНО: не переносим сумму выигрыша */
   }
   
+  /* Стили для текущего потенциального выигрыша */
+  .current-value {
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .potential-win {
+    color: var(--success-color);
+    font-weight: 600;
+    font-size: 13px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  .approaching-auto {
+    font-size: 14px;
+    animation: flash 0.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 0.8;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes flash {
+    0%, 100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  
   @keyframes winAmountSpark {
     0%, 100% {
       color: var(--primary-color);

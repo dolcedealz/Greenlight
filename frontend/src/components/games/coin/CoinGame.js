@@ -18,6 +18,7 @@ const CoinGame = ({
   const [lastResults, setLastResults] = useState([]);
   const [gameCount, setGameCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [gameResultData, setGameResultData] = useState(null); // Сохраняем данные игры
   
   useEffect(() => {
     const initializeGame = async () => {
@@ -106,6 +107,7 @@ const CoinGame = ({
       setGameResult(null);
       setError(null);
       setResult(null);
+      setGameResultData(null); // Сбрасываем предыдущие данные
       
       console.log('🪙 МОНЕТКА: Начинаем игру', betData);
       
@@ -116,7 +118,10 @@ const CoinGame = ({
       );
       
       const gameData = response.data.data;
-      console.log('🪙 МОНЕТКА: Результат:', gameData);
+      console.log('🪙 МОНЕТКА: Результат с сервера:', gameData);
+      
+      // ИСПРАВЛЕНИЕ: Сохраняем данные игры, но не показываем результат сразу
+      setGameResultData(gameData);
       
       // Устанавливаем результат для анимации
       setResult(gameData.result);
@@ -132,17 +137,7 @@ const CoinGame = ({
         setBalance(gameData.balanceAfter);
       }
       
-      // Устанавливаем результат игры (не очистку истории)
-      setTimeout(() => {
-        if (newGameCount % 8 !== 0) {
-          setGameResult({
-            win: gameData.win,
-            amount: Math.abs(gameData.profit),
-            newBalance: gameData.balanceAfter,
-            multiplier: gameData.multiplier
-          });
-        }
-      }, 100);
+      // НЕ устанавливаем результат сразу - ждем завершения анимации
       
     } catch (err) {
       console.error('🪙 МОНЕТКА: Ошибка игры:', err);
@@ -152,10 +147,22 @@ const CoinGame = ({
     }
   };
   
-  // Обработчик завершения анимации
+  // ИСПРАВЛЕНИЕ: Обработчик завершения анимации
   const handleAnimationEnd = () => {
+    console.log('🪙 МОНЕТКА: Анимация завершена');
     setIsFlipping(false);
     setLoading(false);
+    
+    // ТЕПЕРЬ показываем результат игры
+    if (gameResultData && gameCount % 8 !== 0) {
+      console.log('🪙 МОНЕТКА: Показываем результат:', gameResultData);
+      setGameResult({
+        win: gameResultData.win,
+        amount: Math.abs(gameResultData.profit),
+        newBalance: gameResultData.balanceAfter,
+        multiplier: gameResultData.multiplier
+      });
+    }
   };
   
   // Загрузочный экран

@@ -2,16 +2,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
 
-// Символы слотов только с эмодзи
+// ИСПРАВЛЕННЫЕ КОЭФФИЦИЕНТЫ (урезаны в 2 раза)
 const SLOT_SYMBOLS = [
-  { symbol: 'cherry', name: 'cherry', weight: 25, payout: 4, emoji: '🍒' },
-  { symbol: 'lemon', name: 'lemon', weight: 20, payout: 6, emoji: '🍋' },
-  { symbol: 'persik', name: 'persik', weight: 15, payout: 8, emoji: '🍑' },
-  { symbol: 'grape', name: 'grape', weight: 12, payout: 12, emoji: '🍇' },
-  { symbol: 'bell', name: 'bell', weight: 8, payout: 18, emoji: '🔔' },
-  { symbol: 'diamond', name: 'diamond', weight: 5, payout: 30, emoji: '💎' },
-  { symbol: 'star', name: 'star', weight: 3, payout: 50, emoji: '⭐' },
-  { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 100, emoji: '🎰' }
+  { symbol: 'cherry', name: 'cherry', weight: 25, payout: 2, emoji: '🍒' },    // было 4, стало 2
+  { symbol: 'lemon', name: 'lemon', weight: 20, payout: 3, emoji: '🍋' },     // было 6, стало 3
+  { symbol: 'persik', name: 'persik', weight: 15, payout: 4, emoji: '🍑' },   // было 8, стало 4
+  { symbol: 'grape', name: 'grape', weight: 12, payout: 6, emoji: '🍇' },     // было 12, стало 6
+  { symbol: 'bell', name: 'bell', weight: 8, payout: 9, emoji: '🔔' },        // было 18, стало 9
+  { symbol: 'diamond', name: 'diamond', weight: 5, payout: 15, emoji: '💎' }, // было 30, стало 15
+  { symbol: 'star', name: 'star', weight: 3, payout: 25, emoji: '⭐' },       // было 50, стало 25
+  { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 50, emoji: '🎰' } // было 100, стало 50
 ];
 
 const SlotMachine = ({ 

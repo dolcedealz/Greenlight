@@ -23,6 +23,37 @@
   box-shadow: 0 2px 5px rgba(11, 168, 74, 0.3);
 }
 
+/* НОВОЕ: Стили для отображения максимального выигрыша */
+.max-win-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+  padding: 12px;
+  background-color: rgba(11, 168, 74, 0.1);
+  border: 1px solid rgba(11, 168, 74, 0.3);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.max-win-display:hover {
+  background-color: rgba(11, 168, 74, 0.15);
+  border-color: rgba(11, 168, 74, 0.4);
+}
+
+.max-win-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.max-win-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--primary-color);
+  text-shadow: 0 0 10px rgba(11, 168, 74, 0.3);
+}
+
 .mines-bet-section,
 .mines-count-section {
   margin-bottom: 20px;
@@ -257,5 +288,17 @@ input:checked + .toggle-slider:before {
   .cashout-button {
     padding: 12px;
     font-size: 14px;
+  }
+  
+  .max-win-display {
+    padding: 10px;
+  }
+  
+  .max-win-label {
+    font-size: 13px;
+  }
+  
+  .max-win-value {
+    font-size: 15px;
   }
 }

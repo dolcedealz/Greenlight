@@ -217,7 +217,7 @@ class GameService {
   }
   
 /**
- * Играть в слоты (УЛУЧШЕННЫЕ КОЭФФИЦИЕНТЫ для 4x4 - ТОЛЬКО горизонтальные и диагональные линии)
+ * Играть в слоты (ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ - урезаны в 2 раза)
  * @param {Object} userData - Данные пользователя
  * @param {Object} gameData - Данные игры
  * @returns {Object} - Результат игры
@@ -252,15 +252,16 @@ async playSlots(userData, gameData) {
       throw new Error('Сумма ставки должна быть положительной');
     }
     
+    // ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ (урезаны в 2 раза)
     const SLOT_SYMBOLS = [
-      { symbol: 'cherry', weight: 25, payout: 4 },    // было 2, стало 4
-      { symbol: 'lemon', weight: 20, payout: 6 },     // было 3, стало 6
-      { symbol: 'persik', weight: 15, payout: 8 },    // было orange, теперь persik
-      { symbol: 'grape', weight: 12, payout: 12 },    // было 5, стало 12
-      { symbol: 'bell', weight: 8, payout: 18 },      // было 8, стало 18
-      { symbol: 'diamond', weight: 5, payout: 30 },   // было 15, стало 30
-      { symbol: 'star', weight: 3, payout: 50 },      // было 25, стало 50
-      { symbol: 'jackpot', weight: 2, payout: 100 }   // было 50, стало 100
+      { symbol: 'cherry', weight: 25, payout: 2 },    // было 4, стало 2
+      { symbol: 'lemon', weight: 20, payout: 3 },     // было 6, стало 3
+      { symbol: 'persik', weight: 15, payout: 4 },    // было 8, стало 4
+      { symbol: 'grape', weight: 12, payout: 6 },     // было 12, стало 6
+      { symbol: 'bell', weight: 8, payout: 9 },       // было 18, стало 9
+      { symbol: 'diamond', weight: 5, payout: 15 },   // было 30, стало 15
+      { symbol: 'star', weight: 3, payout: 25 },      // было 50, стало 25
+      { symbol: 'jackpot', weight: 2, payout: 50 }    // было 100, стало 50
     ];
     
     // Функция генерации символа
@@ -377,9 +378,6 @@ async playSlots(userData, gameData) {
         addWinningLine(positions, firstSymbol, consecutiveCount);
       }
     }
-    
-    // ВЕРТИКАЛЬНЫЕ ЛИНИИ (колонки) - УБИРАЕМ ПОЛНОСТЬЮ
-    // Этот блок кода удален
     
     // ГЛАВНАЯ ДИАГОНАЛЬ (сверху-слева вниз-вправо) - ОСТАВЛЯЕМ
     const diagonal1Symbol = reels[0][0];
@@ -1300,4 +1298,3 @@ async playSlots(userData, gameData) {
 }
 
 module.exports = new GameService();
-

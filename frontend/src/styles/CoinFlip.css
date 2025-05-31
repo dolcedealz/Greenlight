@@ -112,7 +112,7 @@
   z-index: 5;
 }
 
-/* Основная монета - ИСПРАВЛЕНО */
+/* Основная монета */
 .coin {
   width: 160px;
   height: 160px;
@@ -126,7 +126,7 @@
   animation: simpleCoinFlip 2.5s ease-in-out forwards;
 }
 
-/* ФИНАЛЬНЫЕ ПОЗИЦИИ - ИСПРАВЛЕНО */
+/* ФИНАЛЬНЫЕ ПОЗИЦИИ */
 .coin.heads {
   transform: rotateY(0deg);
 }
@@ -154,7 +154,7 @@
   }
 }
 
-/* ИСПРАВЛЕННЫЕ СТОРОНЫ МОНЕТЫ */
+/* СТОРОНЫ МОНЕТЫ - ИСПРАВЛЕНО ДЛЯ ПРАВИЛЬНОГО 3D */
 .coin-side {
   position: absolute;
   width: 100%;
@@ -169,7 +169,7 @@
     inset 0 0 20px rgba(255, 255, 255, 0.1);
   border: 3px solid;
   overflow: hidden;
-  /* УБИРАЕМ backface-visibility: hidden */
+  backface-visibility: hidden; /* ВОЗВРАЩАЕМ для правильного 3D эффекта */
 }
 
 /* ДИЗАЙН ОРЛА (золотой) - лицевая сторона */
@@ -186,7 +186,6 @@
     0 0 0 4px #ffd700,
     0 0 20px rgba(255, 215, 0, 0.5),
     inset 0 0 20px rgba(255, 255, 255, 0.2);
-  z-index: 2;
 }
 
 /* ДИЗАЙН РЕШКИ (серебряный) - обратная сторона */
@@ -203,24 +202,6 @@
     0 0 0 4px #c0c0c0,
     0 0 20px rgba(192, 192, 192, 0.5),
     inset 0 0 20px rgba(255, 255, 255, 0.3);
-  z-index: 1;
-}
-
-/* ПОКАЗ ПРАВИЛЬНОЙ СТОРОНЫ В ЗАВИСИМОСТИ ОТ ПОВОРОТА */
-.coin.heads .coin-side.heads {
-  z-index: 3;
-}
-
-.coin.heads .coin-side.tails {
-  z-index: 1;
-}
-
-.coin.tails .coin-side.heads {
-  z-index: 1;
-}
-
-.coin.tails .coin-side.tails {
-  z-index: 3;
 }
 
 /* Лицевая сторона монеты */

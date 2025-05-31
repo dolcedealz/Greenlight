@@ -118,37 +118,58 @@
   height: 160px;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s ease;
 }
 
-/* УПРОЩЕННАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ */
+/* ИСПРАВЛЕННАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ */
 .coin.flipping {
-  animation: simpleCoinFlip 1.5s ease-in-out forwards;
+  animation: improvedCoinFlip 2.5s ease-in-out forwards;
 }
 
 .coin.heads {
   transform: rotateY(0deg);
+  transition: transform 0.5s ease;
 }
 
 .coin.tails {
   transform: rotateY(180deg);
+  transition: transform 0.5s ease;
 }
 
-@keyframes simpleCoinFlip {
+/* НОВАЯ УЛУЧШЕННАЯ АНИМАЦИЯ */
+@keyframes improvedCoinFlip {
   0% {
-    transform: rotateY(0deg) translateY(0px);
+    transform: rotateY(0deg) rotateX(0deg) translateY(0px);
   }
-  25% {
-    transform: rotateY(180deg) translateY(-30px);
+  10% {
+    transform: rotateY(180deg) rotateX(45deg) translateY(-40px);
+  }
+  20% {
+    transform: rotateY(360deg) rotateX(90deg) translateY(-60px);
+  }
+  30% {
+    transform: rotateY(540deg) rotateX(135deg) translateY(-70px);
+  }
+  40% {
+    transform: rotateY(720deg) rotateX(180deg) translateY(-75px);
   }
   50% {
-    transform: rotateY(360deg) translateY(-50px);
+    transform: rotateY(900deg) rotateX(225deg) translateY(-70px);
   }
-  75% {
-    transform: rotateY(540deg) translateY(-30px);
+  60% {
+    transform: rotateY(1080deg) rotateX(270deg) translateY(-60px);
+  }
+  70% {
+    transform: rotateY(1260deg) rotateX(315deg) translateY(-40px);
+  }
+  80% {
+    transform: rotateY(1440deg) rotateX(360deg) translateY(-20px);
+  }
+  90% {
+    transform: rotateY(1620deg) rotateX(405deg) translateY(-5px);
   }
   100% {
-    transform: rotateY(720deg) translateY(0px);
+    transform: rotateY(1800deg) rotateX(450deg) translateY(0px);
   }
 }
 

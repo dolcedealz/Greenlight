@@ -121,7 +121,7 @@
   transition: transform 0.3s ease;
 }
 
-/* ПРОСТАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ - ТОЛЬКО ВРАЩЕНИЕ */
+/* ПРОСТАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ */
 .coin.flipping {
   animation: simpleCoinSpin 2.5s linear forwards;
 }
@@ -138,14 +138,14 @@
 
 /* ФИНАЛЬНЫЕ ПОЗИЦИИ - ИСПРАВЛЕНО */
 .coin.final-result.heads {
-  transform: rotateY(1800deg); /* Четное количество полуоборотов = орел */
+  transform: rotateY(0deg); /* Орел - лицевая сторона */
 }
 
 .coin.final-result.tails {
-  transform: rotateY(1980deg); /* 1800 + 180 = решка */
+  transform: rotateY(180deg); /* Решка - обратная сторона */
 }
 
-/* СТОРОНЫ МОНЕТЫ - ПРАВИЛЬНАЯ 3D НАСТРОЙКА */
+/* СТОРОНЫ МОНЕТЫ - ИСПРАВЛЕНО ДЛЯ ПОКАЗА ОБЕИХ СТОРОН */
 .coin-side {
   position: absolute;
   width: 100%;
@@ -160,7 +160,7 @@
     inset 0 0 20px rgba(255, 255, 255, 0.1);
   border: 3px solid;
   overflow: hidden;
-  backface-visibility: hidden; /* ВОЗВРАЩАЕМ для правильного 3D */
+  backface-visibility: visible; /* ИСПРАВЛЕНО: показываем обе стороны */
 }
 
 /* ДИЗАЙН ОРЛА (золотой) - лицевая сторона */

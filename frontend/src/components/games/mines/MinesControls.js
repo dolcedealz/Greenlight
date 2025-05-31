@@ -1,5 +1,5 @@
 // frontend/src/components/games/mines/MinesControls.js
-import React from 'react';
+import React, { useMemo } from 'react';
 import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import '../../../styles/MinesControls.css';
 
@@ -26,6 +26,30 @@ const MinesControls = ({
     importantActionFeedback,
     criticalActionFeedback 
   } = useTactileFeedback();
+
+  // Функция расчета множителя для мин
+  const calculateMinesMultiplier = (mines, revealed) => {
+    if (revealed === 0) return 0.95; // Базовый множитель
+    
+    const totalCells = 25;
+    const safeCells = totalCells - mines;
+    const houseEdge = 0.95; // 95% RTP
+    
+    // Формула расчета множителя для игры мины
+    let multiplier = houseEdge;
+    for (let i = 0; i < revealed; i++) {
+      multiplier *= (safeCells / (safeCells - i));
+    }
+    
+    return multiplier;
+  };
+
+  // Расчет максимального возможного выигрыша
+  const maxPossibleWin = useMemo(() => {
+    const safeCells = 25 - minesCount;
+    const maxMultiplier = calculateMinesMultiplier(minesCount, safeCells);
+    return betAmount * maxMultiplier;
+  }, [betAmount, minesCount]);
 
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
@@ -131,6 +155,12 @@ const MinesControls = ({
       <div className="mines-count-section">
         <div className="mines-count-control">
           <label>Количество мин: <span className="selected-mines-count">{minesCount}</span></label>
+        </div>
+        
+        {/* Отображение максимального возможного выигрыша */}
+        <div className="max-win-display">
+          <span className="max-win-label">Макс. выигрыш:</span>
+          <span className="max-win-value">{maxPossibleWin.toFixed(2)} USDT</span>
         </div>
         
         <div className="quick-mines">

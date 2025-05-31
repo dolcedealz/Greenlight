@@ -11,6 +11,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
   const lastRoundIdRef = useRef(roundId);
   const gameStartTimeRef = useRef(null);
   const isAnimatingRef = useRef(false);
+  const isRestoredGameRef = useRef(false); // НОВОЕ: флаг для восстановленной игры
   
   // Обновление размеров canvas
   useEffect(() => {
@@ -38,6 +39,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       pathPointsRef.current = [];
       particlesRef.current = [];
       gameStartTimeRef.current = null;
+      isRestoredGameRef.current = false; // Сбрасываем флаг
       lastRoundIdRef.current = roundId;
     }
   }, [roundId]);
@@ -52,16 +54,18 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       // ИСПРАВЛЕНИЕ: При входе в активную игру пересоздаем траекторию
       if (multiplier > 1.0) {
         console.log('ГРАФИК: Восстанавливаем траекторию для активной игры, множитель:', multiplier);
+        isRestoredGameRef.current = true; // Помечаем как восстановленную игру
         rebuildTrajectoryForActiveGame();
       }
     } else if (gameState !== 'flying') {
       isAnimatingRef.current = false;
+      isRestoredGameRef.current = false; // Сбрасываем при выходе из полета
     }
   }, [gameState, multiplier]);
   
-  // НОВАЯ ФУНКЦИЯ: Восстановление траектории для активной игры
+  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Восстановление траектории для активной игры
   const rebuildTrajectoryForActiveGame = () => {
-    if (!gameStartTimeRef.current) return;
+    if (!gameStartTimeRef.current || canvasSize.width === 0) return;
     
     const padding = 50;
     const width = canvasSize.width - padding * 2;
@@ -70,20 +74,22 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
     // Очищаем старую траекторию
     pathPointsRef.current = [];
     
-    // Вычисляем примерное время игры на основе текущего множителя
-    const estimatedTimeElapsed = Math.log(multiplier) / 0.06;
+    // ИСПРАВЛЕННОЕ вычисление времени игры
+    const estimatedTimeElapsed = Math.max(0, (multiplier - 1) / 0.06);
     
-    // Создаем точки траектории от начала до текущего момента
-    const pointsCount = Math.min(100, Math.max(10, Math.floor(estimatedTimeElapsed * 3)));
+    // Корректируем время начала игры
+    gameStartTimeRef.current = Date.now() - (estimatedTimeElapsed * 1000);
+    
+    // ИСПРАВЛЕНИЕ: Создаем равномерно распределенные точки
+    const pointsCount = Math.min(Math.max(20, Math.floor(estimatedTimeElapsed * 5)), 100);
     
     for (let i = 0; i <= pointsCount; i++) {
-      const timeStep = (estimatedTimeElapsed * i) / pointsCount;
-      const stepMultiplier = 1 + timeStep * 0.06;
+      const progress = i / pointsCount;
+      const timeStep = estimatedTimeElapsed * progress;
+      const stepMultiplier = Math.max(1.0, 1 + timeStep * 0.06);
       
-      // ИСПРАВЛЕННАЯ формула X координаты - более медленный рост
+      // ИСПРАВЛЕННЫЕ координаты
       const x = calculateXCoordinate(timeStep, padding, width);
-      
-      // ИСПРАВЛЕННАЯ формула Y координаты - плавная кривая
       const y = calculateYCoordinate(stepMultiplier, padding, height);
       
       pathPointsRef.current.push({ 
@@ -94,44 +100,35 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       });
     }
     
-    console.log('ГРАФИК: Восстановлена траектория с', pathPointsRef.current.length, 'точками');
+    console.log('ГРАФИК: Восстановлена траектория с', pathPointsRef.current.length, 'точками для множителя', multiplier);
   };
   
-  // НОВАЯ ФУНКЦИЯ: Расчет X координаты с плавной кривой
+  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Менее кривая траектория X
   const calculateXCoordinate = (timeElapsed, padding, width) => {
-    // Используем логарифмическую функцию для более плавного роста X
-    const maxTime = 20; // Максимальное время до достижения правого края
+    // ИСПРАВЛЕНИЕ: Более линейная траектория X с небольшой кривизной
+    const maxTime = 25; // Увеличиваем максимальное время
     const normalizedTime = Math.min(timeElapsed / maxTime, 1);
     
-    // Плавная кривая для X - быстрее в начале, медленнее к концу
-    const curveX = 1 - Math.pow(1 - normalizedTime, 1.5);
+    // Более простая кривая - почти линейная с небольшим замедлением к концу
+    const curveX = normalizedTime * (2 - normalizedTime * 0.3);
     
-    return padding + curveX * width * 0.85;
+    return padding + Math.min(curveX * width * 0.85, width * 0.85);
   };
   
-  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Расчет Y координаты с плавной кривой
+  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Менее кривая траектория Y
   const calculateYCoordinate = (currentMultiplier, padding, height) => {
     const multiplierForY = Math.max(currentMultiplier, 1.0);
     
-    // ИСПРАВЛЕННАЯ формула: очень плавная S-образная кривая
-    const normalizedMultiplier = (multiplierForY - 1) / 9; // Нормализуем от 0 до 1 для диапазона 1x-10x
+    // ИСПРАВЛЕНИЕ: Более простая и менее кривая траектория
+    const normalizedMultiplier = Math.min((multiplierForY - 1) / 9, 1); // Нормализуем от 0 до 1 для диапазона 1x-10x
     
-    // Используем комбинацию функций для создания плавной кривой снизу вверх
-    let curveValue;
-    
-    if (normalizedMultiplier < 0.5) {
-      // В начале - медленный подъем (квадратичная функция)
-      curveValue = 2 * normalizedMultiplier * normalizedMultiplier;
-    } else {
-      // Во второй половине - более быстрый подъем
-      const t = normalizedMultiplier - 0.5;
-      curveValue = 0.5 + 2 * t * (1 - t/2);
-    }
+    // Простая формула - почти линейная с небольшой кривизной
+    const curveValue = Math.pow(normalizedMultiplier, 0.8); // Уменьшили степень для меньшей кривизны
     
     // Ограничиваем максимальную высоту
-    curveValue = Math.min(curveValue, 0.9);
+    const finalCurve = Math.min(curveValue, 0.9);
     
-    return padding + height * (1 - curveValue);
+    return padding + height * (1 - finalCurve);
   };
   
   // Класс для частиц
@@ -211,7 +208,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       }
     };
     
-    // ИСПРАВЛЕННАЯ сетка графика - увеличена до 10x
+    // Сетка графика - увеличена до 10x
     const drawGrid = (ctx) => {
       const padding = 50;
       const width = canvas.width - padding * 2;
@@ -220,7 +217,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.lineWidth = 1;
       
-      // Горизонтальные линии (множители) - ИСПРАВЛЕНО: увеличено до 10x
+      // Горизонтальные линии (множители) - увеличено до 10x
       for (let i = 0; i <= 10; i++) {
         const y = padding + (i * height / 10);
         ctx.beginPath();
@@ -228,7 +225,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
         ctx.lineTo(padding + width, y);
         ctx.stroke();
         
-        // Подписи множителей - ИСПРАВЛЕНО: новая формула для 1x-10x
+        // Подписи множителей
         if (i % 2 === 0) {
           const mult = 10 - (i * 0.9); // Диапазон от 10x до 1x
           if (mult >= 1) {
@@ -240,16 +237,16 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
         }
       }
       
-      // Вертикальные линии (время) - увеличили до 20 секунд
-      for (let i = 0; i <= 20; i++) {
-        const x = padding + (i * width / 20);
+      // Вертикальные линии (время) - увеличили до 25 секунд
+      for (let i = 0; i <= 25; i++) {
+        const x = padding + (i * width / 25);
         ctx.beginPath();
         ctx.moveTo(x, padding);
         ctx.lineTo(x, padding + height);
         ctx.stroke();
         
         // Подписи времени
-        if (i % 4 === 0) {
+        if (i % 5 === 0) {
           const time = i * 1;
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.font = '12px monospace';
@@ -325,7 +322,7 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       ctx.shadowBlur = 0;
     };
     
-    // ИСПРАВЛЕННОЕ состояние полета с плавной траекторией
+    // ИСПРАВЛЕННОЕ состояние полета с менее кривой траекторией
     const drawFlyingState = (ctx) => {
       if (!gameStartTimeRef.current || !isAnimatingRef.current) return;
       
@@ -336,14 +333,12 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       // Вычисляем позицию точки
       const timeElapsed = (Date.now() - gameStartTimeRef.current) / 1000;
       
-      // ИСПРАВЛЕННАЯ формула X координаты - плавная кривая
+      // ИСПРАВЛЕННЫЕ координаты - менее кривые
       const x = calculateXCoordinate(timeElapsed, padding, width);
-      
-      // ИСПРАВЛЕННАЯ формула Y координаты - плавная кривая
       const y = calculateYCoordinate(multiplier, padding, height);
       
-      // Добавляем точку в путь
-      if (timeElapsed > 0) {
+      // Добавляем точку в путь (только для новых игр, не для восстановленных)
+      if (timeElapsed > 0 && !isRestoredGameRef.current) {
         pathPointsRef.current.push({ x, y, multiplier, time: Date.now() });
         
         // Ограничиваем количество точек
@@ -355,10 +350,22 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
         if (Math.random() < 0.3) {
           particlesRef.current.push(new Particle(x, y, 'trail'));
         }
+      } else if (isRestoredGameRef.current && pathPointsRef.current.length > 0) {
+        // Для восстановленных игр - обновляем последнюю точку
+        const lastIndex = pathPointsRef.current.length - 1;
+        if (lastIndex >= 0) {
+          pathPointsRef.current[lastIndex] = { x, y, multiplier, time: Date.now() };
+        }
+        
+        // Добавляем новую точку только если сильно изменились координаты
+        const lastPoint = pathPointsRef.current[lastIndex - 1];
+        if (!lastPoint || Math.abs(lastPoint.x - x) > 5 || Math.abs(lastPoint.y - y) > 5) {
+          pathPointsRef.current.push({ x, y, multiplier, time: Date.now() });
+        }
       }
       
-      // Рисуем путь с плавными кривыми Безье
-      if (pathPointsRef.current.length > 2) {
+      // ИСПРАВЛЕНО: Рисуем менее сглаженную траекторию
+      if (pathPointsRef.current.length > 1) {
         // Градиент для линии
         const lineGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
         if (multiplier < 2) {
@@ -377,36 +384,31 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         
-        // ИСПРАВЛЕНО: Рисуем очень плавную кривую с кубическими кривыми Безье
+        // ИСПРАВЛЕНО: Простая плавная кривая без лишних изгибов
         ctx.beginPath();
         ctx.moveTo(pathPointsRef.current[0].x, pathPointsRef.current[0].y);
         
+        // Используем простые quadratic кривые вместо сложных bezier
         for (let i = 1; i < pathPointsRef.current.length; i++) {
           const prev = pathPointsRef.current[i - 1];
           const curr = pathPointsRef.current[i];
           
-          if (i === 1) {
-            // Первая точка - используем quadraticCurveTo
-            const cp1x = (prev.x + curr.x) / 2;
-            const cp1y = (prev.y + curr.y) / 2;
-            ctx.quadraticCurveTo(prev.x, prev.y, cp1x, cp1y);
-          } else {
-            // Остальные точки - используем bezierCurveTo для максимальной плавности
-            const prevPrev = pathPointsRef.current[i - 2];
-            
-            // Контрольные точки для плавной кривой
-            const cp1x = prev.x + (curr.x - prevPrev.x) * 0.1;
-            const cp1y = prev.y + (curr.y - prevPrev.y) * 0.1;
-            const cp2x = curr.x - (curr.x - prev.x) * 0.1;
-            const cp2y = curr.y - (curr.y - prev.y) * 0.1;
-            
-            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, curr.x, curr.y);
-          }
+          // Простая интерполяция для плавности
+          const cpx = (prev.x + curr.x) / 2;
+          const cpy = (prev.y + curr.y) / 2;
+          
+          ctx.quadraticCurveTo(prev.x, prev.y, cpx, cpy);
+        }
+        
+        // Линия до последней точки
+        if (pathPointsRef.current.length > 0) {
+          const lastPoint = pathPointsRef.current[pathPointsRef.current.length - 1];
+          ctx.lineTo(lastPoint.x, lastPoint.y);
         }
         
         ctx.stroke();
         
-        // Заливка под кривой с градиентом
+        // Заливка под кривой
         const fillGradient = ctx.createLinearGradient(0, padding, 0, padding + height);
         fillGradient.addColorStop(0, 'rgba(34, 197, 94, 0.3)');
         fillGradient.addColorStop(1, 'rgba(34, 197, 94, 0.05)');
@@ -420,20 +422,9 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
         for (let i = 1; i < pathPointsRef.current.length; i++) {
           const prev = pathPointsRef.current[i - 1];
           const curr = pathPointsRef.current[i];
-          
-          if (i === 1) {
-            const cp1x = (prev.x + curr.x) / 2;
-            const cp1y = (prev.y + curr.y) / 2;
-            ctx.quadraticCurveTo(prev.x, prev.y, cp1x, cp1y);
-          } else {
-            const prevPrev = pathPointsRef.current[i - 2];
-            const cp1x = prev.x + (curr.x - prevPrev.x) * 0.1;
-            const cp1y = prev.y + (curr.y - prevPrev.y) * 0.1;
-            const cp2x = curr.x - (curr.x - prev.x) * 0.1;
-            const cp2y = curr.y - (curr.y - prev.y) * 0.1;
-            
-            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, curr.x, curr.y);
-          }
+          const cpx = (prev.x + curr.x) / 2;
+          const cpy = (prev.y + curr.y) / 2;
+          ctx.quadraticCurveTo(prev.x, prev.y, cpx, cpy);
         }
         
         if (pathPointsRef.current.length > 0) {

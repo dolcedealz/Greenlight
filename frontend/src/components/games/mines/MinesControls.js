@@ -27,29 +27,71 @@ const MinesControls = ({
     criticalActionFeedback 
   } = useTactileFeedback();
 
-  // Функция расчета множителя для мин
-  const calculateMinesMultiplier = (mines, revealed) => {
-    if (revealed === 0) return 0.95; // Базовый множитель
-    
-    const totalCells = 25;
-    const safeCells = totalCells - mines;
-    const houseEdge = 0.95; // 95% RTP
-    
-    // Формула расчета множителя для игры мины
-    let multiplier = houseEdge;
-    for (let i = 0; i < revealed; i++) {
-      multiplier *= (safeCells / (safeCells - i));
+  // ПРАВИЛЬНЫЕ коэффициенты из backend/src/services/game.service.js
+  const payoutTables = {
+    3: {
+      1: 1.13, 2: 1.29, 3: 1.48, 4: 1.71, 5: 2.00, 6: 2.35, 7: 2.79, 8: 3.35, 9: 4.07, 10: 5.00,
+      11: 6.26, 12: 7.96, 13: 10.35, 14: 13.80, 15: 18.98, 16: 27.11, 17: 40.66, 18: 65.06,
+      19: 113.85, 20: 227.70, 21: 569.25, 22: 2277.00
+    },
+    5: {
+      1: 1.24, 2: 1.56, 3: 2.00, 4: 2.58, 5: 3.39, 6: 4.52, 7: 6.14, 8: 8.50, 9: 12.04, 10: 17.52,
+      11: 26.27, 12: 40.87, 13: 66.41, 14: 113.85, 15: 208.73, 16: 417.45, 17: 939.26, 18: 2504.70,
+      19: 8766.45, 20: 52598.70
+    },
+    7: {
+      1: 1.38, 2: 1.94, 3: 2.79, 4: 4.09, 5: 6.14, 6: 9.44, 7: 14.95, 8: 24.47, 9: 41.60, 10: 73.95,
+      11: 138.66, 12: 277.33, 13: 600.88, 14: 1442.10, 15: 3965.78, 16: 13219.25, 17: 59486.63, 18: 475893.00
+    },
+    9: {
+      1: 1.55, 2: 2.48, 3: 4.07, 4: 6.88, 5: 12.04, 6: 21.89, 7: 41.60, 8: 83.20, 9: 176.80, 10: 404.10,
+      11: 1010.26, 12: 2828.73, 13: 9193.39, 14: 36773.55, 15: 202254.53, 16: 2022545.25
+    },
+    12: {
+      1: 1.90, 2: 3.81, 3: 7.96, 4: 17.52, 5: 40.87, 6: 102.17, 7: 277.33, 8: 831.98, 9: 2828.73, 10: 11314.94,
+      11: 56574.69, 12: 396022.85, 13: 5148297.00
+    },
+    15: {
+      1: 2.48, 2: 6.60, 3: 18.98, 4: 59.64, 5: 208.73, 6: 834.90, 7: 3965.78, 8: 23794.65, 9: 202254.53, 10: 3236072.40
+    },
+    18: {
+      1: 3.54, 2: 14.14, 3: 65.06, 4: 357.81, 5: 2504.70, 6: 25047.00, 7: 475893.00
+    },
+    21: {
+      1: 6.19, 2: 49.50, 3: 569.25, 4: 12523.50
+    },
+    23: {
+      1: 12.38, 2: 297.00
     }
+  };
+
+  // Функция для получения максимального коэффициента для определенного количества мин
+  const getMaxMultiplier = (mines) => {
+    const table = payoutTables[mines];
+    if (!table) return 1;
     
-    return multiplier;
+    // Находим максимальный ключ (количество открытых ячеек) в таблице
+    const maxRevealed = Math.max(...Object.keys(table).map(Number));
+    return table[maxRevealed];
   };
 
   // Расчет максимального возможного выигрыша
   const maxPossibleWin = useMemo(() => {
-    const safeCells = 25 - minesCount;
-    const maxMultiplier = calculateMinesMultiplier(minesCount, safeCells);
+    const maxMultiplier = getMaxMultiplier(minesCount);
     return betAmount * maxMultiplier;
   }, [betAmount, minesCount]);
+
+  // Получаем максимальный множитель для отображения
+  const maxMultiplier = useMemo(() => {
+    return getMaxMultiplier(minesCount);
+  }, [minesCount]);
+
+  // Получаем количество безопасных ячеек, которые нужно открыть для максимального выигрыша
+  const maxSafeCells = useMemo(() => {
+    const table = payoutTables[minesCount];
+    if (!table) return 0;
+    return Math.max(...Object.keys(table).map(Number));
+  }, [minesCount]);
 
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
@@ -157,10 +199,28 @@ const MinesControls = ({
           <label>Количество мин: <span className="selected-mines-count">{minesCount}</span></label>
         </div>
         
-        {/* Отображение максимального возможного выигрыша */}
+        {/* Отображение максимального возможного выигрыша с ПРАВИЛЬНЫМИ коэффициентами */}
         <div className="max-win-display">
-          <span className="max-win-label">Макс. выигрыш:</span>
-          <span className="max-win-value">{maxPossibleWin.toFixed(2)} USDT</span>
+          <div className="max-win-content">
+            <span className="max-win-label">Макс. выигрыш:</span>
+            <span className="max-win-value">
+              {maxPossibleWin >= 1000000 
+                ? `${(maxPossibleWin / 1000000).toFixed(2)}M` 
+                : maxPossibleWin >= 1000 
+                ? `${(maxPossibleWin / 1000).toFixed(1)}K`
+                : maxPossibleWin.toFixed(2)} USDT
+            </span>
+          </div>
+          <div className="max-win-multiplier">
+            <span className="multiplier-text">
+              при x{maxMultiplier >= 1000000 
+                ? `${(maxMultiplier / 1000000).toFixed(1)}M` 
+                : maxMultiplier >= 1000 
+                ? `${(maxMultiplier / 1000).toFixed(1)}K`
+                : maxMultiplier.toFixed(2)} 
+              ({maxSafeCells} ячеек)
+            </span>
+          </div>
         </div>
         
         <div className="quick-mines">

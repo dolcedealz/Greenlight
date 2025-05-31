@@ -79,8 +79,12 @@ const CrashControls = ({
   
   // Получение потенциального выигрыша
   const getPotentialWin = () => {
-    if (gameState === 'flying' && hasBet && !cashedOut) {
-      // Если игра идет и у пользователя есть ставка - показываем текущий возможный выигрыш
+    if (gameState === 'flying' && hasBet) {
+      if (cashedOut && userCashOutMultiplier > 0) {
+        // Если уже вывели, показываем финальную сумму
+        return (userBet.amount * userCashOutMultiplier).toFixed(2);
+      }
+      // Если еще не вывели - показываем текущий возможный выигрыш
       return (userBet.amount * currentMultiplier).toFixed(2);
     }
     // Иначе показываем потенциальный выигрыш при автовыводе
@@ -89,7 +93,12 @@ const CrashControls = ({
   
   // Получение текущей прибыли
   const getCurrentProfit = () => {
-    if (gameState === 'flying' && hasBet && !cashedOut) {
+    if (gameState === 'flying' && hasBet) {
+      if (cashedOut && userCashOutMultiplier > 0) {
+        // Если уже вывели, показываем финальную прибыль
+        return ((userBet.amount * userCashOutMultiplier) - userBet.amount).toFixed(2);
+      }
+      // Если еще не вывели - показываем текущую прибыль
       return (parseFloat(getPotentialWin()) - userBet.amount).toFixed(2);
     }
     return (parseFloat(getPotentialWin()) - betAmount).toFixed(2);
@@ -163,9 +172,11 @@ const CrashControls = ({
           <div className="panel-header">
             <span className="panel-title">🎯 Автовывод</span>
             <span className="potential-win">
-              {gameState === 'flying' && hasBet && !cashedOut 
-                ? `Сейчас: ${getPotentialWin()} USDT`
-                : `При ${autoCashOut}x: ${getPotentialWin()} USDT`
+              {gameState === 'flying' && hasBet && cashedOut 
+                ? `Выведено: ${getPotentialWin()} USDT`
+                : gameState === 'flying' && hasBet && !cashedOut 
+                  ? `Сейчас: ${getPotentialWin()} USDT`
+                  : `При ${autoCashOut}x: ${getPotentialWin()} USDT`
               }
             </span>
           </div>

@@ -171,10 +171,23 @@ const CrashGame = ({
       if (hasBet && !cashedOut) {
         console.log('Пользователь проиграл - не успел вывести');
         gameLoseFeedback();
-        setGameResult({
-          win: false,
-          amount: userBet.amount,
-          newBalance: balance
+        // Проверяем, что нет активного результата выигрыша перед установкой проигрыша
+        // И дополнительно проверяем текущее состояние cashedOut
+        setGameResult(prevResult => {
+          if (prevResult && prevResult.win) {
+            console.log('Есть активный выигрыш, не перезаписываем проигрышем');
+            return prevResult;
+          }
+          // Еще раз проверяем cashedOut на случай быстрого обновления состояния
+          if (cashedOut) {
+            console.log('cashedOut стал true, не показываем проигрыш');
+            return prevResult;
+          }
+          return {
+            win: false,
+            amount: userBet?.amount || 0,
+            newBalance: balance
+          };
         });
       } else if (hasBet && cashedOut) {
         // Если пользователь уже вывел (вручную или автоматически), не показываем проигрыш

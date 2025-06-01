@@ -8,32 +8,60 @@ const router = express.Router();
 // === ПУБЛИЧНЫЕ МАРШРУТЫ (для пользователей) ===
 
 // Получить активные события
-router.get('/active', eventController.getActiveEvents);
+router.get('/active', 
+  telegramAuthMiddleware, 
+  eventController.getActiveEvents
+);
 
 // Получить главное событие
-router.get('/featured', eventController.getFeaturedEvent);
+router.get('/featured', 
+  telegramAuthMiddleware, 
+  eventController.getFeaturedEvent
+);
 
 // Получить событие по ID
-router.get('/:eventId', eventController.getEventById);
+router.get('/:eventId', 
+  telegramAuthMiddleware, 
+  eventController.getEventById
+);
 
-// Разместить ставку (требует аутентификации)
-router.post('/bet', telegramAuthMiddleware, eventController.placeBet);
+// Разместить ставку на событие
+router.post('/bet', 
+  telegramAuthMiddleware, 
+  eventController.placeBet
+);
 
-// Получить ставки пользователя (требует аутентификации)
-router.get('/user/bets', telegramAuthMiddleware, eventController.getUserBets);
+// Получить ставки пользователя
+router.get('/user/bets', 
+  telegramAuthMiddleware, 
+  eventController.getUserBets
+);
 
-// Получить общую статистику
-router.get('/stats/general', eventController.getStatistics);
+// === МАРШРУТЫ ДЛЯ СТАТИСТИКИ ===
+
+// Получить общую статистику событий
+router.get('/stats/general', 
+  eventController.getStatistics
+);
 
 // === АДМИНСКИЕ МАРШРУТЫ ===
 
-// Получить все события (админ)
-router.get('/admin/all', adminAuthMiddleware, eventController.getAllEvents);
+// Получить все события (только для админа)
+router.get('/admin/all', 
+  adminAuthMiddleware, 
+  eventController.getAllEvents
+);
 
-// Создать событие (админ)
-router.post('/admin/create', adminAuthMiddleware, eventController.createEvent);
+// Создать новое событие (только для админа)
+router.post('/admin/create', 
+  adminAuthMiddleware, 
+  eventController.createEvent
+);
 
-// Завершить событие (админ)
-router.put('/admin/:eventId/finish', adminAuthMiddleware, eventController.finishEvent);
+// Завершить событие (только для админа)
+router.put('/admin/:eventId/finish', 
+  adminAuthMiddleware, 
+  eventController.finishEvent
+);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-// backend/src/services/index.js
+// backend/src/services/index.js - ОБНОВЛЕННАЯ ВЕРСИЯ
 const randomService = require('./random.service');
 const gameService = require('./game.service');
 const userService = require('./user.service');
@@ -8,8 +8,9 @@ const oddsService = require('./odds.service');
 const casinoFinanceService = require('./casino-finance.service');
 const referralService = require('./referral.service');
 const crashService = require('./crash.service');
-const authService = require('./auth.service'); // ДОБАВЛЯЕМ
-const pvpService = require('./pvp.service'); // ДОБАВЛЯЕМ PvP
+const authService = require('./auth.service');
+const pvpService = require('./pvp.service');
+const eventService = require('./event.service'); // Добавляем события
 
 module.exports = {
   randomService,
@@ -22,5 +23,6 @@ module.exports = {
   referralService,
   crashService,
   authService,
-  pvpService // ДОБАВЛЯЕМ PvP
+  pvpService,
+  eventService // Добавляем события
 };

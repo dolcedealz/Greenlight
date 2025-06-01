@@ -1,6 +1,6 @@
-// index.js с webhook для Render
+// admin/index.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с поддержкой сессий
 require('dotenv').config();
-const { Telegraf } = require('telegraf');
+const { Telegraf, session } = require('telegraf');
 const { commands, middleware, handlers } = require('./src');
 const express = require('express');
 
@@ -16,6 +16,12 @@ if (!process.env.ADMIN_BOT_TOKEN) {
   process.exit(1);
 }
 
+// Проверяем наличие API токена
+if (!process.env.ADMIN_API_TOKEN) {
+  console.error('❌ Ошибка: ADMIN_API_TOKEN не указан в переменных окружения');
+  console.error('   Этот токен необходим для взаимодействия с API');
+}
+
 // Инициализация бота с токеном из переменных окружения
 const bot = new Telegraf(process.env.ADMIN_BOT_TOKEN);
 
@@ -25,11 +31,18 @@ const adminIds = process.env.ADMIN_IDS
   : [];
 
 console.log('Admin IDs:', adminIds);
+console.log('API URL:', process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api');
+console.log('Admin API Token настроен:', !!process.env.ADMIN_API_TOKEN);
 
-// Применяем middleware
+// ВАЖНО: Подключаем поддержку сессий ДО всех остальных middleware
+bot.use(session({
+  defaultSession: () => ({})
+}));
+
+// Применяем middleware для проверки админских прав
 middleware.applyMiddleware(bot, adminIds);
 
-// Регистрируем команды
+// Регистрируем команды (включая команды для событий)
 commands.registerCommands(bot);
 
 // Регистрируем обработчики сообщений и callback
@@ -38,13 +51,26 @@ handlers.registerHandlers(bot);
 // Обработка ошибок
 bot.catch((err, ctx) => {
   console.error(`Ошибка для ${ctx.updateType}:`, err);
+  console.error('Stack trace:', err.stack);
+  
+  // Попытаемся отправить сообщение об ошибке
   ctx.reply('Произошла ошибка. Пожалуйста, попробуйте снова.')
     .catch(e => console.error('Ошибка при отправке сообщения об ошибке:', e));
 });
 
 // Маршрут для проверки работоспособности
 app.get('/', (req, res) => {
-  res.send('<h1>Greenlight Admin Bot</h1><p>Бот активен и работает в режиме webhook</p>');
+  res.send(`
+    <h1>Greenlight Admin Bot</h1>
+    <p>Бот активен и работает в режиме webhook</p>
+    <h2>Статус конфигурации:</h2>
+    <ul>
+      <li>ADMIN_BOT_TOKEN: ✅ Настроен</li>
+      <li>ADMIN_API_TOKEN: ${process.env.ADMIN_API_TOKEN ? '✅ Настроен' : '❌ Не настроен'}</li>
+      <li>API_URL: ${process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api'}</li>
+      <li>Админы: ${adminIds.length > 0 ? adminIds.join(', ') : 'Не настроены'}</li>
+    </ul>
+  `);
 });
 
 // Получаем порт и домен из переменных окружения
@@ -64,7 +90,7 @@ if (WEBHOOK_DOMAIN) {
   
   // Запуск сервера
   app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`✅ Сервер запущен на порту ${PORT}`);
+    console.log(`✅ Админ-бот сервер запущен на порту ${PORT}`);
     
     try {
       // Сначала удаляем любые существующие webhook или polling соединения
@@ -88,6 +114,9 @@ if (WEBHOOK_DOMAIN) {
         const errorTime = new Date(webhookInfo.last_error_date * 1000);
         console.warn(`⚠️ Последняя ошибка webhook: ${webhookInfo.last_error_message} (${errorTime})`);
       }
+      
+      console.log(`🔮 Функциональность событий: ${process.env.ADMIN_API_TOKEN ? '✅ Готова' : '❌ Требует ADMIN_API_TOKEN'}`);
+      
     } catch (error) {
       console.error('❌ Ошибка при настройке webhook:', error);
     }
@@ -100,7 +129,10 @@ if (WEBHOOK_DOMAIN) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ HTTP-сервер запущен на порту ${PORT}`);
     bot.launch()
-      .then(() => console.log('✅ Админ-бот запущен в режиме polling'))
+      .then(() => {
+        console.log('✅ Админ-бот запущен в режиме polling');
+        console.log(`🔮 Функциональность событий: ${process.env.ADMIN_API_TOKEN ? '✅ Готова' : '❌ Требует ADMIN_API_TOKEN'}`);
+      })
       .catch(err => console.error('❌ Ошибка запуска бота:', err));
   });
 }

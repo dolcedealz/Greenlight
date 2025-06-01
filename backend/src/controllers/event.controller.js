@@ -1,4 +1,4 @@
-// backend/src/controllers/event.controller.js
+// backend/src/controllers/event.controller.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { eventService } = require('../services');
 
 /**
@@ -12,7 +12,11 @@ class EventController {
     try {
       const { limit = 4 } = req.query;
       
+      console.log('EVENT CONTROLLER: Запрос активных событий, лимит:', limit);
+      
       const events = await eventService.getActiveEvents(parseInt(limit));
+      
+      console.log(`EVENT CONTROLLER: Найдено событий: ${events.length}`);
       
       res.status(200).json({
         success: true,
@@ -25,7 +29,7 @@ class EventController {
       console.error('EVENT CONTROLLER: Ошибка получения событий:', error);
       res.status(400).json({
         success: false,
-        message: error.message
+        message: error.message || 'Ошибка получения списка событий'
       });
     }
   }
@@ -35,7 +39,15 @@ class EventController {
    */
   async getFeaturedEvent(req, res) {
     try {
+      console.log('EVENT CONTROLLER: Запрос главного события');
+      
       const event = await eventService.getFeaturedEvent();
+      
+      if (event) {
+        console.log(`EVENT CONTROLLER: Найдено главное событие: ${event.title}`);
+      } else {
+        console.log('EVENT CONTROLLER: Главное событие не найдено');
+      }
       
       res.status(200).json({
         success: true,
@@ -47,7 +59,7 @@ class EventController {
       console.error('EVENT CONTROLLER: Ошибка получения главного события:', error);
       res.status(400).json({
         success: false,
-        message: error.message
+        message: error.message || 'Ошибка получения главного события'
       });
     }
   }
@@ -59,6 +71,8 @@ class EventController {
     try {
       const { eventId } = req.params;
       
+      console.log('EVENT CONTROLLER: Запрос события по ID:', eventId);
+      
       const event = await eventService.getEventById(eventId);
       
       res.status(200).json({
@@ -69,10 +83,18 @@ class EventController {
       });
     } catch (error) {
       console.error('EVENT CONTROLLER: Ошибка получения события:', error);
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
+      
+      if (error.message.includes('не найдено')) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: error.message || 'Ошибка получения события'
+        });
+      }
     }
   }
   
@@ -274,6 +296,7 @@ class EventController {
       }
       
       const { status, limit = 50, skip = 0 } = req.query;
+      const { Event } = require('../models');
       
       const query = {};
       if (status) {

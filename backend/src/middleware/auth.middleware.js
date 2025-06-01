@@ -1,4 +1,4 @@
-// backend/src/middleware/auth.middleware.js - ИСПРАВЛЕННАЯ ВЕРСИЯ С ДОПОЛНИТЕЛЬНЫМ ЛОГИРОВАНИЕМ
+// backend/src/middleware/auth.middleware.js - ВЕРСИЯ С ОПТИМИЗИРОВАННЫМ ЛОГИРОВАНИЕМ
 const { User } = require('../models');
 const mongoose = require('mongoose');
 
@@ -10,22 +10,20 @@ const mongoose = require('mongoose');
  */
 async function telegramAuthMiddleware(req, res, next) {
   try {
-    console.log('AUTH: Начало проверки аутентификации');
-    console.log('AUTH: URL:', req.method, req.originalUrl);
-    console.log('AUTH: Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('AUTH: Проверка аутентификации для:', req.method, req.originalUrl);
     
     // Получаем данные инициализации из заголовка
     const initData = req.headers['telegram-data'];
     
     if (!initData) {
-      console.log('AUTH: Отсутствуют данные аутентификации в заголовке telegram-data');
+      console.log('AUTH: Отсутствуют данные аутентификации');
       return res.status(401).json({
         success: false,
         message: 'Отсутствуют данные аутентификации'
       });
     }
     
-    console.log('AUTH: Получены initData:', initData.substring(0, 100) + '...');
+    console.log('AUTH: Получены initData (длина):', initData.length);
     
     // В этом примере мы просто извлекаем telegramId из данных
     let telegramId;
@@ -35,7 +33,6 @@ async function telegramAuthMiddleware(req, res, next) {
       for (const part of parts) {
         if (part.startsWith('user=')) {
           const userJson = decodeURIComponent(part.split('=')[1]);
-          console.log('AUTH: Decoded user JSON:', userJson);
           telegramUser = JSON.parse(userJson);
           telegramId = telegramUser.id;
           break;
@@ -50,7 +47,7 @@ async function telegramAuthMiddleware(req, res, next) {
     }
     
     if (!telegramId) {
-      console.log('AUTH: Идентификатор пользователя не найден в данных');
+      console.log('AUTH: Идентификатор пользователя не найден');
       return res.status(401).json({
         success: false,
         message: 'Идентификатор пользователя не найден'
@@ -63,7 +60,7 @@ async function telegramAuthMiddleware(req, res, next) {
     let user = await User.findOne({ telegramId });
     
     if (!user) {
-      console.log(`AUTH: Пользователь с telegramId ${telegramId} не найден, создаем нового`);
+      console.log(`AUTH: Создание нового пользователя ${telegramId}`);
       
       try {
         const { userService } = require('../services');
@@ -77,8 +74,7 @@ async function telegramAuthMiddleware(req, res, next) {
         });
       }
     } else {
-      console.log(`AUTH: Пользователь найден: ${user._id} (${user.firstName} ${user.lastName})`);
-      console.log(`AUTH: Баланс пользователя: ${user.balance} USDT`);
+      console.log(`AUTH: Пользователь найден: ${user._id}, баланс: ${user.balance} USDT`);
     }
     
     if (user.isBlocked) {
@@ -96,7 +92,7 @@ async function telegramAuthMiddleware(req, res, next) {
     // Сохраняем пользователя в запросе
     req.user = user;
     
-    console.log(`AUTH: Аутентификация успешна для пользователя ${user._id}`);
+    console.log(`AUTH: Аутентификация успешна для ${user._id}`);
     
     next();
   } catch (error) {
@@ -115,24 +111,20 @@ async function telegramAuthMiddleware(req, res, next) {
  * @param {Function} next - Функция next
  */
 function adminAuthMiddleware(req, res, next) {
-  console.log('ADMIN AUTH: Проверка прав администратора');
-  console.log('ADMIN AUTH: URL:', req.method, req.originalUrl);
-  console.log('ADMIN AUTH: Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('ADMIN AUTH: Проверка прав администратора для:', req.method, req.originalUrl);
   
   // Проверяем Bearer токен
   const authHeader = req.headers['authorization'];
-  console.log('ADMIN AUTH: Authorization header:', authHeader);
   
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
-    console.log('ADMIN AUTH: Извлечен токен (первые 20 символов):', token.substring(0, 20) + '...');
+    console.log('ADMIN AUTH: Проверка токена');
     
     // Получаем ожидаемый токен из переменных окружения
     const expectedToken = process.env.ADMIN_API_TOKEN;
-    console.log('ADMIN AUTH: ADMIN_API_TOKEN установлен:', !!expectedToken);
     
     if (!expectedToken) {
-      console.error('ADMIN AUTH: ADMIN_API_TOKEN не установлен в переменных окружения!');
+      console.error('ADMIN AUTH: ADMIN_API_TOKEN не установлен!');
       return res.status(500).json({
         success: false,
         message: 'Ошибка конфигурации сервера: отсутствует ADMIN_API_TOKEN'
@@ -143,23 +135,23 @@ function adminAuthMiddleware(req, res, next) {
     if (token === expectedToken) {
       console.log('ADMIN AUTH: Токен верный, создаем виртуального админа');
       
-      // ИСПРАВЛЕНИЕ: Создаем валидный ObjectId для системного админа
-      const systemAdminId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'); // Фиксированный ObjectId
+      // Создаем валидный ObjectId для системного админа
+      const systemAdminId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011');
       
       // Создаем виртуального админ-пользователя с валидным ObjectId
       req.user = {
-        _id: systemAdminId, // Валидный ObjectId вместо строки
+        _id: systemAdminId,
         role: 'admin',
         isAdmin: true,
         firstName: 'Admin',
         lastName: 'System',
-        telegramId: 999999999 // Фиктивный telegram ID
+        telegramId: 999999999
       };
       
-      console.log('ADMIN AUTH: Создан виртуальный админ с ID:', systemAdminId);
+      console.log('ADMIN AUTH: Создан виртуальный админ');
       return next();
     } else {
-      console.log('ADMIN AUTH: Неверный токен администратора');
+      console.log('ADMIN AUTH: Неверный токен');
       return res.status(403).json({
         success: false,
         message: 'Неверный токен администратора'

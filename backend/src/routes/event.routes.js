@@ -1,11 +1,13 @@
-// backend/src/routes/event.routes.js
+// backend/src/routes/event.routes.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const express = require('express');
 const { eventController } = require('../controllers');
 const { telegramAuthMiddleware, adminAuthMiddleware } = require('../middleware');
 
 const router = express.Router();
 
-// === ПУБЛИЧНЫЕ МАРШРУТЫ (для пользователей) ===
+console.log('EVENT ROUTES: Регистрация маршрутов событий');
+
+// === ВАЖНО: СПЕЦИФИЧНЫЕ МАРШРУТЫ ИДУТ ПЕРЕД ПАРАМЕТРИЗОВАННЫМИ ===
 
 // Получить активные события
 router.get('/active', 
@@ -19,11 +21,28 @@ router.get('/featured',
   eventController.getFeaturedEvent
 );
 
-// Получить событие по ID
-router.get('/:eventId', 
-  telegramAuthMiddleware, 
-  eventController.getEventById
+// === МАРШРУТЫ ДЛЯ СТАТИСТИКИ (должны быть перед /:eventId) ===
+router.get('/stats/general', 
+  eventController.getStatistics
 );
+
+// === АДМИНСКИЕ МАРШРУТЫ (должны быть перед /:eventId) ===
+router.get('/admin/all', 
+  adminAuthMiddleware, 
+  eventController.getAllEvents
+);
+
+router.post('/admin/create', 
+  adminAuthMiddleware, 
+  eventController.createEvent
+);
+
+router.put('/admin/:eventId/finish', 
+  adminAuthMiddleware, 
+  eventController.finishEvent
+);
+
+// === ПОЛЬЗОВАТЕЛЬСКИЕ МАРШРУТЫ ДЛЯ СТАВОК (должны быть перед /:eventId) ===
 
 // Разместить ставку на событие
 router.post('/bet', 
@@ -37,31 +56,14 @@ router.get('/user/bets',
   eventController.getUserBets
 );
 
-// === МАРШРУТЫ ДЛЯ СТАТИСТИКИ ===
+// === ПАРАМЕТРИЗОВАННЫЙ МАРШРУТ ДОЛЖЕН БЫТЬ ПОСЛЕДНИМ ===
 
-// Получить общую статистику событий
-router.get('/stats/general', 
-  eventController.getStatistics
+// Получить событие по ID (ДОЛЖЕН БЫТЬ ПОСЛЕДНИМ!)
+router.get('/:eventId', 
+  telegramAuthMiddleware, 
+  eventController.getEventById
 );
 
-// === АДМИНСКИЕ МАРШРУТЫ ===
-
-// Получить все события (только для админа)
-router.get('/admin/all', 
-  adminAuthMiddleware, 
-  eventController.getAllEvents
-);
-
-// Создать новое событие (только для админа)
-router.post('/admin/create', 
-  adminAuthMiddleware, 
-  eventController.createEvent
-);
-
-// Завершить событие (только для админа)
-router.put('/admin/:eventId/finish', 
-  adminAuthMiddleware, 
-  eventController.finishEvent
-);
+console.log('EVENT ROUTES: Маршруты событий зарегистрированы');
 
 module.exports = router;

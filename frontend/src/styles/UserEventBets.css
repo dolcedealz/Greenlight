@@ -1,0 +1,413 @@
+/* frontend/src/styles/UserEventBets.css */
+.user-event-bets {
+  animation: fadeIn 0.5s ease;
+}
+
+/* Заголовок */
+.bets-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 5px;
+}
+
+.bets-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+}
+
+.refresh-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: rotate(180deg);
+}
+
+.refresh-btn.refreshing {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Статистика */
+.bets-stats {
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(11, 168, 74, 0.2);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+}
+
+.stat-value.positive {
+  color: var(--primary-color);
+}
+
+.stat-value.negative {
+  color: #ff3b30;
+}
+
+/* Фильтры */
+.bets-filters {
+  display: flex;
+  background-color: var(--secondary-color);
+  border-radius: var(--border-radius);
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.filter-button {
+  flex: 1;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-button:hover:not(.active) {
+  color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.filter-button.active {
+  color: white;
+  background-color: var(--primary-color);
+  font-weight: bold;
+}
+
+/* Загрузка */
+.user-bets-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.user-bets-loading .loader {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid var(--primary-color);
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+/* Ошибка */
+.user-bets-error {
+  text-align: center;
+  padding: 40px 20px;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  margin-top: 20px;
+}
+
+.user-bets-error h3 {
+  color: #ff3b30;
+  margin-bottom: 10px;
+}
+
+.user-bets-error p {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+}
+
+.retry-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: #0c9740;
+  transform: translateY(-2px);
+}
+
+/* Пустое состояние */
+.no-bets {
+  text-align: center;
+  padding: 60px 20px;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+}
+
+.no-bets-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.no-bets h3 {
+  color: white;
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.no-bets p {
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Список ставок */
+.bets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Элемент ставки */
+.bet-item {
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border-left: 4px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.bet-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.bet-item.active {
+  border-left-color: #ff9500;
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(255, 149, 0, 0.05) 100%);
+}
+
+.bet-item.win {
+  border-left-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(11, 168, 74, 0.05) 100%);
+}
+
+.bet-item.lose {
+  border-left-color: #ff3b30;
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(255, 59, 48, 0.05) 100%);
+}
+
+/* Заголовок ставки */
+.bet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  gap: 15px;
+}
+
+.event-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.bet-status {
+  font-size: 14px;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+/* Исход */
+.bet-outcome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.outcome-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.outcome-name {
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+/* Детали ставки */
+.bet-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.bet-amount,
+.bet-odds,
+.potential-win,
+.bet-profit {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.bet-details .label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.bet-details .value {
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+}
+
+.bet-details .value.positive {
+  color: var(--primary-color);
+}
+
+.bet-details .value.negative {
+  color: #ff3b30;
+}
+
+/* Подвал ставки */
+.bet-footer {
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.bet-date,
+.settled-date {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.settled-date {
+  text-align: right;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .bet-details {
+    grid-template-columns: 1fr;
+  }
+  
+  .bet-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .bet-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .settled-date {
+    text-align: left;
+  }
+}
+
+@media (max-width: 480px) {
+  .bet-item {
+    padding: 15px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .bets-header h3 {
+    font-size: 18px;
+  }
+  
+  .event-title {
+    font-size: 15px;
+  }
+}

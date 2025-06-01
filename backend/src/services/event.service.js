@@ -1,9 +1,9 @@
-// backend/src/services/event.service.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
+// backend/src/services/event.service.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ГИБКИМИ КОЭФФИЦИЕНТАМИ
 const { Event, EventBet, User } = require('../models');
 const mongoose = require('mongoose');
 
 /**
- * Сервис для работы с событиями
+ * Сервис для работы с событиями с поддержкой гибких коэффициентов
  */
 class EventService {
   /**
@@ -145,13 +145,13 @@ class EventService {
   }
   
   /**
-   * Размещение ставки на событие - ИСПРАВЛЕННАЯ ВЕРСИЯ
+   * Размещение ставки на событие - ОБНОВЛЕННАЯ ВЕРСИЯ С ГИБКИМИ КОЭФФИЦИЕНТАМИ
    */
   async placeBet(userId, eventId, outcomeId, amount, userIp) {
     const session = await mongoose.startSession();
     
     try {
-      console.log('EVENT SERVICE: Начало размещения ставки');
+      console.log('EVENT SERVICE: Начало размещения ставки с гибкими коэффициентами');
       console.log(`  Пользователь: ${userId}`);
       console.log(`  Событие: ${eventId}`);
       console.log(`  Исход: ${outcomeId}`);
@@ -204,13 +204,14 @@ class EventService {
           throw new Error(`Максимальная ставка: ${event.maxBet} USDT`);
         }
         
-        // 7. Рассчитываем текущие коэффициенты
+        // 7. Рассчитываем текущие коэффициенты (на момент ставки)
         const currentOdds = event.calculateOdds();
-        const odds = currentOdds[outcomeId];
+        const oddsAtBet = currentOdds[outcomeId];
         
-        console.log(`EVENT SERVICE: Текущий коэффициент: ${odds}`);
+        console.log(`EVENT SERVICE: Коэффициент на момент ставки: ${oddsAtBet}`);
+        console.log(`EVENT SERVICE: Все коэффициенты на момент ставки:`, currentOdds);
         
-        if (!odds || odds < 1.01) {
+        if (!oddsAtBet || oddsAtBet < 1.01) {
           throw new Error('Некорректный коэффициент для данного исхода');
         }
         
@@ -222,24 +223,37 @@ class EventService {
         
         await user.save({ session });
         
-        // 9. Создаем ставку
+        // 9. Получаем позицию ставки в очереди (для аналитики)
+        const betPosition = await EventBet.countDocuments({ event: eventId }) + 1;
+        
+        // 10. ОБНОВЛЕННОЕ создание ставки с гибкими коэффициентами
         const betData = {
           user: userId,
           event: eventId,
           outcomeId: outcomeId,
           outcomeName: outcome.name,
           betAmount: amount,
-          odds: odds,
+          oddsAtBet: oddsAtBet, // Коэффициент только для истории
+          // finalOdds будет установлен при завершении события
           balanceBefore: balanceBefore,
           balanceAfter: user.balance,
           userIp: userIp,
           metadata: {
             source: 'web',
-            sessionId: `bet_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+            sessionId: `bet_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            oddsHistory: {
+              allOddsAtBet: currentOdds,
+              betPosition: betPosition
+            }
           }
         };
         
-        console.log('EVENT SERVICE: Создание ставки с данными:', JSON.stringify(betData, null, 2));
+        console.log('EVENT SERVICE: Создание ставки с гибкими коэффициентами:', {
+          betAmount: betData.betAmount,
+          oddsAtBet: betData.oddsAtBet,
+          estimatedWin: betData.betAmount * betData.oddsAtBet,
+          note: 'Финальная выплата будет рассчитана по коэффициентам на момент завершения события'
+        });
         
         const bet = new EventBet(betData);
         
@@ -250,9 +264,9 @@ class EventService {
         await bet.save({ session });
         
         console.log(`EVENT SERVICE: Ставка создана с ID: ${bet._id}`);
-        console.log(`EVENT SERVICE: potentialWin после сохранения: ${bet.potentialWin}`);
+        console.log(`EVENT SERVICE: estimatedWin (предварительный): ${bet.estimatedWin}`);
         
-        // 10. Обновляем статистику события
+        // 11. Обновляем статистику события
         outcome.totalBets += amount;
         outcome.betsCount += 1;
         event.totalPool += amount;
@@ -261,10 +275,13 @@ class EventService {
         
         console.log(`EVENT SERVICE: Статистика события обновлена. Новый пул: ${event.totalPool}`);
         
-        // 11. Пересчитываем коэффициенты после обновления
-        const updatedOdds = event.calculateOdds();
+        // 12. Пересчитываем коэффициенты ПОСЛЕ обновления
+        const newOdds = event.calculateOdds();
         
-        // 12. Подготавливаем результат
+        console.log(`EVENT SERVICE: Коэффициенты после ставки:`, newOdds);
+        console.log(`EVENT SERVICE: Изменение коэффициента для выбранного исхода: ${oddsAtBet} -> ${newOdds[outcomeId]}`);
+        
+        // 13. Подготавливаем результат с предупреждением о гибких коэффициентах
         const result = {
           bet: {
             _id: bet._id,
@@ -272,19 +289,28 @@ class EventService {
             outcomeId: bet.outcomeId,
             outcomeName: bet.outcomeName,
             betAmount: bet.betAmount,
-            odds: bet.odds,
-            potentialWin: bet.potentialWin,
+            oddsAtBet: bet.oddsAtBet, // Коэффициент на момент ставки
+            estimatedWin: bet.estimatedWin, // Предварительный выигрыш
             placedAt: bet.placedAt,
-            status: bet.status
+            status: bet.status,
+            note: 'Финальная выплата будет рассчитана по коэффициентам на момент завершения события'
           },
           newBalance: user.balance,
           event: {
             ...event.toObject(),
-            currentOdds: updatedOdds
+            currentOdds: newOdds,
+            oddsChanged: JSON.stringify(currentOdds) !== JSON.stringify(newOdds)
+          },
+          oddsInfo: {
+            oddsAtBet: oddsAtBet,
+            newOdds: newOdds[outcomeId],
+            oddsChange: newOdds[outcomeId] - oddsAtBet,
+            estimatedWin: bet.estimatedWin,
+            message: 'Коэффициенты изменились после вашей ставки. Финальная выплата будет рассчитана по коэффициентам на момент завершения события.'
           }
         };
         
-        console.log('EVENT SERVICE: Ставка успешно размещена');
+        console.log('EVENT SERVICE: Ставка с гибкими коэффициентами успешно размещена');
         
         return result;
       });
@@ -298,7 +324,7 @@ class EventService {
   }
   
   /**
-   * Получить ставки пользователя - НОВЫЙ МЕТОД
+   * Получить ставки пользователя с информацией о гибких коэффициентах
    */
   async getUserBets(userId, options = {}) {
     try {
@@ -329,31 +355,62 @@ class EventService {
       // Получаем общее количество
       const total = await EventBet.countDocuments(query);
       
-      // Подготавливаем ставки для фронтенда
+      // Подготавливаем ставки для фронтенда с информацией о гибких коэффициентах
       const formattedBets = bets.map(bet => {
-        return {
+        const result = {
           _id: bet._id,
           event: bet.event || { title: 'Событие удалено', status: 'deleted' },
           outcomeId: bet.outcomeId,
           outcomeName: bet.outcomeName,
           betAmount: bet.betAmount,
-          odds: bet.odds,
-          potentialWin: bet.potentialWin || (bet.betAmount * bet.odds),
-          actualWin: bet.actualWin || 0,
+          
+          // Коэффициенты и выплаты
+          oddsAtBet: bet.oddsAtBet, // Коэффициент на момент ставки
+          finalOdds: bet.finalOdds, // Финальный коэффициент (если есть)
+          estimatedWin: bet.estimatedWin || (bet.betAmount * bet.oddsAtBet), // Ожидаемый выигрыш
+          actualWin: bet.actualWin || 0, // Фактический выигрыш
           profit: bet.profit || 0,
+          
+          // Статус и даты
           status: bet.status,
           placedAt: bet.placedAt,
           settledAt: bet.settledAt,
-          // Добавляем удобные флаги для фронтенда
+          
+          // Удобные флаги для фронтенда
           isSettled: bet.status !== 'active',
           isWin: bet.status === 'won',
-          amount: bet.betAmount // Алиас для совместимости
+          amount: bet.betAmount, // Алиас для совместимости
+          
+          // Информация о гибких коэффициентах
+          flexibleOdds: {
+            hasFlexibleOdds: true,
+            oddsChanged: bet.finalOdds ? Math.abs(bet.finalOdds - bet.oddsAtBet) > 0.01 : false,
+            oddsChange: bet.finalOdds ? bet.finalOdds - bet.oddsAtBet : null,
+            betPosition: bet.metadata?.oddsHistory?.betPosition || 0
+          }
         };
+        
+        // Добавляем информацию об изменении коэффициентов для завершенных ставок
+        if (result.isSettled && bet.finalOdds && bet.status === 'won') {
+          const oddsChange = bet.finalOdds - bet.oddsAtBet;
+          const winChange = bet.actualWin - bet.estimatedWin;
+          
+          result.flexibleOdds.oddsChangeBenefit = {
+            oddsImproved: oddsChange > 0,
+            oddsChange: oddsChange,
+            estimatedWin: bet.estimatedWin,
+            actualWin: bet.actualWin,
+            winDifference: winChange,
+            benefitPercent: bet.estimatedWin > 0 ? ((winChange / bet.estimatedWin) * 100).toFixed(2) : 0
+          };
+        }
+        
+        return result;
       });
       
-      console.log('EVENT SERVICE: Первая ставка (пример):', formattedBets[0]);
+      console.log('EVENT SERVICE: Первая ставка (пример с гибкими коэффициентами):', formattedBets[0]);
       
-      // Вычисляем статистику
+      // Вычисляем статистику с учетом гибких коэффициентов
       const stats = {
         totalBets: total,
         activeBets: bets.filter(bet => bet.status === 'active').length,
@@ -361,10 +418,19 @@ class EventService {
         lostBets: bets.filter(bet => bet.status === 'lost').length,
         totalStaked: bets.reduce((sum, bet) => sum + bet.betAmount, 0),
         totalWon: bets.filter(bet => bet.status === 'won').reduce((sum, bet) => sum + (bet.actualWin || 0), 0),
-        totalProfit: bets.reduce((sum, bet) => sum + (bet.profit || 0), 0)
+        totalProfit: bets.reduce((sum, bet) => sum + (bet.profit || 0), 0),
+        
+        // Статистика гибких коэффициентов
+        flexibleOddsStats: {
+          betsWithChangedOdds: bets.filter(bet => bet.finalOdds && Math.abs(bet.finalOdds - bet.oddsAtBet) > 0.01).length,
+          avgOddsChange: this.calculateAverageOddsChange(bets),
+          benefitedFromOddsChange: bets.filter(bet => 
+            bet.status === 'won' && bet.finalOdds && bet.finalOdds > bet.oddsAtBet
+          ).length
+        }
       };
       
-      console.log('EVENT SERVICE: Статистика ставок:', stats);
+      console.log('EVENT SERVICE: Статистика ставок с гибкими коэффициентами:', stats);
       
       return {
         bets: formattedBets,
@@ -382,6 +448,23 @@ class EventService {
       console.error('EVENT SERVICE: Ошибка получения ставок пользователя:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Вспомогательный метод для расчета среднего изменения коэффициентов
+   */
+  calculateAverageOddsChange(bets) {
+    const betsWithChangedOdds = bets.filter(bet => bet.finalOdds && bet.oddsAtBet);
+    
+    if (betsWithChangedOdds.length === 0) {
+      return 0;
+    }
+    
+    const totalChange = betsWithChangedOdds.reduce((sum, bet) => {
+      return sum + (bet.finalOdds - bet.oddsAtBet);
+    }, 0);
+    
+    return totalChange / betsWithChangedOdds.length;
   }
   
   /**
@@ -432,7 +515,7 @@ class EventService {
   }
   
   /**
-   * Создать новое событие (админ) - ИСПРАВЛЕННАЯ ВЕРСИЯ
+   * Создать новое событие (админ)
    */
   async createEvent(eventData, adminId) {
     try {
@@ -450,7 +533,6 @@ class EventService {
       // Генерируем ID для исходов, если они не предоставлены
       const processedOutcomes = eventData.outcomes.map((outcome, index) => {
         if (!outcome.id) {
-          // Генерируем уникальный ID если он отсутствует
           outcome.id = `outcome_${Date.now()}_${index + 1}_${Math.random().toString(36).substring(2, 8)}`;
           console.log(`EVENT SERVICE: Сгенерирован ID для исхода ${index + 1}: ${outcome.id}`);
         }
@@ -486,13 +568,13 @@ class EventService {
   }
   
   /**
-   * Завершить событие (админ) - ИСПРАВЛЕННАЯ ВЕРСИЯ
+   * Завершить событие (админ) - ОБНОВЛЕННАЯ ВЕРСИЯ С ГИБКИМИ КОЭФФИЦИЕНТАМИ
    */
   async finishEvent(eventId, winningOutcomeId, adminId) {
     const session = await mongoose.startSession();
     
     try {
-      console.log('EVENT SERVICE: Завершение события:', eventId, 'победитель:', winningOutcomeId);
+      console.log('EVENT SERVICE: Завершение события с гибкими коэффициентами:', eventId, 'победитель:', winningOutcomeId);
       
       return await session.withTransaction(async () => {
         // 1. Получаем событие с блокировкой
@@ -532,61 +614,17 @@ class EventService {
         
         console.log('EVENT SERVICE: Событие помечено как завершенное');
         
-        // 4. Рассчитываем все ставки на событие
-        const { EventBet, User } = require('../models');
+        // 4. НОВАЯ ЛОГИКА: Рассчитываем все ставки с финальными коэффициентами
+        console.log('EVENT SERVICE: Начинаем расчет ставок с финальными коэффициентами...');
         
-        // Получаем все активные ставки на событие
-        const bets = await EventBet.find({
-          event: eventId,
-          status: 'active'
-        }).populate('user').session(session);
+        const settlementResults = await EventBet.settleBetsWithFinalOdds(
+          eventId, 
+          winningOutcomeId
+        );
         
-        console.log(`EVENT SERVICE: Найдено активных ставок: ${bets.length}`);
+        console.log('EVENT SERVICE: Расчет ставок с гибкими коэффициентами завершен:', settlementResults);
         
-        const settlementResults = {
-          winningBets: 0,
-          losingBets: 0,
-          totalPayout: 0,
-          totalProfit: 0
-        };
-        
-        // 5. Обрабатываем каждую ставку
-        for (const bet of bets) {
-          if (bet.outcomeId === winningOutcomeId) {
-            // Выигрышная ставка
-            console.log(`EVENT SERVICE: Выигрышная ставка ${bet._id}: ${bet.betAmount} USDT -> ${bet.potentialWin} USDT`);
-            
-            bet.status = 'won';
-            bet.actualWin = bet.potentialWin;
-            bet.profit = bet.actualWin - bet.betAmount;
-            bet.settledAt = new Date();
-            
-            // Добавляем выигрыш на баланс пользователя
-            bet.user.balance += bet.actualWin;
-            await bet.user.save({ session });
-            
-            settlementResults.winningBets++;
-            settlementResults.totalPayout += bet.actualWin;
-            
-          } else {
-            // Проигрышная ставка
-            console.log(`EVENT SERVICE: Проигрышная ставка ${bet._id}: ${bet.betAmount} USDT`);
-            
-            bet.status = 'lost';
-            bet.actualWin = 0;
-            bet.profit = -bet.betAmount;
-            bet.settledAt = new Date();
-            
-            settlementResults.losingBets++;
-          }
-          
-          await bet.save({ session });
-          settlementResults.totalProfit += bet.profit;
-        }
-        
-        console.log('EVENT SERVICE: Результат расчета ставок:', settlementResults);
-        
-        // 6. Обновляем финансовую статистику казино
+        // 5. Обновляем финансовую статистику казино
         try {
           const financeService = require('./casino-finance.service');
           await financeService.updateAfterEventFinish({
@@ -600,7 +638,7 @@ class EventService {
           // Не прерываем операцию из-за ошибки в финансах
         }
         
-        console.log('EVENT SERVICE: Событие успешно завершено');
+        console.log('EVENT SERVICE: Событие с гибкими коэффициентами успешно завершено');
         
         return {
           event: event,

@@ -1,7 +1,7 @@
 // frontend/src/screens/EventsScreen.js
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
-import { EventCard, EventDetails, EventBet } from '../components/events';
+import { EventCard, EventDetails, EventBet, UserEventBets } from '../components/events';
 import { eventsApi } from '../services/api';
 import useTactileFeedback from '../hooks/useTactileFeedback';
 import '../styles/EventsScreen.css';
@@ -14,17 +14,23 @@ const EventsScreen = ({ balance, onBalanceUpdate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('events'); // 'events' или 'my-bets'
 
   const { buttonPressFeedback, selectionChanged, successNotification, errorNotification } = useTactileFeedback();
 
-  // Загрузка событий при монтировании
+  // Загрузка событий при монтировании и смене вкладки
   useEffect(() => {
-    fetchEvents();
-    
-    // Автообновление каждые 30 секунд
-    const interval = setInterval(fetchEvents, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (activeTab === 'events') {
+      fetchEvents();
+      
+      // Автообновление каждые 30 секунд только для вкладки событий
+      const interval = setInterval(() => {
+        fetchEvents(false);
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   // Загрузка активных событий
   const fetchEvents = async (showLoader = true) => {
@@ -50,6 +56,13 @@ const EventsScreen = ({ balance, onBalanceUpdate }) => {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  // Обработчик смены вкладки
+  const handleTabChange = (tab) => {
+    selectionChanged();
+    setActiveTab(tab);
+    setSelectedEvent(null); // Сбрасываем выбранное событие при смене вкладки
   };
 
   // Обработчик выбора события
@@ -134,7 +147,18 @@ const EventsScreen = ({ balance, onBalanceUpdate }) => {
   // Обработчик обновления
   const handleRefresh = () => {
     buttonPressFeedback();
-    fetchEvents(false);
+    if (activeTab === 'events') {
+      fetchEvents(false);
+    }
+  };
+
+  // Обработчик обновления ставок
+  const handleBetsRefresh = () => {
+    // Этот метод будет вызван из компонента UserEventBets
+    // для обновления баланса после изменений в ставках
+    if (onBalanceUpdate) {
+      onBalanceUpdate();
+    }
   };
 
   // Форматирование времени до окончания
@@ -160,11 +184,56 @@ const EventsScreen = ({ balance, onBalanceUpdate }) => {
     }
   };
 
+  // Рендер заголовка с вкладками
+  const renderHeader = () => (
+    <div className="events-header">
+      {selectedEvent && activeTab === 'events' ? (
+        <button className="back-button" onClick={handleBackToList}>
+          ←
+        </button>
+      ) : (
+        <div></div>
+      )}
+      
+      <h1 className="events-title">
+        {selectedEvent && activeTab === 'events' ? 'Детали события' : 'События'}
+      </h1>
+      
+      <button 
+        className={`refresh-button ${refreshing ? 'refreshing' : ''}`} 
+        onClick={handleRefresh}
+        disabled={refreshing}
+      >
+        🔄
+      </button>
+    </div>
+  );
+
+  // Рендер вкладок
+  const renderTabs = () => (
+    <div className="events-tabs">
+      <button 
+        className={`tab-button ${activeTab === 'events' ? 'active' : ''}`}
+        onClick={() => handleTabChange('events')}
+      >
+        🎯 События
+      </button>
+      <button 
+        className={`tab-button ${activeTab === 'my-bets' ? 'active' : ''}`}
+        onClick={() => handleTabChange('my-bets')}
+      >
+        📊 Мои ставки
+      </button>
+    </div>
+  );
+
   // Рендер загрузки
-  if (loading) {
+  if (loading && activeTab === 'events') {
     return (
       <div className="events-screen">
         <Header balance={balance} />
+        {renderHeader()}
+        {renderTabs()}
         <div className="events-loading">
           <div className="loader"></div>
           <p>Загрузка событий...</p>
@@ -174,10 +243,12 @@ const EventsScreen = ({ balance, onBalanceUpdate }) => {
   }
 
   // Рендер ошибки
-  if (error && !events.length) {
+  if (error && !events.length && activeTab === 'events') {
     return (
       <div className="events-screen">
         <Header balance={balance} />
+        {renderHeader()}
+        {renderTabs()}
         <div className="events-error">
           <h2>Ошибка загрузки</h2>
           <p>{error}</p>
@@ -190,20 +261,11 @@ const EventsScreen = ({ balance, onBalanceUpdate }) => {
   }
 
   // Рендер деталей события
-  if (selectedEvent) {
+  if (selectedEvent && activeTab === 'events') {
     return (
       <div className="events-screen">
         <Header balance={balance} />
-        
-        <div className="events-header">
-          <button className="back-button" onClick={handleBackToList}>
-            ←
-          </button>
-          <h1 className="events-title">Детали события</h1>
-          <button className="refresh-button" onClick={handleRefresh}>
-            🔄
-          </button>
-        </div>
+        {renderHeader()}
 
         <EventDetails 
           event={selectedEvent}
@@ -225,59 +287,54 @@ const EventsScreen = ({ balance, onBalanceUpdate }) => {
     );
   }
 
-  // Рендер списка событий
   return (
     <div className="events-screen">
       <Header balance={balance} />
-      
-      <div className="events-header">
-        <h1 className="events-title">События</h1>
-        <button 
-          className={`refresh-button ${refreshing ? 'refreshing' : ''}`} 
-          onClick={handleRefresh}
-          disabled={refreshing}
-        >
-          🔄
-        </button>
-      </div>
+      {renderHeader()}
+      {renderTabs()}
 
-      {error && (
+      {error && activeTab === 'events' && (
         <div className="events-error-banner">
           <p>{error}</p>
           <button onClick={() => fetchEvents()}>Обновить</button>
         </div>
       )}
 
-      <div className="events-list">
-        {events.length === 0 ? (
-          <div className="no-events">
-            <div className="no-events-icon">🎯</div>
-            <h3>Нет активных событий</h3>
-            <p>В данный момент нет событий для ставок. Следите за обновлениями!</p>
-          </div>
-        ) : (
-          events.map(event => (
-            <EventCard
-              key={event._id}
-              event={event}
-              onSelect={handleEventSelect}
-              onOutcomeSelect={handleOutcomeSelect}
-              formatTimeLeft={formatTimeLeft}
-            />
-          ))
-        )}
-      </div>
+      {/* Контент в зависимости от активной вкладки */}
+      {activeTab === 'events' ? (
+        <div className="events-list">
+          {events.length === 0 ? (
+            <div className="no-events">
+              <div className="no-events-icon">🎯</div>
+              <h3>Нет активных событий</h3>
+              <p>В данный момент нет событий для ставок. Следите за обновлениями!</p>
+            </div>
+          ) : (
+            events.map(event => (
+              <EventCard
+                key={event._id}
+                event={event}
+                onSelect={handleEventSelect}
+                onOutcomeSelect={handleOutcomeSelect}
+                formatTimeLeft={formatTimeLeft}
+              />
+            ))
+          )}
 
-      {/* Информационный блок */}
-      <div className="events-info">
-        <h3>ℹ️ Как это работает</h3>
-        <ul>
-          <li>Выберите событие и исход</li>
-          <li>Коэффициенты изменяются в зависимости от ставок</li>
-          <li>Комиссия казино составляет 5%</li>
-          <li>Выплаты производятся после завершения события</li>
-        </ul>
-      </div>
+          {/* Информационный блок */}
+          <div className="events-info">
+            <h3>ℹ️ Как это работает</h3>
+            <ul>
+              <li>Выберите событие и исход</li>
+              <li>Коэффициенты изменяются в зависимости от ставок</li>
+              <li>Комиссия казино составляет 5%</li>
+              <li>Выплаты производятся после завершения события</li>
+            </ul>
+          </div>
+        </div>
+      ) : (
+        <UserEventBets onRefresh={handleBetsRefresh} />
+      )}
     </div>
   );
 };

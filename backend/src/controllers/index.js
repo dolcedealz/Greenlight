@@ -1,4 +1,4 @@
-// backend/src/controllers/index.js
+// backend/src/controllers/index.js - ОБНОВЛЕННАЯ ВЕРСИЯ
 const gameController = require('./game.controller');
 const userController = require('./user.controller');
 const adminController = require('./admin.controller');
@@ -7,8 +7,9 @@ const withdrawalController = require('./withdrawal.controller');
 const financeController = require('./finance.controller');
 const referralController = require('./referral.controller');
 const crashController = require('./crash.controller');
-const authController = require('./auth.controller'); // ДОБАВЛЯЕМ
-const pvpController = require('./pvp.controller'); // ДОБАВЛЯЕМ PvP
+const authController = require('./auth.controller');
+const pvpController = require('./pvp.controller');
+const eventController = require('./event.controller'); // Добавляем события
 
 module.exports = {
   gameController,
@@ -20,5 +21,6 @@ module.exports = {
   referralController,
   crashController,
   authController,
-  pvpController // ДОБАВЛЯЕМ PvP
+  pvpController,
+  eventController // Добавляем события
 };

@@ -1,4 +1,4 @@
-// backend/src/controllers/event.controller.js
+// backend/src/controllers/event.controller.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { eventService } = require('../services');
 
 /**
@@ -103,25 +103,33 @@ class EventController {
    */
   async placeBet(req, res) {
     try {
+      console.log('EVENT CONTROLLER: Запрос на размещение ставки');
+      console.log('EVENT CONTROLLER: Body:', JSON.stringify(req.body, null, 2));
+      console.log('EVENT CONTROLLER: User:', req.user ? req.user._id : 'НЕ АУТЕНТИФИЦИРОВАН');
+      
       const { eventId, outcomeId, betAmount } = req.body;
       const userId = req.user._id;
       const userIp = req.ip || req.connection.remoteAddress;
       
       // Валидация входных данных
       if (!eventId || !outcomeId || !betAmount) {
+        console.log('EVENT CONTROLLER: Отсутствуют обязательные параметры');
         return res.status(400).json({
           success: false,
-          message: 'Не указаны обязательные параметры'
+          message: 'Не указаны обязательные параметры: eventId, outcomeId, betAmount'
         });
       }
       
       const amount = parseFloat(betAmount);
       if (isNaN(amount) || amount <= 0) {
+        console.log('EVENT CONTROLLER: Некорректная сумма ставки:', betAmount);
         return res.status(400).json({
           success: false,
           message: 'Некорректная сумма ставки'
         });
       }
+      
+      console.log(`EVENT CONTROLLER: Размещение ставки: пользователь=${userId}, событие=${eventId}, исход=${outcomeId}, сумма=${amount}`);
       
       const result = await eventService.placeBet(
         userId,
@@ -130,6 +138,8 @@ class EventController {
         amount,
         userIp
       );
+      
+      console.log('EVENT CONTROLLER: Ставка успешно размещена:', result.bet._id);
       
       res.status(201).json({
         success: true,

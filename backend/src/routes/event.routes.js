@@ -1,7 +1,7 @@
 // backend/src/routes/event.routes.js
 const express = require('express');
 const { eventController } = require('../controllers');
-const { telegramAuthMiddleware } = require('../middleware');
+const { telegramAuthMiddleware, adminAuthMiddleware } = require('../middleware');
 
 const router = express.Router();
 
@@ -51,9 +51,6 @@ router.get('/:eventId', eventController.getEventById);
 // ЗАЩИЩЕННЫЕ МАРШРУТЫ (требуют аутентификации)
 // =================
 
-// Применяем middleware аутентификации
-router.use(telegramAuthMiddleware);
-
 /**
  * POST /api/events/:eventId/bet
  * Размещение ставки на событие
@@ -61,7 +58,7 @@ router.use(telegramAuthMiddleware);
  * - outcomeId: ID исхода
  * - betAmount: сумма ставки
  */
-router.post('/:eventId/bet', async (req, res) => {
+router.post('/:eventId/bet', telegramAuthMiddleware, async (req, res) => {
   // Добавляем eventId из параметров в body для удобства
   req.body.eventId = req.params.eventId;
   return eventController.placeBet(req, res);
@@ -75,7 +72,7 @@ router.post('/:eventId/bet', async (req, res) => {
  * - skip: количество пропущенных записей
  * - status: фильтр по статусу (active, won, lost)
  */
-router.get('/user/bets', eventController.getUserBets);
+router.get('/user/bets', telegramAuthMiddleware, eventController.getUserBets);
 
 /**
  * GET /api/events/stats/general
@@ -103,7 +100,7 @@ router.get('/stats/general', eventController.getStatistics);
  * - maxBet: максимальная ставка
  * - initialOdds: начальные коэффициенты
  */
-router.post('/admin/create', eventController.createEvent);
+router.post('/admin/create', adminAuthMiddleware, eventController.createEvent);
 
 /**
  * PUT /api/events/admin/:eventId/finish
@@ -111,7 +108,7 @@ router.post('/admin/create', eventController.createEvent);
  * Body:
  * - winningOutcomeId: ID выигрышного исхода
  */
-router.put('/admin/:eventId/finish', eventController.finishEvent);
+router.put('/admin/:eventId/finish', adminAuthMiddleware, eventController.finishEvent);
 
 /**
  * GET /api/events/admin/all
@@ -121,7 +118,7 @@ router.put('/admin/:eventId/finish', eventController.finishEvent);
  * - limit: количество записей
  * - skip: количество пропущенных записей
  */
-router.get('/admin/all', eventController.getAllEvents);
+router.get('/admin/all', adminAuthMiddleware, eventController.getAllEvents);
 
 // =================
 // ОБРАБОТКА ОШИБОК

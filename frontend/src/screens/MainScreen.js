@@ -1,13 +1,13 @@
-// MainScreen.js - ОБНОВЛЕННАЯ ВЕРСИЯ
+// frontend/src/screens/MainScreen.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
 import { GameBlock } from '../components/main';
-import EventsPreview from '../components/main/EventsPreview'; // Добавляем импорт
-import { userApi, eventsApi } from '../services'; // Добавляем eventsApi
+import EventsPreview from '../components/main/EventsPreview';
+import { userApi, eventsApi } from '../services';
 import '../styles/MainScreen.css';
 
 const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, balance }) => {
-  const [featuredEvent, setFeaturedEvent] = useState(null); // Изменяем на реальные данные
+  const [featuredEvent, setFeaturedEvent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -16,18 +16,29 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // Загружаем главное событие
-        const eventResponse = await eventsApi.getFeaturedEvent();
-        
-        if (eventResponse.data.success && eventResponse.data.data.event) {
-          setFeaturedEvent(eventResponse.data.data.event);
+        // Загружаем главное событие (необязательно)
+        try {
+          const eventResponse = await eventsApi.getFeaturedEvent();
+          
+          if (eventResponse.data.success && eventResponse.data.data.event) {
+            setFeaturedEvent(eventResponse.data.data.event);
+            console.log('MainScreen: Главное событие загружено:', eventResponse.data.data.event.title);
+          } else {
+            console.log('MainScreen: Главное событие не найдено');
+            setFeaturedEvent(null);
+          }
+        } catch (eventError) {
+          console.warn('MainScreen: Ошибка загрузки главного события (не критично):', eventError);
+          setFeaturedEvent(null);
+          // Не показываем ошибку пользователю, так как это не критично
         }
         
         setLoading(false);
       } catch (err) {
-        console.error('Ошибка загрузки данных главной страницы:', err);
-        setError('Не удалось загрузить данные. Пожалуйста, попробуйте еще раз.');
+        console.error('MainScreen: Ошибка загрузки данных:', err);
+        setError('Не удалось загрузить некоторые данные. Приложение работает в ограниченном режиме.');
         setLoading(false);
       }
     };
@@ -68,13 +79,16 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
           <div className="loader"></div>
           <p>Загрузка...</p>
         </div>
-      ) : error ? (
-        <div className="main-error">
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Попробовать снова</button>
-        </div>
       ) : (
         <>
+          {/* Показываем ошибку, если есть, но не блокируем интерфейс */}
+          {error && (
+            <div className="main-error-banner">
+              <p>{error}</p>
+              <button onClick={() => window.location.reload()}>Обновить</button>
+            </div>
+          )}
+          
           {/* Превью события - показываем только если есть событие */}
           {featuredEvent && (
             <EventsPreview 
@@ -83,7 +97,7 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
             />
           )}
           
-          {/* Игры */}
+          {/* Игры - показываем всегда */}
           <div className="games-container">
             <div className="games-title">Игры</div>
             <div className="games-grid">

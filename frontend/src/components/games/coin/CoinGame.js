@@ -10,32 +10,21 @@ const CoinGame = ({
   setBalance, 
   gameStats, 
   setGameResult, 
-  setError 
+  setError,
+  onFlip, // ИСПРАВЛЕНО: принимаем onFlip из GameScreen
+  isFlipping, // ИСПРАВЛЕНО: принимаем isFlipping из GameScreen
+  result, // ИСПРАВЛЕНО: принимаем result из GameScreen
+  lastResults, // ИСПРАВЛЕНО: принимаем lastResults из GameScreen
+  onAnimationEnd // ИСПРАВЛЕНО: принимаем onAnimationEnd из GameScreen
 }) => {
   const [isInitializing, setIsInitializing] = useState(true);
-  const [isFlipping, setIsFlipping] = useState(false);
-  const [result, setResult] = useState(null);
-  const [lastResults, setLastResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [gameResultData, setGameResultData] = useState(null); // Сохраняем данные игры
+  const [gameResultData, setGameResultData] = useState(null);
   
   useEffect(() => {
     const initializeGame = async () => {
       try {
         console.log('=== ИНИЦИАЛИЗАЦИЯ ИГРЫ МОНЕТКА ===');
-        
-        // Загружаем сохраненную историю из localStorage
-        const savedResults = localStorage.getItem('coinGameResults');
-        
-        if (savedResults) {
-          try {
-            const parsedResults = JSON.parse(savedResults);
-            setLastResults(parsedResults);
-          } catch (e) {
-            console.error('Ошибка загрузки истории:', e);
-            setLastResults([]);
-          }
-        }
         
         // Показываем загрузочный экран минимум 1.5 секунды
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -53,79 +42,35 @@ const CoinGame = ({
     initializeGame();
   }, [setError]);
   
-  // Функция для управления историей
-  const manageHistory = (newResult) => {
-    let updatedResults = [...lastResults, newResult];
-    
-    // Сохраняем в localStorage
-    localStorage.setItem('coinGameResults', JSON.stringify(updatedResults));
-    
-    setLastResults(updatedResults);
-  };
-  
-  // Обработчик игры
+  // ИСПРАВЛЕННЫЙ обработчик игры - теперь используется переданный onFlip
   const handleFlip = async (betData) => {
-    if (loading || isFlipping) return;
+    console.log('🪙 COIN GAME: Получен запрос на подбрасывание:', betData);
+    
+    if (loading || isFlipping) {
+      console.log('🪙 COIN GAME: Блокировано - уже идет игра или загрузка');
+      return;
+    }
+    
+    if (!onFlip) {
+      console.error('🪙 COIN GAME: Ошибка - функция onFlip не передана из GameScreen!');
+      setError('Ошибка конфигурации игры');
+      return;
+    }
+    
+    console.log('🪙 COIN GAME: Передаем запрос в GameScreen через onFlip');
     
     try {
       setLoading(true);
-      setIsFlipping(true);
-      setGameResult(null);
       setError(null);
-      setResult(null);
-      setGameResultData(null); // Сбрасываем предыдущие данные
       
-      console.log('🪙 МОНЕТКА: Начинаем игру', betData);
-      
-      // Запрос к API
-      const response = await gameApi.playCoinFlip(
-        betData.betAmount,
-        betData.selectedSide
-      );
-      
-      const gameData = response.data.data;
-      console.log('🪙 МОНЕТКА: Результат с сервера:', gameData);
-      
-      // Сохраняем данные игры, но не показываем результат сразу
-      setGameResultData(gameData);
-      
-      // Устанавливаем результат для анимации
-      setResult(gameData.result);
-      
-      // Обновляем баланс
-      if (gameData.balanceAfter !== undefined) {
-        setBalance(gameData.balanceAfter);
-      }
-      
-      // НЕ устанавливаем результат сразу - ждем завершения анимации
+      // Вызываем обработчик из GameScreen
+      await onFlip(betData);
       
     } catch (err) {
-      console.error('🪙 МОНЕТКА: Ошибка игры:', err);
-      setError(err.response?.data?.message || 'Произошла ошибка при игре');
-      setIsFlipping(false);
+      console.error('🪙 COIN GAME: Ошибка при обработке:', err);
+      setError(err.message || 'Произошла ошибка при игре');
+    } finally {
       setLoading(false);
-    }
-  };
-  
-  // Обработчик завершения анимации
-  const handleAnimationEnd = () => {
-    console.log('🪙 МОНЕТКА: Анимация завершена');
-    setIsFlipping(false);
-    setLoading(false);
-    
-    // Показываем результат игры
-    if (gameResultData) {
-      console.log('🪙 МОНЕТКА: Показываем результат:', gameResultData);
-      
-      // Добавляем в историю только после завершения анимации
-      manageHistory(gameResultData.result);
-      
-      setGameResult({
-        win: gameResultData.win,
-        amount: Math.abs(gameResultData.profit),
-        newBalance: gameResultData.balanceAfter,
-        multiplier: gameResultData.multiplier
-      });
     }
   };
   
@@ -181,7 +126,7 @@ const CoinGame = ({
         <CoinFlip 
           flipping={isFlipping}
           result={result}
-          onAnimationEnd={handleAnimationEnd}
+          onAnimationEnd={onAnimationEnd}
         />
         
         {/* История результатов */}
@@ -191,7 +136,7 @@ const CoinGame = ({
           </div>
           
           <div className="results-container">
-            {lastResults.length === 0 ? (
+            {(!lastResults || lastResults.length === 0) ? (
               <div className="no-results">
                 <span className="no-results-icon">🎯</span>
                 <span className="no-results-text">История пуста</span>
@@ -215,12 +160,12 @@ const CoinGame = ({
         </div>
       </div>
       
-      {/* Управление игрой */}
+      {/* ИСПРАВЛЕНО: Управление игрой - передаем правильный обработчик */}
       <CoinControls 
-        onFlip={handleFlip}
-        isFlipping={loading || isFlipping}
+        onFlip={handleFlip} // ИСПРАВЛЕНО: передаем наш локальный обработчик
+        isFlipping={loading || isFlipping} // ИСПРАВЛЕНО: учитываем и loading и isFlipping
         balance={balance}
-        lastResults={lastResults}
+        lastResults={lastResults || []} // ИСПРАВЛЕНО: передаем lastResults или пустой массив
       />
     </div>
   );

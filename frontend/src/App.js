@@ -1,6 +1,7 @@
-// frontend/src/App.js
+// frontend/src/App.js - ОБНОВЛЕННАЯ ВЕРСИЯ
 import React, { useEffect, useState } from 'react';
 import { MainScreen, GameScreen, ProfileScreen, HistoryScreen } from './screens';
+import EventsScreen from './screens/EventsScreen'; // Добавляем импорт
 import { Navigation } from './components/layout';
 import { PvPGame } from './components/pvp';
 import { initTelegram } from './utils/telegram';
@@ -70,19 +71,16 @@ const App = () => {
         if (pvpParam) {
           // PvP режим - приоритет над обычными играми
           if (pvpParam === 'create') {
-            // Создание новой PvP дуэли из inline кнопки
             const challengerId = urlParams.get('challengerId');
             const amount = urlParams.get('amount');
             const target = urlParams.get('target');
             
             console.log('PvP: Создание дуэли через WebApp', { challengerId, amount, target });
             
-            // Создаем уникальный session ID для новой дуэли
             const sessionId = `create_${challengerId}_${amount}_${target}_${Date.now()}`;
             setPvpSessionId(sessionId);
             setCurrentScreen('pvp');
           } else {
-            // Существующая сессия
             setPvpSessionId(pvpParam);
             setCurrentScreen('pvp');
           }
@@ -112,7 +110,7 @@ const App = () => {
       return balanceResponse.data.data.balance;
     } catch (err) {
       console.error('Ошибка при обновлении баланса:', err);
-      return balance; // Возвращаем текущий баланс в случае ошибки
+      return balance;
     }
   };
 
@@ -129,6 +127,11 @@ const App = () => {
   const handleGameSelect = (game) => {
     setGameType(game);
     setCurrentScreen('game');
+  };
+  
+  // Обработчик выбора событий
+  const handleEventsSelect = () => {
+    setCurrentScreen('events');
   };
   
   // Обработчик возврата из игры
@@ -173,6 +176,7 @@ const App = () => {
           userData={userData} 
           telegramWebApp={telegramWebApp}
           onGameSelect={handleGameSelect}
+          onEventsSelect={handleEventsSelect} // Добавляем обработчик событий
           balance={balance}
         />
       )}
@@ -186,6 +190,15 @@ const App = () => {
           onBalanceUpdate={updateBalanceFromServer}
           balance={balance}
           setBalance={setBalance}
+        />
+      )}
+      
+      {currentScreen === 'events' && (
+        <EventsScreen 
+          userData={userData}
+          telegramWebApp={telegramWebApp}
+          balance={balance}
+          onBalanceUpdate={updateBalanceFromServer}
         />
       )}
       

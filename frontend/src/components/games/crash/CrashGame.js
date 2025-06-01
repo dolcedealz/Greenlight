@@ -49,8 +49,8 @@ const CrashGame = ({
   // УЛУЧШЕННОЕ: Состояние автовывода с дополнительными флагами
   const [autoWithdrawn, setAutoWithdrawn] = useState(false);
   const [isApproachingAutoCashOut, setIsApproachingAutoCashOut] = useState(false);
-  const [localAutoCashOutTriggered, setLocalAutoCashOutTriggered] = useState(false); // НОВОЕ: Локальный флаг
-  const [pendingAutoCashOut, setPendingAutoCashOut] = useState(false); // НОВОЕ: Ожидание подтверждения
+  const [localAutoCashOutTriggered, setLocalAutoCashOutTriggered] = useState(false);
+  const [pendingAutoCashOut, setPendingAutoCashOut] = useState(false);
   
   // Ставки и история
   const [activeBets, setActiveBets] = useState([]);
@@ -59,7 +59,7 @@ const CrashGame = ({
   
   // Таймеры для обратного отсчета
   const countdownTimerRef = useRef(null);
-  const lastMultiplierRef = useRef(1.00); // НОВОЕ: Отслеживание предыдущего множителя
+  const lastMultiplierRef = useRef(1.00);
 
   // ИСПРАВЛЕНИЕ: Функция для вычисления времени начала игры по множителю
   const calculateGameStartTime = useCallback((currentMultiplier) => {
@@ -74,36 +74,31 @@ const CrashGame = ({
     }
     
     const targetMultiplier = userBet.autoCashOut;
-    const approachThreshold = targetMultiplier * 0.95; // 95% от цели
+    const approachThreshold = targetMultiplier * 0.95;
     
-    // Проверяем приближение к автовыводу
     if (currentMultiplier >= approachThreshold && currentMultiplier < targetMultiplier) {
       setIsApproachingAutoCashOut(true);
     } else if (currentMultiplier < approachThreshold) {
       setIsApproachingAutoCashOut(false);
     }
     
-    // КЛЮЧЕВАЯ ЛОГИКА: Мгновенное срабатывание автовывода при достижении цели
     if (currentMultiplier >= targetMultiplier && lastMultiplierRef.current < targetMultiplier) {
       console.log('🎯 АВТОВЫВОД ДОСТИГНУТ! Множитель:', currentMultiplier, 'Цель:', targetMultiplier);
       
-      // МГНОВЕННО обновляем UI
       setLocalAutoCashOutTriggered(true);
       setCashedOut(true);
       setUserCashOutMultiplier(targetMultiplier);
       setAutoWithdrawn(true);
       setIsApproachingAutoCashOut(false);
-      setPendingAutoCashOut(true); // Ждем подтверждения от сервера
+      setPendingAutoCashOut(true);
       
-      // Рассчитываем выигрыш
       const winAmount = userBet.amount * targetMultiplier;
       const profit = winAmount - userBet.amount;
       
-      // Показываем результат немедленно
       setGameResult({
         win: true,
         amount: profit,
-        newBalance: balance + winAmount, // Предварительный баланс
+        newBalance: balance + winAmount,
         isAutoCashOut: true,
         multiplier: targetMultiplier
       });
@@ -113,11 +108,9 @@ const CrashGame = ({
       console.log('🎉 UI обновлен мгновенно, ожидаем подтверждения от сервера');
     }
     
-    // Обновляем последний множитель
     lastMultiplierRef.current = currentMultiplier;
   }, [hasBet, userBet, autoCashOutEnabled, currentMultiplier, cashedOut, localAutoCashOutTriggered, balance, setGameResult, gameWinFeedback]);
 
-  // НОВОЕ: Отслеживание изменений множителя для автовывода
   useEffect(() => {
     if (gameState === 'flying') {
       checkAndTriggerAutoCashOut();
@@ -164,251 +157,41 @@ const CrashGame = ({
     };
   }, [userTelegramId, setError]);
 
-  // Подписка на WebSocket события
-  useEffect(() => {
-    if (isInitializing) return;
-
-    // Новый раунд
-    const unsubNewRound = webSocketService.on('crash_new_round', (data) => {
-      console.log('🎮 Новый раунд:', data);
-      setGameState('waiting');
-      setRoundId(data.roundId);
-      setTimeToStart(data.timeToStart || 7);
-      setCurrentMultiplier(1.00);
-      lastMultiplierRef.current = 1.00; // НОВОЕ: Сброс отслеживания
-      setCrashPoint(0);
+  // Обратный отсчет
+  const startCountdown = useCallback((seconds) => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+    }
+    
+    let remaining = seconds;
+    setTimeToStart(remaining);
+    
+    countdownTimerRef.current = setInterval(() => {
+      remaining -= 1;
+      setTimeToStart(remaining);
       
-      // ПОЛНЫЙ сброс состояния ставки для нового раунда
-      setHasBet(false);
-      setCashedOut(false);
-      setUserBet(null);
-      setUserGameId(null);
-      setUserCashOutMultiplier(0);
-      setAutoWithdrawn(false);
-      setIsApproachingAutoCashOut(false);
-      setLocalAutoCashOutTriggered(false); // НОВОЕ: Сброс локального флага
-      setPendingAutoCashOut(false); // НОВОЕ: Сброс ожидания
-      
-      setTimeout(() => {
-        setGameResult(null);
-      }, 3000);
-      
-      setActiveBets([]);
-      setCashedOutBets([]);
-      
-      startCountdown(data.timeToStart || 7);
-    });
-
-    // Обновление обратного отсчета
-    const unsubCountdown = webSocketService.on('crash_countdown_update', (data) => {
-      setTimeToStart(data.timeToStart);
-    });
-
-    // Игра началась
-    const unsubGameStarted = webSocketService.on('crash_game_started', (data) => {
-      console.log('🚀 Игра началась:', data);
-      setGameState('flying');
-      setCurrentMultiplier(1.00);
-      lastMultiplierRef.current = 1.00; // НОВОЕ: Сброс отслеживания
-      
-      if (countdownTimerRef.current) {
+      if (remaining <= 0) {
         clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
       }
-    });
+    }, 1000);
+  }, []);
 
-    // Обновление множителя
-    const unsubMultiplierUpdate = webSocketService.on('crash_multiplier_update', (data) => {
-      setCurrentMultiplier(data.multiplier);
-      // lastMultiplierRef.current будет обновлен в checkAndTriggerAutoCashOut
-    });
-
-    // Игра разбилась
-    const unsubGameCrashed = webSocketService.on('crash_game_crashed', (data) => {
-      console.log('💥 Игра разбилась:', data);
-      setGameState('crashed');
-      setCrashPoint(data.crashPoint);
-      setCurrentMultiplier(data.crashPoint);
-      
-      loadHistory();
-      
-      // УЛУЧШЕННАЯ логика проверки проигрыша
-      const checkForLoss = () => {
-        // Если уже есть результат или уже выведено - не перезаписываем
-        setGameResult(prevResult => {
-          if (prevResult && prevResult.win) {
-            console.log('Есть результат выигрыша, не перезаписываем');
-            return prevResult;
-          }
-          
-          setCashedOut(currentCashedOut => {
-            // Если уже выведено или сработал локальный автовывод - не показываем проигрыш
-            if (currentCashedOut || localAutoCashOutTriggered) {
-              console.log('Уже выведено, не показываем проигрыш');
-              return currentCashedOut;
-            }
-            
-            // Проверяем наличие ставки
-            if (hasBet && userBet) {
-              console.log('Пользователь проиграл - не успел вывести');
-              gameLoseFeedback();
-              setGameResult({
-                win: false,
-                amount: userBet.amount || 0,
-                newBalance: balance
-              });
-            }
-            
-            return currentCashedOut;
-          });
-          
-          return prevResult;
-        });
-      };
-      
-      setTimeout(checkForLoss, 100);
-    });
-
-    // Новая ставка
-    const unsubBetPlaced = webSocketService.on('crash_bet_placed', (data) => {
-      console.log('💰 Новая ставка получена:', data);
-      
-      const newBet = {
-        id: `bet-${data.userId}-${data.amount}-${Date.now()}`,
-        userId: data.userId,
-        username: data.username || 'Игрок',
-        amount: data.amount,
-        autoCashOut: data.autoCashOut || 0,
-        isCurrentUser: data.userId === userTelegramId
-      };
-      
-      setActiveBets(prev => {
-        const exists = prev.find(bet => bet.userId === data.userId);
-        if (exists) {
-          console.log('Ставка уже существует, пропускаем');
-          return prev;
-        }
-        
-        return [...prev, newBet];
-      });
-    });
-
-    // УЛУЧШЕННЫЙ: Автоматический кешаут с подтверждением
-    const unsubAutoCashOut = webSocketService.on('crash_auto_cash_out', (data) => {
-      console.log('🤖 Подтверждение автокешаута от сервера:', data);
-      
-      if (data.userId === userTelegramId) {
-        console.log('🎯 Подтверждение нашего автовывода');
-        
-        // Обновляем баланс точными данными от сервера
-        if (data.balanceAfter !== undefined) {
-          setBalance(data.balanceAfter);
-        }
-        
-        // Убираем флаг ожидания
-        setPendingAutoCashOut(false);
-        
-        // Обновляем результат точными данными
-        setGameResult(prevResult => ({
-          ...prevResult,
-          amount: data.profit || prevResult.amount,
-          newBalance: data.balanceAfter || prevResult.newBalance
-        }));
-        
-        console.log('✅ Автовывод подтвержден сервером');
+  // Загрузка истории
+  const loadHistory = useCallback(async () => {
+    try {
+      console.log('КРАШ: Перезагружаем историю...');
+      const response = await gameApi.getCrashHistory();
+      if (response.success) {
+        setHistory(response.data);
+      } else {
+        setHistory([]);
       }
-      
-      handleCashOutEvent(data, true);
-    });
-
-    // Ручной кешаут
-    const unsubManualCashOut = webSocketService.on('crash_manual_cash_out', (data) => {
-      console.log('💸 Ручной кешаут:', data);
-      handleCashOutEvent(data, false);
-    });
-
-    // Текущее состояние игры
-    const unsubGameState = webSocketService.on('crash_game_state', (data) => {
-      console.log('📊 Состояние игры:', data);
-      updateGameState(data);
-    });
-
-    // Раунд завершен
-    const unsubRoundCompleted = webSocketService.on('crash_round_completed', (data) => {
-      console.log('✅ Раунд завершен:', data);
-    });
-
-    // УЛУЧШЕННАЯ функция обработки кешаута
-    const handleCashOutEvent = (data, isAutomatic = false) => {
-      console.log('💸 Обработка кешаута:', data, 'Автоматический:', isAutomatic);
-      
-      if (!data.userId || !data.amount || !data.multiplier) {
-        console.warn('Некорректные данные кешаута:', data);
-        return;
-      }
-      
-      // Убираем из активных ставок
-      setActiveBets(prev => prev.filter(bet => bet.userId !== data.userId));
-      
-      // Добавляем в выведенные ставки
-      const cashOutEntry = {
-        id: `cashout-${data.userId}-${Date.now()}`,
-        userId: data.userId,
-        username: data.username || 'Игрок',
-        amount: data.amount,
-        cashOutMultiplier: data.multiplier,
-        winAmount: data.amount * data.multiplier,
-        isCurrentUser: data.userId === userTelegramId
-      };
-      
-      setCashedOutBets(prev => {
-        const exists = prev.find(bet => bet.userId === data.userId && 
-          Math.abs(bet.cashOutMultiplier - data.multiplier) < 0.01);
-        if (exists) {
-          return prev;
-        }
-        return [...prev, cashOutEntry];
-      });
-      
-      // Если это НЕ наш автовывод (который уже обработан локально)
-      if (data.userId === userTelegramId && !localAutoCashOutTriggered) {
-        console.log('🎯 Обычный кешаут (не автовывод)');
-        
-        setCashedOut(true);
-        setUserCashOutMultiplier(data.multiplier);
-        
-        if (isAutomatic) {
-          setAutoWithdrawn(true);
-        }
-        
-        if (data.balanceAfter !== undefined) {
-          setBalance(data.balanceAfter);
-        }
-        
-        setGameResult({
-          win: true,
-          amount: data.profit || (data.amount * data.multiplier - data.amount),
-          newBalance: data.balanceAfter,
-          isAutoCashOut: isAutomatic,
-          multiplier: data.multiplier
-        });
-        
-        gameWinFeedback();
-      }
-    };
-
-    return () => {
-      unsubNewRound();
-      unsubCountdown();
-      unsubGameStarted();
-      unsubMultiplierUpdate();
-      unsubGameCrashed();
-      unsubBetPlaced();
-      unsubAutoCashOut();
-      unsubManualCashOut();
-      unsubGameState();
-      unsubRoundCompleted();
-    };
-  }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, autoCashOutEnabled, gameLoseFeedback, gameWinFeedback, setGameResult, startCountdown, loadHistory, updateGameState, gameState, localAutoCashOutTriggered]);
+    } catch (err) {
+      console.error('Ошибка загрузки истории:', err);
+      setHistory([]);
+    }
+  }, []);
 
   // ИСПРАВЛЕННОЕ обновление состояния игры
   const updateGameState = useCallback((state) => {
@@ -429,12 +212,12 @@ const CrashGame = ({
       console.log('КРАШ: Вычисленное время начала игры:', new Date(calculatedStartTime));
       
       setCurrentMultiplier(state.currentMultiplier);
-      lastMultiplierRef.current = state.currentMultiplier; // НОВОЕ: Обновляем отслеживание
+      lastMultiplierRef.current = state.currentMultiplier;
       
       window.crashGameStartTime = calculatedStartTime;
     } else if (state.currentMultiplier !== undefined && state.currentMultiplier > 0) {
       setCurrentMultiplier(state.currentMultiplier);
-      lastMultiplierRef.current = state.currentMultiplier; // НОВОЕ: Обновляем отслеживание
+      lastMultiplierRef.current = state.currentMultiplier;
     }
     
     if (state.status === 'waiting' && state.timeToStart > 0) {
@@ -486,7 +269,7 @@ const CrashGame = ({
             setCashedOut(false);
             setUserCashOutMultiplier(0);
             setAutoWithdrawn(false);
-            setLocalAutoCashOutTriggered(false); // НОВОЕ: Сброс локального флага
+            setLocalAutoCashOutTriggered(false);
           }
           
           setUserBet({
@@ -507,57 +290,280 @@ const CrashGame = ({
     }
   }, [userTelegramId, startCountdown, calculateGameStartTime]);
 
-  // Обратный отсчет
-  const startCountdown = useCallback((seconds) => {
-    if (countdownTimerRef.current) {
-      clearInterval(countdownTimerRef.current);
-    }
-    
-    let remaining = seconds;
-    setTimeToStart(remaining);
-    
-    countdownTimerRef.current = setInterval(() => {
-      remaining -= 1;
-      setTimeToStart(remaining);
+  // Подписка на WebSocket события
+  useEffect(() => {
+    if (isInitializing) return;
+
+    // Новый раунд
+    const unsubNewRound = webSocketService.on('crash_new_round', (data) => {
+      console.log('🎮 Новый раунд:', data);
+      setGameState('waiting');
+      setRoundId(data.roundId);
+      setTimeToStart(data.timeToStart || 7);
+      setCurrentMultiplier(1.00);
+      lastMultiplierRef.current = 1.00;
+      setCrashPoint(0);
       
-      if (remaining <= 0) {
+      setHasBet(false);
+      setCashedOut(false);
+      setUserBet(null);
+      setUserGameId(null);
+      setUserCashOutMultiplier(0);
+      setAutoWithdrawn(false);
+      setIsApproachingAutoCashOut(false);
+      setLocalAutoCashOutTriggered(false);
+      setPendingAutoCashOut(false);
+      
+      setTimeout(() => {
+        setGameResult(null);
+      }, 3000);
+      
+      setActiveBets([]);
+      setCashedOutBets([]);
+      
+      startCountdown(data.timeToStart || 7);
+    });
+
+    const unsubCountdown = webSocketService.on('crash_countdown_update', (data) => {
+      setTimeToStart(data.timeToStart);
+    });
+
+    const unsubGameStarted = webSocketService.on('crash_game_started', (data) => {
+      console.log('🚀 Игра началась:', data);
+      setGameState('flying');
+      setCurrentMultiplier(1.00);
+      lastMultiplierRef.current = 1.00;
+      
+      if (countdownTimerRef.current) {
         clearInterval(countdownTimerRef.current);
-        countdownTimerRef.current = null;
       }
-    }, 1000);
-  }, []);
+    });
 
-  // Загрузка истории
-  const loadHistory = useCallback(async () => {
-    try {
-      console.log('КРАШ: Перезагружаем историю...');
-      const response = await gameApi.getCrashHistory();
-      if (response.success) {
-        setHistory(response.data);
-      } else {
-        setHistory([]);
+    const unsubMultiplierUpdate = webSocketService.on('crash_multiplier_update', (data) => {
+      setCurrentMultiplier(data.multiplier);
+    });
+
+    const unsubGameCrashed = webSocketService.on('crash_game_crashed', (data) => {
+      console.log('💥 Игра разбилась:', data);
+      setGameState('crashed');
+      setCrashPoint(data.crashPoint);
+      setCurrentMultiplier(data.crashPoint);
+      
+      loadHistory();
+      
+      const checkForLoss = () => {
+        setGameResult(prevResult => {
+          if (prevResult && prevResult.win) {
+            console.log('Есть результат выигрыша, не перезаписываем');
+            return prevResult;
+          }
+          
+          setCashedOut(currentCashedOut => {
+            if (currentCashedOut || localAutoCashOutTriggered) {
+              console.log('Уже выведено, не показываем проигрыш');
+              return currentCashedOut;
+            }
+            
+            if (hasBet && userBet) {
+              console.log('Пользователь проиграл - не успел вывести');
+              gameLoseFeedback();
+              setGameResult({
+                win: false,
+                amount: userBet.amount || 0,
+                newBalance: balance
+              });
+            }
+            
+            return currentCashedOut;
+          });
+          
+          return prevResult;
+        });
+      };
+      
+      setTimeout(checkForLoss, 100);
+    });
+
+    const unsubBetPlaced = webSocketService.on('crash_bet_placed', (data) => {
+      console.log('💰 Новая ставка получена:', data);
+      
+      const newBet = {
+        id: `bet-${data.userId}-${data.amount}-${Date.now()}`,
+        userId: data.userId,
+        username: data.username || 'Игрок',
+        amount: data.amount,
+        autoCashOut: data.autoCashOut || 0,
+        isCurrentUser: data.userId === userTelegramId
+      };
+      
+      setActiveBets(prev => {
+        const exists = prev.find(bet => bet.userId === data.userId);
+        if (exists) {
+          console.log('Ставка уже существует, пропускаем');
+          return prev;
+        }
+        
+        return [...prev, newBet];
+      });
+    });
+
+    const unsubAutoCashOut = webSocketService.on('crash_auto_cash_out', (data) => {
+      console.log('🤖 Подтверждение автокешаута от сервера:', data);
+      
+      if (data.userId === userTelegramId) {
+        console.log('🎯 Подтверждение нашего автовывода');
+        
+        if (data.balanceAfter !== undefined) {
+          setBalance(data.balanceAfter);
+        }
+        
+        setPendingAutoCashOut(false);
+        
+        setGameResult(prevResult => ({
+          ...prevResult,
+          amount: data.profit || prevResult.amount,
+          newBalance: data.balanceAfter || prevResult.newBalance
+        }));
+        
+        console.log('✅ Автовывод подтвержден сервером');
       }
-    } catch (err) {
-      console.error('Ошибка загрузки истории:', err);
-      setHistory([]);
-    }
-  }, []);
+      
+      handleCashOutEvent(data, true);
+    });
 
-  // Размещение ставки
+    const unsubManualCashOut = webSocketService.on('crash_manual_cash_out', (data) => {
+      console.log('💸 Ручной кешаут:', data);
+      handleCashOutEvent(data, false);
+    });
+
+    const unsubGameState = webSocketService.on('crash_game_state', (data) => {
+      console.log('📊 Состояние игры:', data);
+      updateGameState(data);
+    });
+
+    const unsubRoundCompleted = webSocketService.on('crash_round_completed', (data) => {
+      console.log('✅ Раунд завершен:', data);
+    });
+
+    const handleCashOutEvent = (data, isAutomatic = false) => {
+      console.log('💸 Обработка кешаута:', data, 'Автоматический:', isAutomatic);
+      
+      if (!data.userId || !data.amount || !data.multiplier) {
+        console.warn('Некорректные данные кешаута:', data);
+        return;
+      }
+      
+      setActiveBets(prev => prev.filter(bet => bet.userId !== data.userId));
+      
+      const cashOutEntry = {
+        id: `cashout-${data.userId}-${Date.now()}`,
+        userId: data.userId,
+        username: data.username || 'Игрок',
+        amount: data.amount,
+        cashOutMultiplier: data.multiplier,
+        winAmount: data.amount * data.multiplier,
+        isCurrentUser: data.userId === userTelegramId
+      };
+      
+      setCashedOutBets(prev => {
+        const exists = prev.find(bet => bet.userId === data.userId && 
+          Math.abs(bet.cashOutMultiplier - data.multiplier) < 0.01);
+        if (exists) {
+          return prev;
+        }
+        return [...prev, cashOutEntry];
+      });
+      
+      if (data.userId === userTelegramId && !localAutoCashOutTriggered) {
+        console.log('🎯 Обычный кешаут (не автовывод)');
+        
+        setCashedOut(true);
+        setUserCashOutMultiplier(data.multiplier);
+        
+        if (isAutomatic) {
+          setAutoWithdrawn(true);
+        }
+        
+        if (data.balanceAfter !== undefined) {
+          setBalance(data.balanceAfter);
+        }
+        
+        setGameResult({
+          win: true,
+          amount: data.profit || (data.amount * data.multiplier - data.amount),
+          newBalance: data.balanceAfter,
+          isAutoCashOut: isAutomatic,
+          multiplier: data.multiplier
+        });
+        
+        gameWinFeedback();
+      }
+    };
+
+    return () => {
+      unsubNewRound();
+      unsubCountdown();
+      unsubGameStarted();
+      unsubMultiplierUpdate();
+      unsubGameCrashed();
+      unsubBetPlaced();
+      unsubAutoCashOut();
+      unsubManualCashOut();
+      unsubGameState();
+      unsubRoundCompleted();
+    };
+  }, [isInitializing, hasBet, cashedOut, userBet, balance, userTelegramId, autoCashOutEnabled, gameLoseFeedback, gameWinFeedback, setGameResult, startCountdown, loadHistory, updateGameState, gameState, localAutoCashOutTriggered]);
+
+  // ИСПРАВЛЕННОЕ размещение ставки
   const placeBet = useCallback(async () => {
-    if (gameState !== 'waiting' || hasBet || betAmount <= 0 || betAmount > balance || loading) {
+    console.log('🎮 КРАШ: Попытка размещения ставки');
+    console.log('🎮 КРАШ: Состояние - gameState:', gameState, 'hasBet:', hasBet, 'betAmount:', betAmount, 'balance:', balance, 'loading:', loading);
+    
+    // Проверяем все условия для размещения ставки
+    if (gameState !== 'waiting') {
+      console.log('🎮 КРАШ: Блокировано - игра не в состоянии ожидания. Текущее состояние:', gameState);
+      return;
+    }
+    
+    if (hasBet) {
+      console.log('🎮 КРАШ: Блокировано - ставка уже размещена');
+      return;
+    }
+    
+    if (loading) {
+      console.log('🎮 КРАШ: Блокировано - идет загрузка');
+      return;
+    }
+    
+    if (!betAmount || betAmount <= 0) {
+      console.log('🎮 КРАШ: Блокировано - неверная сумма ставки:', betAmount);
+      setError('Укажите корректную сумму ставки');
+      return;
+    }
+    
+    if (betAmount > balance) {
+      console.log('🎮 КРАШ: Блокировано - недостаточно средств. Ставка:', betAmount, 'Баланс:', balance);
+      setError('Недостаточно средств на балансе');
       return;
     }
     
     try {
+      console.log('🎮 КРАШ: Все проверки пройдены, размещаем ставку');
+      
       setLoading(true);
       gameActionFeedback();
       
       const finalAutoCashOut = autoCashOutEnabled && autoCashOut && !isNaN(autoCashOut) ? autoCashOut : 0;
+      
+      console.log('🎮 КРАШ: Отправляем запрос с параметрами:', {
+        betAmount,
+        finalAutoCashOut
+      });
+      
       const response = await gameApi.placeCrashBet(betAmount, finalAutoCashOut);
       
       if (response.success) {
-        console.log('✅ Ставка размещена:', response.data);
+        console.log('✅ КРАШ: Ставка размещена успешно:', response.data);
         
         setBalance(response.data.balanceAfter);
         
@@ -565,36 +571,66 @@ const CrashGame = ({
         setCashedOut(false);
         setUserCashOutMultiplier(0);
         setAutoWithdrawn(false);
-        setLocalAutoCashOutTriggered(false); // НОВОЕ: Сброс локального флага
-        setPendingAutoCashOut(false); // НОВОЕ: Сброс ожидания
+        setLocalAutoCashOutTriggered(false);
+        setPendingAutoCashOut(false);
         setUserBet({
           amount: betAmount,
           autoCashOut: finalAutoCashOut
         });
         setUserGameId(response.data.gameId);
+        
+        setError(null); // Очищаем предыдущие ошибки
+        
+        console.log('🎮 КРАШ: Состояние обновлено после размещения ставки');
+      } else {
+        throw new Error(response.message || 'Ошибка размещения ставки');
       }
       
     } catch (err) {
-      console.error('❌ Ошибка размещения ставки:', err);
-      setError(err.response?.data?.message || 'Ошибка размещения ставки');
+      console.error('❌ КРАШ: Ошибка размещения ставки:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Ошибка размещения ставки';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, autoCashOutEnabled, userTelegramId, setBalance, setError, gameActionFeedback]);
+  }, [gameState, hasBet, betAmount, balance, loading, autoCashOut, autoCashOutEnabled, setBalance, setError, gameActionFeedback]);
 
-  // Кешаут
+  // ИСПРАВЛЕННЫЙ кешаут
   const cashOut = useCallback(async () => {
-    if (gameState !== 'flying' || !hasBet || cashedOut || loading) {
+    console.log('🎮 КРАШ: Попытка кешаута');
+    console.log('🎮 КРАШ: Состояние - gameState:', gameState, 'hasBet:', hasBet, 'cashedOut:', cashedOut, 'loading:', loading);
+    
+    if (gameState !== 'flying') {
+      console.log('🎮 КРАШ: Блокировано - игра не в полете. Текущее состояние:', gameState);
+      return;
+    }
+    
+    if (!hasBet) {
+      console.log('🎮 КРАШ: Блокировано - нет активной ставки');
+      return;
+    }
+    
+    if (cashedOut) {
+      console.log('🎮 КРАШ: Блокировано - ставка уже выведена');
+      return;
+    }
+    
+    if (loading) {
+      console.log('🎮 КРАШ: Блокировано - идет загрузка');
       return;
     }
     
     try {
+      console.log('🎮 КРАШ: Все проверки пройдены, выводим ставку');
+      
       setLoading(true);
       criticalActionFeedback();
       
       const response = await gameApi.cashOutCrash();
       
       if (response.success) {
+        console.log('✅ КРАШ: Кешаут успешен:', response.data);
+        
         setBalance(response.data.balanceAfter);
         setCashedOut(true);
         setUserCashOutMultiplier(response.data.multiplier);
@@ -606,13 +642,16 @@ const CrashGame = ({
         });
         
         gameWinFeedback();
+        setError(null); // Очищаем предыдущие ошибки
         
-        console.log('✅ Кешаут успешен:', response.data);
+      } else {
+        throw new Error(response.message || 'Ошибка вывода ставки');
       }
       
     } catch (err) {
-      console.error('❌ Ошибка кешаута:', err);
-      setError(err.response?.data?.message || 'Ошибка вывода ставки');
+      console.error('❌ КРАШ: Ошибка кешаута:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Ошибка вывода ставки';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -622,7 +661,7 @@ const CrashGame = ({
   const getMainButtonText = () => {
     if (loading) return 'Загрузка...';
     
-    console.log('🔍 Определение текста кнопки:', {
+    console.log('🔍 КРАШ: Определение текста кнопки:', {
       gameState,
       hasBet,
       cashedOut,
@@ -633,17 +672,20 @@ const CrashGame = ({
       currentMultiplier,
       autoCashOutEnabled,
       isApproachingAutoCashOut,
-      pendingAutoCashOut
+      pendingAutoCashOut,
+      betAmount,
+      balance
     });
     
     switch (gameState) {
       case 'waiting':
         if (hasBet && userBet) return `Ставка размещена (${userBet.amount || 0} USDT)`;
+        if (!betAmount || betAmount <= 0) return 'Укажите сумму ставки';
+        if (betAmount > balance) return 'Недостаточно средств';
         return `Поставить ${betAmount || 0} USDT`;
       case 'flying':
         if (!hasBet) return 'Ставка не размещена';
         
-        // КЛЮЧЕВОЕ УЛУЧШЕНИЕ: Проверяем локальный автовывод ПЕРВЫМ делом
         if (localAutoCashOutTriggered || (cashedOut && userCashOutMultiplier > 0)) {
           const multiplier = userCashOutMultiplier || (userBet && userBet.autoCashOut) || currentMultiplier;
           
@@ -656,12 +698,10 @@ const CrashGame = ({
           }
         }
         
-        // Если приближаемся к автовыводу
         if (isApproachingAutoCashOut && autoCashOutEnabled && userBet && userBet.autoCashOut > 0) {
           return `Автовывод приближается (${userBet.autoCashOut}x)`;
         }
         
-        // Если есть ставка и НЕ выведено - показываем кнопку вывода
         if (userBet && !cashedOut && !localAutoCashOutTriggered) {
           return `Вывести (${((userBet.amount || 0) * (currentMultiplier || 1)).toFixed(2)} USDT)`;
         }
@@ -686,30 +726,30 @@ const CrashGame = ({
   const getMainButtonClass = () => {
     if (loading) return 'loading';
     
-    console.log('🔍 Определение класса кнопки:', {
+    console.log('🔍 КРАШ: Определение класса кнопки:', {
       gameState,
       hasBet,
       cashedOut,
       localAutoCashOutTriggered,
       autoWithdrawn,
       userCashOutMultiplier,
-      isApproachingAutoCashOut
+      isApproachingAutoCashOut,
+      betAmount,
+      balance
     });
     
     switch (gameState) {
       case 'waiting':
         if (hasBet) return 'placed';
+        if (!betAmount || betAmount <= 0 || betAmount > balance) return 'disabled';
         return 'bet';
       case 'flying':
         if (!hasBet) return 'disabled';
         
-        // КЛЮЧЕВОЕ УЛУЧШЕНИЕ: Если локальный автовывод сработал или выведено - показываем выигрыш
         if (localAutoCashOutTriggered || (cashedOut && userCashOutMultiplier > 0)) return 'won';
         
-        // Если приближается автовывод - другой стиль
         if (isApproachingAutoCashOut) return 'approaching-auto';
         
-        // Если есть ставка и НЕ выведено - кнопка кешаута
         return 'cashout';
       case 'crashed':
         if (hasBet && !cashedOut && !localAutoCashOutTriggered) return 'lost';
@@ -720,24 +760,60 @@ const CrashGame = ({
     }
   };
 
-  // Обработчик главной кнопки
+  // ИСПРАВЛЕННЫЙ обработчик главной кнопки
   const handleMainButtonClick = () => {
-    if (loading) return;
+    console.log('🎮 КРАШ: Нажата главная кнопка действия');
+    console.log('🎮 КРАШ: Текущее состояние:', {
+      gameState,
+      hasBet,
+      cashedOut,
+      localAutoCashOutTriggered,
+      loading,
+      betAmount,
+      balance
+    });
+    
+    if (loading) {
+      console.log('🎮 КРАШ: Блокировано - идет загрузка');
+      return;
+    }
     
     switch (gameState) {
       case 'waiting':
         if (!hasBet) {
+          console.log('🎮 КРАШ: Размещаем ставку');
           placeBet();
+        } else {
+          console.log('🎮 КРАШ: Ставка уже размещена');
         }
         break;
       case 'flying':
-        // ИСПРАВЛЕНИЕ: Разрешаем кешаут только если есть ставка и НЕ выведено
         if (hasBet && !cashedOut && !localAutoCashOutTriggered) {
+          console.log('🎮 КРАШ: Выводим ставку');
           cashOut();
+        } else {
+          console.log('🎮 КРАШ: Нельзя вывести - нет ставки или уже выведено');
         }
         break;
       default:
+        console.log('🎮 КРАШ: Неподходящее состояние для действий:', gameState);
         break;
+    }
+  };
+
+  // Функция определения блокировки кнопки
+  const isMainButtonDisabled = () => {
+    if (loading) return true;
+    
+    switch (gameState) {
+      case 'waiting':
+        return hasBet || !betAmount || betAmount <= 0 || betAmount > balance;
+      case 'flying':
+        return !hasBet || cashedOut || localAutoCashOutTriggered;
+      case 'crashed':
+        return true;
+      default:
+        return true;
     }
   };
 
@@ -773,11 +849,11 @@ const CrashGame = ({
         roundId={roundId}
       />
       
-      {/* Главная кнопка действия */}
+      {/* ИСПРАВЛЕННАЯ главная кнопка действия */}
       <button 
         className={`crash-main-action-btn ${getMainButtonClass()}`}
         onClick={handleMainButtonClick}
-        disabled={loading || (gameState === 'waiting' && hasBet) || (gameState === 'flying' && (!hasBet || cashedOut || localAutoCashOutTriggered)) || gameState === 'crashed'}
+        disabled={isMainButtonDisabled()}
       >
         {getMainButtonText()}
       </button>
@@ -793,12 +869,12 @@ const CrashGame = ({
         balance={balance}
         gameState={gameState}
         hasBet={hasBet}
-        cashedOut={cashedOut || localAutoCashOutTriggered} // НОВОЕ: Учитываем локальный флаг
+        cashedOut={cashedOut || localAutoCashOutTriggered}
         userBet={userBet}
         userCashOutMultiplier={userCashOutMultiplier}
         loading={loading}
         currentMultiplier={currentMultiplier}
-        autoWithdrawn={autoWithdrawn || localAutoCashOutTriggered} // НОВОЕ: Учитываем локальный флаг
+        autoWithdrawn={autoWithdrawn || localAutoCashOutTriggered}
         isApproachingAutoCashOut={isApproachingAutoCashOut}
       />
       

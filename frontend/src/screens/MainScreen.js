@@ -1,8 +1,7 @@
 // frontend/src/screens/MainScreen.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
-import { GameBlock } from '../components/main';
-import EventsPreview from '../components/main/EventsPreview';
+import { GameBlock, EventsPreview } from '../components/main';
 import { userApi, eventsApi } from '../services';
 import '../styles/MainScreen.css';
 

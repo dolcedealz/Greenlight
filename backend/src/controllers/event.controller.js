@@ -1,8 +1,8 @@
-// backend/src/controllers/event.controller.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
+// backend/src/controllers/event.controller.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ГИБКИМИ КОЭФФИЦИЕНТАМИ
 const { eventService } = require('../services');
 
 /**
- * Контроллер для управления событиями
+ * Контроллер для управления событиями с поддержкой гибких коэффициентов
  */
 class EventController {
   /**
@@ -22,7 +22,8 @@ class EventController {
         success: true,
         data: {
           events: events,
-          count: events.length
+          count: events.length,
+          flexibleOdds: true // Указываем, что используются гибкие коэффициенты
         }
       });
     } catch (error) {
@@ -52,7 +53,8 @@ class EventController {
       res.status(200).json({
         success: true,
         data: {
-          event: event
+          event: event,
+          flexibleOdds: true // Указываем, что используются гибкие коэффициенты
         }
       });
     } catch (error) {
@@ -78,7 +80,8 @@ class EventController {
       res.status(200).json({
         success: true,
         data: {
-          event: event
+          event: event,
+          flexibleOdds: true // Указываем, что используются гибкие коэффициенты
         }
       });
     } catch (error) {
@@ -99,19 +102,15 @@ class EventController {
   }
   
   /**
-   * Разместить ставку на событие - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ
+   * Разместить ставку на событие - ОБНОВЛЕННАЯ ВЕРСИЯ С ГИБКИМИ КОЭФФИЦИЕНТАМИ
    */
   async placeBet(req, res) {
     try {
-      console.log('EVENT CONTROLLER: Запрос на размещение ставки');
+      console.log('EVENT CONTROLLER: Запрос на размещение ставки с гибкими коэффициентами');
       console.log('EVENT CONTROLLER: Method:', req.method);
       console.log('EVENT CONTROLLER: URL:', req.originalUrl);
       console.log('EVENT CONTROLLER: Params:', JSON.stringify(req.params, null, 2));
       console.log('EVENT CONTROLLER: Body:', JSON.stringify(req.body, null, 2));
-      console.log('EVENT CONTROLLER: Headers (частично):', {
-        'content-type': req.headers['content-type'],
-        'telegram-data': req.headers['telegram-data'] ? '***СКРЫТО***' : 'отсутствует'
-      });
       
       // Проверяем аутентификацию пользователя
       if (!req.user || !req.user._id) {
@@ -190,10 +189,8 @@ class EventController {
       // Проверяем и преобразуем сумму ставки
       let amount;
       if (typeof betAmount === 'string') {
-        // Если строка, пытаемся преобразовать
         amount = parseFloat(betAmount.trim());
       } else if (typeof betAmount === 'number') {
-        // Если уже число
         amount = betAmount;
       } else {
         console.log('EVENT CONTROLLER: betAmount имеет некорректный тип:', typeof betAmount, betAmount);
@@ -259,13 +256,14 @@ class EventController {
       amount = roundedAmount;
       
       // === ЛОГИРОВАНИЕ ФИНАЛЬНЫХ ДАННЫХ ===
-      console.log(`EVENT CONTROLLER: Валидация прошла успешно. Параметры ставки:`);
+      console.log(`EVENT CONTROLLER: Валидация прошла успешно. Параметры ставки с гибкими коэффициентами:`);
       console.log(`  - Пользователь: ${userId} (${req.user.firstName})`);
       console.log(`  - Событие: ${eventId}`);
       console.log(`  - Исход: ${outcomeId}`);
       console.log(`  - Сумма: ${amount} USDT`);
       console.log(`  - IP: ${userIp}`);
       console.log(`  - Баланс пользователя: ${req.user.balance} USDT`);
+      console.log(`  - Примечание: Финальная выплата будет рассчитана по коэффициентам на момент завершения события`);
       
       // === ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА БАЛАНСА ===
       if (req.user.balance < amount) {
@@ -281,8 +279,8 @@ class EventController {
         });
       }
       
-      // === РАЗМЕЩЕНИЕ СТАВКИ ===
-      console.log('EVENT CONTROLLER: Передаем управление сервису событий...');
+      // === РАЗМЕЩЕНИЕ СТАВКИ С ГИБКИМИ КОЭФФИЦИЕНТАМИ ===
+      console.log('EVENT CONTROLLER: Передаем управление сервису событий с гибкими коэффициентами...');
       
       const result = await eventService.placeBet(
         userId,
@@ -292,13 +290,15 @@ class EventController {
         userIp
       );
       
-      console.log('EVENT CONTROLLER: Ставка успешно размещена через сервис:', {
+      console.log('EVENT CONTROLLER: Ставка с гибкими коэффициентами успешно размещена:', {
         betId: result.bet._id,
         newBalance: result.newBalance,
-        potentialWin: result.bet.potentialWin
+        estimatedWin: result.bet.estimatedWin,
+        oddsAtBet: result.bet.oddsAtBet,
+        oddsChanged: result.event.oddsChanged
       });
       
-      // === ФОРМИРОВАНИЕ ОТВЕТА ===
+      // === ФОРМИРОВАНИЕ РАСШИРЕННОГО ОТВЕТА ===
       const responseData = {
         bet: {
           id: result.bet._id,
@@ -306,28 +306,55 @@ class EventController {
           outcomeId: result.bet.outcomeId,
           outcomeName: result.bet.outcomeName,
           betAmount: result.bet.betAmount,
-          odds: result.bet.odds,
-          potentialWin: result.bet.potentialWin,
+          oddsAtBet: result.bet.oddsAtBet,
+          estimatedWin: result.bet.estimatedWin,
           placedAt: result.bet.placedAt,
-          status: result.bet.status
+          status: result.bet.status,
+          
+          // Информация о гибких коэффициентах
+          flexibleOdds: {
+            enabled: true,
+            note: result.bet.note || 'Финальная выплата будет рассчитана по коэффициентам на момент завершения события',
+            currentEstimate: result.bet.estimatedWin,
+            finalCalculation: 'pending'
+          }
         },
         user: {
           newBalance: result.newBalance,
           previousBalance: req.user.balance
         },
-        event: result.event
+        event: {
+          ...result.event,
+          flexibleOddsEnabled: true
+        },
+        oddsInfo: result.oddsInfo || null,
+        
+        // Системная информация о гибких коэффициентах
+        system: {
+          flexibleOddsEnabled: true,
+          message: 'Этот проект использует гибкие коэффициенты. Ваша выплата будет рассчитана по финальным коэффициентам на момент завершения события.',
+          benefits: [
+            'Более справедливое распределение выплат',
+            'Динамическое изменение коэффициентов',
+            'Возможность получить больше, чем ожидалось'
+          ],
+          risks: [
+            'Финальная выплата может отличаться от ожидаемой',
+            'Коэффициенты могут измениться после вашей ставки'
+          ]
+        }
       };
       
-      console.log('EVENT CONTROLLER: Отправляем успешный ответ');
+      console.log('EVENT CONTROLLER: Отправляем успешный ответ с информацией о гибких коэффициентах');
       
       res.status(201).json({
         success: true,
-        message: 'Ставка успешно размещена',
+        message: 'Ставка успешно размещена. Финальная выплата будет рассчитана по коэффициентам на момент завершения события.',
         data: responseData
       });
       
     } catch (error) {
-      console.error('EVENT CONTROLLER: Ошибка размещения ставки:', error);
+      console.error('EVENT CONTROLLER: Ошибка размещения ставки с гибкими коэффициентами:', error);
       console.error('EVENT CONTROLLER: Stack trace:', error.stack);
       
       // === ДЕТАЛЬНАЯ ОБРАБОТКА ОШИБОК ===
@@ -396,12 +423,16 @@ class EventController {
   }
   
   /**
-   * Получить ставки пользователя
+   * Получить ставки пользователя - ОБНОВЛЕННАЯ ВЕРСИЯ С ИНФОРМАЦИЕЙ О ГИБКИХ КОЭФФИЦИЕНТАХ
    */
   async getUserBets(req, res) {
     try {
       const userId = req.user._id;
       const { limit, skip, status } = req.query;
+      
+      console.log('EVENT CONTROLLER: Запрос ставок пользователя с информацией о гибких коэффициентах');
+      console.log('  Пользователь:', userId);
+      console.log('  Параметры:', { limit, skip, status });
       
       const options = {};
       if (limit) options.limit = parseInt(limit);
@@ -410,9 +441,19 @@ class EventController {
       
       const result = await eventService.getUserBets(userId, options);
       
+      console.log(`EVENT CONTROLLER: Получено ставок: ${result.bets.length}`);
+      console.log('EVENT CONTROLLER: Статистика гибких коэффициентов:', result.stats.flexibleOddsStats);
+      
       res.status(200).json({
         success: true,
-        data: result
+        data: {
+          ...result,
+          system: {
+            flexibleOddsEnabled: true,
+            message: 'Этот проект использует гибкие коэффициенты',
+            explanation: 'Выплаты рассчитываются по финальным коэффициентам на момент завершения события'
+          }
+        }
       });
     } catch (error) {
       console.error('EVENT CONTROLLER: Ошибка получения ставок:', error);
@@ -432,7 +473,10 @@ class EventController {
       
       res.status(200).json({
         success: true,
-        data: stats
+        data: {
+          ...stats,
+          flexibleOddsEnabled: true
+        }
       });
     } catch (error) {
       console.error('EVENT CONTROLLER: Ошибка получения статистики:', error);
@@ -450,7 +494,7 @@ class EventController {
    */
   async createEvent(req, res) {
     try {
-      console.log('EVENT CONTROLLER: Создание события, данные:', JSON.stringify(req.body, null, 2));
+      console.log('EVENT CONTROLLER: Создание события с поддержкой гибких коэффициентов, данные:', JSON.stringify(req.body, null, 2));
       console.log('EVENT CONTROLLER: Пользователь:', req.user);
       
       const adminId = req.user._id;
@@ -469,9 +513,10 @@ class EventController {
       
       res.status(201).json({
         success: true,
-        message: 'Событие создано успешно',
+        message: 'Событие с поддержкой гибких коэффициентов создано успешно',
         data: {
-          event: event
+          event: event,
+          flexibleOddsEnabled: true
         }
       });
     } catch (error) {
@@ -484,7 +529,7 @@ class EventController {
   }
   
   /**
-   * Завершить событие (админ) - ИСПРАВЛЕННАЯ ВЕРСИЯ
+   * Завершить событие (админ) - ОБНОВЛЕННАЯ ВЕРСИЯ С ГИБКИМИ КОЭФФИЦИЕНТАМИ
    */
   async finishEvent(req, res) {
     try {
@@ -492,7 +537,7 @@ class EventController {
       const { winningOutcomeId } = req.body;
       const adminId = req.user._id;
       
-      console.log('EVENT CONTROLLER: Завершение события:', eventId, 'победитель:', winningOutcomeId);
+      console.log('EVENT CONTROLLER: Завершение события с гибкими коэффициентами:', eventId, 'победитель:', winningOutcomeId);
       console.log('EVENT CONTROLLER: Пользователь:', req.user);
       
       // Проверяем права администратора - принимаем виртуального админа
@@ -519,30 +564,42 @@ class EventController {
         });
       }
       
-      console.log('EVENT CONTROLLER: Вызываем eventService.finishEvent...');
+      console.log('EVENT CONTROLLER: Вызываем eventService.finishEvent с гибкими коэффициентами...');
       
       const result = await eventService.finishEvent(eventId, winningOutcomeId, adminId);
       
-      console.log('EVENT CONTROLLER: Результат завершения события:', {
+      console.log('EVENT CONTROLLER: Результат завершения события с гибкими коэффициентами:', {
         eventId: result.event._id,
         winningOutcome: result.event.winningOutcome,
-        settlementResults: result.settlement
+        settlementResults: result.settlement,
+        flexibleOddsStats: result.settlement.oddsChanges
       });
       
-      // Формируем ответ с правильной структурой данных
+      // Формируем расширенный ответ с информацией о гибких коэффициентах
       const responseData = {
         event: result.event,
         settlementResults: result.settlement,
-        houseProfit: -result.settlement.totalProfit // Прибыль казино = убыток игроков
+        houseProfit: -result.settlement.totalProfit, // Прибыль казино = убыток игроков
+        
+        // Информация о влиянии гибких коэффициентов
+        flexibleOddsImpact: {
+          enabled: true,
+          totalBets: result.settlement.oddsChanges?.totalBets || 0,
+          avgOddsAtBet: result.settlement.oddsChanges?.avgOddsAtBet || 0,
+          finalOdds: result.settlement.oddsChanges?.finalOdds || 0,
+          winnersBenefited: result.settlement.oddsChanges?.winnersBenefited || 0,
+          winnersLost: result.settlement.oddsChanges?.winnersLost || 0,
+          summary: `Из ${result.settlement.winningBets} выигрышных ставок: ${result.settlement.oddsChanges?.winnersBenefited || 0} получили больше ожидаемого, ${result.settlement.oddsChanges?.winnersLost || 0} получили меньше`
+        }
       };
       
       res.status(200).json({
         success: true,
-        message: 'Событие завершено успешно',
+        message: 'Событие с гибкими коэффициентами завершено успешно',
         data: responseData
       });
     } catch (error) {
-      console.error('EVENT CONTROLLER: Ошибка завершения события:', error);
+      console.error('EVENT CONTROLLER: Ошибка завершения события с гибкими коэффициентами:', error);
       
       // Определяем тип ошибки для более точного ответа
       if (error.message.includes('не найдено') || error.message.includes('не найден')) {
@@ -611,7 +668,8 @@ class EventController {
           const odds = event.calculateOdds();
           return {
             ...event.toObject(),
-            currentOdds: odds
+            currentOdds: odds,
+            flexibleOddsEnabled: true
           };
         } catch (err) {
           console.error('Ошибка расчета коэффициентов:', err);
@@ -620,7 +678,8 @@ class EventController {
             currentOdds: {
               [event.outcomes[0]?.id]: event.initialOdds || 2.0,
               [event.outcomes[1]?.id]: event.initialOdds || 2.0
-            }
+            },
+            flexibleOddsEnabled: true
           };
         }
       });
@@ -635,6 +694,10 @@ class EventController {
             totalPages: Math.ceil(total / limit),
             limit: parseInt(limit),
             skip: parseInt(skip)
+          },
+          system: {
+            flexibleOddsEnabled: true,
+            message: 'Все события используют гибкие коэффициенты'
           }
         }
       });

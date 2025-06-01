@@ -154,13 +154,13 @@ const gameApi = {
   },
 
   // Игра "Слоты"
-playSlots: (betAmount) => {
-  console.log('Игра "Слоты":', { betAmount });
-  
-  return api.post('/games/slots/play', { 
-    betAmount
-  });
-},
+  playSlots: (betAmount) => {
+    console.log('Игра "Слоты":', { betAmount });
+    
+    return api.post('/games/slots/play', { 
+      betAmount
+    });
+  },
 
   // === МЕТОДЫ ДЛЯ CRASH ИГРЫ ===
   
@@ -438,10 +438,111 @@ const pvpApi = {
   }
 };
 
+// API для событий
+const eventsApi = {
+  // Получить событие для главной страницы
+  getFeaturedEvent: () => {
+    console.log('Получение главного события');
+    return api.get('/events/featured');
+  },
+  
+  // Получить активные события
+  getActiveEvents: (limit = 4) => {
+    console.log('Получение активных событий:', limit);
+    return api.get('/events/active', { 
+      params: { limit } 
+    });
+  },
+  
+  // Получить событие по ID
+  getEventById: (eventId) => {
+    console.log('Получение события по ID:', eventId);
+    return api.get(`/events/${eventId}`);
+  },
+  
+  // Разместить ставку на событие
+  placeBet: (eventId, outcomeId, betAmount) => {
+    console.log('Размещение ставки на событие:', { eventId, outcomeId, betAmount });
+    
+    return api.post(`/events/${eventId}/bet`, {
+      outcomeId,
+      betAmount
+    });
+  },
+  
+  // Получить ставки пользователя
+  getUserBets: (params = {}) => {
+    console.log('Получение ставок пользователя:', params);
+    return api.get('/events/user/bets', { params });
+  },
+  
+  // Получить статистику событий
+  getEventsStatistics: () => {
+    console.log('Получение статистики событий');
+    return api.get('/events/stats/general');
+  },
+
+  // === АДМИНСКИЕ МЕТОДЫ ===
+  
+  // Создать событие (админ)
+  createEvent: (eventData) => {
+    console.log('Создание события (админ):', eventData);
+    return api.post('/events/admin/create', eventData);
+  },
+  
+  // Завершить событие (админ)
+  finishEvent: (eventId, winningOutcomeId) => {
+    console.log('Завершение события (админ):', { eventId, winningOutcomeId });
+    return api.put(`/events/admin/${eventId}/finish`, { winningOutcomeId });
+  },
+  
+  // Получить все события (админ)
+  getAllEvents: (params = {}) => {
+    console.log('Получение всех событий (админ):', params);
+    return api.get('/events/admin/all', { params });
+  }
+};
+
+// API для рефералов
+const referralApi = {
+  // Получить статистику партнера
+  getPartnerStats: (partnerId = null, period = null) => {
+    console.log('Получение статистики партнера:', { partnerId, period });
+    const url = partnerId ? `/referrals/partner/${partnerId}/stats` : '/referrals/my/stats';
+    return api.get(url, { params: { period } });
+  },
+  
+  // Создать выплату реферальных средств
+  createPayout: (amount) => {
+    console.log('Создание реферальной выплаты:', amount);
+    return api.post('/referrals/payout', { amount });
+  },
+  
+  // Получить историю начислений
+  getEarningsHistory: (params = {}) => {
+    console.log('Получение истории начислений:', params);
+    return api.get('/referrals/earnings', { params });
+  },
+  
+  // Получить историю выплат
+  getPayoutsHistory: (params = {}) => {
+    console.log('Получение истории выплат:', params);
+    return api.get('/referrals/payouts', { params });
+  },
+  
+  // Получить список рефералов
+  getReferrals: (params = {}) => {
+    console.log('Получение списка рефералов:', params);
+    return api.get('/referrals/my/referrals', { params });
+  }
+};
+
 export {
   api as default,
   userApi,
   gameApi,
   paymentApi,
-  pvpApi // Добавляем PvP API
+  pvpApi,
+  eventsApi, // Добавляем события
+  referralApi // Добавляем рефералы
 };

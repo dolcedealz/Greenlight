@@ -2,7 +2,14 @@
 require('dotenv').config();
 const { Telegraf, session } = require('telegraf');
 const { commands, middleware, handlers } = require('./src');
-const EventsNotificationService = require('./src/services/events-notifications.service');
+let EventsNotificationService;
+try {
+  EventsNotificationService = require('./src/services/events-notifications.service');
+  console.log('✅ EventsNotificationService импортирован успешно');
+} catch (error) {
+  console.error('❌ Ошибка импорта EventsNotificationService:', error.message);
+  EventsNotificationService = null;
+}
 const eventsExtendedCommands = require('./src/commands/events-extended.command');
 const express = require('express');
 
@@ -52,11 +59,19 @@ handlers.registerHandlers(bot);
 
 // Инициализируем сервис уведомлений о событиях
 let notificationService;
-if (process.env.ADMIN_API_TOKEN && adminIds.length > 0) {
-  notificationService = new EventsNotificationService(bot);
-  console.log('✅ Сервис уведомлений о событиях инициализирован');
+if (EventsNotificationService && process.env.ADMIN_API_TOKEN && adminIds.length > 0) {
+  try {
+    notificationService = new EventsNotificationService(bot);
+    console.log('✅ Сервис уведомлений о событиях инициализирован');
+  } catch (error) {
+    console.error('❌ Ошибка инициализации сервиса уведомлений:', error.message);
+    notificationService = null;
+  }
 } else {
-  console.warn('⚠️ Сервис уведомлений не инициализирован (отсутствует API токен или админы)');
+  console.warn('⚠️ Сервис уведомлений не инициализирован');
+  if (!EventsNotificationService) console.warn('   - EventsNotificationService не найден');
+  if (!process.env.ADMIN_API_TOKEN) console.warn('   - ADMIN_API_TOKEN не установлен');
+  if (adminIds.length === 0) console.warn('   - Нет админов в ADMIN_IDS');
 }
 
 // === РЕГИСТРАЦИЯ НОВЫХ ОБРАБОТЧИКОВ ДЛЯ РАСШИРЕННЫХ ФУНКЦИЙ ===

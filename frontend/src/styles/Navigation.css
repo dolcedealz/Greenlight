@@ -1,4 +1,4 @@
-/* Navigation.css */
+/* frontend/src/styles/Navigation.css */
 .navigation {
   position: fixed;
   bottom: 0;
@@ -11,6 +11,9 @@
   height: 60px;
   z-index: 100;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .nav-item {
@@ -20,21 +23,70 @@
   justify-content: center;
   flex: 1;
   height: 100%;
-  color: rgba(255, 255, 255, 0.5);
-  transition: color 0.2s ease;
+  color: #999;
+  text-decoration: none;
+  transition: all 0.2s ease;
   cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
+  margin: 0 2px;
+}
+
+.nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .nav-item.active {
   color: var(--primary-color);
+  background-color: rgba(11, 168, 74, 0.1);
+}
+
+.nav-item.active .nav-icon {
+  transform: scale(1.1);
 }
 
 .nav-icon {
-  font-size: 22px;
+  font-size: 20px;
   margin-bottom: 4px;
+  transition: transform 0.2s ease;
 }
 
 .nav-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+  .nav-icon {
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+  
+  .nav-label {
+    font-size: 10px;
+  }
+  
+  .navigation {
+    height: 55px;
+  }
+}
+
+/* Анимация при переключении */
+@keyframes navActivate {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.nav-item.active .nav-icon {
+  animation: navActivate 0.3s ease;
 }

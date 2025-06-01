@@ -306,15 +306,16 @@ class EventService {
   }
   
   /**
-   * Получить ставки пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+   * ИСПРАВЛЕННЫЙ МЕТОД: Получить ставки пользователя
    */
   async getUserBets(userId, options = {}) {
     try {
       console.log('EVENT SERVICE: Получение ставок пользователя:', userId);
-      console.log('EVENT SERVICE: Опции:', options);
+      console.log('EVENT SERVICE: Опции:', JSON.stringify(options, null, 2));
       
       // Проверяем, что userId является валидным ObjectId
       if (!mongoose.Types.ObjectId.isValid(userId)) {
+        console.error('EVENT SERVICE: Некорректный ID пользователя:', userId);
         throw new Error('Некорректный ID пользователя');
       }
       
@@ -329,131 +330,213 @@ class EventService {
       
       console.log('EVENT SERVICE: Запрос к базе:', JSON.stringify(query, null, 2));
       
-      // Получаем ставки с проверкой на ошибки
-      const bets = await EventBet.find(query)
-        .populate({
-          path: 'event',
-          select: 'title description status startTime endTime bettingEndsAt',
-          options: { 
-            lean: true 
+      try {
+        // Получаем ставки с детальной обработкой ошибок
+        const bets = await EventBet.find(query)
+          .populate({
+            path: 'event',
+            select: 'title description status startTime endTime bettingEndsAt outcomes totalPool',
+            options: { 
+              lean: true 
+            }
+          })
+          .sort({ placedAt: -1 })
+          .limit(parseInt(limit))
+          .skip(parseInt(skip))
+          .lean();
+        
+        console.log(`EVENT SERVICE: Найдено ставок в базе: ${bets.length}`);
+        
+        // Получаем общее количество
+        const total = await EventBet.countDocuments(query);
+        
+        console.log(`EVENT SERVICE: Общее количество ставок: ${total}`);
+        
+        // Подготавливаем ставки для фронтенда с детальной обработкой
+        const formattedBets = bets.map((bet, index) => {
+          try {
+            console.log(`EVENT SERVICE: Обработка ставки ${index + 1}/${bets.length}, ID: ${bet._id}`);
+            
+            const result = {
+              _id: bet._id,
+              
+              // Информация о событии (с защитой от null)
+              event: bet.event ? {
+                _id: bet.event._id,
+                title: bet.event.title || 'Неизвестное событие',
+                description: bet.event.description || '',
+                status: bet.event.status || 'unknown',
+                startTime: bet.event.startTime,
+                endTime: bet.event.endTime,
+                bettingEndsAt: bet.event.bettingEndsAt,
+                outcomes: bet.event.outcomes || [],
+                totalPool: bet.event.totalPool || 0
+              } : {
+                _id: null,
+                title: 'Событие удалено',
+                description: 'Это событие больше не доступно',
+                status: 'deleted',
+                startTime: null,
+                endTime: null,
+                bettingEndsAt: null,
+                outcomes: [],
+                totalPool: 0
+              },
+              
+              // Основная информация о ставке
+              outcomeId: bet.outcomeId || '',
+              outcomeName: bet.outcomeName || 'Неизвестный исход',
+              betAmount: bet.betAmount || 0,
+              
+              // Коэффициенты и выплаты
+              oddsAtBet: bet.oddsAtBet || 2.0,
+              finalOdds: bet.finalOdds || null,
+              estimatedWin: bet.estimatedWin || (bet.betAmount * (bet.oddsAtBet || 2.0)),
+              actualWin: bet.actualWin || 0,
+              profit: bet.profit || 0,
+              
+              // Статус и даты
+              status: bet.status || 'active',
+              placedAt: bet.placedAt || new Date(),
+              settledAt: bet.settledAt || null,
+              
+              // Удобные флаги для фронтенда
+              isSettled: bet.status && bet.status !== 'active',
+              isWin: bet.status === 'won',
+              isLoss: bet.status === 'lost',
+              isPending: bet.status === 'active',
+              
+              // Алиасы для совместимости
+              amount: bet.betAmount || 0,
+              outcome: bet.outcomeName || 'Неизвестный исход',
+              
+              // Информация о гибких коэффициентах
+              flexibleOdds: {
+                hasFlexibleOdds: true,
+                oddsChanged: bet.finalOdds ? Math.abs(bet.finalOdds - (bet.oddsAtBet || 2.0)) > 0.01 : false,
+                oddsChange: bet.finalOdds ? bet.finalOdds - (bet.oddsAtBet || 2.0) : null,
+                betPosition: bet.metadata?.oddsHistory?.betPosition || 0
+              }
+            };
+            
+            // Добавляем информацию об изменении коэффициентов для завершенных выигрышных ставок
+            if (result.isWin && bet.finalOdds && bet.oddsAtBet) {
+              const oddsChange = bet.finalOdds - bet.oddsAtBet;
+              const winChange = (bet.actualWin || 0) - result.estimatedWin;
+              
+              result.flexibleOdds.oddsChangeBenefit = {
+                oddsImproved: oddsChange > 0,
+                oddsChange: oddsChange,
+                estimatedWin: result.estimatedWin,
+                actualWin: bet.actualWin || 0,
+                winDifference: winChange,
+                benefitPercent: result.estimatedWin > 0 ? ((winChange / result.estimatedWin) * 100).toFixed(2) : 0,
+                message: oddsChange > 0 ? 
+                  `Вы выиграли больше благодаря изменению коэффициентов: +${winChange.toFixed(2)} USDT` :
+                  oddsChange < 0 ?
+                  `Коэффициенты снизились: ${winChange.toFixed(2)} USDT` :
+                  'Коэффициенты не изменились'
+              };
+            }
+            
+            return result;
+            
+          } catch (formatError) {
+            console.error(`EVENT SERVICE: Ошибка форматирования ставки ${bet._id}:`, formatError);
+            
+            // Возвращаем базовую версию ставки при ошибке форматирования
+            return {
+              _id: bet._id,
+              event: { title: 'Ошибка загрузки события', status: 'error' },
+              outcomeId: bet.outcomeId || '',
+              outcomeName: bet.outcomeName || 'Неизвестный исход',
+              betAmount: bet.betAmount || 0,
+              oddsAtBet: bet.oddsAtBet || 2.0,
+              estimatedWin: bet.estimatedWin || 0,
+              actualWin: bet.actualWin || 0,
+              profit: bet.profit || 0,
+              status: bet.status || 'active',
+              placedAt: bet.placedAt || new Date(),
+              isSettled: false,
+              flexibleOdds: { hasFlexibleOdds: true, oddsChanged: false }
+            };
           }
-        })
-        .sort({ placedAt: -1 })
-        .limit(parseInt(limit))
-        .skip(parseInt(skip))
-        .lean()
-        .catch(error => {
-          console.error('EVENT SERVICE: Ошибка при запросе ставок из БД:', error);
-          throw new Error('Ошибка получения ставок из базы данных');
         });
-      
-      console.log(`EVENT SERVICE: Найдено ставок: ${bets.length}`);
-      
-      // Получаем общее количество
-      const total = await EventBet.countDocuments(query).catch(error => {
-        console.error('EVENT SERVICE: Ошибка при подсчете ставок:', error);
-        return 0;
-      });
-      
-      // Подготавливаем ставки для фронтенда
-      const formattedBets = bets.map(bet => {
-        const result = {
-          _id: bet._id,
-          event: bet.event || { 
-            title: 'Событие удалено', 
-            status: 'deleted',
-            startTime: null,
-            endTime: null
-          },
-          outcomeId: bet.outcomeId,
-          outcomeName: bet.outcomeName,
-          betAmount: bet.betAmount,
+        
+        console.log('EVENT SERVICE: Обработка ставок завершена');
+        
+        // Вычисляем статистику с защитой от ошибок
+        const validBets = bets.filter(bet => bet && bet.betAmount);
+        
+        const stats = {
+          totalBets: total,
+          activeBets: validBets.filter(bet => bet.status === 'active').length,
+          wonBets: validBets.filter(bet => bet.status === 'won').length,
+          lostBets: validBets.filter(bet => bet.status === 'lost').length,
+          totalStaked: validBets.reduce((sum, bet) => sum + (bet.betAmount || 0), 0),
+          totalWon: validBets.filter(bet => bet.status === 'won').reduce((sum, bet) => sum + (bet.actualWin || 0), 0),
+          totalProfit: validBets.reduce((sum, bet) => sum + (bet.profit || 0), 0),
           
-          // Коэффициенты и выплаты
-          oddsAtBet: bet.oddsAtBet || 2.0,
-          finalOdds: bet.finalOdds,
-          estimatedWin: bet.estimatedWin || (bet.betAmount * (bet.oddsAtBet || 2.0)),
-          actualWin: bet.actualWin || 0,
-          profit: bet.profit || 0,
-          
-          // Статус и даты
-          status: bet.status,
-          placedAt: bet.placedAt,
-          settledAt: bet.settledAt,
-          
-          // Удобные флаги для фронтенда
-          isSettled: bet.status !== 'active',
-          isWin: bet.status === 'won',
-          amount: bet.betAmount, // Алиас для совместимости
-          
-          // Информация о гибких коэффициентах
-          flexibleOdds: {
-            hasFlexibleOdds: true,
-            oddsChanged: bet.finalOdds ? Math.abs(bet.finalOdds - (bet.oddsAtBet || 2.0)) > 0.01 : false,
-            oddsChange: bet.finalOdds ? bet.finalOdds - (bet.oddsAtBet || 2.0) : null,
-            betPosition: bet.metadata?.oddsHistory?.betPosition || 0
+          // Статистика гибких коэффициентов
+          flexibleOddsStats: {
+            betsWithChangedOdds: validBets.filter(bet => 
+              bet.finalOdds && Math.abs(bet.finalOdds - (bet.oddsAtBet || 2.0)) > 0.01
+            ).length,
+            avgOddsChange: this.calculateAverageOddsChange(validBets),
+            benefitedFromOddsChange: validBets.filter(bet => 
+              bet.status === 'won' && bet.finalOdds && bet.finalOdds > (bet.oddsAtBet || 2.0)
+            ).length
           }
         };
         
-        // Добавляем информацию об изменении коэффициентов для завершенных ставок
-        if (result.isSettled && bet.finalOdds && bet.status === 'won') {
-          const oddsChange = bet.finalOdds - (bet.oddsAtBet || 2.0);
-          const winChange = (bet.actualWin || 0) - result.estimatedWin;
-          
-          result.flexibleOdds.oddsChangeBenefit = {
-            oddsImproved: oddsChange > 0,
-            oddsChange: oddsChange,
-            estimatedWin: result.estimatedWin,
-            actualWin: bet.actualWin || 0,
-            winDifference: winChange,
-            benefitPercent: result.estimatedWin > 0 ? ((winChange / result.estimatedWin) * 100).toFixed(2) : 0
-          };
-        }
+        console.log('EVENT SERVICE: Статистика ставок рассчитана:', stats);
         
-        return result;
-      });
-      
-      console.log('EVENT SERVICE: Обработка ставок завершена');
-      
-      // Вычисляем статистику
-      const stats = {
-        totalBets: total,
-        activeBets: bets.filter(bet => bet.status === 'active').length,
-        wonBets: bets.filter(bet => bet.status === 'won').length,
-        lostBets: bets.filter(bet => bet.status === 'lost').length,
-        totalStaked: bets.reduce((sum, bet) => sum + (bet.betAmount || 0), 0),
-        totalWon: bets.filter(bet => bet.status === 'won').reduce((sum, bet) => sum + (bet.actualWin || 0), 0),
-        totalProfit: bets.reduce((sum, bet) => sum + (bet.profit || 0), 0),
+        return {
+          bets: formattedBets,
+          pagination: {
+            total: total,
+            currentPage: Math.floor(skip / limit) + 1,
+            totalPages: Math.ceil(total / limit),
+            limit: parseInt(limit),
+            skip: parseInt(skip)
+          },
+          stats: stats
+        };
         
-        // Статистика гибких коэффициентов
-        flexibleOddsStats: {
-          betsWithChangedOdds: bets.filter(bet => 
-            bet.finalOdds && Math.abs(bet.finalOdds - (bet.oddsAtBet || 2.0)) > 0.01
-          ).length,
-          avgOddsChange: this.calculateAverageOddsChange(bets),
-          benefitedFromOddsChange: bets.filter(bet => 
-            bet.status === 'won' && bet.finalOdds && bet.finalOdds > (bet.oddsAtBet || 2.0)
-          ).length
-        }
-      };
-      
-      console.log('EVENT SERVICE: Статистика ставок рассчитана:', stats);
-      
-      return {
-        bets: formattedBets,
-        pagination: {
-          total: total,
-          currentPage: Math.floor(skip / limit) + 1,
-          totalPages: Math.ceil(total / limit),
-          limit: parseInt(limit),
-          skip: parseInt(skip)
-        },
-        stats: stats
-      };
+      } catch (dbError) {
+        console.error('EVENT SERVICE: Ошибка запроса к базе данных:', dbError);
+        throw new Error('Ошибка получения ставок из базы данных: ' + dbError.message);
+      }
       
     } catch (error) {
-      console.error('EVENT SERVICE: Ошибка получения ставок пользователя:', error);
-      throw error;
+      console.error('EVENT SERVICE: Общая ошибка получения ставок пользователя:', error);
+      console.error('EVENT SERVICE: Stack trace:', error.stack);
+      
+      // Возвращаем пустой результат вместо выброса ошибки
+      return {
+        bets: [],
+        pagination: {
+          total: 0,
+          currentPage: 1,
+          totalPages: 0,
+          limit: parseInt(options.limit) || 50,
+          skip: parseInt(options.skip) || 0
+        },
+        stats: {
+          totalBets: 0,
+          activeBets: 0,
+          wonBets: 0,
+          lostBets: 0,
+          totalStaked: 0,
+          totalWon: 0,
+          totalProfit: 0,
+          flexibleOddsStats: {
+            betsWithChangedOdds: 0,
+            avgOddsChange: 0,
+            benefitedFromOddsChange: 0
+          }
+        }
+      };
     }
   }
   
@@ -522,7 +605,7 @@ class EventService {
   }
   
   /**
-   * Создать новое событие - ИСПРАВЛЕННАЯ ВЕРСИЯ
+   * Создать новое событие
    */
   async createEvent(eventData, adminId) {
     try {
@@ -554,10 +637,10 @@ class EventService {
       
       console.log('EVENT SERVICE: Обработанные исходы:', JSON.stringify(processedOutcomes, null, 2));
       
-      // ИСПРАВЛЕНИЕ: Устанавливаем статус 'active' вместо 'upcoming'
+      // Устанавливаем статус 'active' вместо 'upcoming'
       const event = new Event({
         ...eventData,
-        status: 'active', // ИСПРАВЛЕНО: делаем событие сразу активным
+        status: 'active',
         createdBy: adminId,
         totalPool: 0,
         outcomes: processedOutcomes
@@ -566,7 +649,6 @@ class EventService {
       await event.save();
       
       console.log(`EVENT SERVICE: Событие создано с ID: ${event._id}, статус: ${event.status}`);
-      console.log(`EVENT SERVICE: Исходы события:`, event.outcomes.map(o => `${o.id}: ${o.name}`));
       
       return event;
     } catch (error) {
@@ -623,16 +705,12 @@ class EventService {
         console.log('EVENT SERVICE: Событие помечено как завершенное');
         
         // 4. Рассчитываем все ставки с финальными коэффициентами
-        console.log('EVENT SERVICE: Начинаем расчет ставок с финальными коэффициентами...');
-        
         const settlementResults = await EventBet.settleBetsWithFinalOdds(
           eventId, 
           winningOutcomeId
         );
         
         console.log('EVENT SERVICE: Расчет ставок завершен:', settlementResults);
-        
-        console.log('EVENT SERVICE: Событие успешно завершено');
         
         return {
           event: event,

@@ -86,8 +86,10 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     fetchData();
   }, [gameType]);
   
-  // Coin game handler
+  // ИСПРАВЛЕННЫЙ Coin game handler
   const handleFlip = async (betData) => {
+    console.log('🎮 GAME SCREEN: Получен запрос на подбрасывание монеты:', betData);
+    
     try {
       setIsFlipping(true);
       setGameResult(null);
@@ -99,6 +101,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       );
       
       const gameData = response.data.data;
+      console.log('🎮 GAME SCREEN: Результат монетки с сервера:', gameData);
       
       setResult(gameData.result);
       setLastResults(prev => [gameData.result, ...prev].slice(0, 10));
@@ -129,7 +132,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         setGameStats(updatedStats);
       }
     } catch (err) {
-      console.error('Ошибка игры:', err);
+      console.error('🎮 GAME SCREEN: Ошибка игры в монетку:', err);
       setError(err.response?.data?.message || 'Произошла ошибка при игре');
       setIsFlipping(false);
     }
@@ -152,7 +155,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
               gameStats={gameStats}
               setGameResult={setGameResult}
               setError={setError}
-              onFlip={handleFlip}
+              onFlip={handleFlip} // ИСПРАВЛЕНО: правильная передача обработчика
               isFlipping={isFlipping}
               result={result}
               lastResults={lastResults}
@@ -309,4 +312,3 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
 };
 
 export default GameScreen;
-

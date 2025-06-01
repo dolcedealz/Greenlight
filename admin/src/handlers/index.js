@@ -1,4 +1,4 @@
-// admin/src/handlers/index.js - ПОЛНАЯ ОБНОВЛЕННАЯ ВЕРСИЯ
+// admin/src/handlers/index.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { Markup } = require('telegraf');
 
 /**
@@ -58,7 +58,16 @@ function registerHandlers(bot) {
     );
   });
   
-  // Обработка кнопки "🔮 События" уже есть в commands/index.js
+  // ДОБАВЛЯЕМ ОБРАБОТЧИК ДЛЯ КНОПКИ СОБЫТИЯ
+  bot.hears('🔮 События', async (ctx) => {
+    console.log('ADMIN: Обработка кнопки События');
+    try {
+      await showEventsMenu(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа меню событий:', error);
+      await ctx.reply('❌ Ошибка загрузки меню событий. Попробуйте позже.');
+    }
+  });
   
   bot.hears('💰 Финансы', (ctx) => {
     ctx.reply(
@@ -91,6 +100,30 @@ function registerHandlers(bot) {
   });
 
   return bot;
+}
+
+/**
+ * Показать главное меню событий
+ */
+async function showEventsMenu(ctx) {
+  console.log('ADMIN: Показ меню событий');
+  
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback('📋 Список событий', 'events_list')],
+    [Markup.button.callback('➕ Создать событие', 'events_create')],
+    [Markup.button.callback('✅ Завершить событие', 'events_finish')],
+    [Markup.button.callback('📊 Статистика событий', 'events_stats')],
+    [Markup.button.callback('◀️ Назад в меню', 'main_menu')]
+  ]);
+
+  await ctx.reply(
+    '🔮 *Управление событиями*\n\n' +
+    'Выберите действие:',
+    {
+      parse_mode: 'Markdown',
+      ...keyboard
+    }
+  );
 }
 
 module.exports = {

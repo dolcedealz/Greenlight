@@ -1,4 +1,4 @@
-// backend/src/services/event.service.js - БЕЗ UUID (альтернативное решение)
+// backend/src/services/event.service.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { Event, EventBet, User, Transaction } = require('../models');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
@@ -126,12 +126,17 @@ class EventService {
   async placeBet(userId, eventId, outcomeId, amount, userIp = null) {
     console.log(`EVENT SERVICE: Размещение ставки пользователем ${userId} на событие ${eventId}`);
     
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
     try {
       // Получаем событие
-      const event = await Event.findById(eventId);
+      const event = await Event.findById(eventId).session(session);
       if (!event) {
         throw new Error('Событие не найдено');
       }
+      
+      console.log(`EVENT SERVICE: Событие найдено: ${event.title}, статус: ${event.status}`);
       
       // Проверяем, можно ли делать ставки
       if (!event.canPlaceBet()) {
@@ -144,6 +149,8 @@ class EventService {
         throw new Error('Некорректный исход события');
       }
       
+      console.log(`EVENT SERVICE: Исход найден: ${outcome.name}`);
+      
       // Проверяем лимиты ставки
       if (amount < event.minBet) {
         throw new Error(`Минимальная ставка: ${event.minBet} USDT`);
@@ -154,10 +161,12 @@ class EventService {
       }
       
       // Получаем пользователя
-      const user = await User.findById(userId);
+      const user = await User.findById(userId).session(session);
       if (!user) {
         throw new Error('Пользователь не найден');
       }
+      
+      console.log(`EVENT SERVICE: Пользователь найден: ${user.firstName}, баланс: ${user.balance}`);
       
       // Проверяем баланс
       if (user.balance < amount) {
@@ -168,6 +177,9 @@ class EventService {
       const odds = event.calculateOdds();
       const currentOdds = odds[outcomeId];
       
+      console.log(`EVENT SERVICE: Текущие коэффициенты:`, odds);
+      console.log(`EVENT SERVICE: Коэффициент для исхода ${outcomeId}: ${currentOdds}`);
+      
       if (!currentOdds || currentOdds < 1.01) {
         throw new Error('Некорректные коэффициенты для данного исхода');
       }
@@ -176,6 +188,8 @@ class EventService {
       const balanceBefore = user.balance;
       user.balance -= amount;
       const balanceAfter = user.balance;
+      
+      console.log(`EVENT SERVICE: Баланс пользователя: ${balanceBefore} -> ${balanceAfter}`);
       
       // Создаем ставку
       const bet = new EventBet({
@@ -199,6 +213,8 @@ class EventService {
       event.outcomes[outcomeIndex].betsCount += 1;
       event.totalPool += amount;
       
+      console.log(`EVENT SERVICE: Обновленные данные события: пул=${event.totalPool}, ставки на исход=${event.outcomes[outcomeIndex].totalBets}`);
+      
       // Создаем транзакцию
       const transaction = new Transaction({
         user: userId,
@@ -210,15 +226,15 @@ class EventService {
         balanceAfter: balanceAfter
       });
       
-      // Сохраняем все изменения
-      await Promise.all([
-        user.save(),
-        bet.save(),
-        event.save(),
-        transaction.save()
-      ]);
+      // Сохраняем все изменения в транзакции
+      await user.save({ session });
+      await bet.save({ session });
+      await event.save({ session });
+      await transaction.save({ session });
       
-      console.log(`EVENT SERVICE: Ставка успешно размещена: ${amount} USDT на ${outcome.name}`);
+      await session.commitTransaction();
+      
+      console.log(`EVENT SERVICE: Ставка успешно размещена: ${amount} USDT на ${outcome.name}, ID ставки: ${bet._id}`);
       
       // Возвращаем обновленное событие с новыми коэффициентами
       const updatedEvent = await this.getEventById(eventId);
@@ -230,8 +246,11 @@ class EventService {
       };
       
     } catch (error) {
+      await session.abortTransaction();
       console.error('EVENT SERVICE: Ошибка размещения ставки:', error);
       throw error;
+    } finally {
+      session.endSession();
     }
   }
   

@@ -46,22 +46,45 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
     }
   };
   
-  // Обработчик нажатия кнопки подбрасывания
+  // ИСПРАВЛЕННЫЙ обработчик нажатия кнопки подбрасывания
   const handleFlipClick = () => {
-    if (betAmount <= 0 || betAmount > balance || isFlipping) return;
+    console.log('🪙 CONTROLS: Нажата кнопка подбрасывания');
+    console.log('🪙 CONTROLS: Состояние - isFlipping:', isFlipping, 'betAmount:', betAmount, 'balance:', balance);
+    
+    // Проверяем все условия
+    if (isFlipping) {
+      console.log('🪙 CONTROLS: Блокировано - уже идет подбрасывание');
+      return;
+    }
+    
+    if (!betAmount || betAmount <= 0) {
+      console.log('🪙 CONTROLS: Блокировано - неверная сумма ставки:', betAmount);
+      return;
+    }
+    
+    if (betAmount > balance) {
+      console.log('🪙 CONTROLS: Блокировано - недостаточно средств. Ставка:', betAmount, 'Баланс:', balance);
+      return;
+    }
+    
+    if (!onFlip) {
+      console.error('🪙 CONTROLS: Ошибка - функция onFlip не передана!');
+      return;
+    }
+    
+    console.log('🪙 CONTROLS: Все проверки пройдены, вызываем onFlip');
     
     importantActionFeedback();
     
-    if (onFlip) {
-      onFlip({
-        betAmount: parseFloat(betAmount),
-        selectedSide
-      });
-    }
+    // Вызываем функцию с правильными параметрами
+    onFlip({
+      betAmount: parseFloat(betAmount),
+      selectedSide: selectedSide
+    });
   };
 
   // Вычисляем потенциальный выигрыш
-  const potentialWin = (parseFloat(betAmount) * 2.0).toFixed(2);
+  const potentialWin = (parseFloat(betAmount || 0) * 2.0).toFixed(2);
 
   return (
     <div className="coin-controls">
@@ -69,7 +92,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
       <button 
         className="flip-button" 
         onClick={handleFlipClick}
-        disabled={isFlipping || betAmount <= 0 || betAmount > balance}
+        disabled={isFlipping || !betAmount || betAmount <= 0 || betAmount > balance}
       >
         <div className="button-content">
           {isFlipping ? (
@@ -86,7 +109,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
         </div>
       </button>
       
-      {/* Выбор стороны - ИСПРАВЛЕНО: добавлена правильная иконка для решки */}
+      {/* Выбор стороны */}
       <div className="side-selection">
         <h3 className="selection-title">Выберите сторону</h3>
         <div className="side-options">

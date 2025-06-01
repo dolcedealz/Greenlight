@@ -12,9 +12,12 @@ const useTactileFeedback = () => {
     if (isWebAppAvailable()) {
       try {
         window.Telegram.WebApp.HapticFeedback.impactOccurred(type);
+        console.log('🔊 Вибрация отправлена:', type);
       } catch (error) {
         console.warn('Ошибка отправки тактильной обратной связи:', error);
       }
+    } else {
+      console.log('🔊 Вибрация пропущена (не в Telegram WebApp)');
     }
   }, []);
 
@@ -23,9 +26,12 @@ const useTactileFeedback = () => {
     if (isWebAppAvailable()) {
       try {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred(type);
+        console.log('🔔 Уведомление отправлено:', type);
       } catch (error) {
         console.warn('Ошибка отправки уведомления:', error);
       }
+    } else {
+      console.log('🔔 Уведомление пропущено (не в Telegram WebApp)');
     }
   }, []);
 
@@ -40,6 +46,23 @@ const useTactileFeedback = () => {
 
   const navigationFeedback = useCallback(() => {
     sendHapticFeedback('medium');
+  }, [sendHapticFeedback]);
+
+  // ИСПРАВЛЕНО: Добавлены недостающие функции
+  const gameActionFeedback = useCallback(() => {
+    sendHapticFeedback('medium');
+  }, [sendHapticFeedback]);
+
+  const importantActionFeedback = useCallback(() => {
+    sendHapticFeedback('heavy');
+  }, [sendHapticFeedback]);
+
+  const criticalActionFeedback = useCallback(() => {
+    sendHapticFeedback('rigid');
+  }, [sendHapticFeedback]);
+
+  const heavyImpact = useCallback(() => {
+    sendHapticFeedback('heavy');
   }, [sendHapticFeedback]);
 
   const gameWinFeedback = useCallback(() => {
@@ -63,6 +86,7 @@ const useTactileFeedback = () => {
   }, [sendNotificationFeedback]);
 
   return {
+    // Основные функции
     buttonPressFeedback,
     selectionChanged,
     navigationFeedback,
@@ -70,7 +94,12 @@ const useTactileFeedback = () => {
     gameLoseFeedback,
     successNotification,
     errorNotification,
-    warningNotification
+    warningNotification,
+    // ИСПРАВЛЕНО: Добавлены все недостающие функции
+    gameActionFeedback,
+    importantActionFeedback,
+    criticalActionFeedback,
+    heavyImpact
   };
 };
 

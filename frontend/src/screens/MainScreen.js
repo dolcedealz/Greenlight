@@ -1,12 +1,13 @@
-// MainScreen.js
+// MainScreen.js - ОБНОВЛЕННАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
-import { GameBlock, EventsPreview } from '../components/main';
-import { userApi } from '../services';
+import { GameBlock } from '../components/main';
+import EventsPreview from '../components/main/EventsPreview'; // Добавляем импорт
+import { userApi, eventsApi } from '../services'; // Добавляем eventsApi
 import '../styles/MainScreen.css';
 
 const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, balance }) => {
-  const [featuredEvent, setFeaturedEvent] = useState(null);
+  const [featuredEvent, setFeaturedEvent] = useState(null); // Изменяем на реальные данные
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -16,20 +17,16 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
       try {
         setLoading(true);
         
-        // Загрузка события (пока мок, так как API для событий еще нет)
-        setFeaturedEvent({
-          id: 'evt1',
-          title: 'BTC price on May 15, 2025',
-          totalBets: 15420.75,
-          outcomes: [
-            { id: 'out1', name: 'Above $95,000', odds: 2.1 },
-            { id: 'out2', name: 'Below $95,000', odds: 1.95 }
-          ]
-        });
+        // Загружаем главное событие
+        const eventResponse = await eventsApi.getFeaturedEvent();
+        
+        if (eventResponse.data.success && eventResponse.data.data.event) {
+          setFeaturedEvent(eventResponse.data.data.event);
+        }
         
         setLoading(false);
       } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
+        console.error('Ошибка загрузки данных главной страницы:', err);
         setError('Не удалось загрузить данные. Пожалуйста, попробуйте еще раз.');
         setLoading(false);
       }
@@ -53,7 +50,7 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
     }
   };
   
-  // Обработчик выбора события
+  // Обработчик выбора событий
   const handleEventsSelect = () => {
     if (onEventsSelect) {
       onEventsSelect();
@@ -78,7 +75,7 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
         </div>
       ) : (
         <>
-          {/* Превью события */}
+          {/* Превью события - показываем только если есть событие */}
           {featuredEvent && (
             <EventsPreview 
               event={featuredEvent} 

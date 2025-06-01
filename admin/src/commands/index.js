@@ -1,4 +1,4 @@
-// admin/src/commands/index.js
+// admin/src/commands/index.js - ПОЛНАЯ ОБНОВЛЕННАЯ ВЕРСИЯ
 const { Markup } = require('telegraf');
 const axios = require('axios');
 
@@ -79,114 +79,29 @@ function registerCommands(bot) {
     ctx.reply('🎮 Управление играми\n\nНастройки игр будут здесь...');
   });
   
+  // === КОМАНДЫ ДЛЯ СОБЫТИЙ ===
+  
   // Команда /events - события
-  bot.command('events', (ctx) => {
-    ctx.reply(
-      '🔮 Управление событиями\n\nВыберите действие:',
-      Markup.inlineKeyboard([
-        [Markup.button.callback('📋 Список событий', 'events_list')],
-        [Markup.button.callback('➕ Создать событие', 'event_create')],
-        [Markup.button.callback('📝 Редактировать событие', 'event_edit')]
-      ])
-    );
+  bot.command('events', async (ctx) => {
+    await showEventsMenu(ctx);
   });
   
-  // Команда /finance - финансы
-  bot.command('finance', async (ctx) => {
-    try {
-      console.log('ADMIN: Запрос финансового состояния');
-      
-      const response = await apiClient.get('/admin/finance/state');
-      
-      if (!response.data.success) {
-        return ctx.reply('❌ Не удалось получить финансовое состояние');
-      }
-      
-      const { balances, settings, warnings } = response.data.data;
-      
-      // Формируем сообщение
-      let message = '💰 ФИНАНСОВОЕ СОСТОЯНИЕ КАЗИНО\n\n';
-      
-      message += '📊 Балансы:\n';
-      message += `├ Баланс пользователей: ${balances.totalUsers.toFixed(2)} USDT\n`;
-      message += `├ Оперативный счет: ${balances.operational.toFixed(2)} USDT\n`;
-      message += `├ Резерв (${settings.reservePercentage}%): ${balances.reserve.toFixed(2)} USDT\n`;
-      message += `└ Доступно для вывода: ${balances.availableForWithdrawal.toFixed(2)} USDT\n\n`;
-      
-      // Предупреждения
-      if (warnings.lowReserve || warnings.highRiskRatio || warnings.negativeOperational) {
-        message += '⚠️ ПРЕДУПРЕЖДЕНИЯ:\n';
-        if (warnings.lowReserve) message += '├ Низкий уровень резерва\n';
-        if (warnings.highRiskRatio) message += '├ Высокое соотношение балансов к резерву\n';
-        if (warnings.negativeOperational) message += '└ Отрицательный оперативный баланс\n\n';
-      }
-      
-      await ctx.reply(message, 
-        Markup.inlineKeyboard([
-          [
-            Markup.button.callback('📈 Отчет за день', 'finance_report:day'),
-            Markup.button.callback('📊 Отчет за неделю', 'finance_report:week')
-          ],
-          [
-            Markup.button.callback('🔄 Пересчитать', 'finance_recalculate'),
-            Markup.button.callback('⚙️ Настройки', 'finance_settings')
-          ],
-          [
-            Markup.button.callback('💸 Вывести прибыль', 'finance_withdraw')
-          ]
-        ])
-      );
-      
-    } catch (error) {
-      console.error('ADMIN: Ошибка получения финансов:', error);
-      ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
-    }
+  // Команда /create_event - быстрое создание события
+  bot.command('create_event', async (ctx) => {
+    await startEventCreation(ctx);
   });
   
-  // Команда /settings - настройки
-  bot.command('settings', (ctx) => {
-    ctx.reply('⚙️ Настройки системы\n\nНастройки будут здесь...');
+  // Команда /finish_event - завершение события
+  bot.command('finish_event', async (ctx) => {
+    await startEventFinishing(ctx);
   });
   
-  // Команда /help
-  bot.command('help', (ctx) => {
-    ctx.reply(
-      '🔍 Справка по командам:\n\n' +
-      '--- Общие команды ---\n' +
-      '/start - Начало работы с ботом\n' +
-      '/stats - Просмотр статистики системы\n' +
-      '/users - Управление пользователями\n' +
-      '/games - Управление играми\n' +
-      '/events - Управление событиями\n' +
-      '/finance - Управление финансами\n' +
-      '/settings - Настройки системы\n' +
-      '/help - Показать эту справку\n\n' +
-      '--- Управление шансами ---\n' +
-      '/set_win_chance - Установить базовый шанс выигрыша\n' +
-      '/set_user_chance - Установить шанс для пользователя\n' +
-      '/get_chance_settings - Показать настройки шансов\n' +
-      '/get_user_chance - Показать шанс пользователя\n\n' +
-      '--- Управление выводами ---\n' +
-      '/pending_withdrawals - Выводы на одобрении\n' +
-      '/withdrawal_stats - Статистика выводов\n' +
-      '/casino_balance - Баланс казино в CryptoBot\n' +
-      '/recent_withdrawals - Последние 10 выводов\n\n' +
-      '--- Управление финансами ---\n' +
-      '/finance - Финансовое состояние\n' +
-      '/profit - Доступная прибыль\n' +
-      '/set_reserve - Установить процент резерва\n' +
-      '/game_stats - Статистика по играм\n' +
-      '/finance_history - История изменений балансов\n' +
-      '/monitor - Включить/выключить мониторинг\n\n' +
-      '--- Управление реферальной системой ---\n' +
-      '/referral_stats - Общая статистика реферальной системы\n' +
-      '/top_partners [количество] - Топ партнеров\n' +
-      '/partner_info [user_id/@username] - Информация о партнере\n' +
-      '/referral_fraud - Проверка мошеннической активности'
-    );
+  // Команда /events_list - список событий
+  bot.command('events_list', async (ctx) => {
+    await showEventsList(ctx);
   });
-
-  // КОМАНДЫ ДЛЯ УПРАВЛЕНИЯ ШАНСАМИ
+  
+  // === КОМАНДЫ ДЛЯ УПРАВЛЕНИЯ ШАНСАМИ ===
   
   // Команда для управления базовым шансом выигрыша
   bot.command('set_win_chance', async (ctx) => {
@@ -325,7 +240,7 @@ function registerCommands(bot) {
     }
   });
 
-  // КОМАНДЫ ДЛЯ УПРАВЛЕНИЯ ВЫВОДАМИ
+  // === КОМАНДЫ ДЛЯ УПРАВЛЕНИЯ ВЫВОДАМИ ===
   
   // Команда для просмотра pending выводов
   bot.command('pending_withdrawals', async (ctx) => {
@@ -427,131 +342,6 @@ function registerCommands(bot) {
     }
   });
   
-  // Callback обработчики для выводов
-  bot.action(/^approve_withdrawal:([0-9a-fA-F]{24})$/, async (ctx) => {
-    try {
-      const withdrawalId = ctx.match[1];
-      await ctx.answerCbQuery('⏳ Одобряем вывод...');
-      
-      console.log(`ADMIN: Одобрение вывода ${withdrawalId}`);
-      
-      const response = await apiClient.post(`/admin/withdrawals/${withdrawalId}/approve`, {});
-      
-      if (response.data.success) {
-        await ctx.editMessageText(
-          ctx.callbackQuery.message.text + '\n\n✅ ОДОБРЕНО',
-          { parse_mode: 'HTML' }
-        );
-        await ctx.reply(`✅ Вывод #${withdrawalId} одобрен и отправлен на обработку`);
-      } else {
-        await ctx.reply(`❌ Ошибка: ${response.data.message}`);
-      }
-      
-    } catch (error) {
-      console.error('ADMIN: Ошибка одобрения вывода:', error);
-      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
-    }
-  });
-  
-  bot.action(/^reject_withdrawal:([0-9a-fA-F]{24})$/, async (ctx) => {
-    try {
-      const withdrawalId = ctx.match[1];
-      await ctx.answerCbQuery();
-      
-      // Сохраняем ID вывода в сессии для следующего шага
-      ctx.session = ctx.session || {};
-      ctx.session.rejectingWithdrawalId = withdrawalId;
-      
-      await ctx.reply(
-        `❌ Отклонение вывода #${withdrawalId}\n\n` +
-        `Укажите причину отклонения:`
-      );
-      
-    } catch (error) {
-      console.error('ADMIN: Ошибка при начале отклонения вывода:', error);
-      await ctx.reply(`❌ Ошибка: ${error.message}`);
-    }
-  });
-  
-  // Обработка текстовых сообщений для причины отклонения и вывода прибыли
-  bot.on('text', async (ctx, next) => {
-    // Проверяем, ожидаем ли мы сумму для вывода прибыли
-    if (ctx.session && ctx.session.withdrawingProfit) {
-      const amount = parseFloat(ctx.message.text);
-      
-      if (isNaN(amount) || amount <= 0) {
-        await ctx.reply('❌ Некорректная сумма. Введите положительное число:');
-        return;
-      }
-      
-      if (amount < 10) {
-        await ctx.reply('❌ Минимальная сумма для вывода: 10 USDT. Введите другую сумму:');
-        return;
-      }
-      
-      try {
-        console.log(`ADMIN: Вывод прибыли ${amount} USDT`);
-        
-        const response = await apiClient.post('/admin/finance/withdraw-profit', { 
-          amount,
-          recipient: ctx.from.username || `admin_${ctx.from.id}`,
-          comment: 'Вывод прибыли казино'
-        });
-        
-        if (response.data.success) {
-          await ctx.reply(
-            `✅ Прибыль успешно выведена!\n\n` +
-            `Сумма: ${amount} USDT\n` +
-            `Новый оперативный баланс: ${response.data.data.newOperationalBalance.toFixed(2)} USDT\n` +
-            `Осталось доступно: ${response.data.data.newAvailable.toFixed(2)} USDT\n\n` +
-            `⚠️ Средства будут переведены вручную через CryptoBot`
-          );
-        } else {
-          await ctx.reply(`❌ Ошибка: ${response.data.message}`);
-        }
-        
-        delete ctx.session.withdrawingProfit;
-        
-      } catch (error) {
-        console.error('ADMIN: Ошибка вывода прибыли:', error);
-        await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
-        delete ctx.session.withdrawingProfit;
-      }
-    }
-    // Проверяем, есть ли в сессии ID отклоняемого вывода
-    else if (ctx.session && ctx.session.rejectingWithdrawalId) {
-      const withdrawalId = ctx.session.rejectingWithdrawalId;
-      const reason = ctx.message.text;
-      
-      try {
-        console.log(`ADMIN: Отклонение вывода ${withdrawalId} с причиной: ${reason}`);
-        
-        const response = await apiClient.post(`/admin/withdrawals/${withdrawalId}/reject`, { reason });
-        
-        if (response.data.success) {
-          await ctx.reply(
-            `✅ Вывод #${withdrawalId} отклонен\n` +
-            `Причина: ${reason}\n` +
-            `Средства возвращены пользователю`
-          );
-        } else {
-          await ctx.reply(`❌ Ошибка: ${response.data.message}`);
-        }
-        
-        // Очищаем сессию
-        delete ctx.session.rejectingWithdrawalId;
-        
-      } catch (error) {
-        console.error('ADMIN: Ошибка отклонения вывода:', error);
-        await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
-        delete ctx.session.rejectingWithdrawalId;
-      }
-    } else {
-      // Передаем управление следующему обработчику
-      return next();
-    }
-  });
-
   // Команда для проверки баланса казино в CryptoBot
   bot.command('casino_balance', async (ctx) => {
     try {
@@ -683,6 +473,60 @@ function registerCommands(bot) {
     }
   });
 
+  // === КОМАНДЫ ДЛЯ УПРАВЛЕНИЯ ФИНАНСАМИ ===
+  
+  // Команда /finance - финансы
+  bot.command('finance', async (ctx) => {
+    try {
+      console.log('ADMIN: Запрос финансового состояния');
+      
+      const response = await apiClient.get('/admin/finance/state');
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить финансовое состояние');
+      }
+      
+      const { balances, settings, warnings } = response.data.data;
+      
+      // Формируем сообщение
+      let message = '💰 ФИНАНСОВОЕ СОСТОЯНИЕ КАЗИНО\n\n';
+      
+      message += '📊 Балансы:\n';
+      message += `├ Баланс пользователей: ${balances.totalUsers.toFixed(2)} USDT\n`;
+      message += `├ Оперативный счет: ${balances.operational.toFixed(2)} USDT\n`;
+      message += `├ Резерв (${settings.reservePercentage}%): ${balances.reserve.toFixed(2)} USDT\n`;
+      message += `└ Доступно для вывода: ${balances.availableForWithdrawal.toFixed(2)} USDT\n\n`;
+      
+      // Предупреждения
+      if (warnings.lowReserve || warnings.highRiskRatio || warnings.negativeOperational) {
+        message += '⚠️ ПРЕДУПРЕЖДЕНИЯ:\n';
+        if (warnings.lowReserve) message += '├ Низкий уровень резерва\n';
+        if (warnings.highRiskRatio) message += '├ Высокое соотношение балансов к резерву\n';
+        if (warnings.negativeOperational) message += '└ Отрицательный оперативный баланс\n\n';
+      }
+      
+      await ctx.reply(message, 
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback('📈 Отчет за день', 'finance_report:day'),
+            Markup.button.callback('📊 Отчет за неделю', 'finance_report:week')
+          ],
+          [
+            Markup.button.callback('🔄 Пересчитать', 'finance_recalculate'),
+            Markup.button.callback('⚙️ Настройки', 'finance_settings')
+          ],
+          [
+            Markup.button.callback('💸 Вывести прибыль', 'finance_withdraw')
+          ]
+        ])
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения финансов:', error);
+      ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+
   // Команда для быстрого просмотра доступной прибыли
   bot.command('profit', async (ctx) => {
     try {
@@ -705,139 +549,6 @@ function registerCommands(bot) {
     } catch (error) {
       console.error('ADMIN: Ошибка получения прибыли:', error);
       ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
-    }
-  });
-
-  // Обработчики callback для финансов
-  bot.action(/^finance_report:(.+)$/, async (ctx) => {
-    try {
-      const period = ctx.match[1];
-      await ctx.answerCbQuery('⏳ Генерируем отчет...');
-      
-      const response = await apiClient.get('/admin/finance/report', {
-        params: { period }
-      });
-      
-      if (!response.data.success) {
-        return ctx.reply('❌ Не удалось получить отчет');
-      }
-      
-      const report = response.data.data;
-      
-      let periodName = '';
-      switch (period) {
-        case 'day': periodName = 'ДЕНЬ'; break;
-        case 'week': periodName = 'НЕДЕЛЮ'; break;
-        case 'month': periodName = 'МЕСЯЦ'; break;
-        default: periodName = 'ВСЕ ВРЕМЯ';
-      }
-      
-      let message = `📊 ФИНАНСОВЫЙ ОТЧЕТ ЗА ${periodName}\n\n`;
-      
-      message += '💳 Депозиты:\n';
-      message += `├ Количество: ${report.period.deposits.count}\n`;
-      message += `└ Сумма: ${report.period.deposits.total.toFixed(2)} USDT\n\n`;
-      
-      message += '💸 Выводы:\n';
-      message += `├ Количество: ${report.period.withdrawals.count}\n`;
-      message += `└ Сумма: ${report.period.withdrawals.total.toFixed(2)} USDT\n\n`;
-      
-      message += '🎮 Игры:\n';
-      message += `├ Количество: ${report.period.games.count}\n`;
-      message += `├ Ставки: ${report.period.games.totalBets.toFixed(2)} USDT\n`;
-      message += `├ Выигрыши: ${report.period.games.totalWins.toFixed(2)} USDT\n`;
-      message += `└ Прибыль: ${report.period.games.profit.toFixed(2)} USDT\n\n`;
-      
-      message += `👥 Активных пользователей: ${report.period.activeUsers}\n\n`;
-      
-      message += '📈 ИТОГО ЗА ВСЕ ВРЕМЯ:\n';
-      message += `├ Депозиты: ${report.allTime.totalDeposits.toFixed(2)} USDT\n`;
-      message += `├ Выводы: ${report.allTime.totalWithdrawals.toFixed(2)} USDT\n`;
-      message += `├ Ставки: ${report.allTime.totalBets.toFixed(2)} USDT\n`;
-      message += `├ Выигрыши: ${report.allTime.totalWins.toFixed(2)} USDT\n`;
-      message += `└ Выведено владельцем: ${report.allTime.totalOwnerWithdrawals.toFixed(2)} USDT`;
-      
-      await ctx.reply(message);
-      
-    } catch (error) {
-      console.error('ADMIN: Ошибка получения отчета:', error);
-      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
-    }
-  });
-
-  bot.action('finance_recalculate', async (ctx) => {
-    try {
-      await ctx.answerCbQuery('⏳ Пересчитываем...');
-      
-      const response = await apiClient.post('/admin/finance/recalculate', {});
-      
-      if (response.data.success) {
-        const { balances, warnings } = response.data.data;
-        
-        let message = '✅ Финансы успешно пересчитаны\n\n';
-        message += `💰 Баланс пользователей: ${balances.totalUsers.toFixed(2)} USDT\n`;
-        message += `📊 Оперативный: ${balances.operational.toFixed(2)} USDT\n`;
-        message += `🛡️ Резерв: ${balances.reserve.toFixed(2)} USDT\n`;
-        message += `💵 Доступно: ${balances.availableForWithdrawal.toFixed(2)} USDT`;
-        
-        if (warnings.lowReserve || warnings.highRiskRatio || warnings.negativeOperational) {
-          message += '\n\n⚠️ Есть предупреждения!';
-        }
-        
-        await ctx.reply(message);
-      } else {
-        await ctx.reply(`❌ Ошибка: ${response.data.message}`);
-      }
-      
-    } catch (error) {
-      console.error('ADMIN: Ошибка пересчета:', error);
-      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
-    }
-  });
-
-  bot.action('finance_settings', async (ctx) => {
-    try {
-      await ctx.answerCbQuery();
-      
-      const response = await apiClient.get('/admin/finance/state');
-      
-      const { settings } = response.data.data;
-      
-      await ctx.reply(
-        `⚙️ НАСТРОЙКИ ФИНАНСОВ\n\n` +
-        `Текущий процент резервирования: ${settings.reservePercentage}%\n\n` +
-        `Для изменения используйте:\n` +
-        `/set_reserve [процент]\n` +
-        `Например: /set_reserve 40`
-      );
-      
-    } catch (error) {
-      console.error('ADMIN: Ошибка получения настроек:', error);
-      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
-    }
-  });
-
-  bot.action('finance_withdraw', async (ctx) => {
-    try {
-      await ctx.answerCbQuery();
-      
-      ctx.session = ctx.session || {};
-      ctx.session.withdrawingProfit = true;
-      
-      const response = await apiClient.get('/admin/finance/state');
-      
-      const { balances } = response.data.data;
-      
-      await ctx.reply(
-        `💸 ВЫВОД ПРИБЫЛИ\n\n` +
-        `Доступно для вывода: ${balances.availableForWithdrawal.toFixed(2)} USDT\n` +
-        `Минимальная сумма: 10 USDT\n\n` +
-        `Введите сумму для вывода:`
-      );
-      
-    } catch (error) {
-      console.error('ADMIN: Ошибка начала вывода:', error);
-      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
     }
   });
 
@@ -1297,7 +1008,424 @@ function registerCommands(bot) {
       ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
     }
   });
+
+  // Команда /help
+  bot.command('help', (ctx) => {
+    ctx.reply(
+      '🔍 Справка по командам:\n\n' +
+      '--- Общие команды ---\n' +
+      '/start - Начало работы с ботом\n' +
+      '/stats - Просмотр статистики системы\n' +
+      '/users - Управление пользователями\n' +
+      '/games - Управление играми\n' +
+      '/events - Управление событиями\n' +
+      '/finance - Управление финансами\n' +
+      '/settings - Настройки системы\n' +
+      '/help - Показать эту справку\n\n' +
+      '--- Управление событиями ---\n' +
+      '/events - Главное меню событий\n' +
+      '/create_event - Создать событие\n' +
+      '/finish_event - Завершить событие\n' +
+      '/events_list - Список событий\n\n' +
+      '--- Управление шансами ---\n' +
+      '/set_win_chance - Установить базовый шанс выигрыша\n' +
+      '/set_user_chance - Установить шанс для пользователя\n' +
+      '/get_chance_settings - Показать настройки шансов\n' +
+      '/get_user_chance - Показать шанс пользователя\n\n' +
+      '--- Управление выводами ---\n' +
+      '/pending_withdrawals - Выводы на одобрении\n' +
+      '/withdrawal_stats - Статистика выводов\n' +
+      '/casino_balance - Баланс казино в CryptoBot\n' +
+      '/recent_withdrawals - Последние 10 выводов\n\n' +
+      '--- Управление финансами ---\n' +
+      '/finance - Финансовое состояние\n' +
+      '/profit - Доступная прибыль\n' +
+      '/set_reserve - Установить процент резерва\n' +
+      '/game_stats - Статистика по играм\n' +
+      '/finance_history - История изменений балансов\n' +
+      '/monitor - Включить/выключить мониторинг\n\n' +
+      '--- Управление реферальной системой ---\n' +
+      '/referral_stats - Общая статистика реферальной системы\n' +
+      '/top_partners [количество] - Топ партнеров\n' +
+      '/partner_info [user_id/@username] - Информация о партнере\n' +
+      '/referral_fraud - Проверка мошеннической активности'
+    );
+  });
+
+  // === ФУНКЦИИ ДЛЯ СОБЫТИЙ ===
   
+  /**
+   * Показать главное меню событий
+   */
+  async function showEventsMenu(ctx) {
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('📋 Список событий', 'events_list')],
+      [Markup.button.callback('➕ Создать событие', 'events_create')],
+      [Markup.button.callback('✅ Завершить событие', 'events_finish')],
+      [Markup.button.callback('📊 Статистика событий', 'events_stats')],
+      [Markup.button.callback('◀️ Назад в меню', 'main_menu')]
+    ]);
+
+    await ctx.reply(
+      '🔮 *Управление событиями*\n\n' +
+      'Выберите действие:',
+      {
+        parse_mode: 'Markdown',
+        ...keyboard
+      }
+    );
+  }
+
+  /**
+   * Показать список событий
+   */
+  async function showEventsList(ctx) {
+    try {
+      console.log('EVENTS: Запрос списка событий');
+      
+      const response = await apiClient.get('/events/admin/all', {
+        params: { limit: 10 }
+      });
+      
+      if (!response.data.success) {
+        return ctx.answerCbQuery('❌ Ошибка получения событий');
+      }
+      
+      const events = response.data.data.events;
+      
+      if (events.length === 0) {
+        return ctx.reply(
+          '📋 *Список событий*\n\n' +
+          'События не найдены.',
+          {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([[
+              Markup.button.callback('◀️ Назад', 'events_menu')
+            ]])
+          }
+        );
+      }
+      
+      let message = '📋 *Список событий*\n\n';
+      
+      events.slice(0, 10).forEach((event, index) => {
+        const statusEmoji = {
+          'upcoming': '⏳',
+          'active': '🟢',
+          'betting_closed': '🔒',
+          'finished': '✅',
+          'cancelled': '❌'
+        }[event.status] || '❓';
+        
+        message += `${index + 1}. ${statusEmoji} *${event.title}*\n`;
+        message += `   Статус: ${event.status}\n`;
+        message += `   Пул: ${event.totalPool.toFixed(2)} USDT\n`;
+        message += `   ID: \`${event._id}\`\n\n`;
+      });
+      
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🔄 Обновить', 'events_list')],
+        [Markup.button.callback('◀️ Назад', 'events_menu')]
+      ]);
+      
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+      
+    } catch (error) {
+      console.error('EVENTS: Ошибка получения списка событий:', error);
+      await ctx.reply('❌ Ошибка получения событий');
+    }
+  }
+
+  /**
+   * Начать создание события
+   */
+  async function startEventCreation(ctx) {
+    ctx.session = ctx.session || {};
+    ctx.session.creatingEvent = {
+      step: 'title'
+    };
+    
+    await ctx.reply(
+      '➕ *Создание нового события*\n\n' +
+      'Шаг 1/6: Введите название события:',
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([[
+          Markup.button.callback('❌ Отмена', 'events_menu')
+        ]])
+      }
+    );
+  }
+
+  /**
+   * Начать завершение события
+   */
+  async function startEventFinishing(ctx) {
+    ctx.session = ctx.session || {};
+    ctx.session.finishingEvent = {
+      step: 'eventId'
+    };
+    
+    await ctx.reply(
+      '✅ *Завершение события*\n\n' +
+      'Введите ID события для завершения:',
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([[
+          Markup.button.callback('❌ Отмена', 'events_menu')
+        ]])
+      }
+    );
+  }
+
+  /**
+   * Показать статистику событий
+   */
+  async function showEventsStats(ctx) {
+    try {
+      console.log('EVENTS: Запрос статистики событий');
+      
+      const response = await apiClient.get('/events/stats/general');
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Ошибка получения статистики');
+      }
+      
+      const stats = response.data.data;
+      
+      let message = '📊 *Статистика событий*\n\n';
+      
+      if (stats.events && stats.events.length > 0) {
+        message += '🎯 События:\n';
+        stats.events.forEach(stat => {
+          const statusNames = {
+            'upcoming': 'Предстоящие',
+            'active': 'Активные',
+            'betting_closed': 'Ставки закрыты',
+            'finished': 'Завершенные',
+            'cancelled': 'Отмененные'
+          };
+          
+          message += `├ ${statusNames[stat._id] || stat._id}: ${stat.count} (${stat.totalPool.toFixed(2)} USDT)\n`;
+        });
+        message += '\n';
+      }
+      
+      if (stats.bets && stats.bets.length > 0) {
+        message += '💰 Ставки:\n';
+        stats.bets.forEach(stat => {
+          const statusNames = {
+            'active': 'Активные',
+            'won': 'Выигрышные',
+            'lost': 'Проигрышные',
+            'cancelled': 'Отмененные',
+            'refunded': 'Возвращенные'
+          };
+          
+          message += `├ ${statusNames[stat._id] || stat._id}: ${stat.count} (${stat.totalAmount.toFixed(2)} USDT)\n`;
+        });
+      }
+      
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🔄 Обновить', 'events_stats')],
+        [Markup.button.callback('◀️ Назад', 'events_menu')]
+      ]);
+      
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+      
+    } catch (error) {
+      console.error('EVENTS: Ошибка получения статистики:', error);
+      await ctx.reply('❌ Ошибка получения статистики');
+    }
+  }
+
+  // === ОБРАБОТЧИКИ CALLBACK ===
+  
+  // Callback обработчики для выводов
+  bot.action(/^approve_withdrawal:([0-9a-fA-F]{24})$/, async (ctx) => {
+    try {
+      const withdrawalId = ctx.match[1];
+      await ctx.answerCbQuery('⏳ Одобряем вывод...');
+      
+      console.log(`ADMIN: Одобрение вывода ${withdrawalId}`);
+      
+      const response = await apiClient.post(`/admin/withdrawals/${withdrawalId}/approve`, {});
+      
+      if (response.data.success) {
+        await ctx.editMessageText(
+          ctx.callbackQuery.message.text + '\n\n✅ ОДОБРЕНО',
+          { parse_mode: 'HTML' }
+        );
+        await ctx.reply(`✅ Вывод #${withdrawalId} одобрен и отправлен на обработку`);
+      } else {
+        await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+      }
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка одобрения вывода:', error);
+      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+  
+  bot.action(/^reject_withdrawal:([0-9a-fA-F]{24})$/, async (ctx) => {
+    try {
+      const withdrawalId = ctx.match[1];
+      await ctx.answerCbQuery();
+      
+      // Сохраняем ID вывода в сессии для следующего шага
+      ctx.session = ctx.session || {};
+      ctx.session.rejectingWithdrawalId = withdrawalId;
+      
+      await ctx.reply(
+        `❌ Отклонение вывода #${withdrawalId}\n\n` +
+        `Укажите причину отклонения:`
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка при начале отклонения вывода:', error);
+      await ctx.reply(`❌ Ошибка: ${error.message}`);
+    }
+  });
+
+  // Обработчики callback для финансов
+  bot.action(/^finance_report:(.+)$/, async (ctx) => {
+    try {
+      const period = ctx.match[1];
+      await ctx.answerCbQuery('⏳ Генерируем отчет...');
+      
+      const response = await apiClient.get('/admin/finance/report', {
+        params: { period }
+      });
+      
+      if (!response.data.success) {
+        return ctx.reply('❌ Не удалось получить отчет');
+      }
+      
+      const report = response.data.data;
+      
+      let periodName = '';
+      switch (period) {
+        case 'day': periodName = 'ДЕНЬ'; break;
+        case 'week': periodName = 'НЕДЕЛЮ'; break;
+        case 'month': periodName = 'МЕСЯЦ'; break;
+        default: periodName = 'ВСЕ ВРЕМЯ';
+      }
+      
+      let message = `📊 ФИНАНСОВЫЙ ОТЧЕТ ЗА ${periodName}\n\n`;
+      
+      message += '💳 Депозиты:\n';
+      message += `├ Количество: ${report.period.deposits.count}\n`;
+      message += `└ Сумма: ${report.period.deposits.total.toFixed(2)} USDT\n\n`;
+      
+      message += '💸 Выводы:\n';
+      message += `├ Количество: ${report.period.withdrawals.count}\n`;
+      message += `└ Сумма: ${report.period.withdrawals.total.toFixed(2)} USDT\n\n`;
+      
+      message += '🎮 Игры:\n';
+      message += `├ Количество: ${report.period.games.count}\n`;
+      message += `├ Ставки: ${report.period.games.totalBets.toFixed(2)} USDT\n`;
+      message += `├ Выигрыши: ${report.period.games.totalWins.toFixed(2)} USDT\n`;
+      message += `└ Прибыль: ${report.period.games.profit.toFixed(2)} USDT\n\n`;
+      
+      message += `👥 Активных пользователей: ${report.period.activeUsers}\n\n`;
+      
+      message += '📈 ИТОГО ЗА ВСЕ ВРЕМЯ:\n';
+      message += `├ Депозиты: ${report.allTime.totalDeposits.toFixed(2)} USDT\n`;
+      message += `├ Выводы: ${report.allTime.totalWithdrawals.toFixed(2)} USDT\n`;
+      message += `├ Ставки: ${report.allTime.totalBets.toFixed(2)} USDT\n`;
+      message += `├ Выигрыши: ${report.allTime.totalWins.toFixed(2)} USDT\n`;
+      message += `└ Выведено владельцем: ${report.allTime.totalOwnerWithdrawals.toFixed(2)} USDT`;
+      
+      await ctx.reply(message);
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения отчета:', error);
+      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+
+  bot.action('finance_recalculate', async (ctx) => {
+    try {
+      await ctx.answerCbQuery('⏳ Пересчитываем...');
+      
+      const response = await apiClient.post('/admin/finance/recalculate', {});
+      
+      if (response.data.success) {
+        const { balances, warnings } = response.data.data;
+        
+        let message = '✅ Финансы успешно пересчитаны\n\n';
+        message += `💰 Баланс пользователей: ${balances.totalUsers.toFixed(2)} USDT\n`;
+        message += `📊 Оперативный: ${balances.operational.toFixed(2)} USDT\n`;
+        message += `🛡️ Резерв: ${balances.reserve.toFixed(2)} USDT\n`;
+        message += `💵 Доступно: ${balances.availableForWithdrawal.toFixed(2)} USDT`;
+        
+        if (warnings.lowReserve || warnings.highRiskRatio || warnings.negativeOperational) {
+          message += '\n\n⚠️ Есть предупреждения!';
+        }
+        
+        await ctx.reply(message);
+      } else {
+        await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+      }
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка пересчета:', error);
+      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+
+  bot.action('finance_settings', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      
+      const response = await apiClient.get('/admin/finance/state');
+      
+      const { settings } = response.data.data;
+      
+      await ctx.reply(
+        `⚙️ НАСТРОЙКИ ФИНАНСОВ\n\n` +
+        `Текущий процент резервирования: ${settings.reservePercentage}%\n\n` +
+        `Для изменения используйте:\n` +
+        `/set_reserve [процент]\n` +
+        `Например: /set_reserve 40`
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения настроек:', error);
+      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+
+  bot.action('finance_withdraw', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      
+      ctx.session = ctx.session || {};
+      ctx.session.withdrawingProfit = true;
+      
+      const response = await apiClient.get('/admin/finance/state');
+      
+      const { balances } = response.data.data;
+      
+      await ctx.reply(
+        `💸 ВЫВОД ПРИБЫЛИ\n\n` +
+        `Доступно для вывода: ${balances.availableForWithdrawal.toFixed(2)} USDT\n` +
+        `Минимальная сумма: 10 USDT\n\n` +
+        `Введите сумму для вывода:`
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка начала вывода:', error);
+      await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  });
+
   // Callback обработчики для реферальной системы
   bot.action('ref_top_partners', async (ctx) => {
     await ctx.answerCbQuery();
@@ -1430,6 +1558,464 @@ function registerCommands(bot) {
     await ctx.answerCbQuery('Отменено');
     await ctx.deleteMessage();
     delete ctx.session?.changingLevelForPartner;
+  });
+
+  // === ОБРАБОТЧИКИ CALLBACK ДЛЯ СОБЫТИЙ ===
+  
+  // Главное меню событий
+  bot.action('events_menu', async (ctx) => {
+    await ctx.answerCbQuery();
+    await showEventsMenu(ctx);
+  });
+  
+  // Список событий
+  bot.action('events_list', async (ctx) => {
+    await ctx.answerCbQuery();
+    await showEventsList(ctx);
+  });
+  
+  // Создание события
+  bot.action('events_create', async (ctx) => {
+    await ctx.answerCbQuery();
+    await startEventCreation(ctx);
+  });
+  
+  // Завершение события
+  bot.action('events_finish', async (ctx) => {
+    await ctx.answerCbQuery();
+    await startEventFinishing(ctx);
+  });
+  
+  // Статистика событий
+  bot.action('events_stats', async (ctx) => {
+    await ctx.answerCbQuery();
+    await showEventsStats(ctx);
+  });
+  
+  // Выбор категории события
+  bot.action(/^event_category_(.+)$/, async (ctx) => {
+    const category = ctx.match[1];
+    await handleCategorySelection(ctx, category);
+  });
+  
+  // Завершение события с выбором исхода
+  bot.action(/^finish_outcome_(.+)$/, async (ctx) => {
+    const outcomeId = ctx.match[1];
+    await ctx.answerCbQuery();
+    await completeEventFinishing(ctx, outcomeId);
+  });
+  
+  // Отмена действий событий
+  bot.action('events_cancel', async (ctx) => {
+    await ctx.answerCbQuery('Отменено');
+    
+    if (ctx.session) {
+      delete ctx.session.creatingEvent;
+      delete ctx.session.finishingEvent;
+    }
+    
+    await showEventsMenu(ctx);
+  });
+  
+  // Главное меню
+  bot.action('main_menu', async (ctx) => {
+    await ctx.answerCbQuery();
+    
+    await ctx.reply(
+      '🏠 Главное меню администратора',
+      Markup.keyboard([
+        ['📊 Статистика', '👥 Пользователи'],
+        ['🎮 Игры', '🔮 События'],
+        ['💰 Финансы', '⚙️ Настройки']
+      ]).resize()
+    );
+  });
+
+  // === ОБРАБОТКА СОЗДАНИЯ СОБЫТИЯ ===
+  
+  /**
+   * Обработка создания события
+   */
+  async function handleEventCreation(ctx) {
+    if (!ctx.session || !ctx.session.creatingEvent) {
+      return;
+    }
+    
+    const eventData = ctx.session.creatingEvent;
+    const text = ctx.message.text;
+    
+    switch (eventData.step) {
+      case 'title':
+        eventData.title = text;
+        eventData.step = 'description';
+        await ctx.reply(
+          '📝 Шаг 2/6: Введите описание события:',
+          Markup.inlineKeyboard([[
+            Markup.button.callback('❌ Отмена', 'events_cancel')
+          ]])
+        );
+        break;
+        
+      case 'description':
+        eventData.description = text;
+        eventData.step = 'outcome1';
+        await ctx.reply(
+          '🎯 Шаг 3/6: Введите название первого исхода:',
+          Markup.inlineKeyboard([[
+            Markup.button.callback('❌ Отмена', 'events_cancel')
+          ]])
+        );
+        break;
+        
+      case 'outcome1':
+        eventData.outcome1 = text;
+        eventData.step = 'outcome2';
+        await ctx.reply(
+          '🎯 Шаг 4/6: Введите название второго исхода:',
+          Markup.inlineKeyboard([[
+            Markup.button.callback('❌ Отмена', 'events_cancel')
+          ]])
+        );
+        break;
+        
+      case 'outcome2':
+        eventData.outcome2 = text;
+        eventData.step = 'category';
+        await ctx.reply(
+          '📂 Шаг 5/6: Выберите категорию события:',
+          Markup.inlineKeyboard([
+            [
+              Markup.button.callback('⚽ Спорт', 'event_category_sports'),
+              Markup.button.callback('₿ Крипто', 'event_category_crypto')
+            ],
+            [
+              Markup.button.callback('🗳️ Политика', 'event_category_politics'),
+              Markup.button.callback('🎬 Развлечения', 'event_category_entertainment')
+            ],
+            [
+              Markup.button.callback('🎯 Другое', 'event_category_other')
+            ],
+            [
+              Markup.button.callback('❌ Отмена', 'events_cancel')
+            ]
+          ])
+        );
+        break;
+        
+      case 'duration':
+        const hours = parseInt(text);
+        if (isNaN(hours) || hours < 1 || hours > 720) {
+          await ctx.reply('❌ Введите корректное количество часов (от 1 до 720):');
+          return;
+        }
+        
+        eventData.durationHours = hours;
+        
+        // Создаем событие
+        await createEvent(ctx, eventData);
+        break;
+    }
+  }
+
+  /**
+   * Обработка выбора категории
+   */
+  async function handleCategorySelection(ctx, category) {
+    if (!ctx.session || !ctx.session.creatingEvent) {
+      return ctx.answerCbQuery('❌ Сессия создания события истекла');
+    }
+    
+    ctx.session.creatingEvent.category = category;
+    ctx.session.creatingEvent.step = 'duration';
+    
+    await ctx.editMessageText(
+      '⏰ Шаг 6/6: Введите продолжительность события в часах (1-720):',
+      {
+        ...Markup.inlineKeyboard([[
+          Markup.button.callback('❌ Отмена', 'events_cancel')
+        ]])
+      }
+    );
+    
+    await ctx.answerCbQuery();
+  }
+
+  /**
+   * Создать событие
+   */
+  async function createEvent(ctx, eventData) {
+    try {
+      console.log('EVENTS: Создание события с данными:', eventData);
+      
+      const now = new Date();
+      const endTime = new Date(now.getTime() + eventData.durationHours * 60 * 60 * 1000);
+      const bettingEndsAt = new Date(endTime.getTime() - 30 * 60 * 1000); // За 30 минут до окончания
+      
+      const createData = {
+        title: eventData.title,
+        description: eventData.description,
+        outcomes: [
+          { name: eventData.outcome1 },
+          { name: eventData.outcome2 }
+        ],
+        category: eventData.category,
+        startTime: now.toISOString(),
+        endTime: endTime.toISOString(),
+        bettingEndsAt: bettingEndsAt.toISOString(),
+        featured: true, // Делаем новое событие главным
+        initialOdds: 2.0,
+        minBet: 1,
+        maxBet: 1000
+      };
+      
+      console.log('EVENTS: Отправляем данные для создания события:', JSON.stringify(createData, null, 2));
+      
+      const response = await apiClient.post('/events/admin/create', createData);
+      
+      if (response.data.success) {
+        const event = response.data.data.event;
+        
+        await ctx.reply(
+          '✅ *Событие создано успешно!*\n\n' +
+          `📝 Название: ${event.title}\n` +
+          `📋 Описание: ${event.description}\n` +
+          `🎯 Исходы: ${event.outcomes[0].name} / ${event.outcomes[1].name}\n` +
+          `📂 Категория: ${event.category}\n` +
+          `⏰ Окончание: ${new Date(event.endTime).toLocaleString('ru-RU')}\n` +
+          `🆔 ID: \`${event._id}\``,
+          {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([[
+              Markup.button.callback('📋 К списку событий', 'events_list')
+            ]])
+          }
+        );
+      } else {
+        throw new Error(response.data.message);
+      }
+      
+      // Очищаем сессию
+      delete ctx.session.creatingEvent;
+      
+    } catch (error) {
+      console.error('EVENTS: Ошибка создания события:', error);
+      await ctx.reply(
+        `❌ Ошибка создания события: ${error.response?.data?.message || error.message}`,
+        Markup.inlineKeyboard([[
+          Markup.button.callback('🔄 Попробовать снова', 'events_create')
+        ]])
+      );
+      delete ctx.session.creatingEvent;
+    }
+  }
+
+  // === ОБРАБОТКА ЗАВЕРШЕНИЯ СОБЫТИЯ ===
+  
+  /**
+   * Обработка завершения события
+   */
+  async function handleEventFinishing(ctx) {
+    if (!ctx.session || !ctx.session.finishingEvent) {
+      return;
+    }
+    
+    const text = ctx.message.text.trim();
+    
+    if (ctx.session.finishingEvent.step === 'eventId') {
+      try {
+        console.log('EVENTS: Получение события для завершения:', text);
+        
+        // Получаем событие
+        const response = await apiClient.get(`/events/${text}`);
+        
+        if (!response.data.success) {
+          await ctx.reply('❌ Событие не найдено. Введите корректный ID:');
+          return;
+        }
+        
+        const event = response.data.data.event;
+        
+        if (event.status === 'finished') {
+          await ctx.reply('❌ Событие уже завершено. Введите ID другого события:');
+          return;
+        }
+        
+        ctx.session.finishingEvent.eventId = text;
+        ctx.session.finishingEvent.event = event;
+        ctx.session.finishingEvent.step = 'outcome';
+        
+        await ctx.reply(
+          `🎯 Событие: *${event.title}*\n\n` +
+          'Выберите победивший исход:',
+          {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+              [
+                Markup.button.callback(
+                  `1️⃣ ${event.outcomes[0].name}`, 
+                  `finish_outcome_${event.outcomes[0].id}`
+                )
+              ],
+              [
+                Markup.button.callback(
+                  `2️⃣ ${event.outcomes[1].name}`, 
+                  `finish_outcome_${event.outcomes[1].id}`
+                )
+              ],
+              [
+                Markup.button.callback('❌ Отмена', 'events_cancel')
+              ]
+            ])
+          }
+        );
+        
+      } catch (error) {
+        console.error('EVENTS: Ошибка получения события:', error);
+        await ctx.reply('❌ Ошибка получения события. Проверьте ID и попробуйте снова:');
+      }
+    }
+  }
+
+  /**
+   * Завершить событие с выбранным исходом
+   */
+  async function completeEventFinishing(ctx, outcomeId) {
+    if (!ctx.session || !ctx.session.finishingEvent || !ctx.session.finishingEvent.eventId) {
+      return ctx.answerCbQuery('❌ Сессия завершения события истекла');
+    }
+    
+    try {
+      const eventId = ctx.session.finishingEvent.eventId;
+      const event = ctx.session.finishingEvent.event;
+      
+      console.log('EVENTS: Завершение события:', eventId, 'исход:', outcomeId);
+      
+      const response = await apiClient.put(`/events/admin/${eventId}/finish`, {
+        winningOutcomeId: outcomeId
+      });
+      
+      if (response.data.success) {
+        const result = response.data.data;
+        const winningOutcome = event.outcomes.find(o => o.id === outcomeId);
+        
+        await ctx.editMessageText(
+          '✅ *Событие успешно завершено!*\n\n' +
+          `📝 Событие: ${event.title}\n` +
+          `🏆 Победитель: ${winningOutcome.name}\n` +
+          `💰 Выигрышных ставок: ${result.settlementResults.winningBets}\n` +
+          `📉 Проигрышных ставок: ${result.settlementResults.losingBets}\n` +
+          `💵 Общие выплаты: ${result.settlementResults.totalPayout.toFixed(2)} USDT\n` +
+          `🏦 Прибыль казино: ${result.houseProfit.toFixed(2)} USDT`,
+          {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([[
+              Markup.button.callback('📋 К списку событий', 'events_list')
+            ]])
+          }
+        );
+      } else {
+        throw new Error(response.data.message);
+      }
+      
+      delete ctx.session.finishingEvent;
+      
+    } catch (error) {
+      console.error('EVENTS: Ошибка завершения события:', error);
+      await ctx.answerCbQuery(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  // === ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ ===
+  
+  // Обработка текстовых сообщений
+  bot.on('text', async (ctx, next) => {
+    // Проверяем, если это процесс создания события
+    if (ctx.session && ctx.session.creatingEvent) {
+      await handleEventCreation(ctx);
+      return;
+    }
+    
+    // Проверяем, если это процесс завершения события
+    if (ctx.session && ctx.session.finishingEvent) {
+      await handleEventFinishing(ctx);
+      return;
+    }
+    
+    // Проверяем, ожидаем ли мы сумму для вывода прибыли
+    if (ctx.session && ctx.session.withdrawingProfit) {
+      const amount = parseFloat(ctx.message.text);
+      
+      if (isNaN(amount) || amount <= 0) {
+        await ctx.reply('❌ Некорректная сумма. Введите положительное число:');
+        return;
+      }
+      
+      if (amount < 10) {
+        await ctx.reply('❌ Минимальная сумма для вывода: 10 USDT. Введите другую сумму:');
+        return;
+      }
+      
+      try {
+        console.log(`ADMIN: Вывод прибыли ${amount} USDT`);
+        
+        const response = await apiClient.post('/admin/finance/withdraw-profit', { 
+          amount,
+          recipient: ctx.from.username || `admin_${ctx.from.id}`,
+          comment: 'Вывод прибыли казино'
+        });
+        
+        if (response.data.success) {
+          await ctx.reply(
+            `✅ Прибыль успешно выведена!\n\n` +
+            `Сумма: ${amount} USDT\n` +
+            `Новый оперативный баланс: ${response.data.data.newOperationalBalance.toFixed(2)} USDT\n` +
+            `Осталось доступно: ${response.data.data.newAvailable.toFixed(2)} USDT\n\n` +
+            `⚠️ Средства будут переведены вручную через CryptoBot`
+          );
+        } else {
+          await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+        }
+        
+        delete ctx.session.withdrawingProfit;
+        
+      } catch (error) {
+        console.error('ADMIN: Ошибка вывода прибыли:', error);
+        await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+        delete ctx.session.withdrawingProfit;
+      }
+    }
+    // Проверяем, если это процесс отклонения вывода
+    else if (ctx.session && ctx.session.rejectingWithdrawalId) {
+      const withdrawalId = ctx.session.rejectingWithdrawalId;
+      const reason = ctx.message.text;
+      
+      try {
+        console.log(`ADMIN: Отклонение вывода ${withdrawalId} с причиной: ${reason}`);
+        
+        const response = await apiClient.post(`/admin/withdrawals/${withdrawalId}/reject`, { reason });
+        
+        if (response.data.success) {
+          await ctx.reply(
+            `✅ Вывод #${withdrawalId} отклонен\n` +
+            `Причина: ${reason}\n` +
+            `Средства возвращены пользователю`
+          );
+        } else {
+          await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+        }
+        
+        // Очищаем сессию
+        delete ctx.session.rejectingWithdrawalId;
+        
+      } catch (error) {
+        console.error('ADMIN: Ошибка отклонения вывода:', error);
+        await ctx.reply(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
+        delete ctx.session.rejectingWithdrawalId;
+      }
+    } else {
+      // Передаем управление следующему обработчику
+      return next();
+    }
   });
 
   return bot;

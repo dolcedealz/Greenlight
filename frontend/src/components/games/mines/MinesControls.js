@@ -123,14 +123,65 @@ const MinesControls = ({
     setMinesCount(count);
   };
   
-  // Обработчик кнопки играть
+  // ИСПРАВЛЕННЫЙ обработчик кнопки играть
   const handlePlayClick = () => {
+    console.log('💣 CONTROLS: Нажата кнопка "Играть"');
+    console.log('💣 CONTROLS: Состояние - gameActive:', gameActive, 'loading:', loading, 'betAmount:', betAmount, 'balance:', balance);
+    
+    // Проверяем все условия
+    if (gameActive) {
+      console.log('💣 CONTROLS: Блокировано - игра уже активна');
+      return;
+    }
+    
+    if (loading) {
+      console.log('💣 CONTROLS: Блокировано - идет загрузка');
+      return;
+    }
+    
+    if (!betAmount || betAmount <= 0) {
+      console.log('💣 CONTROLS: Блокировано - неверная сумма ставки:', betAmount);
+      return;
+    }
+    
+    if (betAmount > balance) {
+      console.log('💣 CONTROLS: Блокировано - недостаточно средств. Ставка:', betAmount, 'Баланс:', balance);
+      return;
+    }
+    
+    if (!onPlay) {
+      console.error('💣 CONTROLS: Ошибка - функция onPlay не передана!');
+      return;
+    }
+    
+    console.log('💣 CONTROLS: Все проверки пройдены, запускаем игру');
+    
     gameActionFeedback(); // Вибрация для начала игры
     onPlay();
   };
 
-  // Обработчик кнопки забрать выигрыш
+  // ИСПРАВЛЕННЫЙ обработчик кнопки забрать выигрыш
   const handleCashoutClick = () => {
+    console.log('💣 CONTROLS: Нажата кнопка "Забрать выигрыш"');
+    console.log('💣 CONTROLS: Состояние - gameActive:', gameActive, 'loading:', loading);
+    
+    if (!gameActive) {
+      console.log('💣 CONTROLS: Блокировано - игра не активна');
+      return;
+    }
+    
+    if (loading) {
+      console.log('💣 CONTROLS: Блокировано - идет загрузка');
+      return;
+    }
+    
+    if (!onCashout) {
+      console.error('💣 CONTROLS: Ошибка - функция onCashout не передана!');
+      return;
+    }
+    
+    console.log('💣 CONTROLS: Забираем выигрыш');
+    
     criticalActionFeedback(); // Сильная вибрация для важного действия
     onCashout();
   };
@@ -138,7 +189,9 @@ const MinesControls = ({
   // Обработчик автоигры
   const handleAutoplayChange = (checked) => {
     selectionChanged(); // Вибрация при переключении
-    onAutoplayChange(checked);
+    if (onAutoplayChange) {
+      onAutoplayChange(checked);
+    }
   };
   
   // Для отображения в интерфейсе
@@ -314,7 +367,7 @@ const MinesControls = ({
           <button 
             className="play-button" 
             onClick={handlePlayClick}
-            disabled={betAmount <= 0 || betAmount > balance || loading}
+            disabled={!betAmount || betAmount <= 0 || betAmount > balance || loading}
           >
             {loading ? 'Загрузка...' : 'Играть'}
           </button>

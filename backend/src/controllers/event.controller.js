@@ -192,11 +192,13 @@ class EventController {
   }
   
   /**
-   * Получить ставки пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+   * ИСПРАВЛЕННЫЙ МЕТОД: Получить ставки пользователя
    */
   async getUserBets(req, res) {
     try {
       console.log('EVENT CONTROLLER: Запрос ставок пользователя');
+      console.log('EVENT CONTROLLER: Headers:', JSON.stringify(req.headers, null, 2));
+      console.log('EVENT CONTROLLER: Query:', JSON.stringify(req.query, null, 2));
       
       // Проверяем аутентификацию
       if (!req.user || !req.user._id) {
@@ -208,36 +210,63 @@ class EventController {
       }
       
       const userId = req.user._id;
-      const { limit, skip, status } = req.query;
+      const { limit = 50, skip = 0, status = 'all' } = req.query;
       
-      console.log('EVENT CONTROLLER: Параметры запроса:', { userId, limit, skip, status });
+      console.log(`EVENT CONTROLLER: Получение ставок для пользователя ${userId}`);
+      console.log('EVENT CONTROLLER: Параметры:', { limit, skip, status });
       
-      const options = {};
-      if (limit) options.limit = parseInt(limit);
-      if (skip) options.skip = parseInt(skip);
-      if (status) options.status = status;
+      const options = {
+        limit: parseInt(limit) || 50,
+        skip: parseInt(skip) || 0
+      };
       
+      // Добавляем фильтр по статусу если он не 'all'
+      if (status && status !== 'all') {
+        options.status = status;
+      }
+      
+      console.log('EVENT CONTROLLER: Финальные опции:', options);
       console.log('EVENT CONTROLLER: Вызов eventService.getUserBets...');
       
       const result = await eventService.getUserBets(userId, options);
       
-      console.log(`EVENT CONTROLLER: Получено ставок: ${result.bets.length}`);
+      console.log(`EVENT CONTROLLER: Получено ставок: ${result.bets ? result.bets.length : 0}`);
+      console.log('EVENT CONTROLLER: Статистика:', result.stats);
       
       res.status(200).json({
         success: true,
         data: {
-          ...result,
+          bets: result.bets || [],
+          pagination: result.pagination || {
+            total: 0,
+            currentPage: 1,
+            totalPages: 0,
+            limit: parseInt(limit) || 50,
+            skip: parseInt(skip) || 0
+          },
+          stats: result.stats || {
+            totalBets: 0,
+            activeBets: 0,
+            wonBets: 0,
+            lostBets: 0,
+            totalStaked: 0,
+            totalWon: 0,
+            totalProfit: 0
+          },
           system: {
             flexibleOddsEnabled: true,
-            message: 'Этот проект использует гибкие коэффициенты'
+            message: 'Система гибких коэффициентов активна'
           }
         }
       });
     } catch (error) {
       console.error('EVENT CONTROLLER: Ошибка получения ставок:', error);
+      console.error('EVENT CONTROLLER: Stack trace:', error.stack);
+      
       res.status(500).json({
         success: false,
-        message: error.message || 'Ошибка получения ставок пользователя'
+        message: 'Ошибка получения ставок пользователя',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }

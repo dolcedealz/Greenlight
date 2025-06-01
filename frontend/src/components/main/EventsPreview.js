@@ -7,6 +7,17 @@ const EventsPreview = ({ event, onClick }) => {
     return null;
   }
 
+  // Получение иконки категории
+  const getCategoryIcon = (category) => {
+    switch (category) {
+      case 'sports': return '⚽';
+      case 'crypto': return '₿';
+      case 'politics': return '🗳️';
+      case 'entertainment': return '🎬';
+      default: return '🎯';
+    }
+  };
+
   // Форматирование времени до окончания
   const formatTimeLeft = (endTime) => {
     const now = new Date();
@@ -17,12 +28,12 @@ const EventsPreview = ({ event, onClick }) => {
       return 'Завершено';
     }
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      return `${days}д ${hours % 24}ч`;
+    if (days > 0) {
+      return `${days}д ${hours}ч`;
     } else if (hours > 0) {
       return `${hours}ч ${minutes}м`;
     } else {
@@ -33,30 +44,36 @@ const EventsPreview = ({ event, onClick }) => {
   return (
     <div className="events-preview" onClick={onClick}>
       <div className="events-header">
-        <h3>🔮 События</h3>
+        <h3>
+          {getCategoryIcon(event.category)} События
+        </h3>
         <div className="events-total">
           {event.totalPool.toFixed(0)} USDT
         </div>
       </div>
       
-      <div className="featured-event">
-        <div className="event-title">{event.title}</div>
+      <div className="event-content">
+        <div className="event-title">
+          {event.title}
+        </div>
         
-        <div className="event-info">
-          <div className="time-left">
-            До окончания: {formatTimeLeft(event.bettingEndsAt)}
-          </div>
-          <div className="total-bets">
-            Всего ставок: {event.outcomes.reduce((sum, outcome) => sum + outcome.betsCount, 0)}
-          </div>
+        <div className="event-time-left">
+          ⏰ {formatTimeLeft(event.bettingEndsAt)}
         </div>
         
         <div className="event-outcomes">
           {event.outcomes.map((outcome) => {
             const odds = event.currentOdds[outcome.id];
+            const percentage = event.totalPool > 0 
+              ? ((outcome.totalBets / event.totalPool) * 100).toFixed(0)
+              : 50;
+
             return (
               <div key={outcome.id} className="outcome">
-                <div className="outcome-name">{outcome.name}</div>
+                <div className="outcome-info">
+                  <span className="outcome-name">{outcome.name}</span>
+                  <span className="outcome-percentage">{percentage}%</span>
+                </div>
                 <div className="outcome-odds">×{odds.toFixed(2)}</div>
               </div>
             );
@@ -64,8 +81,8 @@ const EventsPreview = ({ event, onClick }) => {
         </div>
       </div>
       
-      <div className="preview-footer">
-        <span>Нажмите для просмотра всех событий →</span>
+      <div className="events-footer">
+        <span className="tap-hint">Нажмите, чтобы увидеть все события →</span>
       </div>
     </div>
   );

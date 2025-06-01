@@ -1,40 +1,52 @@
 // frontend/src/components/main/EventsPreview.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../styles/EventsPreview.css';
 
 const EventsPreview = ({ event, onClick }) => {
-  // Функция для форматирования времени до окончания
-  const formatTimeLeft = (endTime) => {
-    const now = new Date();
-    const end = new Date(endTime);
-    const diff = end - now;
+  const [timeLeft, setTimeLeft] = useState('');
 
-    if (diff <= 0) {
-      return 'Завершено';
-    }
+  // Обновление времени каждую секунду
+  useEffect(() => {
+    if (!event) return;
 
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const updateTime = () => {
+      const now = new Date();
+      const end = new Date(event.bettingEndsAt);
+      const diff = end - now;
 
-    if (days > 0) {
-      return `${days}д ${hours}ч`;
-    } else if (hours > 0) {
-      return `${hours}ч ${minutes}м`;
-    } else {
-      return `${minutes}м`;
-    }
-  };
+      if (diff <= 0) {
+        setTimeLeft('Завершено');
+        return;
+      }
 
-  // Функция для получения процента распределения ставок
-  const getOutcomePercentage = (outcome) => {
-    if (!event.totalPool || event.totalPool === 0) return 0;
-    return ((outcome.totalBets / event.totalPool) * 100).toFixed(1);
-  };
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (days > 0) {
+        setTimeLeft(`${days}д ${hours}ч`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours}ч ${minutes}м`);
+      } else {
+        setTimeLeft(`${minutes}м`);
+      }
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, [event]);
 
   if (!event) {
     return null;
   }
+
+  // Получение процента распределения ставок
+  const getOutcomePercentage = (outcome) => {
+    if (event.totalPool === 0) return 0;
+    return ((outcome.totalBets / event.totalPool) * 100).toFixed(1);
+  };
 
   return (
     <div className="events-preview" onClick={onClick}>
@@ -47,21 +59,20 @@ const EventsPreview = ({ event, onClick }) => {
 
       <div className="event-content">
         <div className="event-title">{event.title}</div>
-        
         <div className="event-time-left">
-          ⏰ {formatTimeLeft(event.bettingEndsAt)}
+          ⏰ До окончания: {timeLeft}
         </div>
 
         <div className="event-outcomes">
-          {event.outcomes && event.outcomes.map((outcome) => {
-            const odds = event.currentOdds ? event.currentOdds[outcome.id] : 2.0;
+          {event.outcomes.map((outcome) => {
+            const odds = event.currentOdds[outcome.id];
             const percentage = getOutcomePercentage(outcome);
 
             return (
               <div key={outcome.id} className="outcome">
                 <div className="outcome-info">
                   <div className="outcome-name">{outcome.name}</div>
-                  <div className="outcome-percentage">{percentage}%</div>
+                  <div className="outcome-percentage">{percentage}% ставок</div>
                 </div>
                 <div className="outcome-odds">×{odds.toFixed(2)}</div>
               </div>
@@ -72,7 +83,7 @@ const EventsPreview = ({ event, onClick }) => {
 
       <div className="events-footer">
         <div className="tap-hint">
-          Нажмите, чтобы перейти к событиям →
+          Нажмите для просмотра всех событий →
         </div>
       </div>
     </div>

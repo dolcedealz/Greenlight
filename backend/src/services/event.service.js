@@ -1,4 +1,4 @@
-// backend/src/services/event.service.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// backend/src/services/event.service.js
 const { Event, EventBet, User, Transaction } = require('../models');
 
 /**
@@ -47,13 +47,16 @@ class EventService {
    */
   async getActiveEvents(limit = 4) {
     try {
-      // Проверяем существование модели Event
-      if (!Event) {
-        console.error('EVENT SERVICE: Модель Event не найдена');
-        return [];
-      }
-
-      const events = await Event.getActiveEvents(limit);
+      console.log('EVENT SERVICE: Запрос активных событий, лимит:', limit);
+      
+      const events = await Event.find({
+        status: 'active',
+        bettingEndsAt: { $gt: new Date() }
+      })
+      .sort({ priority: -1, createdAt: -1 })
+      .limit(limit);
+      
+      console.log(`EVENT SERVICE: Найдено событий: ${events.length}`);
       
       // Добавляем текущие коэффициенты к каждому событию
       const eventsWithOdds = events.map(event => {
@@ -79,7 +82,6 @@ class EventService {
       return eventsWithOdds;
     } catch (error) {
       console.error('EVENT SERVICE: Ошибка получения активных событий:', error);
-      // Возвращаем пустой массив вместо выброса ошибки
       return [];
     }
   }
@@ -89,18 +91,31 @@ class EventService {
    */
   async getFeaturedEvent() {
     try {
-      // Проверяем существование модели Event
-      if (!Event) {
-        console.error('EVENT SERVICE: Модель Event не найдена');
-        return null;
+      console.log('EVENT SERVICE: Запрос главного события');
+      
+      // Сначала ищем события с флагом featured
+      let event = await Event.findOne({
+        featured: true,
+        status: 'active',
+        bettingEndsAt: { $gt: new Date() }
+      }).sort({ priority: -1, createdAt: -1 });
+      
+      // Если нет featured события, берем любое активное
+      if (!event) {
+        console.log('EVENT SERVICE: Не найдено featured событие, ищем любое активное');
+        
+        event = await Event.findOne({
+          status: 'active',
+          bettingEndsAt: { $gt: new Date() }
+        }).sort({ totalPool: -1, createdAt: -1 });
       }
-
-      const event = await Event.getFeaturedEvent();
       
       if (!event) {
-        console.log('EVENT SERVICE: Нет главного события');
+        console.log('EVENT SERVICE: Нет активных событий');
         return null;
       }
+      
+      console.log(`EVENT SERVICE: Найдено главное событие: ${event.title}`);
       
       try {
         const odds = event.calculateOdds();
@@ -122,7 +137,6 @@ class EventService {
       }
     } catch (error) {
       console.error('EVENT SERVICE: Ошибка получения главного события:', error);
-      // Возвращаем null вместо выброса ошибки
       return null;
     }
   }
@@ -395,7 +409,6 @@ class EventService {
       };
     } catch (error) {
       console.error('EVENT SERVICE: Ошибка получения статистики:', error);
-      // Возвращаем пустую статистику вместо выброса ошибки
       return {
         events: [],
         bets: []

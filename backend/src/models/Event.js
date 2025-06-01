@@ -1,4 +1,4 @@
-// backend/src/models/Event.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ПОДДЕРЖКОЙ НОВЫХ ФУНКЦИЙ
+// backend/src/models/Event.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ОПТИМИЗАЦИЯМИ ДЛЯ ГИБКИХ КОЭФФИЦИЕНТОВ
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -128,7 +128,7 @@ const eventSchema = new Schema({
     required: true
   },
   
-  // НОВЫЕ МЕТАДАННЫЕ для расширенного управления
+  // РАСШИРЕННЫЕ МЕТАДАННЫЕ для гибких коэффициентов
   metadata: {
     source: String,
     externalId: String,
@@ -163,6 +163,45 @@ const eventSchema = new Schema({
       type: String,
       enum: ['auto', 'manual', 'early', 'prepared'],
       default: null
+    },
+    
+    // НОВОЕ: Статистика гибких коэффициентов
+    flexibleOddsStats: {
+      // Количество пересчетов коэффициентов
+      oddsRecalculations: {
+        type: Number,
+        default: 0
+      },
+      
+      // История коэффициентов (сохраняем ключевые моменты)
+      oddsHistory: [{
+        timestamp: {
+          type: Date,
+          default: Date.now
+        },
+        odds: {
+          type: Object,
+          default: {}
+        },
+        trigger: {
+          type: String,
+          enum: ['bet_placed', 'manual_update', 'large_bet'],
+          default: 'bet_placed'
+        },
+        betAmount: Number
+      }],
+      
+      // Средние коэффициенты за время жизни события
+      averageOdds: {
+        type: Object,
+        default: {}
+      },
+      
+      // Максимальные и минимальные коэффициенты
+      extremeOdds: {
+        type: Object,
+        default: {}
+      }
     },
     
     // История изменений времени
@@ -218,31 +257,144 @@ eventSchema.pre('save', function(next) {
   next();
 });
 
-// Метод для расчета коэффициентов в реальном времени
-eventSchema.methods.calculateOdds = function() {
+// ОБНОВЛЕННЫЙ метод для расчета коэффициентов с сохранением истории
+eventSchema.methods.calculateOdds = function(saveHistory = false) {
+  console.log(`Event ${this._id}: Расчет коэффициентов (всего ставок: ${this.totalPool} USDT)`);
+  
   if (this.totalPool === 0) {
-    return {
+    const defaultOdds = {
       [this.outcomes[0].id]: this.initialOdds,
       [this.outcomes[1].id]: this.initialOdds
     };
+    
+    console.log(`Event ${this._id}: Нет ставок, используем начальные коэффициенты:`, defaultOdds);
+    return defaultOdds;
   }
   
   const odds = {};
   const houseEdgeMultiplier = (100 - this.houseEdge) / 100; // 0.95 для 5% комиссии
   
+  console.log(`Event ${this._id}: Расчет с комиссией казино ${this.houseEdge}% (множитель: ${houseEdgeMultiplier})`);
+  
   this.outcomes.forEach(outcome => {
     if (outcome.totalBets === 0) {
       // Если на исход никто не ставил, даем максимальный коэффициент
       odds[outcome.id] = Math.max(this.initialOdds * 2, 5.0);
+      console.log(`Event ${this._id}: Исход ${outcome.id} (${outcome.name}): нет ставок, коэффициент ${odds[outcome.id]}`);
     } else {
       // Формула: (общий пул * множитель без комиссии) / ставки на исход
       const rawOdds = (this.totalPool * houseEdgeMultiplier) / outcome.totalBets;
       // Ограничиваем минимум 1.1, максимум 10.0
       odds[outcome.id] = Math.max(1.1, Math.min(10.0, rawOdds));
+      
+      console.log(`Event ${this._id}: Исход ${outcome.id} (${outcome.name}):`);
+      console.log(`  Ставки на исход: ${outcome.totalBets} USDT`);
+      console.log(`  Расчет: (${this.totalPool} * ${houseEdgeMultiplier}) / ${outcome.totalBets} = ${rawOdds}`);
+      console.log(`  Финальный коэффициент: ${odds[outcome.id]}`);
     }
   });
   
+  // Сохраняем историю коэффициентов если требуется
+  if (saveHistory) {
+    this.saveOddsHistory(odds, 'calculation');
+  }
+  
+  console.log(`Event ${this._id}: Финальные коэффициенты:`, odds);
   return odds;
+};
+
+// НОВЫЙ метод для сохранения истории коэффициентов
+eventSchema.methods.saveOddsHistory = function(odds, trigger = 'bet_placed', betAmount = null) {
+  if (!this.metadata) {
+    this.metadata = {};
+  }
+  if (!this.metadata.flexibleOddsStats) {
+    this.metadata.flexibleOddsStats = {
+      oddsRecalculations: 0,
+      oddsHistory: [],
+      averageOdds: {},
+      extremeOdds: {}
+    };
+  }
+  
+  // Добавляем запись в историю
+  this.metadata.flexibleOddsStats.oddsHistory.push({
+    timestamp: new Date(),
+    odds: odds,
+    trigger: trigger,
+    betAmount: betAmount
+  });
+  
+  // Увеличиваем счетчик пересчетов
+  this.metadata.flexibleOddsStats.oddsRecalculations++;
+  
+  // Обновляем экстремальные значения
+  Object.keys(odds).forEach(outcomeId => {
+    const currentOdds = odds[outcomeId];
+    
+    if (!this.metadata.flexibleOddsStats.extremeOdds[outcomeId]) {
+      this.metadata.flexibleOddsStats.extremeOdds[outcomeId] = {
+        min: currentOdds,
+        max: currentOdds
+      };
+    } else {
+      this.metadata.flexibleOddsStats.extremeOdds[outcomeId].min = 
+        Math.min(this.metadata.flexibleOddsStats.extremeOdds[outcomeId].min, currentOdds);
+      this.metadata.flexibleOddsStats.extremeOdds[outcomeId].max = 
+        Math.max(this.metadata.flexibleOddsStats.extremeOdds[outcomeId].max, currentOdds);
+    }
+  });
+  
+  // Ограничиваем историю последними 100 записями
+  if (this.metadata.flexibleOddsStats.oddsHistory.length > 100) {
+    this.metadata.flexibleOddsStats.oddsHistory = 
+      this.metadata.flexibleOddsStats.oddsHistory.slice(-100);
+  }
+  
+  console.log(`Event ${this._id}: История коэффициентов обновлена (записей: ${this.metadata.flexibleOddsStats.oddsHistory.length})`);
+};
+
+// НОВЫЙ метод для получения статистики коэффициентов
+eventSchema.methods.getOddsStatistics = function() {
+  if (!this.metadata?.flexibleOddsStats?.oddsHistory?.length) {
+    return {
+      hasHistory: false,
+      message: 'История коэффициентов отсутствует'
+    };
+  }
+  
+  const history = this.metadata.flexibleOddsStats.oddsHistory;
+  const currentOdds = this.calculateOdds();
+  
+  // Рассчитываем средние коэффициенты
+  const avgOdds = {};
+  const oddsCount = {};
+  
+  history.forEach(record => {
+    Object.keys(record.odds).forEach(outcomeId => {
+      if (!avgOdds[outcomeId]) {
+        avgOdds[outcomeId] = 0;
+        oddsCount[outcomeId] = 0;
+      }
+      avgOdds[outcomeId] += record.odds[outcomeId];
+      oddsCount[outcomeId]++;
+    });
+  });
+  
+  Object.keys(avgOdds).forEach(outcomeId => {
+    avgOdds[outcomeId] = avgOdds[outcomeId] / oddsCount[outcomeId];
+  });
+  
+  return {
+    hasHistory: true,
+    recalculations: this.metadata.flexibleOddsStats.oddsRecalculations,
+    currentOdds: currentOdds,
+    averageOdds: avgOdds,
+    extremeOdds: this.metadata.flexibleOddsStats.extremeOdds,
+    historyLength: history.length,
+    firstCalculation: history[0]?.timestamp,
+    lastCalculation: history[history.length - 1]?.timestamp
+  };
 };
 
 // Метод для проверки возможности сделать ставку
@@ -253,19 +405,19 @@ eventSchema.methods.canPlaceBet = function() {
          this.winningOutcome === null;
 };
 
-// НОВЫЙ метод для проверки готовности к завершению
+// Метод для проверки готовности к завершению
 eventSchema.methods.isReadyToFinish = function() {
   return this.metadata?.correctOutcomeId !== null;
 };
 
-// НОВЫЙ метод для получения времени до окончания в минутах
+// Метод для получения времени до окончания в минутах
 eventSchema.methods.getTimeUntilEnd = function() {
   const now = new Date();
   const timeUntilEnd = new Date(this.endTime) - now;
   return Math.floor(timeUntilEnd / (1000 * 60)); // в минутах
 };
 
-// НОВЫЙ метод для проверки необходимости уведомления
+// Метод для проверки необходимости уведомления
 eventSchema.methods.needsNotification = function(type) {
   if (!this.metadata?.notificationsSent) {
     return true;
@@ -273,7 +425,7 @@ eventSchema.methods.needsNotification = function(type) {
   return !this.metadata.notificationsSent[type];
 };
 
-// НОВЫЙ метод для отметки отправленного уведомления
+// Метод для отметки отправленного уведомления
 eventSchema.methods.markNotificationSent = function(type) {
   if (!this.metadata) {
     this.metadata = {};
@@ -285,11 +437,15 @@ eventSchema.methods.markNotificationSent = function(type) {
   return this.save();
 };
 
-// Метод для финализации события
+// ОБНОВЛЕННЫЙ метод для финализации события с сохранением финальных коэффициентов
 eventSchema.methods.finalize = async function(winningOutcomeId, finishedBy = null, finishType = 'manual') {
   if (!this.outcomes.find(o => o.id === winningOutcomeId)) {
     throw new Error('Неверный ID выигрышного исхода');
   }
+  
+  // Сохраняем финальные коэффициенты в историю
+  const finalOdds = this.calculateOdds();
+  this.saveOddsHistory(finalOdds, 'event_finished');
   
   this.winningOutcome = winningOutcomeId;
   this.status = 'finished';
@@ -302,10 +458,12 @@ eventSchema.methods.finalize = async function(winningOutcomeId, finishedBy = nul
   this.metadata.finishedAt = new Date();
   this.metadata.finishType = finishType;
   
+  console.log(`Event ${this._id}: Финализация завершена. Финальные коэффициенты:`, finalOdds);
+  
   return this.save();
 };
 
-// НОВЫЙ метод для записи изменения времени
+// Метод для записи изменения времени
 eventSchema.methods.recordTimeChange = function(changedBy, previousEndTime, newEndTime, previousBettingEndsAt, newBettingEndsAt, reason = null) {
   if (!this.metadata) {
     this.metadata = { timeChanges: [] };
@@ -345,7 +503,7 @@ eventSchema.statics.getFeaturedEvent = function() {
   .sort({ priority: -1, createdAt: -1 });
 };
 
-// НОВЫЙ статический метод для получения событий, требующих внимания
+// Статический метод для получения событий, требующих внимания
 eventSchema.statics.getEventsRequiringAttention = function() {
   const now = new Date();
   const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
@@ -364,6 +522,31 @@ eventSchema.statics.getEventsRequiringAttention = function() {
   }).sort({ endTime: 1 });
 };
 
+// НОВЫЙ статический метод для получения статистики гибких коэффициентов
+eventSchema.statics.getFlexibleOddsStatistics = async function() {
+  const stats = await this.aggregate([
+    {
+      $match: {
+        'metadata.flexibleOddsStats.oddsRecalculations': { $exists: true, $gt: 0 }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalEvents: { $sum: 1 },
+        totalRecalculations: { $sum: '$metadata.flexibleOddsStats.oddsRecalculations' },
+        avgRecalculationsPerEvent: { $avg: '$metadata.flexibleOddsStats.oddsRecalculations' }
+      }
+    }
+  ]);
+  
+  return stats[0] || {
+    totalEvents: 0,
+    totalRecalculations: 0,
+    avgRecalculationsPerEvent: 0
+  };
+};
+
 // Индексы для производительности
 eventSchema.index({ status: 1, bettingEndsAt: 1 });
 eventSchema.index({ featured: 1, priority: -1 });
@@ -371,6 +554,7 @@ eventSchema.index({ category: 1, status: 1 });
 eventSchema.index({ createdBy: 1 });
 eventSchema.index({ endTime: 1, status: 1 }); // Для уведомлений
 eventSchema.index({ 'metadata.correctOutcomeId': 1 }); // Для поиска событий с установленным исходом
+eventSchema.index({ 'metadata.flexibleOddsStats.oddsRecalculations': 1 }); // Для статистики гибких коэффициентов
 
 const Event = mongoose.model('Event', eventSchema);
 

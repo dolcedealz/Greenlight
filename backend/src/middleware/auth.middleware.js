@@ -1,6 +1,5 @@
 // backend/src/middleware/auth.middleware.js
 const { User } = require('../models');
-const crypto = require('crypto');
 
 /**
  * Middleware для проверки аутентификации Telegram WebApp
@@ -167,7 +166,7 @@ function adminAuthMiddleware(req, res, next) {
     });
   }
   
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'admin' && !req.user.isAdmin) {
     console.log('ADMIN AUTH: Пользователь не является администратором');
     return res.status(403).json({
       success: false,

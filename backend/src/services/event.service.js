@@ -1,4 +1,4 @@
-// backend/src/services/event.service.js - ПОЛНАЯ РЕАЛИЗАЦИЯ
+// backend/src/services/event.service.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { Event, EventBet, User } = require('../models');
 const mongoose = require('mongoose');
 
@@ -471,7 +471,7 @@ class EventService {
   }
   
   /**
-   * Завершить событие (админ)
+   * Завершить событие (админ) - ИСПРАВЛЕННАЯ ВЕРСИЯ
    */
   async finishEvent(eventId, winningOutcomeId, adminId) {
     const session = await mongoose.startSession();
@@ -480,33 +480,116 @@ class EventService {
       console.log('EVENT SERVICE: Завершение события:', eventId, 'победитель:', winningOutcomeId);
       
       return await session.withTransaction(async () => {
-        // Получаем событие
+        // 1. Получаем событие с блокировкой
         const event = await Event.findById(eventId).session(session);
         
         if (!event) {
           throw new Error('Событие не найдено');
         }
         
+        console.log(`EVENT SERVICE: Найдено событие: ${event.title}, статус: ${event.status}`);
+        
         if (event.status === 'finished') {
           throw new Error('Событие уже завершено');
         }
         
-        // Проверяем корректность выигрышного исхода
-        if (!event.outcomes.find(o => o.id === winningOutcomeId)) {
+        // 2. Проверяем корректность выигрышного исхода
+        const winningOutcome = event.outcomes.find(o => o.id === winningOutcomeId);
+        if (!winningOutcome) {
           throw new Error('Некорректный ID выигрышного исхода');
         }
         
-        // Завершаем событие
-        await event.finalize(winningOutcomeId);
+        console.log(`EVENT SERVICE: Выигрышный исход: ${winningOutcome.name}`);
         
-        // Рассчитываем все ставки
-        const settlementResult = await EventBet.settleBets(eventId, winningOutcomeId);
+        // 3. Завершаем событие
+        event.winningOutcome = winningOutcomeId;
+        event.status = 'finished';
         
-        console.log('EVENT SERVICE: Результат расчета ставок:', settlementResult);
+        // Записываем метаданные о завершении
+        if (!event.metadata) {
+          event.metadata = {};
+        }
+        event.metadata.finishedBy = adminId;
+        event.metadata.finishedAt = new Date();
+        event.metadata.finishType = 'manual';
+        
+        await event.save({ session });
+        
+        console.log('EVENT SERVICE: Событие помечено как завершенное');
+        
+        // 4. Рассчитываем все ставки на событие
+        const { EventBet, User } = require('../models');
+        
+        // Получаем все активные ставки на событие
+        const bets = await EventBet.find({
+          event: eventId,
+          status: 'active'
+        }).populate('user').session(session);
+        
+        console.log(`EVENT SERVICE: Найдено активных ставок: ${bets.length}`);
+        
+        const settlementResults = {
+          winningBets: 0,
+          losingBets: 0,
+          totalPayout: 0,
+          totalProfit: 0
+        };
+        
+        // 5. Обрабатываем каждую ставку
+        for (const bet of bets) {
+          if (bet.outcomeId === winningOutcomeId) {
+            // Выигрышная ставка
+            console.log(`EVENT SERVICE: Выигрышная ставка ${bet._id}: ${bet.betAmount} USDT -> ${bet.potentialWin} USDT`);
+            
+            bet.status = 'won';
+            bet.actualWin = bet.potentialWin;
+            bet.profit = bet.actualWin - bet.betAmount;
+            bet.settledAt = new Date();
+            
+            // Добавляем выигрыш на баланс пользователя
+            bet.user.balance += bet.actualWin;
+            await bet.user.save({ session });
+            
+            settlementResults.winningBets++;
+            settlementResults.totalPayout += bet.actualWin;
+            
+          } else {
+            // Проигрышная ставка
+            console.log(`EVENT SERVICE: Проигрышная ставка ${bet._id}: ${bet.betAmount} USDT`);
+            
+            bet.status = 'lost';
+            bet.actualWin = 0;
+            bet.profit = -bet.betAmount;
+            bet.settledAt = new Date();
+            
+            settlementResults.losingBets++;
+          }
+          
+          await bet.save({ session });
+          settlementResults.totalProfit += bet.profit;
+        }
+        
+        console.log('EVENT SERVICE: Результат расчета ставок:', settlementResults);
+        
+        // 6. Обновляем финансовую статистику казино
+        try {
+          const financeService = require('./casino-finance.service');
+          await financeService.updateAfterEventFinish({
+            eventId: eventId,
+            totalPayout: settlementResults.totalPayout,
+            houseProfit: -settlementResults.totalProfit // Прибыль казино = минус убыток игроков
+          });
+          console.log('EVENT SERVICE: Финансовая статистика обновлена');
+        } catch (financeError) {
+          console.error('EVENT SERVICE: Ошибка обновления финансов:', financeError);
+          // Не прерываем операцию из-за ошибки в финансах
+        }
+        
+        console.log('EVENT SERVICE: Событие успешно завершено');
         
         return {
           event: event,
-          settlement: settlementResult
+          settlement: settlementResults
         };
       });
       

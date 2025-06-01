@@ -1,4 +1,4 @@
-// backend/src/models/EventBet.js
+// backend/src/models/EventBet.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -43,10 +43,10 @@ const eventBetSchema = new Schema({
     min: 1.01
   },
   
-  // Потенциальный выигрыш
+  // Потенциальный выигрыш (сделаем не обязательным и установим default)
   potentialWin: {
     type: Number,
-    required: true
+    default: 0
   },
   
   // Статус ставки
@@ -110,11 +110,20 @@ const eventBetSchema = new Schema({
   timestamps: true
 });
 
-// Pre-save middleware для расчета потенциального выигрыша
+// ИСПРАВЛЕННЫЙ Pre-save middleware для расчета потенциального выигрыша
 eventBetSchema.pre('save', function(next) {
-  if (this.isNew) {
-    this.potentialWin = this.betAmount * this.odds;
+  // Рассчитываем potentialWin если он не установлен или равен 0
+  if (!this.potentialWin || this.potentialWin === 0) {
+    if (this.betAmount && this.odds && !isNaN(this.betAmount) && !isNaN(this.odds)) {
+      this.potentialWin = this.betAmount * this.odds;
+      console.log(`EventBet: Рассчитан potentialWin = ${this.betAmount} * ${this.odds} = ${this.potentialWin}`);
+    } else {
+      console.error('EventBet: Невозможно рассчитать potentialWin, betAmount:', this.betAmount, 'odds:', this.odds);
+      // Устанавливаем fallback значение
+      this.potentialWin = this.betAmount || 0;
+    }
   }
+  
   next();
 });
 

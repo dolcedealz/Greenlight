@@ -1,5 +1,6 @@
-// backend/src/middleware/auth.middleware.js
+// backend/src/middleware/auth.middleware.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { User } = require('../models');
+const mongoose = require('mongoose');
 
 /**
  * Middleware для проверки аутентификации Telegram WebApp
@@ -139,14 +140,21 @@ function adminAuthMiddleware(req, res, next) {
     // Сравниваем токены
     if (token === expectedToken) {
       console.log('ADMIN AUTH: Токен верный, создаем виртуального админа');
-      // Создаем виртуального админ-пользователя
+      
+      // ИСПРАВЛЕНИЕ: Создаем валидный ObjectId для системного админа
+      const systemAdminId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'); // Фиксированный ObjectId
+      
+      // Создаем виртуального админ-пользователя с валидным ObjectId
       req.user = {
-        _id: 'admin_system',
+        _id: systemAdminId, // Валидный ObjectId вместо строки
         role: 'admin',
         isAdmin: true,
         firstName: 'Admin',
-        lastName: 'System'
+        lastName: 'System',
+        telegramId: 999999999 // Фиктивный telegram ID
       };
+      
+      console.log('ADMIN AUTH: Создан виртуальный админ с ID:', systemAdminId);
       return next();
     } else {
       console.log('ADMIN AUTH: Неверный токен администратора');

@@ -1,4 +1,4 @@
-// backend/src/controllers/event.controller.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// backend/src/controllers/event.controller.js
 const { eventService } = require('../services');
 
 /**
@@ -213,14 +213,18 @@ class EventController {
    */
   async createEvent(req, res) {
     try {
+      console.log('EVENT CONTROLLER: Создание события, данные:', JSON.stringify(req.body, null, 2));
+      console.log('EVENT CONTROLLER: Пользователь:', req.user);
+      
       const adminId = req.user._id;
       const eventData = req.body;
       
-      // Проверяем права администратора
-      if (req.user.role !== 'admin') {
+      // Проверяем права администратора - принимаем виртуального админа
+      if (req.user.role !== 'admin' && !req.user.isAdmin) {
+        console.log('EVENT CONTROLLER: Недостаточно прав, role:', req.user.role, 'isAdmin:', req.user.isAdmin);
         return res.status(403).json({
           success: false,
-          message: 'Недостаточно прав'
+          message: 'Недостаточно прав для создания события'
         });
       }
       
@@ -251,11 +255,14 @@ class EventController {
       const { winningOutcomeId } = req.body;
       const adminId = req.user._id;
       
-      // Проверяем права администратора
-      if (req.user.role !== 'admin') {
+      console.log('EVENT CONTROLLER: Завершение события:', eventId, 'победитель:', winningOutcomeId);
+      console.log('EVENT CONTROLLER: Пользователь:', req.user);
+      
+      // Проверяем права администратора - принимаем виртуального админа
+      if (req.user.role !== 'admin' && !req.user.isAdmin) {
         return res.status(403).json({
           success: false,
-          message: 'Недостаточно прав'
+          message: 'Недостаточно прав для завершения события'
         });
       }
       
@@ -287,11 +294,14 @@ class EventController {
    */
   async getAllEvents(req, res) {
     try {
-      // Проверяем права администратора
-      if (req.user.role !== 'admin') {
+      console.log('EVENT CONTROLLER: Запрос всех событий от админа');
+      console.log('EVENT CONTROLLER: Пользователь:', req.user);
+      
+      // Проверяем права администратора - принимаем виртуального админа
+      if (req.user.role !== 'admin' && !req.user.isAdmin) {
         return res.status(403).json({
           success: false,
-          message: 'Недостаточно прав'
+          message: 'Недостаточно прав для просмотра всех событий'
         });
       }
       
@@ -313,11 +323,22 @@ class EventController {
       
       // Добавляем текущие коэффициенты
       const eventsWithOdds = events.map(event => {
-        const odds = event.calculateOdds();
-        return {
-          ...event.toObject(),
-          currentOdds: odds
-        };
+        try {
+          const odds = event.calculateOdds();
+          return {
+            ...event.toObject(),
+            currentOdds: odds
+          };
+        } catch (err) {
+          console.error('Ошибка расчета коэффициентов:', err);
+          return {
+            ...event.toObject(),
+            currentOdds: {
+              [event.outcomes[0]?.id]: event.initialOdds || 2.0,
+              [event.outcomes[1]?.id]: event.initialOdds || 2.0
+            }
+          };
+        }
       });
       
       res.status(200).json({

@@ -1,4 +1,4 @@
-// frontend/src/components/events/UserEventBets.js - УСТОЙЧИВАЯ ВЕРСИЯ
+// frontend/src/components/events/UserEventBets.js - УЛУЧШЕННАЯ ВЕРСИЯ С ДЕТАЛЬНЫМ ЛОГИРОВАНИЕМ
 import React, { useState, useEffect } from 'react';
 import { eventsApi } from '../../services/api';
 
@@ -7,121 +7,152 @@ const UserEventBets = ({ onRefresh }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [apiAvailable, setApiAvailable] = useState(true);
 
   console.log('UserEventBets: Компонент загружен');
 
   // Загрузка ставок при монтировании
   useEffect(() => {
+    console.log('UserEventBets: useEffect - начальная загрузка');
     fetchUserBets();
   }, []);
 
-  // Загрузка ставок пользователя с защитой от ошибок
+  // Загрузка ставок пользователя с детальным логированием
   const fetchUserBets = async (showLoader = true) => {
     try {
-      console.log('UserEventBets: Попытка загрузки ставок...');
+      console.log('UserEventBets: === НАЧАЛО ЗАГРУЗКИ СТАВОК ===');
+      console.log('UserEventBets: showLoader:', showLoader);
       
       if (showLoader) {
         setLoading(true);
+        console.log('UserEventBets: Устанавливаем loading = true');
       } else {
         setRefreshing(true);
+        console.log('UserEventBets: Устанавливаем refreshing = true');
       }
 
-      setError(null); // Сбрасываем ошибку
+      setError(null);
+      console.log('UserEventBets: Сбрасываем ошибку');
 
-      // Проверяем, доступен ли метод API
-      if (!eventsApi.getUserBets) {
-        throw new Error('API метод getUserBets не найден');
+      // Проверяем доступность API метода
+      if (!eventsApi || typeof eventsApi.getUserBets !== 'function') {
+        throw new Error('API метод eventsApi.getUserBets не найден');
       }
 
+      console.log('UserEventBets: Вызываем eventsApi.getUserBets...');
+      console.log('UserEventBets: API URL:', eventsApi.defaults?.baseURL || 'неизвестно');
+      
+      const startTime = Date.now();
       const response = await eventsApi.getUserBets({ limit: 50 });
-      console.log('UserEventBets: Успешный ответ API:', response.data);
+      const endTime = Date.now();
       
-      if (response.data && response.data.success) {
-        setBets(response.data.data.bets || []);
-        setApiAvailable(true);
-        console.log('UserEventBets: Загружено ставок:', response.data.data.bets?.length || 0);
-      } else {
-        console.warn('UserEventBets: API вернул неуспешный ответ:', response.data);
-        setError('API вернул неуспешный ответ');
-        setBets([]); // Устанавливаем пустой массив
+      console.log(`UserEventBets: API запрос занял ${endTime - startTime}ms`);
+      console.log('UserEventBets: Полный ответ API:', response);
+      console.log('UserEventBets: response.data:', response.data);
+      
+      if (!response) {
+        throw new Error('Получен пустой ответ от API');
       }
+
+      if (!response.data) {
+        throw new Error('Отсутствует поле data в ответе API');
+      }
+      
+      if (response.data.success === false) {
+        throw new Error(response.data.message || 'API вернул success: false');
+      }
+
+      if (response.data.success === true) {
+        console.log('UserEventBets: API вернул success: true');
+        
+        if (!response.data.data) {
+          console.warn('UserEventBets: Отсутствует поле data.data, устанавливаем пустой массив');
+          setBets([]);
+        } else {
+          console.log('UserEventBets: response.data.data:', response.data.data);
+          
+          const betsData = response.data.data.bets || response.data.data || [];
+          console.log('UserEventBets: Извлеченные ставки:', betsData);
+          console.log('UserEventBets: Количество ставок:', Array.isArray(betsData) ? betsData.length : 'не массив');
+          
+          if (Array.isArray(betsData)) {
+            setBets(betsData);
+            console.log('UserEventBets: Ставки успешно установлены');
+          } else {
+            console.warn('UserEventBets: betsData не является массивом:', typeof betsData);
+            setBets([]);
+          }
+        }
+      } else {
+        console.warn('UserEventBets: Неопределенный статус success:', response.data.success);
+        setBets([]);
+      }
+      
+      console.log('UserEventBets: === УСПЕШНОЕ ЗАВЕРШЕНИЕ ЗАГРУЗКИ ===');
+      
     } catch (err) {
-      console.error('UserEventBets: Ошибка при загрузке ставок:', err);
+      console.error('UserEventBets: === ОШИБКА ПРИ ЗАГРУЗКЕ ===');
+      console.error('UserEventBets: Тип ошибки:', err.constructor.name);
+      console.error('UserEventBets: Сообщение ошибки:', err.message);
+      console.error('UserEventBets: Полная ошибка:', err);
       
-      // Обрабатываем разные типы ошибок
-      if (err.message.includes('getUserBets не найден')) {
-        setError('API метод getUserBets еще не реализован на сервере');
-        setApiAvailable(false);
-      } else if (err.response?.status === 404) {
-        setError('Эндпоинт для получения ставок не найден (404)');
-        setApiAvailable(false);
-      } else if (err.response?.status === 500) {
-        setError('Ошибка сервера при получении ставок');
-      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
-        setError('Ошибка сети - сервер недоступен');
+      if (err.response) {
+        console.error('UserEventBets: HTTP статус:', err.response.status);
+        console.error('UserEventBets: Заголовки ответа:', err.response.headers);
+        console.error('UserEventBets: Данные ответа:', err.response.data);
+      } else if (err.request) {
+        console.error('UserEventBets: Запрос был отправлен, но ответ не получен');
+        console.error('UserEventBets: Детали запроса:', err.request);
       } else {
-        setError(err.response?.data?.message || err.message || 'Неизвестная ошибка');
+        console.error('UserEventBets: Ошибка при настройке запроса:', err.message);
       }
       
+      // Детальная обработка ошибок
+      let errorMessage = 'Неизвестная ошибка';
+      
+      if (err.message.includes('getUserBets не найден')) {
+        errorMessage = 'API метод getUserBets еще не реализован';
+      } else if (err.response?.status === 404) {
+        errorMessage = 'Эндпоинт для получения ставок не найден (404)';
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Ошибка аутентификации (401) - проверьте данные Telegram';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Доступ запрещен (403)';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Ошибка сервера (500)';
+      } else if (err.response?.status >= 400) {
+        errorMessage = `Ошибка HTTP ${err.response.status}: ${err.response.data?.message || err.message}`;
+      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+        errorMessage = 'Ошибка сети - сервер недоступен';
+      } else {
+        errorMessage = err.message;
+      }
+      
+      console.error('UserEventBets: Финальное сообщение об ошибке:', errorMessage);
+      setError(errorMessage);
       setBets([]); // Всегда устанавливаем пустой массив при ошибке
+      
     } finally {
+      console.log('UserEventBets: === БЛОК FINALLY ===');
       setLoading(false);
       setRefreshing(false);
+      console.log('UserEventBets: loading и refreshing установлены в false');
     }
   };
 
   // Обработчик обновления
   const handleRefresh = () => {
-    console.log('UserEventBets: Ручное обновление...');
+    console.log('UserEventBets: Ручное обновление пользователем');
     fetchUserBets(false);
     if (onRefresh) {
+      console.log('UserEventBets: Вызываем onRefresh callback');
       onRefresh();
     }
-  };
-
-  // Создаем тестовые данные для демонстрации интерфейса
-  const createMockBets = () => {
-    return [
-      {
-        _id: 'mock1',
-        event: { title: 'Тестовое событие 1', status: 'active' },
-        outcomeName: 'Исход А',
-        amount: 10.50,
-        odds: 2.5,
-        isSettled: false,
-        createdAt: new Date().toISOString()
-      },
-      {
-        _id: 'mock2',
-        event: { title: 'Тестовое событие 2', status: 'finished' },
-        outcomeName: 'Исход Б',
-        amount: 25.00,
-        odds: 1.8,
-        isSettled: true,
-        isWin: true,
-        winAmount: 45.00,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        settledAt: new Date().toISOString()
-      },
-      {
-        _id: 'mock3',
-        event: { title: 'Тестовое событие 3', status: 'finished' },
-        outcomeName: 'Исход В',
-        amount: 15.00,
-        odds: 3.2,
-        isSettled: true,
-        isWin: false,
-        createdAt: new Date(Date.now() - 172800000).toISOString(),
-        settledAt: new Date(Date.now() - 86400000).toISOString()
-      }
-    ];
   };
 
   // Получение статуса ставки
   const getBetStatus = (bet) => {
     if (!bet.isSettled) {
-      if (bet.event.status === 'finished') {
+      if (bet.event?.status === 'finished') {
         return { text: 'Ожидает расчета', color: '#ff9500', icon: '⏳' };
       }
       return { text: 'Активна', color: '#0ba84a', icon: '🎯' };
@@ -136,18 +167,73 @@ const UserEventBets = ({ onRefresh }) => {
 
   // Форматирование даты
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (err) {
+      console.error('UserEventBets: Ошибка форматирования даты:', dateString, err);
+      return 'Неизвестно';
+    }
   };
 
   // Расчет потенциального выигрыша
   const getPotentialWin = (bet) => {
-    return (bet.amount * bet.odds).toFixed(2);
+    try {
+      const win = bet.potentialWin || (bet.betAmount * bet.odds) || (bet.amount * bet.odds);
+      return win.toFixed(2);
+    } catch (err) {
+      console.error('UserEventBets: Ошибка расчета потенциального выигрыша:', bet, err);
+      return '0.00';
+    }
+  };
+
+  // Создаем тестовые данные для демонстрации при ошибке API
+  const createMockBets = () => {
+    console.log('UserEventBets: Создаем тестовые данные');
+    return [
+      {
+        _id: 'demo1',
+        event: { title: 'Демо: Bitcoin достигнет $100,000 до конца года?', status: 'active' },
+        outcomeName: 'Да',
+        betAmount: 10.50,
+        odds: 2.5,
+        potentialWin: 26.25,
+        isSettled: false,
+        isWin: false,
+        placedAt: new Date().toISOString()
+      },
+      {
+        _id: 'demo2',
+        event: { title: 'Демо: Ethereum достигнет $5000 в этом месяце?', status: 'finished' },
+        outcomeName: 'Нет',
+        betAmount: 25.00,
+        odds: 1.8,
+        potentialWin: 45.00,
+        actualWin: 45.00,
+        isSettled: true,
+        isWin: true,
+        placedAt: new Date(Date.now() - 86400000).toISOString(),
+        settledAt: new Date().toISOString()
+      },
+      {
+        _id: 'demo3',
+        event: { title: 'Демо: Tesla выпустит новую модель в Q1?', status: 'finished' },
+        outcomeName: 'Да',
+        betAmount: 15.00,
+        odds: 3.2,
+        potentialWin: 48.00,
+        actualWin: 0,
+        isSettled: true,
+        isWin: false,
+        placedAt: new Date(Date.now() - 172800000).toISOString(),
+        settledAt: new Date(Date.now() - 86400000).toISOString()
+      }
+    ];
   };
 
   // Стили
@@ -266,8 +352,8 @@ const UserEventBets = ({ onRefresh }) => {
     }
   };
 
-  // Данные для отображения (реальные или мок)
-  const displayBets = apiAvailable ? bets : (error ? createMockBets() : bets);
+  // Данные для отображения (реальные или демо при ошибке)
+  const displayBets = error ? createMockBets() : bets;
 
   // Рендер загрузки
   if (loading) {
@@ -305,11 +391,9 @@ const UserEventBets = ({ onRefresh }) => {
           <div style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.8)', marginBottom: '10px' }}>
             {error}
           </div>
-          {!apiAvailable && (
-            <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }}>
-              Показываем демо-интерфейс с тестовыми данными
-            </div>
-          )}
+          <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }}>
+            Показываем демо-интерфейс с тестовыми данными
+          </div>
         </div>
       )}
 
@@ -319,9 +403,9 @@ const UserEventBets = ({ onRefresh }) => {
           <div style={{ fontSize: '48px', marginBottom: '15px' }}>📊</div>
           <h3>Нет ставок</h3>
           <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            {apiAvailable 
+            {!error 
               ? 'Вы еще не делали ставки на события. Выберите событие и сделайте свою первую ставку!'
-              : 'Здесь будут отображаться ваши ставки после реализации API на сервере.'
+              : 'Здесь будут отображаться ваши ставки после устранения проблем с API.'
             }
           </p>
         </div>
@@ -358,7 +442,7 @@ const UserEventBets = ({ onRefresh }) => {
                 <div style={styles.detailsGrid}>
                   <div style={styles.detailItem}>
                     <span style={styles.label}>Ставка:</span>
-                    <span style={styles.value}>{bet.amount.toFixed(2)} USDT</span>
+                    <span style={styles.value}>{bet.betAmount.toFixed(2)} USDT</span>
                   </div>
                   
                   <div style={styles.detailItem}>
@@ -371,7 +455,7 @@ const UserEventBets = ({ onRefresh }) => {
                       {bet.isSettled && bet.isWin ? 'Выигрыш:' : 'Потенциальный выигрыш:'}
                     </span>
                     <span style={{ ...styles.value, ...styles.positive }}>
-                      {bet.isSettled && bet.isWin ? bet.winAmount.toFixed(2) : potentialWin} USDT
+                      {bet.isSettled && bet.isWin ? bet.actualWin.toFixed(2) : potentialWin} USDT
                     </span>
                   </div>
 
@@ -382,7 +466,7 @@ const UserEventBets = ({ onRefresh }) => {
                         ...styles.value,
                         ...(bet.isWin ? styles.positive : styles.negative)
                       }}>
-                        {bet.isWin ? '+' : '-'}{Math.abs(bet.isWin ? (bet.winAmount - bet.amount) : bet.amount).toFixed(2)} USDT
+                        {bet.isWin ? '+' : '-'}{Math.abs(bet.isWin ? (bet.actualWin - bet.betAmount) : bet.betAmount).toFixed(2)} USDT
                       </span>
                     </div>
                   )}
@@ -390,7 +474,7 @@ const UserEventBets = ({ onRefresh }) => {
 
                 {/* Дата */}
                 <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', marginTop: '8px' }}>
-                  Создана: {formatDate(bet.createdAt)}
+                  Создана: {formatDate(bet.placedAt)}
                   {bet.isSettled && bet.settledAt && (
                     <span style={{ marginLeft: '15px' }}>
                       • Рассчитана: {formatDate(bet.settledAt)}
@@ -432,7 +516,7 @@ const UserEventBets = ({ onRefresh }) => {
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'white' }}>
-                {displayBets.reduce((sum, bet) => sum + bet.amount, 0).toFixed(2)}
+                {displayBets.reduce((sum, bet) => sum + bet.betAmount, 0).toFixed(2)}
               </div>
               <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
                 Поставлено USDT

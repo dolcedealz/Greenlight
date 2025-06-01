@@ -44,19 +44,19 @@ router.put('/admin/:eventId/finish',
 
 // === ПОЛЬЗОВАТЕЛЬСКИЕ МАРШРУТЫ ДЛЯ СТАВОК (должны быть перед /:eventId) ===
 
-// Разместить ставку на событие
-router.post('/bet', 
-  telegramAuthMiddleware, 
-  eventController.placeBet
-);
-
 // Получить ставки пользователя
 router.get('/user/bets', 
   telegramAuthMiddleware, 
   eventController.getUserBets
 );
 
-// === ПАРАМЕТРИЗОВАННЫЙ МАРШРУТ ДОЛЖЕН БЫТЬ ПОСЛЕДНИМ ===
+// === МАРШРУТЫ С ПАРАМЕТРОМ eventId ===
+
+// Разместить ставку на событие (ИСПРАВЛЕНО: добавлен параметр eventId)
+router.post('/:eventId/bet', 
+  telegramAuthMiddleware, 
+  eventController.placeBet
+);
 
 // Получить событие по ID (ДОЛЖЕН БЫТЬ ПОСЛЕДНИМ!)
 router.get('/:eventId', 

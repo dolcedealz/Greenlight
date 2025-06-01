@@ -1,4 +1,4 @@
-// backend/src/services/event.service.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// backend/src/services/event.service.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { Event, EventBet, User, Transaction } = require('../models');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
@@ -115,7 +115,7 @@ class EventService {
   }
   
   /**
-   * Разместить ставку на событие
+   * Разместить ставку на событие - ИСПРАВЛЕННАЯ ВЕРСИЯ
    * @param {string} userId - ID пользователя
    * @param {string} eventId - ID события
    * @param {string} outcomeId - ID исхода
@@ -184,6 +184,10 @@ class EventService {
         throw new Error('Некорректные коэффициенты для данного исхода');
       }
       
+      // ИСПРАВЛЕНИЕ: Рассчитываем потенциальный выигрыш ПЕРЕД созданием ставки
+      const potentialWin = parseFloat((amount * currentOdds).toFixed(2));
+      console.log(`EVENT SERVICE: Потенциальный выигрыш: ${amount} * ${currentOdds} = ${potentialWin}`);
+      
       // Списываем средства с баланса
       const balanceBefore = user.balance;
       user.balance -= amount;
@@ -191,21 +195,40 @@ class EventService {
       
       console.log(`EVENT SERVICE: Баланс пользователя: ${balanceBefore} -> ${balanceAfter}`);
       
-      // Создаем ставку
-      const bet = new EventBet({
+      // ИСПРАВЛЕНИЕ: Создаем ставку с ЯВНО установленным potentialWin
+      const betData = {
         user: userId,
         event: eventId,
         outcomeId: outcomeId,
         outcomeName: outcome.name,
         betAmount: amount,
         odds: currentOdds,
+        potentialWin: potentialWin, // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Явно устанавливаем потенциальный выигрыш
         balanceBefore: balanceBefore,
         balanceAfter: balanceAfter,
         userIp: userIp,
         metadata: {
           source: 'web'
         }
+      };
+      
+      console.log(`EVENT SERVICE: Создаем ставку с данными:`, {
+        betAmount: betData.betAmount,
+        odds: betData.odds,
+        potentialWin: betData.potentialWin,
+        userId: betData.user,
+        eventId: betData.event
       });
+      
+      const bet = new EventBet(betData);
+      
+      // Дополнительная проверка перед валидацией
+      if (!bet.potentialWin || bet.potentialWin <= 0) {
+        console.error('EVENT SERVICE: КРИТИЧЕСКАЯ ОШИБКА - potentialWin не установлен или некорректен:', bet.potentialWin);
+        throw new Error('Ошибка расчета потенциального выигрыша');
+      }
+      
+      console.log(`EVENT SERVICE: Ставка создана, potentialWin установлен: ${bet.potentialWin}`);
       
       // Обновляем событие
       const outcomeIndex = event.outcomes.findIndex(o => o.id === outcomeId);
@@ -225,6 +248,10 @@ class EventService {
         balanceBefore: balanceBefore,
         balanceAfter: balanceAfter
       });
+      
+      // Валидируем ставку перед сохранением
+      await bet.validate();
+      console.log('EVENT SERVICE: Валидация ставки прошла успешно');
       
       // Сохраняем все изменения в транзакции
       await user.save({ session });

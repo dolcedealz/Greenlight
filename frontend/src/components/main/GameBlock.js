@@ -4,12 +4,10 @@ import useTactileFeedback from '../../hooks/useTactileFeedback';
 import '../../styles/GameBlock.css';
 
 const GameBlock = ({ name, icon, onClick }) => {
-  const { gameActionFeedback } = useTactileFeedback();
+  const { buttonPressFeedback } = useTactileFeedback();
 
   const handleClick = () => {
-    // Вибрация при выборе игры
-    gameActionFeedback();
-    
+    buttonPressFeedback(); // Тактильная обратная связь
     if (onClick) {
       onClick();
     }

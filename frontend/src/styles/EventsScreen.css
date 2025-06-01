@@ -253,3 +253,101 @@
 .events-list {
   animation: fadeIn 0.5s ease;
 }
+/* Добавьте эти стили в конец файла frontend/src/styles/EventsScreen.css */
+
+/* Вкладки */
+.events-tabs {
+  display: flex;
+  background-color: var(--secondary-color);
+  border-radius: var(--border-radius);
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.tab-button {
+  flex: 1;
+  padding: 15px 20px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+}
+
+.tab-button:hover:not(.active) {
+  color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tab-button.active {
+  color: white;
+  background-color: var(--primary-color);
+  font-weight: bold;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(11, 168, 74, 0.3);
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 3px;
+  background-color: white;
+  border-radius: 3px 3px 0 0;
+}
+
+/* Анимация переключения вкладок */
+.events-tabs {
+  animation: tabsAppear 0.4s ease;
+}
+
+@keyframes tabsAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Адаптивность для вкладок */
+@media (max-width: 480px) {
+  .tab-button {
+    padding: 12px 15px;
+    font-size: 14px;
+  }
+  
+  .tab-button.active::after {
+    width: 30px;
+    height: 2px;
+  }
+}
+
+/* Плавная анимация контента */
+.events-list, .user-event-bets {
+  animation: contentFadeIn 0.5s ease;
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

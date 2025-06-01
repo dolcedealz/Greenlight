@@ -1,4 +1,4 @@
-// backend/src/controllers/event.controller.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// backend/src/controllers/event.controller.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { eventService } = require('../services');
 
 /**
@@ -99,40 +99,190 @@ class EventController {
   }
   
   /**
-   * Разместить ставку на событие
+   * Разместить ставку на событие - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ
    */
   async placeBet(req, res) {
     try {
       console.log('EVENT CONTROLLER: Запрос на размещение ставки');
+      console.log('EVENT CONTROLLER: Method:', req.method);
+      console.log('EVENT CONTROLLER: URL:', req.originalUrl);
       console.log('EVENT CONTROLLER: Params:', JSON.stringify(req.params, null, 2));
       console.log('EVENT CONTROLLER: Body:', JSON.stringify(req.body, null, 2));
-      console.log('EVENT CONTROLLER: User:', req.user ? req.user._id : 'НЕ АУТЕНТИФИЦИРОВАН');
+      console.log('EVENT CONTROLLER: Headers (частично):', {
+        'content-type': req.headers['content-type'],
+        'telegram-data': req.headers['telegram-data'] ? '***СКРЫТО***' : 'отсутствует'
+      });
       
-      // ИСПРАВЛЕНО: получаем eventId из параметров URL, а не из body
+      // Проверяем аутентификацию пользователя
+      if (!req.user || !req.user._id) {
+        console.log('EVENT CONTROLLER: Пользователь не аутентифицирован');
+        return res.status(401).json({
+          success: false,
+          message: 'Пользователь не аутентифицирован'
+        });
+      }
+      
+      console.log('EVENT CONTROLLER: Аутентифицированный пользователь:', {
+        id: req.user._id,
+        telegramId: req.user.telegramId,
+        firstName: req.user.firstName,
+        balance: req.user.balance
+      });
+      
+      // Получаем eventId из параметров URL
       const { eventId } = req.params;
       const { outcomeId, betAmount } = req.body;
       const userId = req.user._id;
-      const userIp = req.ip || req.connection.remoteAddress;
+      const userIp = req.ip || req.connection.remoteAddress || 'unknown';
       
-      // Валидация входных данных
-      if (!eventId || !outcomeId || !betAmount) {
-        console.log('EVENT CONTROLLER: Отсутствуют обязательные параметры');
+      // === ДЕТАЛЬНАЯ ВАЛИДАЦИЯ ВХОДНЫХ ДАННЫХ ===
+      
+      // 1. Проверяем eventId
+      if (!eventId) {
+        console.log('EVENT CONTROLLER: Отсутствует eventId в параметрах URL');
         return res.status(400).json({
           success: false,
-          message: 'Не указаны обязательные параметры: eventId (в URL), outcomeId, betAmount'
+          message: 'Не указан ID события в URL',
+          details: 'eventId должен быть передан в параметрах URL: /api/events/{eventId}/bet'
         });
       }
       
-      const amount = parseFloat(betAmount);
-      if (isNaN(amount) || amount <= 0) {
-        console.log('EVENT CONTROLLER: Некорректная сумма ставки:', betAmount);
+      // Проверяем формат eventId (MongoDB ObjectId)
+      const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(eventId)) {
+        console.log('EVENT CONTROLLER: Некорректный формат eventId:', eventId);
         return res.status(400).json({
           success: false,
-          message: 'Некорректная сумма ставки'
+          message: 'Некорректный формат ID события',
+          details: 'eventId должен быть валидным MongoDB ObjectId'
         });
       }
       
-      console.log(`EVENT CONTROLLER: Размещение ставки: пользователь=${userId}, событие=${eventId}, исход=${outcomeId}, сумма=${amount}`);
+      // 2. Проверяем outcomeId
+      if (!outcomeId) {
+        console.log('EVENT CONTROLLER: Отсутствует outcomeId в теле запроса');
+        return res.status(400).json({
+          success: false,
+          message: 'Не указан ID исхода (outcomeId)',
+          details: 'outcomeId должен быть передан в теле запроса'
+        });
+      }
+      
+      if (typeof outcomeId !== 'string' || outcomeId.trim().length === 0) {
+        console.log('EVENT CONTROLLER: Некорректный тип или пустой outcomeId:', outcomeId);
+        return res.status(400).json({
+          success: false,
+          message: 'ID исхода должен быть непустой строкой',
+          details: 'outcomeId должен быть строкой длиной больше 0'
+        });
+      }
+      
+      // 3. Проверяем betAmount
+      if (betAmount === undefined || betAmount === null) {
+        console.log('EVENT CONTROLLER: Отсутствует betAmount в теле запроса');
+        return res.status(400).json({
+          success: false,
+          message: 'Не указана сумма ставки (betAmount)',
+          details: 'betAmount должен быть передан в теле запроса'
+        });
+      }
+      
+      // Проверяем и преобразуем сумму ставки
+      let amount;
+      if (typeof betAmount === 'string') {
+        // Если строка, пытаемся преобразовать
+        amount = parseFloat(betAmount.trim());
+      } else if (typeof betAmount === 'number') {
+        // Если уже число
+        amount = betAmount;
+      } else {
+        console.log('EVENT CONTROLLER: betAmount имеет некорректный тип:', typeof betAmount, betAmount);
+        return res.status(400).json({
+          success: false,
+          message: 'Сумма ставки должна быть числом или строкой с числом',
+          details: `Получен тип: ${typeof betAmount}, значение: ${betAmount}`
+        });
+      }
+      
+      // Проверяем, что преобразование прошло успешно
+      if (isNaN(amount)) {
+        console.log('EVENT CONTROLLER: betAmount не является числом после преобразования:', betAmount);
+        return res.status(400).json({
+          success: false,
+          message: 'Сумма ставки должна быть корректным числом',
+          details: `Не удалось преобразовать "${betAmount}" в число`
+        });
+      }
+      
+      // Проверяем, что сумма положительная
+      if (amount <= 0) {
+        console.log('EVENT CONTROLLER: Отрицательная или нулевая сумма ставки:', amount);
+        return res.status(400).json({
+          success: false,
+          message: 'Сумма ставки должна быть положительным числом',
+          details: `Получена сумма: ${amount}`
+        });
+      }
+      
+      // Проверяем минимальную сумму (базовая проверка)
+      if (amount < 0.01) {
+        console.log('EVENT CONTROLLER: Сумма ставки слишком мала:', amount);
+        return res.status(400).json({
+          success: false,
+          message: 'Минимальная сумма ставки: 0.01 USDT',
+          details: `Указана сумма: ${amount} USDT`
+        });
+      }
+      
+      // Проверяем разумный максимум (защита от случайных огромных ставок)
+      if (amount > 100000) {
+        console.log('EVENT CONTROLLER: Слишком большая сумма ставки:', amount);
+        return res.status(400).json({
+          success: false,
+          message: 'Максимальная сумма ставки: 100,000 USDT',
+          details: `Указана сумма: ${amount} USDT`
+        });
+      }
+      
+      // Проверяем точность (максимум 2 знака после запятой)
+      const roundedAmount = Math.round(amount * 100) / 100;
+      if (Math.abs(amount - roundedAmount) > 0.001) {
+        console.log('EVENT CONTROLLER: Слишком высокая точность суммы:', amount);
+        return res.status(400).json({
+          success: false,
+          message: 'Сумма ставки может иметь максимум 2 знака после запятой',
+          details: `Указана сумма: ${amount}, округленная: ${roundedAmount}`
+        });
+      }
+      
+      // Используем округленную сумму
+      amount = roundedAmount;
+      
+      // === ЛОГИРОВАНИЕ ФИНАЛЬНЫХ ДАННЫХ ===
+      console.log(`EVENT CONTROLLER: Валидация прошла успешно. Параметры ставки:`);
+      console.log(`  - Пользователь: ${userId} (${req.user.firstName})`);
+      console.log(`  - Событие: ${eventId}`);
+      console.log(`  - Исход: ${outcomeId}`);
+      console.log(`  - Сумма: ${amount} USDT`);
+      console.log(`  - IP: ${userIp}`);
+      console.log(`  - Баланс пользователя: ${req.user.balance} USDT`);
+      
+      // === ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА БАЛАНСА ===
+      if (req.user.balance < amount) {
+        console.log(`EVENT CONTROLLER: Недостаточно средств. Баланс: ${req.user.balance}, требуется: ${amount}`);
+        return res.status(400).json({
+          success: false,
+          message: 'Недостаточно средств на балансе',
+          details: {
+            currentBalance: req.user.balance,
+            requiredAmount: amount,
+            deficit: amount - req.user.balance
+          }
+        });
+      }
+      
+      // === РАЗМЕЩЕНИЕ СТАВКИ ===
+      console.log('EVENT CONTROLLER: Передаем управление сервису событий...');
       
       const result = await eventService.placeBet(
         userId,
@@ -142,31 +292,105 @@ class EventController {
         userIp
       );
       
-      console.log('EVENT CONTROLLER: Ставка успешно размещена:', result.bet._id);
+      console.log('EVENT CONTROLLER: Ставка успешно размещена через сервис:', {
+        betId: result.bet._id,
+        newBalance: result.newBalance,
+        potentialWin: result.bet.potentialWin
+      });
+      
+      // === ФОРМИРОВАНИЕ ОТВЕТА ===
+      const responseData = {
+        bet: {
+          id: result.bet._id,
+          eventId: result.bet.event,
+          outcomeId: result.bet.outcomeId,
+          outcomeName: result.bet.outcomeName,
+          betAmount: result.bet.betAmount,
+          odds: result.bet.odds,
+          potentialWin: result.bet.potentialWin,
+          placedAt: result.bet.placedAt,
+          status: result.bet.status
+        },
+        user: {
+          newBalance: result.newBalance,
+          previousBalance: req.user.balance
+        },
+        event: result.event
+      };
+      
+      console.log('EVENT CONTROLLER: Отправляем успешный ответ');
       
       res.status(201).json({
         success: true,
         message: 'Ставка успешно размещена',
-        data: {
-          bet: {
-            id: result.bet._id,
-            eventId: result.bet.event,
-            outcomeId: result.bet.outcomeId,
-            outcomeName: result.bet.outcomeName,
-            betAmount: result.bet.betAmount,
-            odds: result.bet.odds,
-            potentialWin: result.bet.potentialWin,
-            placedAt: result.bet.placedAt
-          },
-          newBalance: result.newBalance,
-          event: result.event
-        }
+        data: responseData
       });
+      
     } catch (error) {
       console.error('EVENT CONTROLLER: Ошибка размещения ставки:', error);
-      res.status(400).json({
+      console.error('EVENT CONTROLLER: Stack trace:', error.stack);
+      
+      // === ДЕТАЛЬНАЯ ОБРАБОТКА ОШИБОК ===
+      
+      // Ошибки "не найдено"
+      if (error.message.includes('не найдено') || error.message.includes('не найден')) {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+          errorType: 'NOT_FOUND'
+        });
+      }
+      
+      // Ошибки недостатка средств
+      if (error.message.includes('Недостаточно средств')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+          errorType: 'INSUFFICIENT_FUNDS'
+        });
+      }
+      
+      // Ошибки времени приема ставок
+      if (error.message.includes('ставки') && error.message.includes('принимаются')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+          errorType: 'BETTING_CLOSED'
+        });
+      }
+      
+      // Ошибки валидации
+      if (error.message.includes('ValidationError') || error.message.includes('validation failed')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ошибка валидации данных: ' + error.message,
+          errorType: 'VALIDATION_ERROR'
+        });
+      }
+      
+      // Ошибки лимитов ставок
+      if (error.message.includes('Минимальная ставка') || error.message.includes('Максимальная ставка')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+          errorType: 'BET_LIMIT_EXCEEDED'
+        });
+      }
+      
+      // Ошибки коэффициентов
+      if (error.message.includes('коэффициент') || error.message.includes('исход')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+          errorType: 'INVALID_OUTCOME'
+        });
+      }
+      
+      // Общая ошибка сервера
+      res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message || 'Внутренняя ошибка сервера при размещении ставки',
+        errorType: 'INTERNAL_SERVER_ERROR'
       });
     }
   }

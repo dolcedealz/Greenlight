@@ -432,7 +432,7 @@ class EventService {
   }
   
   /**
-   * Создать новое событие (админ)
+   * Создать новое событие (админ) - ИСПРАВЛЕННАЯ ВЕРСИЯ
    */
   async createEvent(eventData, adminId) {
     try {
@@ -447,21 +447,36 @@ class EventService {
         throw new Error('Событие должно иметь ровно 2 исхода');
       }
       
+      // Генерируем ID для исходов, если они не предоставлены
+      const processedOutcomes = eventData.outcomes.map((outcome, index) => {
+        if (!outcome.id) {
+          // Генерируем уникальный ID если он отсутствует
+          outcome.id = `outcome_${Date.now()}_${index + 1}_${Math.random().toString(36).substring(2, 8)}`;
+          console.log(`EVENT SERVICE: Сгенерирован ID для исхода ${index + 1}: ${outcome.id}`);
+        }
+        
+        return {
+          id: outcome.id,
+          name: outcome.name,
+          totalBets: 0,
+          betsCount: 0
+        };
+      });
+      
+      console.log('EVENT SERVICE: Обработанные исходы:', JSON.stringify(processedOutcomes, null, 2));
+      
       // Создаем событие
       const event = new Event({
         ...eventData,
         createdBy: adminId,
         totalPool: 0,
-        outcomes: eventData.outcomes.map(outcome => ({
-          ...outcome,
-          totalBets: 0,
-          betsCount: 0
-        }))
+        outcomes: processedOutcomes
       });
       
       await event.save();
       
       console.log(`EVENT SERVICE: Событие создано с ID: ${event._id}`);
+      console.log(`EVENT SERVICE: Исходы события:`, event.outcomes.map(o => `${o.id}: ${o.name}`));
       
       return event;
     } catch (error) {

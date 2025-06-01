@@ -1,143 +1,67 @@
-// backend/src/services/event.service.js
+// backend/src/services/event.service.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { Event, EventBet, User, Transaction } = require('../models');
+const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
 
 /**
  * Сервис для управления событиями
  */
 class EventService {
+  
   /**
    * Получить активные события
+   * @param {number} limit - Количество событий
+   * @returns {Array} Список активных событий с коэффициентами
    */
-  async getActiveEvents(limit = 10) {
+  async getActiveEvents(limit = 4) {
+    console.log('EVENT SERVICE: Получение активных событий, лимит:', limit);
+    
     try {
-      console.log(`EVENT SERVICE: Получение активных событий, лимит: ${limit}`);
+      const events = await Event.getActiveEvents(limit);
       
-      const events = await Event.find({
-        status: 'active',
-        bettingEndsAt: { $gt: new Date() }
-      })
-      .sort({ priority: -1, createdAt: -1 })
-      .limit(limit)
-      .populate('createdBy', 'telegramId username firstName lastName');
-      
-      // Добавляем текущие коэффициенты
+      // Добавляем текущие коэффициенты для каждого события
       const eventsWithOdds = events.map(event => {
-        const odds = event.calculateOdds();
-        return {
-          ...event.toObject(),
-          currentOdds: odds
-        };
+        try {
+          const odds = event.calculateOdds();
+          return {
+            ...event.toObject(),
+            currentOdds: odds
+          };
+        } catch (err) {
+          console.error('Ошибка расчета коэффициентов для события:', event._id, err);
+          return {
+            ...event.toObject(),
+            currentOdds: {
+              [event.outcomes[0]?.id]: event.initialOdds || 2.0,
+              [event.outcomes[1]?.id]: event.initialOdds || 2.0
+            }
+          };
+        }
       });
       
-      console.log(`EVENT SERVICE: Найдено ${eventsWithOdds.length} активных событий`);
+      console.log('EVENT SERVICE: Найдено активных событий:', eventsWithOdds.length);
       return eventsWithOdds;
+      
     } catch (error) {
       console.error('EVENT SERVICE: Ошибка получения активных событий:', error);
-      throw error;
+      throw new Error('Не удалось получить список событий');
     }
   }
   
   /**
    * Получить главное событие
+   * @returns {Object|null} Главное событие или null
    */
   async getFeaturedEvent() {
+    console.log('EVENT SERVICE: Получение главного события');
+    
     try {
-      console.log('EVENT SERVICE: Получение главного события');
-      
-      const event = await Event.findOne({
-        featured: true,
-        status: 'active',
-        bettingEndsAt: { $gt: new Date() }
-      })
-      .sort({ priority: -1, createdAt: -1 })
-      .populate('createdBy', 'telegramId username firstName lastName');
+      const event = await Event.getFeaturedEvent();
       
       if (!event) {
         console.log('EVENT SERVICE: Главное событие не найдено');
         return null;
       }
-      
-      // Добавляем текущие коэффициенты
-      const odds = event.calculateOdds();
-      const eventWithOdds = {
-        ...event.toObject(),
-        currentOdds: odds
-      };
-      
-      console.log(`EVENT SERVICE: Найдено главное событие: ${event.title}`);
-      return eventWithOdds;
-    } catch (error) {
-      console.error('EVENT SERVICE: Ошибка получения главного события:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Получить событие по ID
-   */
-  async getEventById(eventId) {
-    try {
-      console.log(`EVENT SERVICE: Получение события по ID: ${eventId}`);
-      
-      if (!mongoose.Types.ObjectId.isValid(eventId)) {
-        throw new Error('Некорректный ID события');
-      }
-      
-      const event = await Event.findById(eventId)
-        .populate('createdBy', 'telegramId username firstName lastName');
-      
-      if (!event) {
-        throw new Error('Событие не найдено');
-      }
-      
-      // Добавляем текущие коэффициенты
-      const odds = event.calculateOdds();
-      const eventWithOdds = {
-        ...event.toObject(),
-        currentOdds: odds
-      };
-      
-      console.log(`EVENT SERVICE: Событие найдено: ${event.title}`);
-      return eventWithOdds;
-    } catch (error) {
-      console.error('EVENT SERVICE: Ошибка получения события:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Создать событие
-   */
-  async createEvent(eventData, adminId) {
-    try {
-      console.log('EVENT SERVICE: Создание события:', JSON.stringify(eventData, null, 2));
-      
-      // Генерируем уникальные ID для исходов
-      const outcomes = eventData.outcomes.map((outcome, index) => ({
-        id: `outcome_${index + 1}`,
-        name: outcome.name,
-        totalBets: 0,
-        betsCount: 0
-      }));
-      
-      // Создаем событие
-      const eventToCreate = {
-        ...eventData,
-        outcomes,
-        createdBy: adminId,
-        status: 'active' // Сразу делаем активным
-      };
-      
-      console.log('EVENT SERVICE: Данные для создания:', JSON.stringify(eventToCreate, null, 2));
-      
-      const event = new Event(eventToCreate);
-      await event.save();
-      
-      console.log(`EVENT SERVICE: Событие создано с ID: ${event._id}`);
-      
-      // Заполняем информацию о создателе
-      await event.populate('createdBy', 'telegramId username firstName lastName');
       
       // Добавляем коэффициенты
       const odds = event.calculateOdds();
@@ -146,151 +70,349 @@ class EventService {
         ...event.toObject(),
         currentOdds: odds
       };
+      
     } catch (error) {
-      console.error('EVENT SERVICE: Ошибка создания события:', error);
-      throw new Error(`Ошибка создания события: ${error.message}`);
+      console.error('EVENT SERVICE: Ошибка получения главного события:', error);
+      throw new Error('Не удалось получить главное событие');
+    }
+  }
+  
+  /**
+   * Получить событие по ID
+   * @param {string} eventId - ID события
+   * @returns {Object} Событие с коэффициентами
+   */
+  async getEventById(eventId) {
+    console.log('EVENT SERVICE: Получение события по ID:', eventId);
+    
+    try {
+      const event = await Event.findById(eventId);
+      
+      if (!event) {
+        throw new Error('Событие не найдено');
+      }
+      
+      // Добавляем коэффициенты
+      const odds = event.calculateOdds();
+      
+      return {
+        ...event.toObject(),
+        currentOdds: odds
+      };
+      
+    } catch (error) {
+      console.error('EVENT SERVICE: Ошибка получения события:', error);
+      if (error.message === 'Событие не найдено') {
+        throw error;
+      }
+      throw new Error('Не удалось получить событие');
     }
   }
   
   /**
    * Разместить ставку на событие
+   * @param {string} userId - ID пользователя
+   * @param {string} eventId - ID события
+   * @param {string} outcomeId - ID исхода
+   * @param {number} amount - Сумма ставки
+   * @param {string} userIp - IP адрес пользователя
+   * @returns {Object} Результат размещения ставки
    */
-  async placeBet(userId, eventId, outcomeId, betAmount, userIp = null) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+  async placeBet(userId, eventId, outcomeId, amount, userIp = null) {
+    console.log(`EVENT SERVICE: Размещение ставки пользователем ${userId} на событие ${eventId}`);
     
     try {
-      console.log(`EVENT SERVICE: Размещение ставки пользователем ${userId} на событие ${eventId}`);
-      
       // Получаем событие
-      const event = await Event.findById(eventId).session(session);
+      const event = await Event.findById(eventId);
       if (!event) {
         throw new Error('Событие не найдено');
       }
       
-      // Проверяем возможность сделать ставку
+      // Проверяем, можно ли делать ставки
       if (!event.canPlaceBet()) {
         throw new Error('Ставки на это событие больше не принимаются');
       }
       
-      // Проверяем существование исхода
+      // Проверяем корректность исхода
       const outcome = event.outcomes.find(o => o.id === outcomeId);
       if (!outcome) {
-        throw new Error('Исход не найден');
+        throw new Error('Некорректный исход события');
       }
       
       // Проверяем лимиты ставки
-      if (betAmount < event.minBet) {
+      if (amount < event.minBet) {
         throw new Error(`Минимальная ставка: ${event.minBet} USDT`);
       }
       
-      if (betAmount > event.maxBet) {
+      if (amount > event.maxBet) {
         throw new Error(`Максимальная ставка: ${event.maxBet} USDT`);
       }
       
       // Получаем пользователя
-      const user = await User.findById(userId).session(session);
+      const user = await User.findById(userId);
       if (!user) {
         throw new Error('Пользователь не найден');
       }
       
-      if (user.balance < betAmount) {
-        throw new Error('Недостаточно средств');
+      // Проверяем баланс
+      if (user.balance < amount) {
+        throw new Error('Недостаточно средств на балансе');
       }
       
-      // Рассчитываем коэффициенты до ставки
-      const oddsBeforeBet = event.calculateOdds();
-      const currentOdds = oddsBeforeBet[outcomeId];
+      // Рассчитываем коэффициенты на момент ставки
+      const odds = event.calculateOdds();
+      const currentOdds = odds[outcomeId];
       
-      // Списываем средства с баланса пользователя
+      if (!currentOdds || currentOdds < 1.01) {
+        throw new Error('Некорректные коэффициенты для данного исхода');
+      }
+      
+      // Списываем средства с баланса
       const balanceBefore = user.balance;
-      user.balance -= betAmount;
-      user.totalWagered += betAmount;
-      await user.save({ session });
+      user.balance -= amount;
+      const balanceAfter = user.balance;
       
       // Создаем ставку
       const bet = new EventBet({
         user: userId,
         event: eventId,
-        outcomeId,
+        outcomeId: outcomeId,
         outcomeName: outcome.name,
-        betAmount,
+        betAmount: amount,
         odds: currentOdds,
-        potentialWin: betAmount * currentOdds,
-        balanceBefore,
-        balanceAfter: user.balance,
-        userIp,
+        balanceBefore: balanceBefore,
+        balanceAfter: balanceAfter,
+        userIp: userIp,
         metadata: {
           source: 'web'
         }
       });
       
-      await bet.save({ session });
-      
       // Обновляем событие
       const outcomeIndex = event.outcomes.findIndex(o => o.id === outcomeId);
-      event.outcomes[outcomeIndex].totalBets += betAmount;
+      event.outcomes[outcomeIndex].totalBets += amount;
       event.outcomes[outcomeIndex].betsCount += 1;
-      event.totalPool += betAmount;
-      
-      await event.save({ session });
+      event.totalPool += amount;
       
       // Создаем транзакцию
       const transaction = new Transaction({
         user: userId,
         type: 'bet',
-        amount: betAmount,
-        balanceBefore,
-        balanceAfter: user.balance,
+        amount: amount,
+        status: 'completed',
         description: `Ставка на событие: ${event.title}`,
-        metadata: {
-          eventId,
-          betId: bet._id,
-          outcomeId,
-          outcomeName: outcome.name
-        }
+        balanceBefore: balanceBefore,
+        balanceAfter: balanceAfter
       });
       
-      await transaction.save({ session });
+      // Сохраняем все изменения
+      await Promise.all([
+        user.save(),
+        bet.save(),
+        event.save(),
+        transaction.save()
+      ]);
       
-      await session.commitTransaction();
-      
-      console.log(`EVENT SERVICE: Ставка размещена успешно, ID: ${bet._id}`);
+      console.log(`EVENT SERVICE: Ставка успешно размещена: ${amount} USDT на ${outcome.name}`);
       
       // Возвращаем обновленное событие с новыми коэффициентами
-      const updatedEvent = await Event.findById(eventId);
-      const newOdds = updatedEvent.calculateOdds();
+      const updatedEvent = await this.getEventById(eventId);
       
       return {
-        bet,
-        newBalance: user.balance,
-        event: {
-          ...updatedEvent.toObject(),
-          currentOdds: newOdds
-        }
+        bet: bet,
+        newBalance: balanceAfter,
+        event: updatedEvent
       };
       
     } catch (error) {
-      await session.abortTransaction();
       console.error('EVENT SERVICE: Ошибка размещения ставки:', error);
       throw error;
-    } finally {
-      session.endSession();
     }
   }
   
   /**
-   * Завершить событие
+   * Получить ставки пользователя
+   * @param {string} userId - ID пользователя
+   * @param {Object} options - Опции запроса
+   * @returns {Object} Ставки пользователя
    */
-  async finishEvent(eventId, winningOutcomeId, adminId) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+  async getUserBets(userId, options = {}) {
+    const { limit = 20, skip = 0, status = null } = options;
+    
+    console.log(`EVENT SERVICE: Получение ставок пользователя ${userId}`);
     
     try {
-      console.log(`EVENT SERVICE: Завершение события ${eventId}, победитель: ${winningOutcomeId}`);
+      const query = { user: userId };
+      if (status) {
+        query.status = status;
+      }
       
+      const bets = await EventBet.find(query)
+        .populate('event', 'title status')
+        .sort({ placedAt: -1 })
+        .limit(limit)
+        .skip(skip);
+      
+      const total = await EventBet.countDocuments(query);
+      
+      return {
+        bets: bets,
+        pagination: {
+          total: total,
+          limit: limit,
+          skip: skip,
+          hasMore: (skip + limit) < total
+        }
+      };
+      
+    } catch (error) {
+      console.error('EVENT SERVICE: Ошибка получения ставок пользователя:', error);
+      throw new Error('Не удалось получить ставки пользователя');
+    }
+  }
+  
+  /**
+   * Получить общую статистику событий
+   * @returns {Object} Статистика
+   */
+  async getEventsStatistics() {
+    console.log('EVENT SERVICE: Получение статистики событий');
+    
+    try {
+      // Статистика по событиям
+      const eventsStats = await Event.aggregate([
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+            totalPool: { $sum: '$totalPool' }
+          }
+        }
+      ]);
+      
+      // Статистика по ставкам
+      const betsStats = await EventBet.aggregate([
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+            totalAmount: { $sum: '$betAmount' }
+          }
+        }
+      ]);
+      
+      return {
+        events: eventsStats,
+        bets: betsStats
+      };
+      
+    } catch (error) {
+      console.error('EVENT SERVICE: Ошибка получения статистики:', error);
+      throw new Error('Не удалось получить статистику событий');
+    }
+  }
+  
+  /**
+   * Создать новое событие (админ)
+   * @param {Object} eventData - Данные события
+   * @param {string|ObjectId} adminId - ID администратора
+   * @returns {Object} Созданное событие
+   */
+  async createEvent(eventData, adminId) {
+    console.log('EVENT SERVICE: Создание нового события:', eventData.title);
+    console.log('EVENT SERVICE: AdminId:', adminId, 'тип:', typeof adminId);
+    
+    try {
+      // Убеждаемся, что adminId является ObjectId
+      let validAdminId;
+      if (typeof adminId === 'string') {
+        if (mongoose.Types.ObjectId.isValid(adminId)) {
+          validAdminId = new mongoose.Types.ObjectId(adminId);
+        } else {
+          throw new Error('Некорректный ID администратора');
+        }
+      } else if (adminId instanceof mongoose.Types.ObjectId) {
+        validAdminId = adminId;
+      } else {
+        throw new Error('ID администратора должен быть строкой или ObjectId');
+      }
+      
+      console.log('EVENT SERVICE: Валидный AdminId:', validAdminId);
+      
+      // Генерируем уникальные ID для исходов
+      const outcomes = eventData.outcomes.map(outcome => ({
+        id: uuidv4(),
+        name: outcome.name,
+        totalBets: 0,
+        betsCount: 0
+      }));
+      
+      console.log('EVENT SERVICE: Генерированные исходы:', outcomes);
+      
+      // Создаем объект события
+      const eventObj = {
+        title: eventData.title,
+        description: eventData.description,
+        outcomes: outcomes,
+        category: eventData.category,
+        startTime: new Date(eventData.startTime),
+        endTime: new Date(eventData.endTime),
+        bettingEndsAt: new Date(eventData.bettingEndsAt),
+        featured: eventData.featured || false,
+        initialOdds: eventData.initialOdds || 2.0,
+        minBet: eventData.minBet || 1,
+        maxBet: eventData.maxBet || 1000,
+        houseEdge: eventData.houseEdge || 5,
+        status: 'active',
+        createdBy: validAdminId // Используем валидный ObjectId
+      };
+      
+      console.log('EVENT SERVICE: Объект события:', JSON.stringify(eventObj, null, 2));
+      
+      // Создаем событие
+      const event = new Event(eventObj);
+      
+      // Валидируем перед сохранением
+      await event.validate();
+      console.log('EVENT SERVICE: Валидация прошла успешно');
+      
+      await event.save();
+      
+      console.log('EVENT SERVICE: Событие создано успешно с ID:', event._id);
+      
+      return event;
+      
+    } catch (error) {
+      console.error('EVENT SERVICE: Ошибка создания события:', error);
+      console.error('EVENT SERVICE: Stack trace:', error.stack);
+      
+      // Более детальная обработка ошибок
+      if (error.name === 'ValidationError') {
+        const validationErrors = Object.values(error.errors).map(err => err.message);
+        throw new Error('Ошибка валидации: ' + validationErrors.join(', '));
+      }
+      
+      if (error.name === 'CastError') {
+        throw new Error('Ошибка типа данных: ' + error.message);
+      }
+      
+      throw new Error('Не удалось создать событие: ' + error.message);
+    }
+  }
+  
+  /**
+   * Завершить событие (админ)
+   * @param {string} eventId - ID события
+   * @param {string} winningOutcomeId - ID выигрышного исхода
+   * @param {string} adminId - ID администратора
+   * @returns {Object} Результат завершения
+   */
+  async finishEvent(eventId, winningOutcomeId, adminId) {
+    console.log(`EVENT SERVICE: Завершение события ${eventId}, победитель: ${winningOutcomeId}`);
+    
+    try {
       // Получаем событие
-      const event = await Event.findById(eventId).session(session);
+      const event = await Event.findById(eventId);
       if (!event) {
         throw new Error('Событие не найдено');
       }
@@ -302,12 +424,11 @@ class EventService {
       // Проверяем корректность исхода
       const winningOutcome = event.outcomes.find(o => o.id === winningOutcomeId);
       if (!winningOutcome) {
-        throw new Error('Некорректный ID победившего исхода');
+        throw new Error('Некорректный ID выигрышного исхода');
       }
       
       // Завершаем событие
       await event.finalize(winningOutcomeId);
-      await event.save({ session });
       
       // Обрабатываем все ставки
       const settlementResults = await EventBet.settleBets(eventId, winningOutcomeId);
@@ -315,106 +436,16 @@ class EventService {
       // Рассчитываем прибыль казино
       const houseProfit = event.totalPool - settlementResults.totalPayout;
       
-      // Создаем транзакцию для прибыли казино
-      if (houseProfit > 0) {
-        const { financeService } = require('./finance.service');
-        await financeService.addToOperationalBalance(houseProfit, 'event_profit', {
-          eventId: event._id,
-          eventTitle: event.title,
-          totalPool: event.totalPool,
-          totalPayout: settlementResults.totalPayout
-        });
-      }
-      
-      await session.commitTransaction();
-      
-      console.log(`EVENT SERVICE: Событие завершено, выплачено: ${settlementResults.totalPayout} USDT`);
+      console.log(`EVENT SERVICE: Событие завершено. Выплачено: ${settlementResults.totalPayout} USDT, прибыль: ${houseProfit} USDT`);
       
       return {
-        event,
-        settlementResults,
-        houseProfit
+        event: event,
+        settlementResults: settlementResults,
+        houseProfit: houseProfit
       };
       
     } catch (error) {
-      await session.abortTransaction();
       console.error('EVENT SERVICE: Ошибка завершения события:', error);
-      throw error;
-    } finally {
-      session.endSession();
-    }
-  }
-  
-  /**
-   * Получить ставки пользователя
-   */
-  async getUserBets(userId, options = {}) {
-    try {
-      const { limit = 20, skip = 0, status = null } = options;
-      
-      const query = { user: userId };
-      if (status) {
-        query.status = status;
-      }
-      
-      const bets = await EventBet.find(query)
-        .populate('event', 'title description status winningOutcome')
-        .sort({ placedAt: -1 })
-        .limit(limit)
-        .skip(skip);
-      
-      const total = await EventBet.countDocuments(query);
-      
-      return {
-        bets,
-        pagination: {
-          total,
-          limit,
-          skip,
-          hasMore: total > skip + limit
-        }
-      };
-    } catch (error) {
-      console.error('EVENT SERVICE: Ошибка получения ставок пользователя:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Получить статистику событий
-   */
-  async getEventsStatistics() {
-    try {
-      console.log('EVENT SERVICE: Получение статистики событий');
-      
-      // Статистика по событиям
-      const eventStats = await Event.aggregate([
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 },
-            totalPool: { $sum: '$totalPool' }
-          }
-        }
-      ]);
-      
-      // Статистика по ставкам
-      const betStats = await EventBet.aggregate([
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 },
-            totalAmount: { $sum: '$betAmount' }
-          }
-        }
-      ]);
-      
-      return {
-        events: eventStats,
-        bets: betStats
-      };
-    } catch (error) {
-      console.error('EVENT SERVICE: Ошибка получения статистики:', error);
       throw error;
     }
   }

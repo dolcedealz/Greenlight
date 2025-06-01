@@ -1,66 +1,251 @@
-/* EventsPreview.css */
+/* EventsPreview.css - ИСПРАВЛЕННАЯ ВЕРСИЯ */
 .events-preview {
-  background-color: var(--card-background);
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(11, 168, 74, 0.05) 100%);
   border-radius: var(--border-radius);
-  padding: 15px;
+  padding: 20px;
   margin: 15px 0;
   box-shadow: var(--shadow);
   cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(11, 168, 74, 0.2);
+  position: relative;
+  overflow: hidden;
 }
 
 .events-preview:hover {
-  transform: translateY(-2px);
-  background-color: #242424;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border-color: rgba(11, 168, 74, 0.4);
+}
+
+.events-preview:active {
+  transform: translateY(-1px);
 }
 
 .events-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .events-header h3 {
   font-size: 18px;
   margin: 0;
   color: var(--primary-color);
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .events-total {
-  background-color: rgba(11, 168, 74, 0.1);
+  background-color: rgba(11, 168, 74, 0.2);
   color: var(--primary-color);
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 14px;
   font-weight: bold;
+  border: 1px solid rgba(11, 168, 74, 0.3);
+}
+
+.event-content {
+  margin-bottom: 15px;
 }
 
 .event-title {
   font-size: 16px;
   font-weight: bold;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  color: white;
+  line-height: 1.3;
+  
+  /* ИСПРАВЛЕНО: Современный подход к ограничению строк */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; /* Стандартное свойство для будущих браузеров */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  /* Fallback для браузеров без поддержки line-clamp */
+  max-height: 2.6em; /* ~2 строки с учетом line-height 1.3 */
+}
+
+.event-time-left {
+  font-size: 14px;
+  color: #ff9500;
+  margin-bottom: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .event-outcomes {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .outcome {
   display: flex;
   justify-content: space-between;
-  padding: 8px 10px;
+  align-items: center;
+  padding: 12px;
   background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.outcome:hover {
+  background-color: rgba(11, 168, 74, 0.1);
+  border-color: rgba(11, 168, 74, 0.3);
+  transform: translateX(3px);
+}
+
+.outcome-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
 }
 
 .outcome-name {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  
+  /* ИСПРАВЛЕНО: Улучшенное ограничение текста */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.outcome-percentage {
+  font-size: 12px;
+  color: var(--primary-color);
+  font-weight: bold;
 }
 
 .outcome-odds {
+  font-size: 18px;
   font-weight: bold;
   color: var(--primary-color);
+  background-color: rgba(11, 168, 74, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(11, 168, 74, 0.3);
+  min-width: 70px;
+  text-align: center;
+}
+
+.events-footer {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.tap-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* Анимация при появлении */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.events-preview {
+  animation: fadeInUp 0.5s ease;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+  .events-preview {
+    padding: 15px;
+    margin: 10px 0;
+  }
+  
+  .events-header h3 {
+    font-size: 16px;
+  }
+  
+  .event-title {
+    font-size: 15px;
+    /* Уменьшаем max-height для мобильных */
+    max-height: 2.4em;
+  }
+  
+  .outcome {
+    padding: 10px;
+  }
+  
+  .outcome-name {
+    font-size: 14px;
+    max-width: 150px;
+  }
+  
+  .outcome-odds {
+    font-size: 16px;
+    padding: 6px 10px;
+    min-width: 60px;
+  }
+}
+
+/* Эффект блеска при наведении */
+.events-preview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(11, 168, 74, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.events-preview:hover::before {
+  left: 100%;
+}
+
+/* ДОПОЛНИТЕЛЬНО: Поддержка для браузеров без webkit */
+@supports not (-webkit-line-clamp: 2) {
+  .event-title {
+    /* Фиксированная высота для старых браузеров */
+    height: 2.6em;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .event-title::after {
+    content: '...';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: var(--card-background);
+    padding-left: 20px;
+  }
 }

@@ -1,4 +1,4 @@
-// admin/src/commands/index.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// admin/src/commands/index.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { Markup } = require('telegraf');
 const axios = require('axios');
 
@@ -630,7 +630,7 @@ function registerCommands(bot) {
   }
 
   /**
-   * Обработка завершения события
+   * Обработка завершения события - ИСПРАВЛЕННАЯ ВЕРСИЯ
    */
   async function handleEventFinishing(ctx) {
     if (!ctx.session || !ctx.session.finishingEvent) {
@@ -645,8 +645,8 @@ function registerCommands(bot) {
       try {
         console.log('ADMIN: Получение события для завершения:', text);
         
-        // Получаем событие
-        const response = await apiClient.get(`/events/${text}`);
+        // ИСПРАВЛЕНИЕ: Используем админский эндпоинт
+        const response = await apiClient.get(`/events/admin/${text}`);
         
         if (!response.data.success) {
           await ctx.reply('❌ Событие не найдено. Введите корректный ID:');
@@ -691,7 +691,19 @@ function registerCommands(bot) {
         
       } catch (error) {
         console.error('ADMIN: Ошибка получения события:', error);
-        await ctx.reply('❌ Ошибка получения события. Проверьте ID и попробуйте снова:');
+        console.error('ADMIN: Детали ошибки:', error.response?.data);
+        
+        let errorMessage = 'Ошибка получения события. Проверьте ID и попробуйте снова:';
+        
+        if (error.response?.status === 404) {
+          errorMessage = 'Событие с таким ID не найдено. Проверьте корректность ID:';
+        } else if (error.response?.status === 403) {
+          errorMessage = 'Недостаточно прав для получения события. Проверьте настройки админа:';
+        } else if (error.response?.data?.message) {
+          errorMessage = `Ошибка: ${error.response.data.message}. Попробуйте снова:`;
+        }
+        
+        await ctx.reply(`❌ ${errorMessage}`);
       }
     }
   }

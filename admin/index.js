@@ -1,7 +1,9 @@
-// admin/index.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с поддержкой сессий
+// admin/index.js - ОБНОВЛЕННАЯ ВЕРСИЯ с поддержкой расширенных функций и уведомлений
 require('dotenv').config();
 const { Telegraf, session } = require('telegraf');
 const { commands, middleware, handlers } = require('./src');
+const EventsNotificationService = require('./src/services/events-notifications.service');
+const eventsExtendedCommands = require('./src/commands/events-extended.command');
 const express = require('express');
 
 // Создаем Express приложение
@@ -48,6 +50,135 @@ commands.registerCommands(bot);
 // Регистрируем обработчики сообщений и callback
 handlers.registerHandlers(bot);
 
+// Инициализируем сервис уведомлений о событиях
+let notificationService;
+if (process.env.ADMIN_API_TOKEN && adminIds.length > 0) {
+  notificationService = new EventsNotificationService(bot);
+  console.log('✅ Сервис уведомлений о событиях инициализирован');
+} else {
+  console.warn('⚠️ Сервис уведомлений не инициализирован (отсутствует API токен или админы)');
+}
+
+// === РЕГИСТРАЦИЯ НОВЫХ ОБРАБОТЧИКОВ ДЛЯ РАСШИРЕННЫХ ФУНКЦИЙ ===
+
+// Обработчики для изменения времени события
+bot.action('events_edit_time', async (ctx) => {
+  console.log('ADMIN: Callback events_edit_time');
+  await ctx.answerCbQuery();
+  await eventsExtendedCommands.startTimeEdit(ctx);
+});
+
+bot.action(/^time_edit_(end|betting|both)$/, async (ctx) => {
+  console.log('ADMIN: Callback time_edit_type:', ctx.match[1]);
+  await eventsExtendedCommands.handleTimeTypeSelection(ctx, ctx.match[1]);
+});
+
+// Обработчики для досрочного завершения
+bot.action('events_early_finish', async (ctx) => {
+  console.log('ADMIN: Callback events_early_finish');
+  await ctx.answerCbQuery();
+  await eventsExtendedCommands.startEarlyFinish(ctx);
+});
+
+bot.action(/^early_finish_outcome_(.+)$/, async (ctx) => {
+  console.log('ADMIN: Callback early_finish_outcome:', ctx.match[1]);
+  const outcomeId = ctx.match[1];
+  await eventsExtendedCommands.confirmEarlyFinish(ctx, outcomeId);
+});
+
+// Обработчики для установки исхода
+bot.action('events_set_outcome', async (ctx) => {
+  console.log('ADMIN: Callback events_set_outcome');
+  await ctx.answerCbQuery();
+  await eventsExtendedCommands.setEventOutcome(ctx);
+});
+
+bot.action(/^set_outcome_(.+)$/, async (ctx) => {
+  console.log('ADMIN: Callback set_outcome:', ctx.match[1]);
+  const outcomeId = ctx.match[1];
+  await eventsExtendedCommands.saveSetOutcome(ctx, outcomeId);
+});
+
+// Обработчик для завершения подготовленного события
+bot.action(/^finish_prepared_(.+)$/, async (ctx) => {
+  console.log('ADMIN: Callback finish_prepared:', ctx.match[1]);
+  const eventId = ctx.match[1];
+  await eventsExtendedCommands.finishPreparedEvent(ctx, eventId);
+});
+
+// Обработчики для быстрых действий из уведомлений
+bot.action(/^quick_(set_outcome|early_finish|edit_time)_(.+)$/, async (ctx) => {
+  console.log('ADMIN: Quick action:', ctx.match[1], 'for event:', ctx.match[2]);
+  if (notificationService) {
+    await notificationService.handleQuickAction(ctx);
+  } else {
+    await ctx.answerCbQuery('❌ Сервис уведомлений недоступен');
+  }
+});
+
+// Обновленное меню событий с расширенными функциями
+bot.action('events_menu', async (ctx) => {
+  console.log('ADMIN: Callback events_menu (extended)');
+  await ctx.answerCbQuery();
+  await eventsExtendedCommands.showExtendedEventsMenu(ctx);
+});
+
+// Команда для тестирования уведомлений
+bot.command('test_notifications', async (ctx) => {
+  if (notificationService) {
+    await notificationService.sendTestNotification();
+    await ctx.reply('✅ Тестовое уведомление отправлено');
+  } else {
+    await ctx.reply('❌ Сервис уведомлений недоступен');
+  }
+});
+
+// Команда для получения статистики уведомлений
+bot.command('notification_stats', async (ctx) => {
+  if (notificationService) {
+    const stats = notificationService.getNotificationStats();
+    await ctx.reply(
+      `📊 *Статистика уведомлений*\n\n` +
+      `👥 Администраторов: ${stats.adminsCount}\n` +
+      `🔔 Уведомленных событий: ${stats.notifiedEventsCount}\n` +
+      `⏰ Последняя проверка: ${stats.lastCheck.toLocaleString('ru-RU')}\n` +
+      `🟢 Статус: ${stats.isActive ? 'Активен' : 'Неактивен'}`,
+      { parse_mode: 'Markdown' }
+    );
+  } else {
+    await ctx.reply('❌ Сервис уведомлений недоступен');
+  }
+});
+
+// Обработка текстовых сообщений для новых функций
+bot.on('text', async (ctx, next) => {
+  console.log('ADMIN: Получено текстовое сообщение:', ctx.message.text);
+  
+  // Проверяем, если это процесс изменения времени
+  if (ctx.session && ctx.session.editingTime) {
+    console.log('ADMIN: Обрабатываем изменение времени события');
+    await eventsExtendedCommands.handleTimeEdit(ctx);
+    return;
+  }
+  
+  // Проверяем, если это процесс досрочного завершения
+  if (ctx.session && ctx.session.earlyFinishing) {
+    console.log('ADMIN: Обрабатываем досрочное завершение события');
+    await eventsExtendedCommands.handleEarlyFinish(ctx);
+    return;
+  }
+  
+  // Проверяем, если это процесс установки исхода
+  if (ctx.session && ctx.session.settingOutcome) {
+    console.log('ADMIN: Обрабатываем установку исхода события');
+    await eventsExtendedCommands.handleSetOutcome(ctx);
+    return;
+  }
+  
+  // Передаем управление следующему обработчику
+  return next();
+});
+
 // Обработка ошибок
 bot.catch((err, ctx) => {
   console.error(`Ошибка для ${ctx.updateType}:`, err);
@@ -60,6 +191,8 @@ bot.catch((err, ctx) => {
 
 // Маршрут для проверки работоспособности
 app.get('/', (req, res) => {
+  const notificationStats = notificationService ? notificationService.getNotificationStats() : null;
+  
   res.send(`
     <h1>Greenlight Admin Bot</h1>
     <p>Бот активен и работает в режиме webhook</p>
@@ -70,6 +203,21 @@ app.get('/', (req, res) => {
       <li>API_URL: ${process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api'}</li>
       <li>Админы: ${adminIds.length > 0 ? adminIds.join(', ') : 'Не настроены'}</li>
     </ul>
+    <h2>Расширенные функции:</h2>
+    <ul>
+      <li>Изменение времени событий: ✅ Доступно</li>
+      <li>Досрочное завершение: ✅ Доступно</li>
+      <li>Установка исходов: ✅ Доступно</li>
+      <li>Уведомления о событиях: ${notificationStats ? '✅ Активны' : '❌ Неактивны'}</li>
+    </ul>
+    ${notificationStats ? `
+    <h2>Статистика уведомлений:</h2>
+    <ul>
+      <li>Администраторов: ${notificationStats.adminsCount}</li>
+      <li>Уведомленных событий: ${notificationStats.notifiedEventsCount}</li>
+      <li>Последняя проверка: ${notificationStats.lastCheck.toLocaleString('ru-RU')}</li>
+    </ul>
+    ` : ''}
   `);
 });
 
@@ -116,6 +264,8 @@ if (WEBHOOK_DOMAIN) {
       }
       
       console.log(`🔮 Функциональность событий: ${process.env.ADMIN_API_TOKEN ? '✅ Готова' : '❌ Требует ADMIN_API_TOKEN'}`);
+      console.log(`🔔 Уведомления о событиях: ${notificationService ? '✅ Активны' : '❌ Неактивны'}`);
+      console.log(`⚡ Расширенные функции: ✅ Загружены`);
       
     } catch (error) {
       console.error('❌ Ошибка при настройке webhook:', error);
@@ -132,11 +282,26 @@ if (WEBHOOK_DOMAIN) {
       .then(() => {
         console.log('✅ Админ-бот запущен в режиме polling');
         console.log(`🔮 Функциональность событий: ${process.env.ADMIN_API_TOKEN ? '✅ Готова' : '❌ Требует ADMIN_API_TOKEN'}`);
+        console.log(`🔔 Уведомления о событиях: ${notificationService ? '✅ Активны' : '❌ Неактивны'}`);
+        console.log(`⚡ Расширенные функции: ✅ Загружены`);
       })
       .catch(err => console.error('❌ Ошибка запуска бота:', err));
   });
 }
 
 // Правильное завершение работы
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => {
+  console.log('🛑 Получен SIGINT. Завершение работы...');
+  if (notificationService) {
+    console.log('🔔 Останавливаем сервис уведомлений');
+  }
+  bot.stop('SIGINT');
+});
+
+process.once('SIGTERM', () => {
+  console.log('🛑 Получен SIGTERM. Завершение работы...');
+  if (notificationService) {
+    console.log('🔔 Останавливаем сервис уведомлений');
+  }
+  bot.stop('SIGTERM');
+});

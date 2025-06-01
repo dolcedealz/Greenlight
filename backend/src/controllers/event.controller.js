@@ -484,7 +484,7 @@ class EventController {
   }
   
   /**
-   * Завершить событие (админ)
+   * Завершить событие (админ) - ИСПРАВЛЕННАЯ ВЕРСИЯ
    */
   async finishEvent(req, res) {
     try {
@@ -510,18 +510,65 @@ class EventController {
         });
       }
       
+      // Проверяем формат eventId
+      const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(eventId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Некорректный формат ID события'
+        });
+      }
+      
+      console.log('EVENT CONTROLLER: Вызываем eventService.finishEvent...');
+      
       const result = await eventService.finishEvent(eventId, winningOutcomeId, adminId);
+      
+      console.log('EVENT CONTROLLER: Результат завершения события:', {
+        eventId: result.event._id,
+        winningOutcome: result.event.winningOutcome,
+        settlementResults: result.settlement
+      });
+      
+      // Формируем ответ с правильной структурой данных
+      const responseData = {
+        event: result.event,
+        settlementResults: result.settlement,
+        houseProfit: -result.settlement.totalProfit // Прибыль казино = убыток игроков
+      };
       
       res.status(200).json({
         success: true,
         message: 'Событие завершено успешно',
-        data: result
+        data: responseData
       });
     } catch (error) {
       console.error('EVENT CONTROLLER: Ошибка завершения события:', error);
-      res.status(400).json({
+      
+      // Определяем тип ошибки для более точного ответа
+      if (error.message.includes('не найдено') || error.message.includes('не найден')) {
+        return res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      }
+      
+      if (error.message.includes('уже завершено')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+      
+      if (error.message.includes('Некорректный ID')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+      
+      res.status(500).json({
         success: false,
-        message: error.message
+        message: error.message || 'Внутренняя ошибка сервера при завершении события'
       });
     }
   }

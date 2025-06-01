@@ -10,6 +10,8 @@ const ReferralEarning = require('./referral-earning.model');
 const ReferralPayout = require('./referral-payout.model');
 const GameSettings = require('./game-settings.model');
 const PvPDuel = require('./pvp-duel.model');
+const Event = require('./Event'); // Добавляем события
+const EventBet = require('./EventBet'); // Добавляем ставки на события
 
 module.exports = {
   User,
@@ -22,5 +24,7 @@ module.exports = {
   ReferralEarning,
   ReferralPayout,
   GameSettings,
-  PvPDuel
+  PvPDuel,
+  Event, // Добавляем события
+  EventBet // Добавляем ставки на события
 };

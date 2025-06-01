@@ -16,6 +16,24 @@ const apiClient = axios.create({
   timeout: 30000
 });
 
+// Добавляем interceptor для логирования
+apiClient.interceptors.request.use(request => {
+  console.log(`📤 EVENTS API Request: ${request.method.toUpperCase()} ${request.url}`);
+  return request;
+}, error => {
+  console.error('❌ Events Request Error:', error);
+  return Promise.reject(error);
+});
+
+apiClient.interceptors.response.use(response => {
+  console.log(`✅ EVENTS API Response: ${response.status} ${response.config.url}`);
+  return response;
+}, error => {
+  console.error(`❌ EVENTS API Error: ${error.response?.status} ${error.config?.url}`);
+  console.error('   Error Data:', error.response?.data);
+  return Promise.reject(error);
+});
+
 /**
  * Команды для управления событиями
  */
@@ -105,6 +123,7 @@ const eventsCommands = {
    * Начать создание события
    */
   async startEventCreation(ctx) {
+    ctx.session = ctx.session || {};
     ctx.session.creatingEvent = {
       step: 'title'
     };
@@ -125,7 +144,7 @@ const eventsCommands = {
    * Обработка создания события
    */
   async handleEventCreation(ctx) {
-    if (!ctx.session.creatingEvent) {
+    if (!ctx.session || !ctx.session.creatingEvent) {
       return;
     }
     
@@ -209,7 +228,7 @@ const eventsCommands = {
    * Обработка выбора категории
    */
   async handleCategorySelection(ctx, category) {
-    if (!ctx.session.creatingEvent) {
+    if (!ctx.session || !ctx.session.creatingEvent) {
       return ctx.answerCbQuery('❌ Сессия создания события истекла');
     }
     
@@ -254,6 +273,8 @@ const eventsCommands = {
         maxBet: 1000
       };
       
+      console.log('EVENTS: Отправляем данные для создания события:', JSON.stringify(createData, null, 2));
+      
       const response = await apiClient.post('/events/admin/create', createData);
       
       if (response.data.success) {
@@ -297,6 +318,7 @@ const eventsCommands = {
    * Завершить событие
    */
   async finishEvent(ctx) {
+    ctx.session = ctx.session || {};
     ctx.session.finishingEvent = {
       step: 'eventId'
     };
@@ -317,7 +339,7 @@ const eventsCommands = {
    * Обработка завершения события
    */
   async handleEventFinishing(ctx) {
-    if (!ctx.session.finishingEvent) {
+    if (!ctx.session || !ctx.session.finishingEvent) {
       return;
     }
     
@@ -380,7 +402,7 @@ const eventsCommands = {
    * Завершить событие с выбранным исходом
    */
   async completeEventFinishing(ctx, outcomeId) {
-    if (!ctx.session.finishingEvent || !ctx.session.finishingEvent.eventId) {
+    if (!ctx.session || !ctx.session.finishingEvent || !ctx.session.finishingEvent.eventId) {
       return ctx.answerCbQuery('❌ Сессия завершения события истекла');
     }
     
@@ -439,7 +461,7 @@ const eventsCommands = {
       
       let message = '📊 *Статистика событий*\n\n';
       
-      if (stats.events.length > 0) {
+      if (stats.events && stats.events.length > 0) {
         message += '🎯 События:\n';
         stats.events.forEach(stat => {
           const statusNames = {
@@ -455,7 +477,7 @@ const eventsCommands = {
         message += '\n';
       }
       
-      if (stats.bets.length > 0) {
+      if (stats.bets && stats.bets.length > 0) {
         message += '💰 Ставки:\n';
         stats.bets.forEach(stat => {
           const statusNames = {

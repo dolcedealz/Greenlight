@@ -1,4 +1,4 @@
-// admin/src/commands/index.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
+// admin/src/commands/index.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const { Markup } = require('telegraf');
 const axios = require('axios');
 
@@ -388,37 +388,12 @@ function registerCommands(bot) {
       const stats = response.data.data;
       
       let message = '📊 *Статистика событий*\n\n';
-      
-      if (stats.events && stats.events.length > 0) {
-        message += '🎯 События:\n';
-        stats.events.forEach(stat => {
-          const statusNames = {
-            'upcoming': 'Предстоящие',
-            'active': 'Активные',
-            'betting_closed': 'Ставки закрыты',
-            'finished': 'Завершенные',
-            'cancelled': 'Отмененные'
-          };
-          
-          message += `├ ${statusNames[stat._id] || stat._id}: ${stat.count} (${stat.totalPool.toFixed(2)} USDT)\n`;
-        });
-        message += '\n';
-      }
-      
-      if (stats.bets && stats.bets.length > 0) {
-        message += '💰 Ставки:\n';
-        stats.bets.forEach(stat => {
-          const statusNames = {
-            'active': 'Активные',
-            'won': 'Выигрышные',
-            'lost': 'Проигрышные',
-            'cancelled': 'Отмененные',
-            'refunded': 'Возвращенные'
-          };
-          
-          message += `├ ${statusNames[stat._id] || stat._id}: ${stat.count} (${stat.totalAmount.toFixed(2)} USDT)\n`;
-        });
-      }
+      message += `📝 Всего событий: ${stats.totalEvents}\n`;
+      message += `🟢 Активных событий: ${stats.activeEvents}\n`;
+      message += `💰 Всего ставок: ${stats.totalBets}\n`;
+      message += `💵 Общий объем: ${stats.totalVolume.toFixed(2)} USDT\n`;
+      message += `💸 Общие выплаты: ${stats.totalPayout.toFixed(2)} USDT\n`;
+      message += `🏦 Маржа казино: ${stats.houseEdge}%`;
       
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback('🔄 Обновить', 'events_stats')],
@@ -569,7 +544,7 @@ function registerCommands(bot) {
     try {
       const now = new Date();
       const endTime = new Date(now.getTime() + eventData.durationHours * 60 * 60 * 1000);
-      const bettingEndsAt = new Date(endTime.getTime() - 30 * 60 * 1000); // За 30 минут до окончания
+      const bettingEndsAt = new Date(endTime.getTime() - 30 * 60 * 1000);
       
       // Генерируем уникальные ID для исходов
       const outcome1Id = `outcome_${Date.now()}_1_${Math.random().toString(36).substring(2, 8)}`;
@@ -592,7 +567,7 @@ function registerCommands(bot) {
         startTime: now.toISOString(),
         endTime: endTime.toISOString(),
         bettingEndsAt: bettingEndsAt.toISOString(),
-        featured: true, // Делаем новое событие главным
+        featured: true,
         initialOdds: 2.0,
         minBet: 1,
         maxBet: 1000
@@ -611,6 +586,7 @@ function registerCommands(bot) {
           `📋 Описание: ${event.description}\n` +
           `🎯 Исходы: ${event.outcomes[0].name} / ${event.outcomes[1].name}\n` +
           `📂 Категория: ${event.category}\n` +
+          `📊 Статус: ${event.status}\n` +
           `⏰ Окончание: ${new Date(event.endTime).toLocaleString('ru-RU')}\n` +
           `🆔 ID: \`${event._id}\``,
           {
@@ -640,7 +616,7 @@ function registerCommands(bot) {
   }
 
   /**
-   * Обработка завершения события - ИСПРАВЛЕННАЯ ВЕРСИЯ
+   * Обработка завершения события
    */
   async function handleEventFinishing(ctx) {
     if (!ctx.session || !ctx.session.finishingEvent) {
@@ -655,7 +631,6 @@ function registerCommands(bot) {
       try {
         console.log('ADMIN: Получение события для завершения:', text);
         
-        // ИСПРАВЛЕНИЕ: Используем админский эндпоинт
         const response = await apiClient.get(`/events/admin/${text}`);
         
         if (!response.data.success) {
@@ -701,19 +676,7 @@ function registerCommands(bot) {
         
       } catch (error) {
         console.error('ADMIN: Ошибка получения события:', error);
-        console.error('ADMIN: Детали ошибки:', error.response?.data);
-        
-        let errorMessage = 'Ошибка получения события. Проверьте ID и попробуйте снова:';
-        
-        if (error.response?.status === 404) {
-          errorMessage = 'Событие с таким ID не найдено. Проверьте корректность ID:';
-        } else if (error.response?.status === 403) {
-          errorMessage = 'Недостаточно прав для получения события. Проверьте настройки админа:';
-        } else if (error.response?.data?.message) {
-          errorMessage = `Ошибка: ${error.response.data.message}. Попробуйте снова:`;
-        }
-        
-        await ctx.reply(`❌ ${errorMessage}`);
+        await ctx.reply('❌ Ошибка получения события. Проверьте ID и попробуйте снова:');
       }
     }
   }

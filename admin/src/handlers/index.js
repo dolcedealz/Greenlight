@@ -1,6 +1,5 @@
-// admin/src/handlers/index.js
+// admin/src/handlers/index.js - ПОЛНАЯ ОБНОВЛЕННАЯ ВЕРСИЯ
 const { Markup } = require('telegraf');
-const eventsCommands = require('../commands/events.command');
 
 /**
  * Регистрирует обработчики сообщений и callback
@@ -59,9 +58,7 @@ function registerHandlers(bot) {
     );
   });
   
-  bot.hears('🔮 События', async (ctx) => {
-    await eventsCommands.showEventsMenu(ctx);
-  });
+  // Обработка кнопки "🔮 События" уже есть в commands/index.js
   
   bot.hears('💰 Финансы', (ctx) => {
     ctx.reply(
@@ -85,75 +82,12 @@ function registerHandlers(bot) {
     );
   });
 
-  // === ОБРАБОТЧИКИ CALLBACK ДЛЯ СОБЫТИЙ ===
-  
-  // Главное меню событий
-  bot.action('events_menu', async (ctx) => {
-    await ctx.answerCbQuery();
-    await eventsCommands.showEventsMenu(ctx);
-  });
-  
-  // Список событий
-  bot.action('events_list', async (ctx) => {
-    await ctx.answerCbQuery();
-    await eventsCommands.showEventsList(ctx);
-  });
-  
-  // Создание события
-  bot.action('events_create', async (ctx) => {
-    await ctx.answerCbQuery();
-    await eventsCommands.startEventCreation(ctx);
-  });
-  
-  // Завершение события
-  bot.action('events_finish', async (ctx) => {
-    await ctx.answerCbQuery();
-    await eventsCommands.finishEvent(ctx);
-  });
-  
-  // Статистика событий
-  bot.action('events_stats', async (ctx) => {
-    await ctx.answerCbQuery();
-    await eventsCommands.showEventsStats(ctx);
-  });
-  
-  // Выбор категории события
-  bot.action(/^event_category_(.+)$/, async (ctx) => {
-    const category = ctx.match[1];
-    await eventsCommands.handleCategorySelection(ctx, category);
-  });
-  
-  // Завершение события с выбором исхода
-  bot.action(/^finish_outcome_(.+)$/, async (ctx) => {
-    const outcomeId = ctx.match[1];
-    await ctx.answerCbQuery();
-    await eventsCommands.completeEventFinishing(ctx, outcomeId);
-  });
-  
   // Обработка остальных callback запросов
   bot.action(/^game_(.+)$/, (ctx) => {
     const game = ctx.match[1];
     ctx.answerCbQuery();
     
     ctx.reply(`🎮 Настройки игры ${game} будут здесь...`);
-  });
-  
-  // Обработка всех остальных сообщений (для создания событий)
-  bot.on('text', async (ctx, next) => {
-    // Проверяем, если это процесс создания события
-    if (ctx.session && ctx.session.creatingEvent) {
-      await eventsCommands.handleEventCreation(ctx);
-      return;
-    }
-    
-    // Проверяем, если это процесс завершения события
-    if (ctx.session && ctx.session.finishingEvent) {
-      await eventsCommands.handleEventFinishing(ctx);
-      return;
-    }
-    
-    // Если нет активных процессов, показываем справку
-    ctx.reply('Используйте команды или кнопки для взаимодействия с ботом. Для справки введите /help');
   });
 
   return bot;

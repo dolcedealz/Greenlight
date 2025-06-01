@@ -104,10 +104,13 @@ class EventController {
   async placeBet(req, res) {
     try {
       console.log('EVENT CONTROLLER: Запрос на размещение ставки');
+      console.log('EVENT CONTROLLER: Params:', JSON.stringify(req.params, null, 2));
       console.log('EVENT CONTROLLER: Body:', JSON.stringify(req.body, null, 2));
       console.log('EVENT CONTROLLER: User:', req.user ? req.user._id : 'НЕ АУТЕНТИФИЦИРОВАН');
       
-      const { eventId, outcomeId, betAmount } = req.body;
+      // ИСПРАВЛЕНО: получаем eventId из параметров URL, а не из body
+      const { eventId } = req.params;
+      const { outcomeId, betAmount } = req.body;
       const userId = req.user._id;
       const userIp = req.ip || req.connection.remoteAddress;
       
@@ -116,7 +119,7 @@ class EventController {
         console.log('EVENT CONTROLLER: Отсутствуют обязательные параметры');
         return res.status(400).json({
           success: false,
-          message: 'Не указаны обязательные параметры: eventId, outcomeId, betAmount'
+          message: 'Не указаны обязательные параметры: eventId (в URL), outcomeId, betAmount'
         });
       }
       

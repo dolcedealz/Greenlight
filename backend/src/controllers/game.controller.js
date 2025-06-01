@@ -12,7 +12,17 @@ class GameController {
    */
   async playCoinFlip(req, res) {
     try {
+      console.log('GAME CONTROLLER: Запрос на игру в монетку:', req.body);
+      
       const { betAmount, selectedSide, clientSeed } = req.body;
+      
+      // Базовая валидация
+      if (!betAmount || !selectedSide) {
+        return res.status(400).json({
+          success: false,
+          message: 'Не указаны обязательные параметры: betAmount, selectedSide'
+        });
+      }
       
       // Получаем информацию о пользователе из запроса
       const userData = {
@@ -27,15 +37,19 @@ class GameController {
         clientSeed
       };
       
+      console.log('GAME CONTROLLER: Обработка монетки с данными:', gameData);
+      
       // Играем в монетку
       const result = await gameService.playCoinFlip(userData, gameData);
+      
+      console.log('GAME CONTROLLER: Результат монетки:', result);
       
       res.status(200).json({
         success: true,
         data: result
       });
     } catch (error) {
-      console.error(`Ошибка в playCoinFlip: ${error.message}`, error);
+      console.error(`GAME CONTROLLER: Ошибка в playCoinFlip: ${error.message}`, error);
       res.status(400).json({
         success: false,
         message: error.message
@@ -44,40 +58,53 @@ class GameController {
   }
   
   /**
- * Играть в слоты
- * @param {Object} req - Запрос Express
- * @param {Object} res - Ответ Express
- */
-async playSlots(req, res) {
-  try {
-    const { betAmount } = req.body;
-    
-    // Получаем информацию о пользователе из запроса
-    const userData = {
-      userId: req.user._id,
-      telegramId: req.user.telegramId
-    };
-    
-    // Данные игры
-    const gameData = {
-      betAmount: parseFloat(betAmount)
-    };
-    
-    // Играем в слоты
-    const result = await gameService.playSlots(userData, gameData);
-    
-    res.status(200).json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    console.error(`Ошибка в playSlots: ${error.message}`, error);
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+   * Играть в слоты
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
+   */
+  async playSlots(req, res) {
+    try {
+      console.log('GAME CONTROLLER: Запрос на игру в слоты:', req.body);
+      
+      const { betAmount } = req.body;
+      
+      if (!betAmount) {
+        return res.status(400).json({
+          success: false,
+          message: 'Не указана сумма ставки'
+        });
+      }
+      
+      // Получаем информацию о пользователе из запроса
+      const userData = {
+        userId: req.user._id,
+        telegramId: req.user.telegramId
+      };
+      
+      // Данные игры
+      const gameData = {
+        betAmount: parseFloat(betAmount)
+      };
+      
+      console.log('GAME CONTROLLER: Обработка слотов с данными:', gameData);
+      
+      // Играем в слоты
+      const result = await gameService.playSlots(userData, gameData);
+      
+      console.log('GAME CONTROLLER: Результат слотов:', result);
+      
+      res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error(`GAME CONTROLLER: Ошибка в playSlots: ${error.message}`, error);
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
-}
 
   /**
    * Играть в мины
@@ -86,7 +113,7 @@ async playSlots(req, res) {
    */
   async playMines(req, res) {
     try {
-      console.log('Запрос на начало игры в мины:', req.body);
+      console.log('GAME CONTROLLER: Запрос на начало игры в мины:', req.body);
       const { betAmount, minesCount, clientSeed } = req.body;
       
       // Базовая валидация
@@ -125,19 +152,19 @@ async playSlots(req, res) {
         });
       }
       
-      console.log('Начало игры в мины с параметрами:', gameData);
+      console.log('GAME CONTROLLER: Начало игры в мины с параметрами:', gameData);
       
       // Играем в мины
       const result = await gameService.playMines(userData, gameData);
       
-      console.log('Игра в мины успешно создана:', result);
+      console.log('GAME CONTROLLER: Игра в мины успешно создана:', result);
       
       res.status(200).json({
         success: true,
         data: result
       });
     } catch (error) {
-      console.error(`Ошибка в playMines: ${error.message}`, error);
+      console.error(`GAME CONTROLLER: Ошибка в playMines: ${error.message}`, error);
       res.status(400).json({
         success: false,
         message: error.message
@@ -152,7 +179,7 @@ async playSlots(req, res) {
    */
   async completeMinesGame(req, res) {
     try {
-      console.log('Запрос на действие в игре мины:', req.body);
+      console.log('GAME CONTROLLER: Запрос на действие в игре мины:', req.body);
       const { gameId, row, col, cashout } = req.body;
       
       // Валидация GameId
@@ -200,19 +227,19 @@ async playSlots(req, res) {
         gameData.col = colNum;
       }
       
-      console.log('Действие в игре мины с параметрами:', gameData);
+      console.log('GAME CONTROLLER: Действие в игре мины с параметрами:', gameData);
       
       // Завершаем игру
       const result = await gameService.completeMinesGame(userData, gameData);
       
-      console.log('Результат действия в игре мины:', result);
+      console.log('GAME CONTROLLER: Результат действия в игре мины:', result);
       
       res.status(200).json({
         success: true,
         data: result
       });
     } catch (error) {
-      console.error(`Ошибка в completeMinesGame: ${error.message}`, error);
+      console.error(`GAME CONTROLLER: Ошибка в completeMinesGame: ${error.message}`, error);
       res.status(400).json({
         success: false,
         message: error.message
@@ -251,7 +278,7 @@ async playSlots(req, res) {
         data: games
       });
     } catch (error) {
-      console.error(`Ошибка в getUserGames: ${error.message}`, error);
+      console.error(`GAME CONTROLLER: Ошибка в getUserGames: ${error.message}`, error);
       res.status(400).json({
         success: false,
         message: error.message
@@ -280,7 +307,7 @@ async playSlots(req, res) {
         data: stats
       });
     } catch (error) {
-      console.error(`Ошибка в getUserGameStats: ${error.message}`, error);
+      console.error(`GAME CONTROLLER: Ошибка в getUserGameStats: ${error.message}`, error);
       res.status(400).json({
         success: false,
         message: error.message
@@ -295,6 +322,8 @@ async playSlots(req, res) {
    */
   async placeCrashBet(req, res) {
     try {
+      console.log('GAME CONTROLLER: Запрос на ставку в краш:', req.body);
+      
       const { amount, autoCashOut } = req.body;
       
       // Валидация
@@ -324,10 +353,12 @@ async playSlots(req, res) {
         autoCashOut: parseFloat(autoCashOut) || 0
       };
       
-      console.log(`CRASH BET: Пользователь ${userData.userId} ставит ${gameData.betAmount} USDT`);
+      console.log(`GAME CONTROLLER: Пользователь ${userData.userId} ставит ${gameData.betAmount} USDT`);
       
       // Размещаем ставку
       const result = await gameService.placeCrashBet(userData, gameData);
+      
+      console.log('GAME CONTROLLER: Результат ставки в краш:', result);
       
       res.status(200).json({
         success: true,
@@ -335,7 +366,7 @@ async playSlots(req, res) {
       });
       
     } catch (error) {
-      console.error('CRASH: Ошибка размещения ставки:', error);
+      console.error('GAME CONTROLLER: Ошибка размещения ставки в краш:', error);
       res.status(400).json({
         success: false,
         message: error.message
@@ -350,6 +381,8 @@ async playSlots(req, res) {
    */
   async cashOutCrash(req, res) {
     try {
+      console.log('GAME CONTROLLER: Запрос на кешаут в краш');
+      
       // В crash игре gameId не нужен - один пользователь = одна ставка в раунде
       // Получаем информацию о пользователе
       const userData = {
@@ -357,10 +390,12 @@ async playSlots(req, res) {
         telegramId: req.user.telegramId
       };
       
-      console.log(`CRASH CASHOUT: Пользователь ${userData.userId} выводит ставку`);
+      console.log(`GAME CONTROLLER: Пользователь ${userData.userId} выводит ставку`);
       
       // Выводим ставку (без gameId)
       const result = await gameService.cashOutCrash(userData);
+      
+      console.log('GAME CONTROLLER: Результат кешаута в краш:', result);
       
       res.status(200).json({
         success: true,
@@ -368,7 +403,7 @@ async playSlots(req, res) {
       });
       
     } catch (error) {
-      console.error('CRASH: Ошибка вывода ставки:', error);
+      console.error('GAME CONTROLLER: Ошибка вывода ставки в краш:', error);
       res.status(400).json({
         success: false,
         message: error.message
@@ -383,8 +418,12 @@ async playSlots(req, res) {
    */
   async getCrashState(req, res) {
     try {
+      console.log('GAME CONTROLLER: Запрос состояния краш игры');
+      
       // Правильно вызываем асинхронный метод
       const state = await gameService.getCurrentCrashState();
+      
+      console.log('GAME CONTROLLER: Состояние краш игры:', state);
       
       res.status(200).json({
         success: true,
@@ -392,7 +431,7 @@ async playSlots(req, res) {
       });
       
     } catch (error) {
-      console.error('CRASH: Ошибка получения состояния:', error);
+      console.error('GAME CONTROLLER: Ошибка получения состояния краш:', error);
       res.status(500).json({
         success: false,
         message: 'Ошибка получения состояния игры'
@@ -409,7 +448,11 @@ async playSlots(req, res) {
     try {
       const { limit = 20 } = req.query;
       
+      console.log('GAME CONTROLLER: Запрос истории краш игр, лимит:', limit);
+      
       const history = await gameService.getCrashHistory(parseInt(limit));
+      
+      console.log('GAME CONTROLLER: История краш игр получена:', history.length, 'записей');
       
       res.status(200).json({
         success: true,
@@ -417,7 +460,7 @@ async playSlots(req, res) {
       });
       
     } catch (error) {
-      console.error('CRASH: Ошибка получения истории:', error);
+      console.error('GAME CONTROLLER: Ошибка получения истории краш:', error);
       res.status(500).json({
         success: false,
         message: 'Ошибка получения истории'
@@ -433,6 +476,8 @@ async playSlots(req, res) {
   async getCrashUserStats(req, res) {
     try {
       const userId = req.user._id;
+      
+      console.log('GAME CONTROLLER: Запрос статистики пользователя в краш:', userId);
       
       const { Game } = require('../models');
       
@@ -488,13 +533,15 @@ async playSlots(req, res) {
         ? (userStats.wins / userStats.totalGames * 100).toFixed(2)
         : 0;
       
+      console.log('GAME CONTROLLER: Статистика краш получена:', userStats);
+      
       res.status(200).json({
         success: true,
         data: userStats
       });
       
     } catch (error) {
-      console.error('CRASH: Ошибка получения статистики:', error);
+      console.error('GAME CONTROLLER: Ошибка получения статистики краш:', error);
       res.status(500).json({
         success: false,
         message: 'Ошибка получения статистики'

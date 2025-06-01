@@ -1,4 +1,4 @@
-// backend/src/models/Event.js
+// backend/src/models/Event.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ПОДДЕРЖКОЙ НОВЫХ ФУНКЦИЙ
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -128,11 +128,67 @@ const eventSchema = new Schema({
     required: true
   },
   
-  // Метаданные
+  // НОВЫЕ МЕТАДАННЫЕ для расширенного управления
   metadata: {
     source: String,
     externalId: String,
-    tags: [String]
+    tags: [String],
+    
+    // Правильный исход (установленный заранее)
+    correctOutcomeId: {
+      type: String,
+      default: null
+    },
+    correctOutcomeSetBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    correctOutcomeSetAt: {
+      type: Date,
+      default: null
+    },
+    
+    // Информация о завершении
+    finishedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    finishedAt: {
+      type: Date,
+      default: null
+    },
+    finishType: {
+      type: String,
+      enum: ['auto', 'manual', 'early', 'prepared'],
+      default: null
+    },
+    
+    // История изменений времени
+    timeChanges: [{
+      changedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      changedAt: {
+        type: Date,
+        default: Date.now
+      },
+      previousEndTime: Date,
+      newEndTime: Date,
+      previousBettingEndsAt: Date,
+      newBettingEndsAt: Date,
+      reason: String
+    }],
+    
+    // Уведомления
+    notificationsSent: {
+      oneHour: { type: Boolean, default: false },
+      thirtyMinutes: { type: Boolean, default: false },
+      fiveMinutes: { type: Boolean, default: false },
+      overdue: { type: Boolean, default: false }
+    }
   }
 }, {
   timestamps: true
@@ -197,8 +253,40 @@ eventSchema.methods.canPlaceBet = function() {
          this.winningOutcome === null;
 };
 
+// НОВЫЙ метод для проверки готовности к завершению
+eventSchema.methods.isReadyToFinish = function() {
+  return this.metadata?.correctOutcomeId !== null;
+};
+
+// НОВЫЙ метод для получения времени до окончания в минутах
+eventSchema.methods.getTimeUntilEnd = function() {
+  const now = new Date();
+  const timeUntilEnd = new Date(this.endTime) - now;
+  return Math.floor(timeUntilEnd / (1000 * 60)); // в минутах
+};
+
+// НОВЫЙ метод для проверки необходимости уведомления
+eventSchema.methods.needsNotification = function(type) {
+  if (!this.metadata?.notificationsSent) {
+    return true;
+  }
+  return !this.metadata.notificationsSent[type];
+};
+
+// НОВЫЙ метод для отметки отправленного уведомления
+eventSchema.methods.markNotificationSent = function(type) {
+  if (!this.metadata) {
+    this.metadata = {};
+  }
+  if (!this.metadata.notificationsSent) {
+    this.metadata.notificationsSent = {};
+  }
+  this.metadata.notificationsSent[type] = true;
+  return this.save();
+};
+
 // Метод для финализации события
-eventSchema.methods.finalize = async function(winningOutcomeId) {
+eventSchema.methods.finalize = async function(winningOutcomeId, finishedBy = null, finishType = 'manual') {
   if (!this.outcomes.find(o => o.id === winningOutcomeId)) {
     throw new Error('Неверный ID выигрышного исхода');
   }
@@ -206,7 +294,35 @@ eventSchema.methods.finalize = async function(winningOutcomeId) {
   this.winningOutcome = winningOutcomeId;
   this.status = 'finished';
   
+  // Записываем метаданные о завершении
+  if (!this.metadata) {
+    this.metadata = {};
+  }
+  this.metadata.finishedBy = finishedBy;
+  this.metadata.finishedAt = new Date();
+  this.metadata.finishType = finishType;
+  
   return this.save();
+};
+
+// НОВЫЙ метод для записи изменения времени
+eventSchema.methods.recordTimeChange = function(changedBy, previousEndTime, newEndTime, previousBettingEndsAt, newBettingEndsAt, reason = null) {
+  if (!this.metadata) {
+    this.metadata = { timeChanges: [] };
+  }
+  if (!this.metadata.timeChanges) {
+    this.metadata.timeChanges = [];
+  }
+  
+  this.metadata.timeChanges.push({
+    changedBy,
+    changedAt: new Date(),
+    previousEndTime,
+    newEndTime,
+    previousBettingEndsAt,
+    newBettingEndsAt,
+    reason
+  });
 };
 
 // Статический метод для получения активных событий
@@ -229,11 +345,32 @@ eventSchema.statics.getFeaturedEvent = function() {
   .sort({ priority: -1, createdAt: -1 });
 };
 
+// НОВЫЙ статический метод для получения событий, требующих внимания
+eventSchema.statics.getEventsRequiringAttention = function() {
+  const now = new Date();
+  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+  
+  return this.find({
+    status: 'active',
+    $or: [
+      // События, которые заканчиваются в течение часа и не имеют установленного исхода
+      { 
+        endTime: { $lte: oneHourFromNow },
+        'metadata.correctOutcomeId': { $exists: false }
+      },
+      // События, которые уже просрочены
+      { endTime: { $lte: now } }
+    ]
+  }).sort({ endTime: 1 });
+};
+
 // Индексы для производительности
 eventSchema.index({ status: 1, bettingEndsAt: 1 });
 eventSchema.index({ featured: 1, priority: -1 });
 eventSchema.index({ category: 1, status: 1 });
 eventSchema.index({ createdBy: 1 });
+eventSchema.index({ endTime: 1, status: 1 }); // Для уведомлений
+eventSchema.index({ 'metadata.correctOutcomeId': 1 }); // Для поиска событий с установленным исходом
 
 const Event = mongoose.model('Event', eventSchema);
 

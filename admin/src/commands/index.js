@@ -561,7 +561,7 @@ function registerCommands(bot) {
   }
 
   /**
-   * Создать событие
+   * Создать событие - ИСПРАВЛЕННАЯ ВЕРСИЯ
    */
   async function createEvent(ctx, eventData) {
     console.log('ADMIN: Создание события с данными:', eventData);
@@ -571,12 +571,22 @@ function registerCommands(bot) {
       const endTime = new Date(now.getTime() + eventData.durationHours * 60 * 60 * 1000);
       const bettingEndsAt = new Date(endTime.getTime() - 30 * 60 * 1000); // За 30 минут до окончания
       
+      // Генерируем уникальные ID для исходов
+      const outcome1Id = `outcome_${Date.now()}_1_${Math.random().toString(36).substring(2, 8)}`;
+      const outcome2Id = `outcome_${Date.now()}_2_${Math.random().toString(36).substring(2, 8)}`;
+      
       const createData = {
         title: eventData.title,
         description: eventData.description,
         outcomes: [
-          { name: eventData.outcome1 },
-          { name: eventData.outcome2 }
+          { 
+            id: outcome1Id,
+            name: eventData.outcome1 
+          },
+          { 
+            id: outcome2Id,
+            name: eventData.outcome2 
+          }
         ],
         category: eventData.category,
         startTime: now.toISOString(),

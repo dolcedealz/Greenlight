@@ -1,0 +1,283 @@
+/* frontend/src/styles/EventCard.css */
+.event-card {
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.event-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border-color: rgba(11, 168, 74, 0.3);
+}
+
+.event-card:active {
+  transform: translateY(-2px);
+}
+
+/* Заголовок карточки */
+.event-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.event-category {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.category-icon {
+  font-size: 16px;
+}
+
+.category-name {
+  font-weight: 500;
+  text-transform: capitalize;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.event-status {
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Название события */
+.event-title {
+  margin-bottom: 12px;
+}
+
+.event-title h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  line-height: 1.3;
+  /* Ограничение текста до 2 строк */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  /* Убираем предупреждение, добавляя стандартное свойство */
+  line-clamp: 2;
+  -webkit-line-clamp: 2; /* Webkit browsers */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Описание */
+.event-description {
+  margin-bottom: 15px;
+}
+
+.event-description p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1.4;
+  /* Ограничение текста до 3 строк */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  /* Убираем предупреждение, добавляя стандартное свойство */
+  line-clamp: 3;
+  -webkit-line-clamp: 3; /* Webkit browsers */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Информация о пуле */
+.event-pool-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.pool-total, .time-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.pool-label, .time-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pool-amount {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.time-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ff9500;
+}
+
+/* Исходы события */
+.event-outcomes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.outcome-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.outcome-item:hover {
+  background-color: rgba(11, 168, 74, 0.1);
+  border-color: rgba(11, 168, 74, 0.3);
+  transform: translateX(5px);
+}
+
+.outcome-info {
+  flex: 1;
+}
+
+.outcome-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 4px;
+  /* Обрезаем длинные названия */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.outcome-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.outcome-percentage {
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.outcome-odds {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.odds-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.odds-amount {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Подвал карточки */
+.event-card-footer {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.tap-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Анимация при загрузке */
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.event-card {
+  animation: cardAppear 0.4s ease;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+  .event-card {
+    padding: 15px;
+  }
+  
+  .event-title h3 {
+    font-size: 16px;
+  }
+  
+  .event-pool-info {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  
+  .pool-total, .time-left {
+    flex-direction: row;
+    gap: 8px;
+  }
+  
+  .outcome-item {
+    padding: 10px;
+  }
+  
+  .outcome-name {
+    font-size: 14px;
+    max-width: 140px;
+  }
+  
+  .odds-value {
+    font-size: 16px;
+  }
+}
+
+/* Поддержка для браузеров без webkit */
+@supports not (-webkit-line-clamp: 1) {
+  .event-title h3 {
+    max-height: 2.6em; /* Примерно 2 строки */
+  }
+  
+  .event-description p {
+    max-height: 4.2em; /* Примерно 3 строки */
+  }
+}

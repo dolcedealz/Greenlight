@@ -59,9 +59,43 @@ const SlotControls = ({
     setBetAmount(quickBet);
   };
   
-  // Обработчик кнопки "Крутить"
+  // ИСПРАВЛЕННЫЙ обработчик кнопки "Крутить"
   const handleSpinClick = () => {
-    if (betAmount <= 0 || betAmount > balance || isSpinning || loading) return;
+    console.log('🎰 CONTROLS: Нажата кнопка "Крутить"');
+    console.log('🎰 CONTROLS: Состояние - betAmount:', betAmount, 'balance:', balance, 'isSpinning:', isSpinning, 'loading:', loading, 'autoplay:', autoplay);
+    
+    // Проверяем все условия
+    if (isSpinning) {
+      console.log('🎰 CONTROLS: Блокировано - уже идет вращение');
+      return;
+    }
+    
+    if (loading) {
+      console.log('🎰 CONTROLS: Блокировано - идет загрузка');
+      return;
+    }
+    
+    if (autoplay) {
+      console.log('🎰 CONTROLS: Блокировано - активна автоигра');
+      return;
+    }
+    
+    if (!betAmount || betAmount <= 0) {
+      console.log('🎰 CONTROLS: Блокировано - неверная сумма ставки:', betAmount);
+      return;
+    }
+    
+    if (betAmount > balance) {
+      console.log('🎰 CONTROLS: Блокировано - недостаточно средств. Ставка:', betAmount, 'Баланс:', balance);
+      return;
+    }
+    
+    if (!onSpin) {
+      console.error('🎰 CONTROLS: Ошибка - функция onSpin не передана!');
+      return;
+    }
+    
+    console.log('🎰 CONTROLS: Все проверки пройдены, запускаем спин');
     
     // Сильная вибрация для главного игрового действия
     heavyImpact();
@@ -73,11 +107,13 @@ const SlotControls = ({
     if (isSpinning || loading) return; // БЛОКИРУЕМ при спине
     
     selectionChanged(); // Вибрация при переключении
-    console.log('СЛОТЫ CONTROLS: Переключение автоспина, текущее состояние:', autoplay);
+    console.log('🎰 CONTROLS: Переключение автоспина, текущее состояние:', autoplay);
     
     // Передаем правильный параметр в родительский компонент
     // setAutoplay ожидает enabled параметр, а не setState логику
-    setAutoplay(!autoplay);
+    if (setAutoplay) {
+      setAutoplay(!autoplay);
+    }
   };
   
   // Обработчик изменения количества автоспинов
@@ -85,18 +121,20 @@ const SlotControls = ({
     if (isSpinning || loading || autoplay) return; // БЛОКИРУЕМ при спине
     
     buttonPressFeedback(); // Легкая вибрация при выборе
-    setAutoplayCount(count);
+    if (setAutoplayCount) {
+      setAutoplayCount(count);
+    }
   };
 
   // Обработчик остановки автоигры - ИСПРАВЛЕННЫЙ
   const handleStopAutoplay = () => {
     gameActionFeedback(); // Вибрация при остановке
-    console.log('СЛОТЫ CONTROLS: Нажата кнопка остановки автоспина');
+    console.log('🎰 CONTROLS: Нажата кнопка остановки автоспина');
     
     // Используем функцию из родительского компонента
     if (onStopAutoplay) {
       onStopAutoplay();
-    } else {
+    } else if (setAutoplay) {
       // Fallback к старому методу
       setAutoplay(false);
     }
@@ -121,7 +159,7 @@ const SlotControls = ({
         <button 
           className={`spin-button ${isSpinning ? 'spinning' : ''} ${autoplay ? 'autoplay-active' : ''}`}
           onClick={handleSpinClick}
-          disabled={isSpinning || loading || betAmount <= 0 || betAmount > balance || autoplay}
+          disabled={isSpinning || loading || !betAmount || betAmount <= 0 || betAmount > balance || autoplay}
         >
           {isSpinning ? (
             <span className="spin-text spinning-text">

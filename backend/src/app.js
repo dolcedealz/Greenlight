@@ -18,10 +18,28 @@ app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
   console.log(`${timestamp} - ${req.method} ${req.path}`);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  
+  // Логируем только важные заголовки
+  const importantHeaders = {
+    'content-type': req.headers['content-type'],
+    'authorization': req.headers['authorization'] ? 'Bearer ***' : undefined,
+    'telegram-data': req.headers['telegram-data'] ? '***TELEGRAM_DATA***' : undefined,
+    'user-agent': req.headers['user-agent']
+  };
+  console.log('Important Headers:', JSON.stringify(importantHeaders, null, 2));
+  
   if (req.body && Object.keys(req.body).length > 0) {
     console.log('Body:', JSON.stringify(req.body, null, 2));
   }
+  
+  if (req.params && Object.keys(req.params).length > 0) {
+    console.log('Params:', JSON.stringify(req.params, null, 2));
+  }
+  
+  if (req.query && Object.keys(req.query).length > 0) {
+    console.log('Query:', JSON.stringify(req.query, null, 2));
+  }
+  
   next();
 });
 
@@ -44,8 +62,9 @@ app.get('/', (req, res) => {
       events: {
         active: 'GET /api/events/active',
         featured: 'GET /api/events/featured',
-        bet: 'POST /api/events/bet',
-        userBets: 'GET /api/events/user/bets'
+        bet: 'POST /api/events/:eventId/bet',
+        userBets: 'GET /api/events/user/bets',
+        getEvent: 'GET /api/events/:eventId'
       }
     }
   });

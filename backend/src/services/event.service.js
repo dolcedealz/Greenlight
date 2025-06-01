@@ -1,7 +1,12 @@
-// backend/src/services/event.service.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// backend/src/services/event.service.js - БЕЗ UUID (альтернативное решение)
 const { Event, EventBet, User, Transaction } = require('../models');
-const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
+
+// Функция для генерации уникального ID без uuid
+function generateUniqueId() {
+  return crypto.randomBytes(16).toString('hex');
+}
 
 /**
  * Сервис для управления событиями
@@ -339,9 +344,9 @@ class EventService {
       
       console.log('EVENT SERVICE: Валидный AdminId:', validAdminId);
       
-      // Генерируем уникальные ID для исходов
+      // Генерируем уникальные ID для исходов (используем crypto вместо uuid)
       const outcomes = eventData.outcomes.map(outcome => ({
-        id: uuidv4(),
+        id: generateUniqueId(), // Используем встроенную функцию вместо uuid
         name: outcome.name,
         totalBets: 0,
         betsCount: 0

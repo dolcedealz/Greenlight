@@ -1,4 +1,4 @@
-// backend/src/middleware/auth.middleware.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// backend/src/middleware/auth.middleware.js - ИСПРАВЛЕННАЯ ВЕРСИЯ С ДОПОЛНИТЕЛЬНЫМ ЛОГИРОВАНИЕМ
 const { User } = require('../models');
 const mongoose = require('mongoose');
 
@@ -11,20 +11,21 @@ const mongoose = require('mongoose');
 async function telegramAuthMiddleware(req, res, next) {
   try {
     console.log('AUTH: Начало проверки аутентификации');
+    console.log('AUTH: URL:', req.method, req.originalUrl);
     console.log('AUTH: Headers:', JSON.stringify(req.headers, null, 2));
     
     // Получаем данные инициализации из заголовка
     const initData = req.headers['telegram-data'];
     
     if (!initData) {
-      console.log('AUTH: Отсутствуют данные аутентификации');
+      console.log('AUTH: Отсутствуют данные аутентификации в заголовке telegram-data');
       return res.status(401).json({
         success: false,
         message: 'Отсутствуют данные аутентификации'
       });
     }
     
-    console.log('AUTH: Получены initData:', initData);
+    console.log('AUTH: Получены initData:', initData.substring(0, 100) + '...');
     
     // В этом примере мы просто извлекаем telegramId из данных
     let telegramId;
@@ -49,7 +50,7 @@ async function telegramAuthMiddleware(req, res, next) {
     }
     
     if (!telegramId) {
-      console.log('AUTH: Идентификатор пользователя не найден');
+      console.log('AUTH: Идентификатор пользователя не найден в данных');
       return res.status(401).json({
         success: false,
         message: 'Идентификатор пользователя не найден'
@@ -115,6 +116,7 @@ async function telegramAuthMiddleware(req, res, next) {
  */
 function adminAuthMiddleware(req, res, next) {
   console.log('ADMIN AUTH: Проверка прав администратора');
+  console.log('ADMIN AUTH: URL:', req.method, req.originalUrl);
   console.log('ADMIN AUTH: Headers:', JSON.stringify(req.headers, null, 2));
   
   // Проверяем Bearer токен

@@ -3,9 +3,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MinesGrid } from './index';
 import { MinesControls } from './index';
 import { gameApi } from '../../../services';
+import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import '../../../styles/MinesGame.css';
 
 const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) => {
+  const { gameActionFeedback, criticalActionFeedback } = useTactileFeedback();
+  
   // НОВОЕ: Состояние загрузки
   const [isInitializing, setIsInitializing] = useState(true);
   
@@ -262,6 +265,38 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       setLoading(false);
     }
   }, [gameActive, gameOver, loading, gameId, setBalance, setError, setGameResult]);
+
+  // НОВОЕ: Обработчики кнопок с вибрацией
+  const handlePlayClick = () => {
+    console.log('💣 GAME: Нажата кнопка "Играть"');
+    
+    if (gameActive || loading) {
+      console.log('💣 GAME: Блокировано - игра активна или загрузка');
+      return;
+    }
+    
+    if (!betAmount || betAmount <= 0 || betAmount > balance) {
+      console.log('💣 GAME: Блокировано - неверная ставка');
+      return;
+    }
+    
+    console.log('💣 GAME: Запускаем игру');
+    gameActionFeedback(); // Вибрация при начале игры
+    startGame();
+  };
+
+  const handleCashoutClick = () => {
+    console.log('💣 GAME: Нажата кнопка "Забрать выигрыш"');
+    
+    if (!gameActive || loading) {
+      console.log('💣 GAME: Блокировано - игра не активна или загрузка');
+      return;
+    }
+    
+    console.log('💣 GAME: Забираем выигрыш');
+    criticalActionFeedback(); // Вибрация при кешауте
+    handleCashout();
+  };
   
   // Получаем количество открытых ячеек
   const revealedCount = clickedCells.length;
@@ -298,6 +333,27 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         loading={loading}
       />
       
+      {/* НОВОЕ: Кнопки действий под игровым полем */}
+      <div className="mines-action-buttons">
+        {!gameActive ? (
+          <button 
+            className="mines-play-button" 
+            onClick={handlePlayClick}
+            disabled={!betAmount || betAmount <= 0 || betAmount > balance || loading}
+          >
+            {loading ? 'Загрузка...' : 'Играть'}
+          </button>
+        ) : (
+          <button 
+            className="mines-cashout-button" 
+            onClick={handleCashoutClick}
+            disabled={loading}
+          >
+            {loading ? 'Загрузка...' : `Забрать выигрыш (${possibleWin.toFixed(2)} USDT)`}
+          </button>
+        )}
+      </div>
+      
       <MinesControls 
         balance={balance}
         onPlay={startGame}
@@ -313,6 +369,8 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         onAutoplayChange={setAutoplay}
         autoplay={autoplay}
         loading={loading}
+        // НОВОЕ: Скрываем кнопки в контролах, так как они теперь под полем
+        hideActionButtons={true}
       />
     </>
   );

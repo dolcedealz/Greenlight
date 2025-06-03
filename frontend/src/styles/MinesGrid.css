@@ -1,195 +1,591 @@
-/* frontend/src/styles/MinesGrid.css */
+/* frontend/src/styles/MinesGrid.css - ОБНОВЛЕННАЯ ВЕРСИЯ */
 .mines-grid {
   display: flex;
   flex-direction: column;
-  background-color: var(--card-background);
-  border-radius: var(--border-radius);
-  padding: 20px; /* Увеличено с 15px */
-  box-shadow: var(--shadow);
+  background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+  border-radius: 24px;
+  padding: 25px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    0 0 40px rgba(255, 59, 48, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   width: 100%;
-  max-width: 550px; /* Увеличено с 500px */
+  max-width: 580px;
   margin: 0 auto;
   position: relative;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 59, 48, 0.15);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+.mines-grid::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(255, 59, 48, 0.08) 45deg,
+    transparent 90deg,
+    rgba(11, 168, 74, 0.06) 135deg,
+    transparent 180deg,
+    rgba(255, 215, 0, 0.06) 225deg,
+    transparent 270deg,
+    rgba(255, 59, 48, 0.08) 315deg,
+    transparent 360deg
+  );
+  border-radius: 24px;
+  animation: minesGridGlow 15s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes minesGridGlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .mines-grid.game-over {
-  opacity: 0.8;
+  opacity: 0.9;
+  transform: scale(0.98);
+  box-shadow: 
+    0 15px 50px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(255, 59, 48, 0.3);
+  border-color: rgba(255, 59, 48, 0.4);
 }
 
+.mines-grid.game-over::before {
+  animation-duration: 8s;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(255, 59, 48, 0.15) 45deg,
+    transparent 90deg,
+    rgba(255, 59, 48, 0.1) 135deg,
+    transparent 180deg,
+    rgba(255, 59, 48, 0.12) 225deg,
+    transparent 270deg,
+    rgba(255, 59, 48, 0.15) 315deg,
+    transparent 360deg
+  );
+}
+
+/* Оверлей загрузки */
 .mines-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  border-radius: var(--border-radius);
+  background: linear-gradient(
+    145deg,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.6) 50%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+  border-radius: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10;
+  backdrop-filter: blur(8px);
+  animation: overlayAppear 0.3s ease;
+}
+
+@keyframes overlayAppear {
+  0% { 
+    opacity: 0; 
+    backdrop-filter: blur(0px);
+  }
+  100% { 
+    opacity: 1; 
+    backdrop-filter: blur(8px);
+  }
 }
 
 .mines-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   border-top: 4px solid var(--primary-color);
-  animation: spin 1s linear infinite;
+  animation: minesSpinEnhanced 1.2s linear infinite;
+  box-shadow: 
+    0 0 20px rgba(11, 168, 74, 0.4),
+    inset 0 0 20px rgba(11, 168, 74, 0.2);
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes minesSpinEnhanced {
+  0% { 
+    transform: rotate(0deg); 
+    box-shadow: 0 0 20px rgba(11, 168, 74, 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(11, 168, 74, 0.6);
+  }
+  100% { 
+    transform: rotate(360deg); 
+    box-shadow: 0 0 20px rgba(11, 168, 74, 0.4);
+  }
 }
 
+/* Ряды ячеек */
 .mines-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px; /* Увеличено с 10px */
+  margin-bottom: 15px;
+  gap: 8px;
 }
 
 .mines-row:last-child {
   margin-bottom: 0;
 }
 
+/* Ячейки поля */
 .mines-cell {
-  width: 60px; /* Увеличено с 50px */
-  height: 60px; /* Увеличено с 50px */
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 10px; /* Увеличено с 8px */
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.04) 50%, 
+    rgba(255, 255, 255, 0.08) 100%);
+  border-radius: 14px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-right: 12px; /* Увеличено с 10px */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.mines-cell:last-child {
-  margin-right: 0;
+/* Эффект свечения для неоткрытых ячеек */
+.mines-cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.03) 50%,
+    transparent 70%
+  );
+  border-radius: 12px;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+/* Эффект подсветки при наведении */
+.mines-cell::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    rgba(11, 168, 74, 0.6), 
+    rgba(255, 255, 255, 0.3), 
+    rgba(11, 168, 74, 0.6));
+  border-radius: 16px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .mines-cell:hover:not(.revealed):not(.disabled) {
-  background-color: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.15) 0%, 
+    rgba(255, 255, 255, 0.1) 50%, 
+    rgba(255, 255, 255, 0.15) 100%);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(11, 168, 74, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-color: rgba(11, 168, 74, 0.4);
+}
+
+.mines-cell:hover:not(.revealed):not(.disabled)::before {
+  background: linear-gradient(
+    45deg,
+    transparent 20%,
+    rgba(11, 168, 74, 0.1) 50%,
+    transparent 80%
+  );
+}
+
+.mines-cell:hover:not(.revealed):not(.disabled)::after {
+  opacity: 1;
+  animation: cellGlowPulse 2s ease-in-out infinite;
+}
+
+.mines-cell:active:not(.revealed):not(.disabled) {
+  transform: translateY(-1px) scale(1.01);
+  transition: all 0.1s ease;
 }
 
 .mines-cell.revealed {
   cursor: default;
   transform: none;
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.2),
+    inset 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .mines-cell.revealed.gem {
-  background-color: rgba(11, 168, 74, 0.2);
-  border: 1px solid var(--primary-color);
-  animation: revealGem 0.3s ease;
+  background: linear-gradient(145deg, 
+    rgba(11, 168, 74, 0.25) 0%, 
+    rgba(11, 168, 74, 0.4) 50%, 
+    rgba(11, 168, 74, 0.25) 100%);
+  border: 2px solid rgba(11, 168, 74, 0.8);
+  animation: revealGemEnhanced 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 
+    0 0 30px rgba(11, 168, 74, 0.6),
+    inset 0 0 20px rgba(11, 168, 74, 0.3),
+    0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.mines-cell.revealed.gem::before {
+  background: radial-gradient(circle, rgba(11, 168, 74, 0.3) 0%, transparent 70%);
+  animation: gemShimmer 2s ease-in-out infinite;
+}
+
+.mines-cell.revealed.gem::after {
+  content: '✨';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 12px;
+  animation: sparkleGem 2s ease-in-out infinite;
+  z-index: 10;
+  opacity: 0.8;
 }
 
 .mines-cell.revealed.mine {
-  background-color: rgba(255, 59, 48, 0.2);
-  border: 1px solid #ff3b30;
-  animation: revealMine 0.5s ease;
+  background: linear-gradient(145deg, 
+    rgba(255, 59, 48, 0.3) 0%, 
+    rgba(255, 59, 48, 0.5) 50%, 
+    rgba(255, 59, 48, 0.3) 100%);
+  border: 2px solid rgba(255, 59, 48, 0.8);
+  animation: revealMineEnhanced 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   z-index: 2;
+  box-shadow: 
+    0 0 40px rgba(255, 59, 48, 0.8),
+    inset 0 0 25px rgba(255, 59, 48, 0.4),
+    0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.mines-cell.revealed.mine::before {
+  background: radial-gradient(circle, rgba(255, 59, 48, 0.4) 0%, transparent 70%);
+  animation: mineFlash 1s ease-in-out infinite;
+}
+
+.mines-cell.revealed.mine::after {
+  content: '💥';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  animation: explosionEffect 1.5s ease-in-out infinite;
+  z-index: 10;
 }
 
 .mines-cell.disabled {
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.6;
+  transform: none;
 }
 
+.mines-cell.disabled:hover {
+  transform: none;
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Иконки */
 .gem-icon, .mine-icon {
-  font-size: 28px; /* Увеличено с 24px */
-  animation: popIn 0.3s ease;
+  font-size: 32px;
+  animation: iconAppearEnhanced 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+  position: relative;
+  z-index: 3;
 }
 
-@keyframes revealGem {
-  0% {
-    transform: scale(0.9);
-    background-color: rgba(11, 168, 74, 0);
+.gem-icon {
+  color: #00ff88;
+  text-shadow: 
+    0 0 20px rgba(11, 168, 74, 0.8),
+    0 0 40px rgba(0, 255, 136, 0.6);
+  animation: iconAppearEnhanced 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+             gemPulse 2s ease-in-out infinite 0.5s;
+}
+
+.mine-icon {
+  color: #ff4444;
+  text-shadow: 
+    0 0 20px rgba(255, 59, 48, 0.8),
+    0 0 40px rgba(255, 68, 68, 0.6);
+  animation: iconAppearEnhanced 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+             mineThrob 1.2s ease-in-out infinite 0.5s;
+}
+
+/* Анимации */
+@keyframes cellGlowPulse {
+  0%, 100% { 
+    background-position: 0% 50%; 
   }
-  50% {
-    transform: scale(1.05);
-    background-color: rgba(11, 168, 74, 0.3);
-  }
-  100% {
-    transform: scale(1);
-    background-color: rgba(11, 168, 74, 0.2);
+  50% { 
+    background-position: 100% 50%; 
   }
 }
 
-@keyframes revealMine {
+@keyframes revealGemEnhanced {
   0% {
-    transform: scale(0.9);
-    background-color: rgba(255, 59, 48, 0);
+    transform: scale(0.8) rotate(-10deg);
+    background: rgba(11, 168, 74, 0);
+    box-shadow: 0 0 0 rgba(11, 168, 74, 0);
   }
-  20% {
-    transform: scale(1.2);
-    background-color: rgba(255, 59, 48, 0.5);
-  }
-  40% {
-    transform: rotate(15deg);
+  30% {
+    transform: scale(1.1) rotate(5deg);
+    background: rgba(11, 168, 74, 0.5);
   }
   60% {
-    transform: rotate(-15deg);
+    transform: scale(0.95) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    background: linear-gradient(145deg, 
+      rgba(11, 168, 74, 0.25) 0%, 
+      rgba(11, 168, 74, 0.4) 50%, 
+      rgba(11, 168, 74, 0.25) 100%);
+    box-shadow: 
+      0 0 30px rgba(11, 168, 74, 0.6),
+      inset 0 0 20px rgba(11, 168, 74, 0.3);
+  }
+}
+
+@keyframes revealMineEnhanced {
+  0% {
+    transform: scale(0.8) rotate(-15deg);
+    background: rgba(255, 59, 48, 0);
+    box-shadow: 0 0 0 rgba(255, 59, 48, 0);
+  }
+  20% {
+    transform: scale(1.2) rotate(10deg);
+    background: rgba(255, 59, 48, 0.6);
+  }
+  40% {
+    transform: rotate(-8deg) scale(1.1);
+  }
+  60% {
+    transform: rotate(5deg) scale(0.95);
   }
   80% {
-    transform: rotate(5deg);
+    transform: rotate(-2deg) scale(1.05);
   }
   100% {
     transform: scale(1) rotate(0);
-    background-color: rgba(255, 59, 48, 0.2);
+    background: linear-gradient(145deg, 
+      rgba(255, 59, 48, 0.3) 0%, 
+      rgba(255, 59, 48, 0.5) 50%, 
+      rgba(255, 59, 48, 0.3) 100%);
+    box-shadow: 
+      0 0 40px rgba(255, 59, 48, 0.8),
+      inset 0 0 25px rgba(255, 59, 48, 0.4);
   }
 }
 
-@keyframes popIn {
+@keyframes iconAppearEnhanced {
   0% {
-    transform: scale(0);
+    transform: scale(0) rotate(180deg);
     opacity: 0;
   }
+  50% {
+    transform: scale(1.3) rotate(360deg);
+    opacity: 0.8;
+  }
   70% {
-    transform: scale(1.2);
+    transform: scale(0.9) rotate(375deg);
+    opacity: 1;
   }
   100% {
-    transform: scale(1);
+    transform: scale(1) rotate(360deg);
     opacity: 1;
   }
 }
 
+@keyframes gemShimmer {
+  0%, 100% { 
+    opacity: 0.3; 
+    transform: translateX(-100%) rotate(45deg);
+  }
+  50% { 
+    opacity: 0.8; 
+    transform: translateX(100%) rotate(45deg);
+  }
+}
+
+@keyframes sparkleGem {
+  0%, 100% { 
+    opacity: 0.6; 
+    transform: rotate(0deg) scale(0.8);
+  }
+  25% { 
+    opacity: 1; 
+    transform: rotate(90deg) scale(1.2);
+  }
+  50% { 
+    opacity: 0.8; 
+    transform: rotate(180deg) scale(1);
+  }
+  75% { 
+    opacity: 1; 
+    transform: rotate(270deg) scale(1.1);
+  }
+}
+
+@keyframes mineFlash {
+  0%, 100% { 
+    opacity: 0.4; 
+    background: radial-gradient(circle, rgba(255, 59, 48, 0.4) 0%, transparent 70%);
+  }
+  50% { 
+    opacity: 0.9; 
+    background: radial-gradient(circle, rgba(255, 59, 48, 0.7) 0%, transparent 70%);
+  }
+}
+
+@keyframes explosionEffect {
+  0%, 100% { 
+    opacity: 0.7; 
+    transform: rotate(0deg) scale(0.8);
+  }
+  20% { 
+    opacity: 1; 
+    transform: rotate(72deg) scale(1.3);
+  }
+  40% { 
+    opacity: 0.8; 
+    transform: rotate(144deg) scale(1);
+  }
+  60% { 
+    opacity: 1; 
+    transform: rotate(216deg) scale(1.2);
+  }
+  80% { 
+    opacity: 0.9; 
+    transform: rotate(288deg) scale(1.1);
+  }
+}
+
+@keyframes gemPulse {
+  0%, 100% { 
+    transform: scale(1);
+    text-shadow: 
+      0 0 20px rgba(11, 168, 74, 0.8),
+      0 0 40px rgba(0, 255, 136, 0.6);
+  }
+  50% { 
+    transform: scale(1.05);
+    text-shadow: 
+      0 0 30px rgba(11, 168, 74, 1),
+      0 0 60px rgba(0, 255, 136, 0.8);
+  }
+}
+
+@keyframes mineThrob {
+  0%, 100% { 
+    transform: scale(1);
+    text-shadow: 
+      0 0 20px rgba(255, 59, 48, 0.8),
+      0 0 40px rgba(255, 68, 68, 0.6);
+  }
+  50% { 
+    transform: scale(1.08);
+    text-shadow: 
+      0 0 30px rgba(255, 59, 48, 1),
+      0 0 60px rgba(255, 68, 68, 0.9);
+  }
+}
+
+/* Адаптивность */
 @media (max-width: 500px) {
   .mines-cell {
-    width: 50px; /* Увеличено с 40px */
-    height: 50px; /* Увеличено с 40px */
-    margin-right: 10px; /* Увеличено с 8px */
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    margin-right: 10px;
   }
   
   .gem-icon, .mine-icon {
-    font-size: 24px; /* Увеличено с 20px */
+    font-size: 28px;
   }
   
   .mines-grid {
-    padding: 15px;
-    max-width: 450px; /* Увеличено с 400px */
+    padding: 20px;
+    max-width: 480px;
+    border-radius: 20px;
+  }
+  
+  .mines-row {
+    margin-bottom: 12px;
+    gap: 6px;
   }
 }
 
 @media (max-width: 400px) {
   .mines-cell {
-    width: 42px; /* Увеличено с 30px */
-    height: 42px; /* Увеличено с 30px */
-    margin-right: 8px; /* Увеличено с 6px */
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    margin-right: 8px;
   }
   
   .gem-icon, .mine-icon {
-    font-size: 20px; /* Увеличено с 16px */
+    font-size: 24px;
   }
   
   .mines-grid {
-    max-width: 380px;
+    max-width: 420px;
+    padding: 18px;
+  }
+  
+  .mines-row {
+    margin-bottom: 10px;
+    gap: 5px;
+  }
+}
+
+/* Отключение анимаций для пользователей с ограничениями */
+@media (prefers-reduced-motion: reduce) {
+  .mines-grid::before,
+  .mines-cell::after,
+  .mines-cell.revealed.gem,
+  .mines-cell.revealed.mine,
+  .gem-icon,
+  .mine-icon,
+  .mines-spinner {
+    animation: none;
+  }
+  
+  .mines-cell {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .mines-grid {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
 }

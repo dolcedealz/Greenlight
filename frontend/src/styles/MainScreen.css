@@ -1,22 +1,57 @@
-/* MainScreen.css */
+/* MainScreen.css - ОБНОВЛЕННАЯ ВЕРСИЯ */
 .main-screen {
   padding: 0 15px 80px 15px;
+  background: linear-gradient(180deg, rgba(11, 168, 74, 0.02) 0%, transparent 30%);
+  min-height: 100vh;
 }
 
 .games-container {
   margin-top: 20px;
+  position: relative;
+}
+
+.games-container::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -15px;
+  right: -15px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(11, 168, 74, 0.3), transparent);
+  border-radius: 1px;
 }
 
 .games-title {
   font-size: 18px;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   font-weight: bold;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.games-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+  border-radius: 1px;
 }
 
 .games-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  gap: 18px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: calc(var(--border-radius) + 5px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
 }
 
 /* Дополнительные стили для MainScreen */
@@ -27,6 +62,9 @@
   justify-content: center;
   height: 300px;
   color: rgba(255, 255, 255, 0.7);
+  background: linear-gradient(135deg, rgba(11, 168, 74, 0.05), rgba(11, 168, 74, 0.01));
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(11, 168, 74, 0.1);
 }
 
 .main-loading .loader {
@@ -37,6 +75,7 @@
   height: 50px;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
+  filter: drop-shadow(0 0 10px rgba(11, 168, 74, 0.3));
 }
 
 @keyframes spin {
@@ -45,35 +84,42 @@
 }
 
 .main-error-banner {
-  background-color: rgba(255, 59, 48, 0.1);
+  background: linear-gradient(135deg, rgba(255, 59, 48, 0.1) 0%, rgba(255, 59, 48, 0.05) 100%);
   border: 1px solid rgba(255, 59, 48, 0.3);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 15px;
+  border-radius: var(--border-radius);
+  padding: 15px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(255, 59, 48, 0.1);
 }
 
 .main-error-banner p {
   margin: 0;
   color: #ff3b30;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .main-error-banner button {
-  background-color: #ff3b30;
+  background: linear-gradient(135deg, #ff3b30, #d70015);
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
+  border-radius: 8px;
+  padding: 8px 16px;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
 }
 
 .main-error-banner button:hover {
-  background-color: #d70015;
+  background: linear-gradient(135deg, #d70015, #a8000f);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.4);
 }
 
 /* Placeholder для событий */
@@ -82,9 +128,17 @@
   border-radius: var(--border-radius);
   padding: 20px;
   margin: 15px 0;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), 0 0 20px rgba(11, 168, 74, 0.05);
   border: 1px solid rgba(11, 168, 74, 0.2);
   text-align: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.events-preview-placeholder:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 30px rgba(11, 168, 74, 0.1);
+  border-color: rgba(11, 168, 74, 0.4);
 }
 
 .events-preview-placeholder .events-header {
@@ -101,37 +155,93 @@
   margin: 0;
   color: var(--primary-color);
   font-weight: bold;
+  text-shadow: 0 2px 4px rgba(11, 168, 74, 0.3);
 }
 
 .events-status {
-  background-color: rgba(255, 149, 0, 0.2);
+  background: linear-gradient(135deg, rgba(255, 149, 0, 0.2), rgba(255, 149, 0, 0.1));
   color: #ff9500;
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 14px;
   font-weight: bold;
   border: 1px solid rgba(255, 149, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 149, 0, 0.2);
 }
 
 .placeholder-content p {
   color: rgba(255, 255, 255, 0.7);
   margin-bottom: 15px;
   font-size: 14px;
+  line-height: 1.5;
 }
 
 .placeholder-button {
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color), #0c9740);
   color: white;
   border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
+  border-radius: 10px;
+  padding: 12px 24px;
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(11, 168, 74, 0.3);
+  border: 1px solid rgba(11, 168, 74, 0.3);
 }
 
 .placeholder-button:hover {
-  background-color: #0c9740;
+  background: linear-gradient(135deg, #0c9740, #0a8235);
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(11, 168, 74, 0.4);
+}
+
+.placeholder-button:active {
+  transform: translateY(0);
+  transition: all 0.1s ease;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .games-grid {
+    gap: 15px;
+    padding: 8px;
+  }
+  
+  .games-title {
+    font-size: 17px;
+    margin-bottom: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-screen {
+    padding: 0 10px 80px 10px;
+  }
+  
+  .games-grid {
+    gap: 12px;
+    padding: 6px;
+  }
+  
+  .games-container::before {
+    left: -10px;
+    right: -10px;
+  }
+}
+
+/* Анимация появления контейнера */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.games-container {
+  animation: fadeInUp 0.6s ease;
 }

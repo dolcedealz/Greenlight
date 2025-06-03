@@ -2,16 +2,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
 
-// ИСПРАВЛЕННЫЕ КОЭФФИЦИЕНТЫ (урезаны в 2 раза)
+// ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ (дополнительно урезаны на 20% кроме jackpot)
 const SLOT_SYMBOLS = [
-  { symbol: 'cherry', name: 'cherry', weight: 25, payout: 2, emoji: '🍒' },    // было 4, стало 2
-  { symbol: 'lemon', name: 'lemon', weight: 20, payout: 3, emoji: '🍋' },     // было 6, стало 3
-  { symbol: 'persik', name: 'persik', weight: 15, payout: 4, emoji: '🍑' },   // было 8, стало 4
-  { symbol: 'grape', name: 'grape', weight: 12, payout: 6, emoji: '🍇' },     // было 12, стало 6
-  { symbol: 'bell', name: 'bell', weight: 8, payout: 9, emoji: '🔔' },        // было 18, стало 9
-  { symbol: 'diamond', name: 'diamond', weight: 5, payout: 15, emoji: '💎' }, // было 30, стало 15
-  { symbol: 'star', name: 'star', weight: 3, payout: 25, emoji: '⭐' },       // было 50, стало 25
-  { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 50, emoji: '🎰' } // было 100, стало 50
+  { symbol: 'cherry', name: 'cherry', weight: 25, payout: 1.6, emoji: '🍒' },    // было 2, стало 1.6 (-20%)
+  { symbol: 'lemon', name: 'lemon', weight: 20, payout: 2.4, emoji: '🍋' },     // было 3, стало 2.4 (-20%)
+  { symbol: 'persik', name: 'persik', weight: 15, payout: 3.2, emoji: '🍑' },   // было 4, стало 3.2 (-20%)
+  { symbol: 'grape', name: 'grape', weight: 12, payout: 4.8, emoji: '🍇' },     // было 6, стало 4.8 (-20%)
+  { symbol: 'bell', name: 'bell', weight: 8, payout: 7.2, emoji: '🔔' },        // было 9, стало 7.2 (-20%)
+  { symbol: 'diamond', name: 'diamond', weight: 5, payout: 12, emoji: '💎' },   // было 15, стало 12 (-20%)
+  { symbol: 'star', name: 'star', weight: 3, payout: 20, emoji: '⭐' },         // было 25, стало 20 (-20%)
+  { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 50, emoji: '🎰' }   // остается 50 (максвин)
 ];
 
 const SlotMachine = ({ 

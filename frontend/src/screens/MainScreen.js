@@ -1,5 +1,5 @@
-// frontend/src/screens/MainScreen.js
-import React, { useState, useEffect } from 'react';
+// frontend/src/screens/MainScreen.js - ПОЛНАЯ ВЕРСИЯ С АНИМАЦИЯМИ
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from '../components/layout';
 import { GameBlock, EventsPreview } from '../components/main';
 import { userApi, eventsApi } from '../services';
@@ -9,6 +9,12 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
   const [featuredEvent, setFeaturedEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [animationStarted, setAnimationStarted] = useState(false);
+  
+  // Refs для анимации
+  const eventsRef = useRef(null);
+  const gamesContainerRef = useRef(null);
+  const errorBannerRef = useRef(null);
   
   // Загрузка данных при монтировании
   useEffect(() => {
@@ -48,6 +54,37 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
     
     fetchData();
   }, []);
+
+  // Запуск анимаций после загрузки данных
+  useEffect(() => {
+    if (!loading && !animationStarted) {
+      setAnimationStarted(true);
+      
+      // Анимация событий
+      const eventsElement = eventsRef.current;
+      if (eventsElement) {
+        setTimeout(() => {
+          eventsElement.classList.add('animate-in');
+        }, 100);
+      }
+      
+      // Анимация контейнера игр
+      const gamesContainer = gamesContainerRef.current;
+      if (gamesContainer) {
+        setTimeout(() => {
+          gamesContainer.classList.add('animate-in');
+        }, 300);
+      }
+      
+      // Анимация баннера ошибки
+      const errorBanner = errorBannerRef.current;
+      if (errorBanner) {
+        setTimeout(() => {
+          errorBanner.classList.add('animate-in');
+        }, 50);
+      }
+    }
+  }, [loading, animationStarted]);
   
   // Массив игр
   const games = [
@@ -86,7 +123,10 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
         <>
           {/* Показываем ошибку, если есть */}
           {error && (
-            <div className="main-error-banner">
+            <div 
+              ref={errorBannerRef}
+              className="main-error-banner"
+            >
               <p>{error}</p>
               <button onClick={() => window.location.reload()}>Обновить</button>
             </div>
@@ -94,34 +134,48 @@ const MainScreen = ({ telegramWebApp, userData, onGameSelect, onEventsSelect, ba
           
           {/* Превью события - показываем только если есть событие */}
           {featuredEvent ? (
-            <EventsPreview 
-              event={featuredEvent} 
-              onClick={handleEventsSelect} 
-            />
+            <div 
+              ref={eventsRef}
+              className="events-container"
+            >
+              <EventsPreview 
+                event={featuredEvent} 
+                onClick={handleEventsSelect} 
+              />
+            </div>
           ) : (
-            <div className="events-preview-placeholder">
-              <div className="events-header">
-                <h3>🔮 События</h3>
-                <div className="events-status">Скоро</div>
-              </div>
-              <div className="placeholder-content">
-                <p>Ожидайте интересные события для ставок!</p>
-                <button onClick={handleEventsSelect} className="placeholder-button">
-                  Посмотреть все события
-                </button>
+            <div 
+              ref={eventsRef}
+              className="events-container"
+            >
+              <div className="events-preview-placeholder">
+                <div className="events-header">
+                  <h3>🔮 События</h3>
+                  <div className="events-status">Скоро</div>
+                </div>
+                <div className="placeholder-content">
+                  <p>Ожидайте интересные события для ставок!</p>
+                  <button onClick={handleEventsSelect} className="placeholder-button">
+                    Посмотреть все события
+                  </button>
+                </div>
               </div>
             </div>
           )}
           
           {/* Игры - показываем всегда */}
-          <div className="games-container">
-            <div className="games-title">Игры</div>
+          <div 
+            ref={gamesContainerRef}
+            className="games-container"
+          >
+            <div className="games-title">🎮 Игры</div>
             <div className="games-grid">
-              {games.map((game) => (
+              {games.map((game, index) => (
                 <GameBlock
                   key={game.id}
                   name={game.name}
                   icon={game.icon}
+                  gameType={game.id}
                   onClick={() => handleGameSelect(game.id)}
                 />
               ))}

@@ -217,7 +217,7 @@ class GameService {
   }
   
 /**
- * Играть в слоты (ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ - урезаны в 2 раза)
+ * Играть в слоты (ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ - дополнительно урезаны на 20%)
  * @param {Object} userData - Данные пользователя
  * @param {Object} gameData - Данные игры
  * @returns {Object} - Результат игры
@@ -252,16 +252,16 @@ async playSlots(userData, gameData) {
       throw new Error('Сумма ставки должна быть положительной');
     }
     
-    // ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ (урезаны в 2 раза)
+    // ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ (дополнительно урезаны на 20% кроме jackpot)
     const SLOT_SYMBOLS = [
-      { symbol: 'cherry', weight: 25, payout: 2 },    // было 4, стало 2
-      { symbol: 'lemon', weight: 20, payout: 3 },     // было 6, стало 3
-      { symbol: 'persik', weight: 15, payout: 4 },    // было 8, стало 4
-      { symbol: 'grape', weight: 12, payout: 6 },     // было 12, стало 6
-      { symbol: 'bell', weight: 8, payout: 9 },       // было 18, стало 9
-      { symbol: 'diamond', weight: 5, payout: 15 },   // было 30, стало 15
-      { symbol: 'star', weight: 3, payout: 25 },      // было 50, стало 25
-      { symbol: 'jackpot', weight: 2, payout: 50 }    // было 100, стало 50
+      { symbol: 'cherry', weight: 25, payout: 1.6 },    // было 2, стало 1.6 (-20%)
+      { symbol: 'lemon', weight: 20, payout: 2.4 },     // было 3, стало 2.4 (-20%)
+      { symbol: 'persik', weight: 15, payout: 3.2 },    // было 4, стало 3.2 (-20%)
+      { symbol: 'grape', weight: 12, payout: 4.8 },     // было 6, стало 4.8 (-20%)
+      { symbol: 'bell', weight: 8, payout: 7.2 },       // было 9, стало 7.2 (-20%)
+      { symbol: 'diamond', weight: 5, payout: 12 },     // было 15, стало 12 (-20%)
+      { symbol: 'star', weight: 3, payout: 20 },        // было 25, стало 20 (-20%)
+      { symbol: 'jackpot', weight: 2, payout: 50 }      // остается 50 (максвин)
     ];
     
     // Функция генерации символа

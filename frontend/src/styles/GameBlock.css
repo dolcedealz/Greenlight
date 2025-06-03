@@ -1,6 +1,6 @@
-/* GameBlock.css */
+/* GameBlock.css - ОБНОВЛЕННАЯ ВЕРСИЯ */
 .game-block {
-  background-color: var(--card-background);
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(11, 168, 74, 0.05) 100%);
   border-radius: var(--border-radius);
   padding: 20px;
   display: flex;
@@ -8,22 +8,149 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition: all 0.3s ease;
   box-shadow: var(--shadow);
   height: 130px;
+  border: 1px solid rgba(11, 168, 74, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-block::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(11, 168, 74, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.game-block:hover::before {
+  left: 100%;
 }
 
 .game-block:hover {
-  transform: translateY(-5px);
-  background-color: #242424;
+  transform: translateY(-5px) scale(1.02);
+  background: linear-gradient(135deg, #242424 0%, rgba(11, 168, 74, 0.08) 100%);
+  border-color: rgba(11, 168, 74, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(11, 168, 74, 0.1);
+}
+
+.game-block:active {
+  transform: translateY(-3px) scale(1.01);
+  transition: all 0.1s ease;
 }
 
 .game-icon {
   font-size: 40px;
   margin-bottom: 10px;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  position: relative;
+  z-index: 2;
+}
+
+.game-block:hover .game-icon {
+  transform: scale(1.1) rotate(5deg);
+  filter: drop-shadow(0 4px 8px rgba(11, 168, 74, 0.3));
 }
 
 .game-name {
   font-weight: bold;
   font-size: 16px;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
+
+.game-block:hover .game-name {
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 2px 4px rgba(11, 168, 74, 0.3);
+}
+
+/* Дополнительные эффекты для разных игр */
+.game-block[data-game="coin"] {
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(255, 193, 7, 0.05) 100%);
+}
+
+.game-block[data-game="coin"]:hover {
+  background: linear-gradient(135deg, #242424 0%, rgba(255, 193, 7, 0.08) 100%);
+  border-color: rgba(255, 193, 7, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 193, 7, 0.1);
+}
+
+.game-block[data-game="mines"] {
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(255, 59, 48, 0.05) 100%);
+}
+
+.game-block[data-game="mines"]:hover {
+  background: linear-gradient(135deg, #242424 0%, rgba(255, 59, 48, 0.08) 100%);
+  border-color: rgba(255, 59, 48, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 59, 48, 0.1);
+}
+
+.game-block[data-game="crash"] {
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(0, 122, 255, 0.05) 100%);
+}
+
+.game-block[data-game="crash"]:hover {
+  background: linear-gradient(135deg, #242424 0%, rgba(0, 122, 255, 0.08) 100%);
+  border-color: rgba(0, 122, 255, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 122, 255, 0.1);
+}
+
+.game-block[data-game="slots"] {
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(142, 68, 173, 0.05) 100%);
+}
+
+.game-block[data-game="slots"]:hover {
+  background: linear-gradient(135deg, #242424 0%, rgba(142, 68, 173, 0.08) 100%);
+  border-color: rgba(142, 68, 173, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(142, 68, 173, 0.1);
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+  .game-block {
+    height: 120px;
+    padding: 15px;
+  }
+  
+  .game-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+  
+  .game-name {
+    font-size: 15px;
+  }
+}
+
+/* Анимация появления */
+@keyframes gameBlockAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.game-block {
+  animation: gameBlockAppear 0.5s ease forwards;
+}
+
+.game-block:nth-child(1) { animation-delay: 0.1s; }
+.game-block:nth-child(2) { animation-delay: 0.2s; }
+.game-block:nth-child(3) { animation-delay: 0.3s; }
+.game-block:nth-child(4) { animation-delay: 0.4s; }

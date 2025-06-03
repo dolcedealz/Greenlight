@@ -17,14 +17,12 @@ const MinesControls = ({
   revealedCount,
   onAutoplayChange,
   autoplay,
-  loading
+  loading,
+  hideActionButtons = false // НОВОЕ: Флаг для скрытия кнопок действий
 }) => {
   const { 
     buttonPressFeedback, 
-    selectionChanged, 
-    gameActionFeedback, 
-    importantActionFeedback,
-    criticalActionFeedback 
+    selectionChanged
   } = useTactileFeedback();
 
   // УРЕЗАННЫЕ коэффициенты на 5% (умножены на 0.95) для прибыли казино
@@ -121,69 +119,6 @@ const MinesControls = ({
   const handleQuickMines = (count) => {
     selectionChanged(); // Вибрация при смене выбора мин
     setMinesCount(count);
-  };
-  
-  // ИСПРАВЛЕННЫЙ обработчик кнопки играть
-  const handlePlayClick = () => {
-    console.log('💣 CONTROLS: Нажата кнопка "Играть"');
-    console.log('💣 CONTROLS: Состояние - gameActive:', gameActive, 'loading:', loading, 'betAmount:', betAmount, 'balance:', balance);
-    
-    // Проверяем все условия
-    if (gameActive) {
-      console.log('💣 CONTROLS: Блокировано - игра уже активна');
-      return;
-    }
-    
-    if (loading) {
-      console.log('💣 CONTROLS: Блокировано - идет загрузка');
-      return;
-    }
-    
-    if (!betAmount || betAmount <= 0) {
-      console.log('💣 CONTROLS: Блокировано - неверная сумма ставки:', betAmount);
-      return;
-    }
-    
-    if (betAmount > balance) {
-      console.log('💣 CONTROLS: Блокировано - недостаточно средств. Ставка:', betAmount, 'Баланс:', balance);
-      return;
-    }
-    
-    if (!onPlay) {
-      console.error('💣 CONTROLS: Ошибка - функция onPlay не передана!');
-      return;
-    }
-    
-    console.log('💣 CONTROLS: Все проверки пройдены, запускаем игру');
-    
-    gameActionFeedback(); // Вибрация для начала игры
-    onPlay();
-  };
-
-  // ИСПРАВЛЕННЫЙ обработчик кнопки забрать выигрыш
-  const handleCashoutClick = () => {
-    console.log('💣 CONTROLS: Нажата кнопка "Забрать выигрыш"');
-    console.log('💣 CONTROLS: Состояние - gameActive:', gameActive, 'loading:', loading);
-    
-    if (!gameActive) {
-      console.log('💣 CONTROLS: Блокировано - игра не активна');
-      return;
-    }
-    
-    if (loading) {
-      console.log('💣 CONTROLS: Блокировано - идет загрузка');
-      return;
-    }
-    
-    if (!onCashout) {
-      console.error('💣 CONTROLS: Ошибка - функция onCashout не передана!');
-      return;
-    }
-    
-    console.log('💣 CONTROLS: Забираем выигрыш');
-    
-    criticalActionFeedback(); // Сильная вибрация для важного действия
-    onCashout();
   };
 
   // Обработчик автоигры
@@ -362,25 +297,28 @@ const MinesControls = ({
         </div>
       </div>
       
-      <div className="mines-actions">
-        {!gameActive ? (
-          <button 
-            className="play-button" 
-            onClick={handlePlayClick}
-            disabled={!betAmount || betAmount <= 0 || betAmount > balance || loading}
-          >
-            {loading ? 'Загрузка...' : 'Играть'}
-          </button>
-        ) : (
-          <button 
-            className="cashout-button" 
-            onClick={handleCashoutClick}
-            disabled={loading}
-          >
-            {loading ? 'Загрузка...' : `Забрать выигрыш (${possibleWin.toFixed(2)} USDT)`}
-          </button>
-        )}
-      </div>
+      {/* УСЛОВНОЕ ОТОБРАЖЕНИЕ: Секция с кнопками действий (скрыта если hideActionButtons=true) */}
+      {!hideActionButtons && (
+        <div className="mines-actions">
+          {!gameActive ? (
+            <button 
+              className="play-button" 
+              onClick={onPlay}
+              disabled={!betAmount || betAmount <= 0 || betAmount > balance || loading}
+            >
+              {loading ? 'Загрузка...' : 'Играть'}
+            </button>
+          ) : (
+            <button 
+              className="cashout-button" 
+              onClick={onCashout}
+              disabled={loading}
+            >
+              {loading ? 'Загрузка...' : `Забрать выигрыш (${possibleWin.toFixed(2)} USDT)`}
+            </button>
+          )}
+        </div>
+      )}
       
       <div className="mines-autoplay">
         <label className="autoplay-toggle">

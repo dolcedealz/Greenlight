@@ -1,4 +1,4 @@
-/* frontend/src/styles/SlotMachine.css - ИСПРАВЛЕННАЯ АНИМАЦИЯ */
+/* frontend/src/styles/SlotMachine.css - ИСПРАВЛЕННАЯ ВЕРСИЯ */
 .slot-machine {
   display: flex;
   flex-direction: column;
@@ -10,7 +10,7 @@
     0 0 40px rgba(11, 168, 74, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   width: 100%;
-  max-width: 500px;
+  max-width: 560px; /* УВЕЛИЧИЛИ: с 520px до 560px */
   margin: 0 auto;
   position: relative;
   border: 1px solid rgba(11, 168, 74, 0.2);
@@ -82,7 +82,7 @@
 .slot-reels {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 22px; /* УВЕЛИЧИЛИ: с 18px до 22px */
   position: relative;
   z-index: 2;
 }
@@ -149,7 +149,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 75px;
+  height: 85px; /* УВЕЛИЧИЛИ: с 80px до 85px */
   background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #2a2a2a 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s ease;
@@ -215,7 +215,7 @@
 
 /* Символы */
 .slot-symbol {
-  font-size: 42px;
+  font-size: 50px; /* УВЕЛИЧИЛИ: с 46px до 50px */
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
   transition: all 0.2s ease;
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
@@ -263,12 +263,12 @@
   /* ИСПРАВЛЕНО: Простое статичное отображение */
 }
 
-/* Информация о результате */
+/* ИСПРАВЛЕНО: Еще более компактная информация о результате */
 .last-spin-info {
   text-align: center;
-  padding: 25px;
-  border-radius: 18px;
-  margin-top: 25px;
+  padding: 8px 12px; /* УМЕНЬШИЛИ: с 12px 15px */
+  border-radius: 10px; /* УМЕНЬШИЛИ: с 12px */
+  margin-top: 8px; /* УМЕНЬШИЛИ: с 12px */
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
@@ -314,40 +314,40 @@
 
 .win-text {
   display: block;
-  font-size: 24px;
+  font-size: 18px; /* УМЕНЬШИЛИ: с 20px */
   font-weight: bold;
   background: linear-gradient(45deg, var(--primary-color), #00ff88, var(--primary-color));
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 10px;
+  margin-bottom: 6px; /* УМЕНЬШИЛИ: с 8px */
   text-shadow: 0 0 15px rgba(11, 168, 74, 0.6);
   /* ИСПРАВЛЕНО: Убрали анимацию gradient flow */
 }
 
 .win-amount {
   display: block;
-  font-size: 32px;
+  font-size: 22px; /* УМЕНЬШИЛИ: с 26px */
   font-weight: bold;
   color: #ffffff;
   text-shadow: 
     0 0 20px var(--primary-color),
     0 3px 6px rgba(0, 0, 0, 0.8);
-  margin-bottom: 15px;
+  margin-bottom: 8px; /* УМЕНЬШИЛИ: с 10px */
   /* ИСПРАВЛЕНО: Убрали анимацию bounce */
 }
 
 .winning-symbols {
-  margin-top: 20px;
+  margin-top: 8px; /* УМЕНЬШИЛИ: с 12px */
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 12px; /* УМЕНЬШИЛИ: с 15px */
   flex-wrap: wrap;
 }
 
 .winning-symbol {
-  font-size: 32px;
+  font-size: 24px; /* УМЕНЬШИЛИ: с 28px */
   filter: drop-shadow(0 0 15px rgba(11, 168, 74, 0.8));
   transform-origin: center;
   text-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
@@ -355,28 +355,28 @@
 }
 
 .winning-lines-count {
-  margin-top: 15px;
-  font-size: 16px;
+  margin-top: 6px; /* УМЕНЬШИЛИ: с 10px */
+  font-size: 12px; /* УМЕНЬШИЛИ: с 14px */
   color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
 }
 
 .winning-lines-details {
-  margin-top: 10px;
-  font-size: 14px;
+  margin-top: 4px; /* УМЕНЬШИЛИ: с 8px */
+  font-size: 11px; /* УМЕНЬШИЛИ: с 12px */
   color: rgba(255, 255, 255, 0.8);
 }
 
 .line-detail {
-  margin: 5px 0;
-  padding: 5px 10px;
+  margin: 2px 0; /* УМЕНЬШИЛИ: с 3px */
+  padding: 3px 6px; /* УМЕНЬШИЛИ: padding */
   background: rgba(11, 168, 74, 0.1);
-  border-radius: 8px;
+  border-radius: 4px; /* УМЕНЬШИЛИ: с 6px */
   border: 1px solid rgba(11, 168, 74, 0.3);
 }
 
 .lose-text {
-  font-size: 20px;
+  font-size: 16px; /* УМЕНЬШИЛИ: с 18px */
   color: rgba(255, 255, 255, 0.8);
   font-weight: 600;
 }
@@ -388,6 +388,7 @@
   .slot-machine {
     padding: 20px;
     border-radius: 20px;
+    max-width: 520px; /* УВЕЛИЧИЛИ: с 480px */
   }
   
   .slot-display {
@@ -395,15 +396,15 @@
   }
   
   .slot-reels {
-    gap: 12px;
+    gap: 16px; /* УВЕЛИЧИЛИ: с 14px */
   }
   
   .slot-cell {
-    height: 60px;
+    height: 70px; /* УВЕЛИЧИЛИ: с 65px */
   }
   
   .slot-symbol {
-    font-size: 36px;
+    font-size: 44px; /* УВЕЛИЧИЛИ: с 40px */
   }
   
   .slot-cell.winning .slot-symbol {
@@ -411,41 +412,67 @@
   }
   
   .winning-symbol {
-    font-size: 26px;
+    font-size: 22px; /* УМЕНЬШИЛИ для компактности */
   }
   
   .win-text {
-    font-size: 20px;
+    font-size: 16px; /* УМЕНЬШИЛИ: с 18px */
   }
   
   .win-amount {
-    font-size: 26px;
+    font-size: 20px; /* УМЕНЬШИЛИ: с 22px */
+  }
+  
+  .last-spin-info {
+    padding: 6px 10px; /* ЕЩЕ БОЛЕЕ КОМПАКТНО на мобильных */
+    margin-top: 6px;
+  }
+  
+  .winning-lines-count {
+    font-size: 11px;
+  }
+  
+  .winning-lines-details {
+    font-size: 10px;
+  }
+  
+  .lose-text {
+    font-size: 14px;
   }
 }
 
 @media (max-width: 400px) {
+  .slot-machine {
+    max-width: 460px; /* УВЕЛИЧИЛИ: с 420px */
+  }
+  
   .slot-reels {
-    gap: 10px;
+    gap: 14px; /* УВЕЛИЧИЛИ: с 12px */
   }
   
   .slot-cell {
-    height: 50px;
+    height: 60px; /* УВЕЛИЧИЛИ: с 55px */
   }
   
   .slot-symbol {
-    font-size: 32px;
+    font-size: 40px; /* УВЕЛИЧИЛИ: с 36px */
   }
   
   .winning-symbol {
-    font-size: 24px;
+    font-size: 20px;
   }
   
   .win-text {
-    font-size: 18px;
+    font-size: 14px;
   }
   
   .win-amount {
-    font-size: 22px;
+    font-size: 18px;
+  }
+  
+  .last-spin-info {
+    padding: 5px 8px; /* МИНИМАЛЬНЫЙ padding */
+    margin-top: 5px;
   }
 }
 

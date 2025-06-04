@@ -1,4 +1,4 @@
-// frontend/src/components/games/slots/SlotGame.js
+// frontend/src/components/games/slots/SlotGame.js - ПОЛНЫЙ ИСПРАВЛЕННЫЙ ФАЙЛ
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SlotMachine from './SlotMachine';
 import SlotControls from './SlotControls';
@@ -14,6 +14,9 @@ const SlotGame = ({
 }) => {
   // Состояние загрузки
   const [isInitializing, setIsInitializing] = useState(true);
+  
+  // НОВОЕ: Состояние производительности устройства
+  const [isLowPerformance, setIsLowPerformance] = useState(false);
   
   // Состояние игры
   const [isSpinning, setIsSpinning] = useState(false);
@@ -35,6 +38,21 @@ const SlotGame = ({
   useEffect(() => {
     const initializeGame = async () => {
       try {
+        // НОВОЕ: Проверка производительности устройства
+        const checkPerformance = () => {
+          const start = performance.now();
+          // Простой тест производительности
+          for (let i = 0; i < 10000; i++) {
+            Math.random() * Math.sin(i) * Math.cos(i);
+          }
+          const end = performance.now();
+          const isLow = (end - start) > 12; // Если операция заняла больше 12ms
+          setIsLowPerformance(isLow);
+          console.log('🎰 PERFORMANCE: Устройство', isLow ? 'слабое' : 'мощное', `(${(end - start).toFixed(2)}ms)`);
+        };
+        
+        checkPerformance();
+        
         await new Promise(resolve => setTimeout(resolve, 2000));
         console.log('=== ИНИЦИАЛИЗАЦИЯ СЛОТ ИГРЫ ===');
         setIsInitializing(false);
@@ -326,7 +344,8 @@ const SlotGame = ({
   }
   
   return (
-    <>
+    <div className={`slots-game ${isLowPerformance ? 'low-performance' : ''}`}>
+      {/* Основной контент */}
       <SlotMachine 
         onSpin={handleSpin}
         isSpinning={isSpinning}
@@ -337,6 +356,7 @@ const SlotGame = ({
         loading={loading}
         gameStats={gameStats}
         onAnimationComplete={handleAnimationComplete}
+        isLowPerformance={isLowPerformance}
       />
       
       <SlotControls 
@@ -352,9 +372,9 @@ const SlotGame = ({
         loading={loading}
         autoplayRemaining={autoplayRemaining}
         gameStats={gameStats}
-        onStopAutoplay={stopAutoplay} // Новый проп
+        onStopAutoplay={stopAutoplay}
       />
-    </>
+    </div>
   );
 };
 

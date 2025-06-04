@@ -1,4 +1,4 @@
-/* frontend/src/styles/SlotControls.css - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ */
+/* frontend/src/styles/SlotControls.css - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ */
 .slot-controls {
   background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
   border-radius: 24px;
@@ -9,11 +9,12 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   margin-top: 25px;
   border: 1px solid rgba(11, 168, 74, 0.15);
-  backdrop-filter: blur(15px); /* Уменьшили blur */
+  backdrop-filter: blur(15px);
   position: relative;
   overflow: hidden;
 }
 
+/* ИСПРАВЛЕНО: Упростили фоновый эффект */
 .slot-controls::before {
   content: '';
   position: absolute;
@@ -22,17 +23,12 @@
   right: 0;
   bottom: 0;
   background: linear-gradient(135deg, 
-    rgba(11, 168, 74, 0.02) 0%, 
+    rgba(11, 168, 74, 0.01) 0%, 
     transparent 30%, 
-    rgba(142, 68, 173, 0.02) 70%, 
+    rgba(142, 68, 173, 0.01) 70%, 
     transparent 100%);
   pointer-events: none;
-  animation: controlsAmbient 15s ease-in-out infinite; /* Замедлили */
-}
-
-@keyframes controlsAmbient {
-  0%, 100% { opacity: 0.3; } /* Уменьшили */
-  50% { opacity: 0.7; }
+  /* УБРАЛИ: анимацию controlsAmbient */
 }
 
 /* Кнопка спина - ОПТИМИЗИРОВАННАЯ */
@@ -50,12 +46,12 @@
   font-size: 20px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease; /* Упростили */
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
   box-shadow: 
     0 8px 25px rgba(11, 168, 74, 0.4),
-    0 0 30px rgba(11, 168, 74, 0.2), /* Упростили */
+    0 0 30px rgba(11, 168, 74, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -70,32 +66,20 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(255, 255, 255, 0.3), /* Уменьшили интенсивность */
+    rgba(255, 255, 255, 0.2), 
     transparent);
-  transition: left 0.6s ease; /* Замедлили */
+  transition: left 0.4s ease;
 }
 
+/* ИСПРАВЛЕНО: Убрали сложный ::after эффект */
 .spin-button::after {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, 
-    rgba(11, 168, 74, 0.6), /* Уменьшили интенсивность */
-    rgba(255, 255, 255, 0.2), 
-    rgba(11, 168, 74, 0.6));
-  border-radius: 20px;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  display: none;
 }
 
 .spin-button:hover:not(:disabled) {
-  transform: translateY(-3px) scale(1.01); /* Уменьшили масштаб */
+  transform: translateY(-2px) scale(1.01);
   box-shadow: 
-    0 10px 30px rgba(11, 168, 74, 0.5), /* Упростили */
+    0 10px 30px rgba(11, 168, 74, 0.5),
     0 0 40px rgba(11, 168, 74, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
   background: linear-gradient(145deg, #087d30 0%, #0a8735 50%, var(--primary-color) 100%);
@@ -105,13 +89,8 @@
   left: 100%;
 }
 
-.spin-button:hover:not(:disabled)::after {
-  opacity: 1;
-  animation: buttonGlow 3s ease-in-out infinite; /* Замедлили */
-}
-
 .spin-button:active:not(:disabled) {
-  transform: translateY(-1px) scale(1.005); /* Уменьшили */
+  transform: translateY(-1px) scale(1.005);
   transition: all 0.1s ease;
 }
 
@@ -125,18 +104,19 @@
   opacity: 0.7;
 }
 
+/* ИСПРАВЛЕНО: Упростили анимацию спина */
 .spin-button.spinning {
   background: linear-gradient(145deg, #ff6b35 0%, #f7931e 50%, #ff8c42 100%);
-  animation: spinButtonSimple 2s ease-in-out infinite; /* Упростили */
   box-shadow: 
-    0 8px 25px rgba(255, 107, 53, 0.4), /* Упростили */
+    0 8px 25px rgba(255, 107, 53, 0.4),
     0 0 30px rgba(255, 107, 53, 0.2);
+  /* УБРАЛИ: сложную анимацию */
 }
 
 .spin-button.autoplay-active {
   background: linear-gradient(145deg, #007acc 0%, #0056b3 50%, #004494 100%);
   box-shadow: 
-    0 8px 25px rgba(0, 122, 204, 0.3), /* Упростили */
+    0 8px 25px rgba(0, 122, 204, 0.3),
     0 0 30px rgba(0, 122, 204, 0.2);
 }
 
@@ -149,9 +129,10 @@
   letter-spacing: 1px;
 }
 
+/* ИСПРАВЛЕНО: Упростили анимацию иконки спина */
 .spinning-text .spinner {
-  animation: spinIcon 2s linear infinite; /* Замедлили */
-  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6)); /* Упростили */
+  animation: spinIcon 1.5s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
 }
 
 /* Секция ставки - ОПТИМИЗИРОВАННАЯ */
@@ -162,6 +143,7 @@
   position: relative;
 }
 
+/* ИСПРАВЛЕНО: Убрали анимацию разделителя */
 .bet-section::after {
   content: '';
   position: absolute;
@@ -171,9 +153,9 @@
   height: 1px;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(11, 168, 74, 0.4), /* Уменьшили интенсивность */
+    rgba(11, 168, 74, 0.3), 
     transparent);
-  animation: dividerGlow 4s ease-in-out infinite; /* Замедлили */
+  /* УБРАЛИ: анимацию dividerGlow */
 }
 
 .bet-control {
@@ -203,10 +185,10 @@
   color: white;
   font-size: 20px;
   text-align: center;
-  transition: all 0.3s ease; /* Упростили */
+  transition: all 0.3s ease;
   font-weight: 700;
   box-shadow: 
-    inset 0 2px 6px rgba(0, 0, 0, 0.2), /* Упростили */
+    inset 0 2px 6px rgba(0, 0, 0, 0.2),
     0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -221,9 +203,9 @@
   box-shadow: 
     0 0 0 3px rgba(11, 168, 74, 0.3),
     inset 0 2px 6px rgba(0, 0, 0, 0.2),
-    0 6px 20px rgba(11, 168, 74, 0.2); /* Упростили */
+    0 6px 20px rgba(11, 168, 74, 0.2);
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
-  transform: translateY(-1px); /* Уменьшили */
+  transform: translateY(-1px);
 }
 
 .bet-control input:disabled {
@@ -252,17 +234,18 @@
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
-  transition: all 0.3s ease; /* Упростили */
+  transition: all 0.3s ease;
   min-height: 60px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   position: relative;
   overflow: hidden;
   box-shadow: 
-    0 6px 15px rgba(0, 0, 0, 0.2), /* Упростили */
+    0 6px 15px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
+/* ИСПРАВЛЕНО: Упростили hover эффект */
 .quick-bet-btn::before {
   content: '';
   position: absolute;
@@ -272,9 +255,9 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(11, 168, 74, 0.2), /* Уменьшили интенсивность */
+    rgba(11, 168, 74, 0.1), 
     transparent);
-  transition: left 0.5s ease; /* Замедлили */
+  transition: left 0.3s ease;
 }
 
 .quick-bet-btn.large {
@@ -283,18 +266,18 @@
   font-weight: 900;
   min-height: 65px;
   box-shadow: 
-    0 8px 20px rgba(0, 0, 0, 0.3), /* Упростили */
+    0 8px 20px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .quick-bet-btn:hover:not(:disabled) {
   background: linear-gradient(145deg, 
-    rgba(11, 168, 74, 0.25) 0%, /* Уменьшили интенсивность */
-    rgba(11, 168, 74, 0.15) 50%, 
-    rgba(11, 168, 74, 0.25) 100%);
-  transform: translateY(-2px) scale(1.01); /* Уменьшили */
+    rgba(11, 168, 74, 0.2) 0%, 
+    rgba(11, 168, 74, 0.1) 50%, 
+    rgba(11, 168, 74, 0.2) 100%);
+  transform: translateY(-2px) scale(1.01);
   box-shadow: 
-    0 8px 25px rgba(11, 168, 74, 0.25), /* Упростили */
+    0 8px 25px rgba(11, 168, 74, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   border-color: rgba(11, 168, 74, 0.5);
 }
@@ -304,7 +287,7 @@
 }
 
 .quick-bet-btn:active:not(:disabled) {
-  transform: translateY(-1px) scale(1.005); /* Уменьшили */
+  transform: translateY(-1px) scale(1.005);
   box-shadow: 
     0 6px 15px rgba(11, 168, 74, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -324,6 +307,7 @@
   position: relative;
 }
 
+/* ИСПРАВЛЕНО: Убрали анимацию разделителя */
 .autoplay-section::after {
   content: '';
   position: absolute;
@@ -333,9 +317,9 @@
   height: 1px;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(142, 68, 173, 0.4), /* Уменьшили интенсивность */
+    rgba(142, 68, 173, 0.3), 
     transparent);
-  animation: dividerGlow 5s ease-in-out infinite; /* Замедлили */
+  /* УБРАЛИ: анимацию dividerGlow */
 }
 
 .autoplay-toggle {
@@ -367,10 +351,10 @@
   height: 30px;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
   border-radius: 30px;
-  transition: all 0.3s ease; /* Упростили */
+  transition: all 0.3s ease;
   border: 2px solid rgba(255, 255, 255, 0.2);
   box-shadow: 
-    inset 0 2px 6px rgba(0, 0, 0, 0.3), /* Упростили */
+    inset 0 2px 6px rgba(0, 0, 0, 0.3),
     0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -383,9 +367,9 @@
   bottom: 2px;
   background: linear-gradient(145deg, #ffffff 0%, #f0f0f0 100%);
   border-radius: 50%;
-  transition: all 0.3s ease; /* Упростили */
+  transition: all 0.3s ease;
   box-shadow: 
-    0 3px 6px rgba(0, 0, 0, 0.3), /* Упростили */
+    0 3px 6px rgba(0, 0, 0, 0.3),
     0 0 12px rgba(255, 255, 255, 0.2);
 }
 
@@ -394,7 +378,7 @@ input:checked + .toggle-slider {
   border-color: var(--primary-color);
   box-shadow: 
     inset 0 2px 6px rgba(0, 0, 0, 0.2),
-    0 0 15px rgba(11, 168, 74, 0.3); /* Упростили */
+    0 0 15px rgba(11, 168, 74, 0.3);
 }
 
 input:checked + .toggle-slider:before {
@@ -402,7 +386,7 @@ input:checked + .toggle-slider:before {
   background: linear-gradient(145deg, #ffffff 0%, #e0ffe0 100%);
   box-shadow: 
     0 3px 6px rgba(0, 0, 0, 0.2),
-    0 0 12px rgba(11, 168, 74, 0.3); /* Упростили */
+    0 0 12px rgba(11, 168, 74, 0.3);
 }
 
 .toggle-text {
@@ -422,7 +406,7 @@ input:checked + .toggle-slider:before {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 
-    0 4px 12px rgba(255, 59, 48, 0.3), /* Упростили */
+    0 4px 12px rgba(255, 59, 48, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -430,15 +414,17 @@ input:checked + .toggle-slider:before {
 
 .stop-autoplay-btn:hover {
   background: linear-gradient(145deg, #d70015 0%, #b8000f 100%);
-  transform: translateY(-1px); /* Уменьшили */
+  transform: translateY(-1px);
   box-shadow: 
-    0 6px 15px rgba(255, 59, 48, 0.35), /* Упростили */
+    0 6px 15px rgba(255, 59, 48, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Настройки автоигры */
 .autoplay-settings {
-  animation: slideDownSimple 0.3s ease; /* Упростили */
+  /* ИСПРАВЛЕНО: Убрали анимацию slideDown */
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .autoplay-count {
@@ -468,11 +454,12 @@ input:checked + .toggle-slider:before {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease; /* Упростили */
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
+/* ИСПРАВЛЕНО: Упростили hover эффект */
 .count-btn::before {
   content: '';
   position: absolute;
@@ -482,22 +469,22 @@ input:checked + .toggle-slider:before {
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(142, 68, 173, 0.2), /* Уменьшили интенсивность */
+    rgba(142, 68, 173, 0.1), 
     transparent);
-  transition: left 0.4s ease; /* Замедлили */
+  transition: left 0.3s ease;
 }
 
 .count-btn.active {
   background: linear-gradient(145deg, var(--primary-color) 0%, #087d30 100%);
   border-color: var(--primary-color);
   box-shadow: 
-    0 0 15px rgba(11, 168, 74, 0.3), /* Упростили */
+    0 0 15px rgba(11, 168, 74, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .count-btn:hover:not(:disabled) {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
-  transform: translateY(-1px); /* Уменьшили */
+  transform: translateY(-1px);
   border-color: rgba(142, 68, 173, 0.4);
 }
 
@@ -521,6 +508,7 @@ input:checked + .toggle-slider:before {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
+/* ИСПРАВЛЕНО: Убрали анимацию статуса */
 .autoplay-status {
   margin-top: 12px;
   padding: 10px 16px;
@@ -533,9 +521,9 @@ input:checked + .toggle-slider:before {
   font-weight: 600;
   color: var(--primary-color);
   box-shadow: 
-    0 0 15px rgba(11, 168, 74, 0.15), /* Упростили */
+    0 0 15px rgba(11, 168, 74, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  animation: statusPulse 3s ease-in-out infinite; /* Замедлили */
+  /* УБРАЛИ: анимацию statusPulse */
 }
 
 /* Таблица выплат - ОПТИМИЗИРОВАННАЯ */
@@ -549,9 +537,9 @@ input:checked + .toggle-slider:before {
   margin-bottom: 25px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 
-    0 8px 20px rgba(0, 0, 0, 0.2), /* Упростили */
+    0 8px 20px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px); /* Уменьшили */
+  backdrop-filter: blur(10px);
 }
 
 .payout-table h4 {
@@ -563,7 +551,7 @@ input:checked + .toggle-slider:before {
   background-clip: text;
   text-align: center;
   font-weight: 700;
-  text-shadow: 0 0 15px rgba(11, 168, 74, 0.4); /* Упростили */
+  text-shadow: 0 0 15px rgba(11, 168, 74, 0.4);
 }
 
 .payout-rules {
@@ -583,7 +571,7 @@ input:checked + .toggle-slider:before {
 
 .payout-rule:hover {
   background: rgba(255, 255, 255, 0.05);
-  transform: translateX(3px); /* Уменьшили */
+  transform: translateX(3px);
 }
 
 .rule-text {
@@ -596,7 +584,7 @@ input:checked + .toggle-slider:before {
   font-size: 14px;
   font-weight: bold;
   color: var(--primary-color);
-  text-shadow: 0 0 8px rgba(11, 168, 74, 0.4); /* Упростили */
+  text-shadow: 0 0 8px rgba(11, 168, 74, 0.4);
 }
 
 .payout-grid {
@@ -615,12 +603,13 @@ input:checked + .toggle-slider:before {
     rgba(255, 255, 255, 0.08) 0%, 
     rgba(255, 255, 255, 0.04) 100%);
   border-radius: 12px;
-  transition: all 0.3s ease; /* Упростили */
+  transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.15);
   position: relative;
   overflow: hidden;
 }
 
+/* ИСПРАВЛЕНО: Упростили hover эффект */
 .payout-item::before {
   content: '';
   position: absolute;
@@ -630,18 +619,18 @@ input:checked + .toggle-slider:before {
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(255, 255, 255, 0.08), /* Уменьшили интенсивность */
+    rgba(255, 255, 255, 0.05), 
     transparent);
-  transition: left 0.5s ease; /* Замедлили */
+  transition: left 0.3s ease;
 }
 
 .payout-item:hover {
   background: linear-gradient(145deg, 
     rgba(255, 255, 255, 0.12) 0%, 
     rgba(255, 255, 255, 0.08) 100%);
-  transform: translateY(-2px) scale(1.01); /* Уменьшили */
+  transform: translateY(-2px) scale(1.01);
   box-shadow: 
-    0 6px 20px rgba(0, 0, 0, 0.3), /* Упростили */
+    0 6px 20px rgba(0, 0, 0, 0.3),
     0 0 15px rgba(11, 168, 74, 0.15);
   border-color: rgba(11, 168, 74, 0.3);
 }
@@ -653,20 +642,20 @@ input:checked + .toggle-slider:before {
 .payout-symbol {
   font-size: 22px;
   margin-bottom: 6px;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.25)); /* Упростили */
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.25));
   transition: all 0.3s ease;
 }
 
 .payout-item:hover .payout-symbol {
-  transform: scale(1.05); /* Уменьшили */
-  filter: drop-shadow(0 0 8px rgba(11, 168, 74, 0.5)); /* Упростили */
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 8px rgba(11, 168, 74, 0.5));
 }
 
 .payout-multiplier {
   font-size: 12px;
   font-weight: bold;
   color: var(--primary-color);
-  text-shadow: 0 0 6px rgba(11, 168, 74, 0.4); /* Упростили */
+  text-shadow: 0 0 6px rgba(11, 168, 74, 0.4);
   text-align: center;
   line-height: 1.2;
 }
@@ -690,9 +679,9 @@ input:checked + .toggle-slider:before {
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 
-    0 8px 20px rgba(0, 0, 0, 0.2), /* Упростили */
+    0 8px 20px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px); /* Уменьшили */
+  backdrop-filter: blur(10px);
 }
 
 .game-stats h4 {
@@ -704,7 +693,7 @@ input:checked + .toggle-slider:before {
   background-clip: text;
   text-align: center;
   font-weight: 700;
-  text-shadow: 0 0 15px rgba(11, 168, 74, 0.4); /* Упростили */
+  text-shadow: 0 0 15px rgba(11, 168, 74, 0.4);
 }
 
 .stats-container {
@@ -728,6 +717,7 @@ input:checked + .toggle-slider:before {
   overflow: hidden;
 }
 
+/* ИСПРАВЛЕНО: Упростили hover эффект */
 .stat-item::before {
   content: '';
   position: absolute;
@@ -737,16 +727,16 @@ input:checked + .toggle-slider:before {
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(11, 168, 74, 0.08), /* Уменьшили интенсивность */
+    rgba(11, 168, 74, 0.05), 
     transparent);
-  transition: left 0.5s ease; /* Замедлили */
+  transition: left 0.3s ease;
 }
 
 .stat-item:hover {
   background: linear-gradient(145deg, 
     rgba(255, 255, 255, 0.1) 0%, 
     rgba(255, 255, 255, 0.06) 100%);
-  transform: translateY(-1px); /* Уменьшили */
+  transform: translateY(-1px);
   border-color: rgba(11, 168, 74, 0.3);
 }
 
@@ -770,69 +760,27 @@ input:checked + .toggle-slider:before {
 
 .stat-value.positive {
   color: var(--primary-color);
-  text-shadow: 0 0 8px rgba(11, 168, 74, 0.4); /* Упростили */
+  text-shadow: 0 0 8px rgba(11, 168, 74, 0.4);
 }
 
 .stat-value.negative {
   color: #ff3b30;
-  text-shadow: 0 0 8px rgba(255, 59, 48, 0.4); /* Упростили */
+  text-shadow: 0 0 8px rgba(255, 59, 48, 0.4);
 }
 
-/* УПРОЩЕННЫЕ АНИМАЦИИ */
-@keyframes buttonGlow {
-  0%, 100% { 
-    background-position: 0% 50%; 
-  }
-  50% { 
-    background-position: 100% 50%; 
-  }
-}
-
-@keyframes spinButtonSimple {
-  0% {
-    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
-  }
-  50% {
-    box-shadow: 0 10px 30px rgba(255, 107, 53, 0.5);
-  }
-  100% {
-    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
-  }
-}
-
+/* ИСПРАВЛЕНО: Простая анимация иконки спина */
 @keyframes spinIcon {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-@keyframes slideDownSimple {
-  0% {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes dividerGlow {
-  0%, 100% { 
-    opacity: 0.2; 
-  }
-  50% { 
-    opacity: 0.6; 
-  }
-}
-
-@keyframes statusPulse {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(11, 168, 74, 0.15);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(11, 168, 74, 0.25);
-  }
-}
+/* УБРАЛИ ВСЕ ОСТАЛЬНЫЕ СЛОЖНЫЕ KEYFRAMES:
+   - buttonGlow
+   - spinButtonSimple  
+   - slideDownSimple
+   - dividerGlow
+   - statusPulse
+*/
 
 /* Адаптивность */
 @media (max-width: 500px) {
@@ -888,25 +836,24 @@ input:checked + .toggle-slider:before {
   }
 }
 
-/* Отключение анимаций для пользователей с ограничениями */
-@media (prefers-reduced-motion: reduce) {
-  .slot-controls::before,
-  .spin-button::after,
-  .bet-section::after,
-  .autoplay-section::after,
-  .quick-bet-btn::before,
-  .count-btn::before,
-  .payout-item::before,
-  .stat-item::before,
-  .autoplay-status {
-    animation: none;
+/* ОПТИМИЗАЦИЯ: Глобальное отключение сложных анимаций для слабых устройств */
+@media (max-width: 768px) {
+  .slot-controls *::before,
+  .slot-controls *::after {
+    animation: none !important;
   }
   
-  .spin-button,
-  .quick-bet-btn,
-  .count-btn,
-  .payout-item,
-  .stat-item {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  .slot-controls * {
+    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease !important;
+  }
+}
+
+/* Отключение анимаций для пользователей с ограничениями */
+@media (prefers-reduced-motion: reduce) {
+  .slot-controls *,
+  .slot-controls *::before,
+  .slot-controls *::after {
+    animation: none !important;
+    transition: transform 0.3s ease, opacity 0.3s ease !important;
   }
 }

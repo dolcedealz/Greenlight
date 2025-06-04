@@ -1,5 +1,8 @@
 // bot/src/handlers/inline.handler.js
 
+const config = require('../config'); // Добавить импорт config
+const { Markup } = require('telegraf'); // Добавить импорт Markup
+
 function registerInlineHandlers(bot) {
   bot.on('inline_query', async (ctx) => {
     try {
@@ -34,7 +37,6 @@ function registerInlineHandlers(bot) {
               `⏱ Вызов действителен 5 минут`,
             parse_mode: 'Markdown'
           },
-          // ВАЖНО: reply_markup на уровне article, НЕ внутри input_message_content
           reply_markup: {
             inline_keyboard: [[
               {
@@ -81,3 +83,8 @@ function registerInlineHandlers(bot) {
     }
   });
 }
+
+// ВАЖНО: Добавить экспорт!
+module.exports = {
+  registerInlineHandlers
+};

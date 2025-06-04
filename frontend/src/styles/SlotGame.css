@@ -1,14 +1,91 @@
-/* frontend/src/styles/SlotsGame.css */
+/* frontend/src/styles/SlotGame.css - ПОЛНЫЙ ИСПРАВЛЕННЫЙ ФАЙЛ */
 .slots-game {
   display: flex;
   flex-direction: column;
   gap: 20px;
   padding: 15px;
-  background-color: var(--background-color);
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
   min-height: 100vh;
   padding-bottom: 80px;
   transition: all 0.2s ease;
   overflow-x: hidden;
+  position: relative;
+}
+
+/* НОВОЕ: Легкий динамичный фон для слотов */
+.slots-game::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(142, 68, 173, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(11, 168, 74, 0.02) 0%, transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.01) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: slotsAmbientGlow 25s ease-in-out infinite;
+}
+
+/* ОПТИМИЗАЦИЯ: Отключаем фон для слабых устройств */
+.slots-game.low-performance::before {
+  display: none;
+}
+
+@keyframes slotsAmbientGlow {
+  0%, 100% { 
+    opacity: 0.3;
+    transform: scale(1) rotate(0deg);
+  }
+  33% { 
+    opacity: 0.5;
+    transform: scale(1.02) rotate(1deg);
+  }
+  66% { 
+    opacity: 0.4;
+    transform: scale(0.98) rotate(-1deg);
+  }
+}
+
+/* Плавающие частицы для эффекта глубины */
+.slots-game::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(2px 2px at 20% 30%, rgba(142, 68, 173, 0.2), transparent),
+    radial-gradient(2px 2px at 40% 70%, rgba(11, 168, 74, 0.15), transparent),
+    radial-gradient(1px 1px at 90% 40%, rgba(255, 215, 0, 0.1), transparent),
+    radial-gradient(1px 1px at 60% 90%, rgba(255, 255, 255, 0.05), transparent);
+  background-size: 200px 200px, 300px 300px, 150px 150px, 250px 250px;
+  background-repeat: repeat;
+  pointer-events: none;
+  z-index: 1;
+  animation: slotsParticlesFloat 30s linear infinite;
+}
+
+.slots-game.low-performance::after {
+  display: none;
+}
+
+@keyframes slotsParticlesFloat {
+  0% { 
+    transform: translateX(0) translateY(0);
+    opacity: 0.2;
+  }
+  50% { 
+    transform: translateX(-50px) translateY(-30px);
+    opacity: 0.4;
+  }
+  100% { 
+    transform: translateX(-100px) translateY(-60px);
+    opacity: 0.2;
+  }
 }
 
 /* НОВОЕ: Загрузочный экран для слотов */
@@ -218,7 +295,7 @@
   100% { transform: rotateX(360deg); }
 }
 
-/* Адаптивность */
+/* Адаптивность для загрузочного экрана */
 @media (max-width: 768px) {
   .logo-icon.slots-icon {
     font-size: 60px;
@@ -239,6 +316,16 @@
   
   .loading-text {
     font-size: 16px;
+  }
+  
+  /* Фон слотов - замедляем на мобильных */
+  .slots-game::before {
+    animation-duration: 35s;
+  }
+  
+  .slots-game::after {
+    animation-duration: 40s;
+    background-size: 150px 150px, 200px 200px, 100px 100px, 180px 180px;
   }
 }
 
@@ -269,8 +356,23 @@
     height: 65px;
     font-size: 1.5rem;
   }
+  
+  /* Фон слотов - дополнительная оптимизация */
+  .slots-game::before {
+    background: 
+      radial-gradient(circle at 30% 30%, rgba(142, 68, 173, 0.02) 0%, transparent 50%),
+      radial-gradient(circle at 70% 70%, rgba(11, 168, 74, 0.015) 0%, transparent 60%);
+    animation-duration: 40s;
+  }
+  
+  .slots-game::after {
+    opacity: 0.5;
+    animation-duration: 45s;
+    background-size: 120px 120px, 160px 160px, 80px 80px, 140px 140px;
+  }
 }
 
+/* Отключение для слабых устройств и пользователей с ограничениями */
 @media (prefers-reduced-motion: reduce) {
   .slots-loading-screen,
   .slots-loading-content,
@@ -279,7 +381,22 @@
   .logo-subtitle,
   .spinner-ring,
   .loading-text,
-  .reel-demo {
+  .reel-demo,
+  .slots-game::before,
+  .slots-game::after {
     animation: none;
+  }
+  
+  .slots-game::before,
+  .slots-game::after {
+    opacity: 0.2;
+  }
+}
+
+/* Дополнительное отключение для очень слабых устройств */
+@media (max-width: 320px) {
+  .slots-game::before,
+  .slots-game::after {
+    display: none;
   }
 }

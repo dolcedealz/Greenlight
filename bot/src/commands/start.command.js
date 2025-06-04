@@ -9,11 +9,42 @@ const config = require('../config');
 async function startCommand(ctx) {
   try {
     const { webAppUrl } = config;
+    const apiService = require('../services/api.service');
     
     // Получаем данные пользователя
     const { id, first_name, username } = ctx.from;
     
-    console.log(`Пользователь ${first_name} (${id}) запустил бота`);
+    // Извлекаем реферальный код из команды /start
+    const messageText = ctx.message.text || '';
+    const args = messageText.split(' ');
+    const referralCode = args.length > 1 ? args[1] : null;
+    
+    console.log(`Пользователь ${first_name} (${id}) запустил бота${referralCode ? ` с реферальным кодом: ${referralCode}` : ''}`);
+    
+    // Создаем или обновляем пользователя с реферальным кодом
+    try {
+      const userData = {
+        id,
+        first_name,
+        username,
+        language_code: ctx.from.language_code || 'ru'
+      };
+      
+      await apiService.createOrUpdateUser(userData, referralCode);
+      console.log(`Пользователь ${id} успешно создан/обновлен${referralCode ? ' с реферером' : ''}`);
+      
+      if (referralCode) {
+        await ctx.reply(
+          `🎉 Добро пожаловать в Greenlight Casino!\n\n` +
+          `✅ Вы зарегистрированы по реферальной ссылке!\n` +
+          `🎁 Ваш реферер получит бонус с ваших первых игр\n\n` +
+          `💰 Начните играть и зарабатывать!`
+        );
+      }
+    } catch (error) {
+      console.error('Ошибка создания пользователя:', error);
+      // Продолжаем выполнение даже при ошибке
+    }
     
     // Создаем простую клавиатуру только с текстовыми кнопками
     const keyboard = Markup.keyboard([

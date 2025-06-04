@@ -59,7 +59,7 @@ class UserService {
     
     // Если был указан реферал, обновляем его счетчик
     if (referrer) {
-      referrer.referralCount += 1;
+      referrer.referralStats.totalReferrals += 1;
       await referrer.save();
     }
     

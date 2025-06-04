@@ -36,7 +36,7 @@ class UserController {
             lastName: user.lastName,
             balance: user.balance,
             referralCode: user.referralCode,
-            referralCount: user.referralCount
+            referralCount: user.referralStats.totalReferrals
           }
         }
       });
@@ -68,8 +68,8 @@ class UserController {
           lastName: user.lastName,
           balance: user.balance,
           referralCode: user.referralCode,
-          referralCount: user.referralCount,
-          referralEarnings: user.referralEarnings,
+          referralCount: user.referralStats.totalReferrals,
+          referralEarnings: user.referralStats.totalEarned,
           totalWagered: user.totalWagered,
           totalWon: user.totalWon,
           profitLoss: user.totalWon - user.totalWagered,

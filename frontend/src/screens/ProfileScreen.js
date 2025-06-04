@@ -253,11 +253,11 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           <div className="referral-stats">
             <div className="referral-item">
               <span className="referral-label">Приглашено друзей</span>
-              <span className="referral-value">{userData.referralCount}</span>
+              <span className="referral-value">{userData.referralStats?.totalReferrals || 0}</span>
             </div>
             <div className="referral-item">
               <span className="referral-label">Заработано</span>
-              <span className="referral-value">{userData.referralEarnings?.toFixed(2) || '0.00'} USDT</span>
+              <span className="referral-value">{userData.referralStats?.totalEarned?.toFixed(2) || '0.00'} USDT</span>
             </div>
           </div>
         </div>

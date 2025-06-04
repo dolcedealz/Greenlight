@@ -44,14 +44,6 @@ const userSchema = new Schema({
     unique: true,
     sparse: true
   },
-  referralCount: {
-    type: Number,
-    default: 0
-  },
-  referralEarnings: {
-    type: Number,
-    default: 0
-  },
   // Подробная статистика реферальной программы
   referralStats: {
     level: {

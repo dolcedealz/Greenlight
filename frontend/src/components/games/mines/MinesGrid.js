@@ -1,22 +1,49 @@
-import React from 'react';
+// frontend/src/components/games/mines/MinesGrid.js - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import '../../../styles/MinesGrid.css';
 
 const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver, loading }) => {
   const { gameActionFeedback } = useTactileFeedback();
+  
+  // ОПТИМИЗАЦИЯ: Детектор производительности устройства
+  const [isLowPerformance, setIsLowPerformance] = useState(false);
+  
+  useEffect(() => {
+    // Простая проверка производительности устройства
+    const checkPerformance = () => {
+      const start = performance.now();
+      for (let i = 0; i < 5000; i++) {
+        Math.random();
+      }
+      const end = performance.now();
+      const isLow = (end - start) > 8; // Если операция заняла больше 8ms
+      setIsLowPerformance(isLow);
+    };
+    
+    checkPerformance();
+  }, []);
+
+  // ОПТИМИЗАЦИЯ: Мемоизируем сет открытых ячеек для быстрого поиска
+  const clickedCellsSet = useMemo(() => {
+    const set = new Set();
+    clickedCells.forEach(cell => {
+      set.add(`${cell[0]}-${cell[1]}`);
+    });
+    return set;
+  }, [clickedCells]);
 
   // Обработчик клика по ячейке
-  const handleCellClick = (rowIndex, colIndex) => {
+  const handleCellClick = useCallback((rowIndex, colIndex) => {
     // Блокируем клики если:
     // - игра не активна
     // - игра завершена
     // - идет загрузка
     // - ячейка уже открыта
     
-    // Проверяем, открыта ли ячейка через массив координат
-    const alreadyClicked = clickedCells.some(cell => 
-      cell[0] === rowIndex && cell[1] === colIndex
-    );
+    // ОПТИМИЗАЦИЯ: Используем Set для быстрой проверки
+    const cellKey = `${rowIndex}-${colIndex}`;
+    const alreadyClicked = clickedCellsSet.has(cellKey);
     
     if (!gameActive || gameOver || loading || alreadyClicked) {
       return;
@@ -27,19 +54,33 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
     
     // Вызываем обработчик из родительского компонента
     onCellClick(rowIndex, colIndex);
-  };
+  }, [gameActive, gameOver, loading, clickedCellsSet, gameActionFeedback, onCellClick]);
+
+  // ОПТИМИЗАЦИЯ: Мемоизированный компонент ячейки
+  const CellComponent = React.memo(({ cell, rowIndex, colIndex, isRevealed, cellClass }) => (
+    <div
+      className={cellClass}
+      onClick={() => handleCellClick(rowIndex, colIndex)}
+    >
+      {isRevealed && cell === 'mine' && <span className="mine-icon">💣</span>}
+      {isRevealed && cell === 'gem' && <span className="gem-icon">💎</span>}
+    </div>
+  ));
 
   return (
-    <div className={`mines-grid ${gameOver ? 'game-over' : ''}`}>
-      {loading && <div className="mines-overlay"><div className="mines-spinner"></div></div>}
+    <div className={`mines-grid ${gameOver ? 'game-over' : ''} ${isLowPerformance ? 'low-performance' : ''}`}>
+      {loading && (
+        <div className="mines-overlay">
+          <div className="mines-spinner"></div>
+        </div>
+      )}
       
       {grid.map((row, rowIndex) => (
         <div key={rowIndex} className="mines-row">
           {row.map((cell, colIndex) => {
-            // Проверяем, находится ли ячейка в списке открытых
-            const isRevealed = clickedCells.some(coords => 
-              coords[0] === rowIndex && coords[1] === colIndex
-            );
+            // ОПТИМИЗАЦИЯ: Используем Set для быстрой проверки
+            const cellKey = `${rowIndex}-${colIndex}`;
+            const isRevealed = clickedCellsSet.has(cellKey);
             
             const cellClass = `mines-cell 
               ${isRevealed ? 'revealed' : ''} 
@@ -49,14 +90,14 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
             `;
             
             return (
-              <div
+              <CellComponent
                 key={colIndex}
-                className={cellClass}
-                onClick={() => handleCellClick(rowIndex, colIndex)}
-              >
-                {isRevealed && cell === 'mine' && <span className="mine-icon">💣</span>}
-                {isRevealed && cell === 'gem' && <span className="gem-icon">💎</span>}
-              </div>
+                cell={cell}
+                rowIndex={rowIndex}
+                colIndex={colIndex}
+                isRevealed={isRevealed}
+                cellClass={cellClass}
+              />
             );
           })}
         </div>

@@ -1,17 +1,17 @@
-// frontend/src/components/games/slots/SlotMachine.js
+// frontend/src/components/games/slots/SlotMachine.js - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
 
 // ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ (дополнительно урезаны на 20% кроме jackpot)
 const SLOT_SYMBOLS = [
-  { symbol: 'cherry', name: 'cherry', weight: 25, payout: 1.6, emoji: '🍒' },    // было 2, стало 1.6 (-20%)
-  { symbol: 'lemon', name: 'lemon', weight: 20, payout: 2.4, emoji: '🍋' },     // было 3, стало 2.4 (-20%)
-  { symbol: 'persik', name: 'persik', weight: 15, payout: 3.2, emoji: '🍑' },   // было 4, стало 3.2 (-20%)
-  { symbol: 'grape', name: 'grape', weight: 12, payout: 4.8, emoji: '🍇' },     // было 6, стало 4.8 (-20%)
-  { symbol: 'bell', name: 'bell', weight: 8, payout: 7.2, emoji: '🔔' },        // было 9, стало 7.2 (-20%)
-  { symbol: 'diamond', name: 'diamond', weight: 5, payout: 12, emoji: '💎' },   // было 15, стало 12 (-20%)
-  { symbol: 'star', name: 'star', weight: 3, payout: 20, emoji: '⭐' },         // было 25, стало 20 (-20%)
-  { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 50, emoji: '🎰' }   // остается 50 (максвин)
+  { symbol: 'cherry', name: 'cherry', weight: 25, payout: 1.6, emoji: '🍒' },
+  { symbol: 'lemon', name: 'lemon', weight: 20, payout: 2.4, emoji: '🍋' },
+  { symbol: 'persik', name: 'persik', weight: 15, payout: 3.2, emoji: '🍑' },
+  { symbol: 'grape', name: 'grape', weight: 12, payout: 4.8, emoji: '🍇' },
+  { symbol: 'bell', name: 'bell', weight: 8, payout: 7.2, emoji: '🔔' },
+  { symbol: 'diamond', name: 'diamond', weight: 5, payout: 12, emoji: '💎' },
+  { symbol: 'star', name: 'star', weight: 3, payout: 20, emoji: '⭐' },
+  { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 50, emoji: '🎰' }
 ];
 
 const SlotMachine = ({ 
@@ -23,7 +23,7 @@ const SlotMachine = ({
   autoplay,
   loading,
   gameStats,
-  onAnimationComplete // НОВЫЙ PROP для уведомления о завершении анимации
+  onAnimationComplete
 }) => {
   // Начальное состояние барабанов
   const [reels, setReels] = useState(() => [
@@ -47,6 +47,24 @@ const SlotMachine = ({
   const finalResultRef = useRef(null);
   const isStoppingRef = useRef(false);
   const animationCompleteRef = useRef(false);
+  
+  // ОПТИМИЗАЦИЯ: Детектор производительности устройства
+  const [isLowPerformance, setIsLowPerformance] = useState(false);
+  
+  useEffect(() => {
+    // Простая проверка производительности устройства
+    const checkPerformance = () => {
+      const start = performance.now();
+      for (let i = 0; i < 10000; i++) {
+        Math.random();
+      }
+      const end = performance.now();
+      const isLow = (end - start) > 10; // Если операция заняла больше 10ms
+      setIsLowPerformance(isLow);
+    };
+    
+    checkPerformance();
+  }, []);
   
   // Получить данные символа
   const getSymbolData = useCallback((symbolName) => {
@@ -89,7 +107,7 @@ const SlotMachine = ({
     animationTimeouts.current = [];
   }, []);
   
-  // НОВАЯ функция для полной остановки анимации
+  // Функция для полной остановки анимации
   const stopAllAnimations = useCallback(() => {
     console.log('СЛОТЫ: Принудительная остановка всех анимаций');
     
@@ -99,7 +117,6 @@ const SlotMachine = ({
     setSpinPhase('stopped');
     isStoppingRef.current = false;
     animationCompleteRef.current = true;
-    
   }, [clearAnimations]);
   
   // Функция для плавной остановки барабана на нужном символе
@@ -152,13 +169,13 @@ const SlotMachine = ({
             }, 300);
           }
           
-          // ИСПРАВЛЕНИЕ: Уведомляем родительский компонент ПОСЛЕ визуального завершения
+          // Уведомляем родительский компонент ПОСЛЕ визуального завершения
           setTimeout(() => {
             if (onAnimationComplete) {
               console.log('СЛОТЫ: Вызываем onAnimationComplete после показа результата');
               onAnimationComplete();
             }
-          }, 800); // Задержка для полного визуального завершения
+          }, 800);
         }, 200);
       }
     }, delay);
@@ -183,6 +200,9 @@ const SlotMachine = ({
       lastResultRef.current = null;
       animationCompleteRef.current = false;
       
+      // ОПТИМИЗАЦИЯ: Адаптивная частота обновления
+      const updateInterval = isLowPerformance ? 200 : 150; // Увеличили с 100ms
+      
       // Запускаем анимацию быстрой смены символов
       const intervals = [];
       
@@ -198,16 +218,16 @@ const SlotMachine = ({
             newReels[reelIndex] = Array(4).fill().map(() => getRandomSymbol());
             return newReels;
           });
-        }, 100); // Фиксированная скорость
+        }, updateInterval);
         
         intervals.push(interval);
       }
       
       animationIntervals.current = intervals;
     }
-  }, [isSpinning, isAnimating, getRandomSymbol, clearAnimations, stopReelWithResult]);
+  }, [isSpinning, isAnimating, getRandomSymbol, clearAnimations, stopReelWithResult, isLowPerformance]);
   
-  // ИСПРАВЛЕННАЯ обработка результата с сервера
+  // Обработка результата с сервера
   useEffect(() => {
     if (lastResult && 
         lastResult !== lastResultRef.current && 
@@ -224,14 +244,14 @@ const SlotMachine = ({
       
       setSpinPhase('stopping');
       
-      // Останавливаем барабаны поочередно с правильными символами
-      const stopDelays = [400, 600, 800, 1000];
+      // ОПТИМИЗАЦИЯ: Уменьшили задержки между остановками барабанов
+      const stopDelays = isLowPerformance ? [300, 450, 600, 750] : [400, 600, 800, 1000];
       
       lastResult.reels.forEach((targetColumn, reelIndex) => {
         stopReelWithResult(reelIndex, targetColumn, stopDelays[reelIndex]);
       });
     }
-  }, [lastResult, isAnimating, stopReelWithResult]);
+  }, [lastResult, isAnimating, stopReelWithResult, isLowPerformance]);
   
   // Сброс состояния анимации при остановке спина
   useEffect(() => {
@@ -276,14 +296,14 @@ const SlotMachine = ({
     return baseClass;
   }, [winningLines]);
   
-  // Компонент символа
+  // ОПТИМИЗАЦИЯ: Мемоизированный компонент символа
   const SymbolComponent = React.memo(({ symbolName }) => {
     const symbolData = getSymbolData(symbolName);
     return <span className="slot-symbol">{symbolData.emoji}</span>;
   });
   
   return (
-    <div className="slot-machine">
+    <div className={`slot-machine ${isLowPerformance ? 'low-performance' : ''}`}>
       {/* Игровое поле 4x4 */}
       <div className="slot-display">
         <div className="slot-reels">
@@ -305,18 +325,20 @@ const SlotMachine = ({
           ))}
         </div>
         
-        {/* Линии выплат */}
-        <div className="paylines">
-          {/* Горизонтальные линии */}
-          <div className={`payline horizontal line-1 ${winningLines.some(line => line.includes('0-0') && line.includes('1-0')) ? 'active' : ''}`}></div>
-          <div className={`payline horizontal line-2 ${winningLines.some(line => line.includes('0-1') && line.includes('1-1')) ? 'active' : ''}`}></div>
-          <div className={`payline horizontal line-3 ${winningLines.some(line => line.includes('0-2') && line.includes('1-2')) ? 'active' : ''}`}></div>
-          <div className={`payline horizontal line-4 ${winningLines.some(line => line.includes('0-3') && line.includes('1-3')) ? 'active' : ''}`}></div>
-          
-          {/* Диагональные линии */}
-          <div className={`payline diagonal line-main ${winningLines.some(line => line.includes('0-0') && line.includes('1-1') && line.includes('2-2')) ? 'active' : ''}`}></div>
-          <div className={`payline diagonal line-anti ${winningLines.some(line => line.includes('0-3') && line.includes('1-2') && line.includes('2-1')) ? 'active' : ''}`}></div>
-        </div>
+        {/* ОПТИМИЗАЦИЯ: Упрощенные линии выплат */}
+        {!isLowPerformance && (
+          <div className="paylines">
+            {/* Горизонтальные линии */}
+            <div className={`payline horizontal line-1 ${winningLines.some(line => line.includes('0-0') && line.includes('1-0')) ? 'active' : ''}`}></div>
+            <div className={`payline horizontal line-2 ${winningLines.some(line => line.includes('0-1') && line.includes('1-1')) ? 'active' : ''}`}></div>
+            <div className={`payline horizontal line-3 ${winningLines.some(line => line.includes('0-2') && line.includes('1-2')) ? 'active' : ''}`}></div>
+            <div className={`payline horizontal line-4 ${winningLines.some(line => line.includes('0-3') && line.includes('1-3')) ? 'active' : ''}`}></div>
+            
+            {/* Диагональные линии */}
+            <div className={`payline diagonal line-main ${winningLines.some(line => line.includes('0-0') && line.includes('1-1') && line.includes('2-2')) ? 'active' : ''}`}></div>
+            <div className={`payline diagonal line-anti ${winningLines.some(line => line.includes('0-3') && line.includes('1-2') && line.includes('2-1')) ? 'active' : ''}`}></div>
+          </div>
+        )}
       </div>
       
       {/* Информация о результате */}
@@ -351,18 +373,15 @@ const SlotMachine = ({
                         const firstPos = line[0].split('-');
                         const lastPos = line[line.length - 1].split('-');
                         
-                        // Проверяем горизонтальную линию
                         if (firstPos[1] === lastPos[1]) {
                           lineType = `Строка ${parseInt(firstPos[1]) + 1}`;
                         }
-                        // Проверяем главную диагональ
                         else if (line.every((pos, i) => {
                           const [col, row] = pos.split('-');
                           return col === String(i) && row === String(i);
                         })) {
                           lineType = 'Главная диагональ';
                         }
-                        // Проверяем побочную диагональ
                         else if (line.every((pos, i) => {
                           const [col, row] = pos.split('-');
                           return col === String(i) && row === String(3 - i);

@@ -1,4 +1,4 @@
-/* frontend/src/styles/MinesGrid.css - ОБНОВЛЕННАЯ ВЕРСИЯ */
+/* frontend/src/styles/MinesGrid.css - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ */
 .mines-grid {
   display: flex;
   flex-direction: column;
@@ -13,10 +13,17 @@
   max-width: 580px;
   margin: 0 auto;
   position: relative;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease; /* Упростили transition */
   border: 1px solid rgba(255, 59, 48, 0.15);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px); /* Уменьшили blur */
   overflow: hidden;
+}
+
+/* ОПТИМИЗАЦИЯ: Упрощенный фон для слабых устройств */
+.mines-grid.low-performance {
+  background: #1a1a1a;
+  backdrop-filter: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .mines-grid::before {
@@ -29,19 +36,25 @@
   background: conic-gradient(
     from 0deg at 50% 50%,
     transparent 0deg,
-    rgba(255, 59, 48, 0.08) 45deg,
+    rgba(255, 59, 48, 0.04) 45deg, /* Уменьшили интенсивность */
     transparent 90deg,
-    rgba(11, 168, 74, 0.06) 135deg,
+    rgba(11, 168, 74, 0.03) 135deg,
     transparent 180deg,
-    rgba(255, 215, 0, 0.06) 225deg,
+    rgba(255, 215, 0, 0.03) 225deg,
     transparent 270deg,
-    rgba(255, 59, 48, 0.08) 315deg,
+    rgba(255, 59, 48, 0.04) 315deg,
     transparent 360deg
   );
   border-radius: 24px;
-  animation: minesGridGlow 15s linear infinite;
+  animation: minesGridGlow 20s linear infinite; /* Замедлили */
   pointer-events: none;
   z-index: -1;
+}
+
+/* ОПТИМИЗАЦИЯ: Отключаем фоновую анимацию для слабых устройств */
+.mines-grid.low-performance::before {
+  animation: none;
+  background: none;
 }
 
 @keyframes minesGridGlow {
@@ -54,22 +67,22 @@
   transform: scale(0.98);
   box-shadow: 
     0 15px 50px rgba(0, 0, 0, 0.5),
-    0 0 60px rgba(255, 59, 48, 0.3);
+    0 0 40px rgba(255, 59, 48, 0.3); /* Упростили */
   border-color: rgba(255, 59, 48, 0.4);
 }
 
 .mines-grid.game-over::before {
-  animation-duration: 8s;
+  animation-duration: 10s; /* Замедлили */
   background: conic-gradient(
     from 0deg at 50% 50%,
     transparent 0deg,
-    rgba(255, 59, 48, 0.15) 45deg,
+    rgba(255, 59, 48, 0.08) 45deg, /* Уменьшили интенсивность */
     transparent 90deg,
-    rgba(255, 59, 48, 0.1) 135deg,
+    rgba(255, 59, 48, 0.05) 135deg,
     transparent 180deg,
-    rgba(255, 59, 48, 0.12) 225deg,
+    rgba(255, 59, 48, 0.06) 225deg,
     transparent 270deg,
-    rgba(255, 59, 48, 0.15) 315deg,
+    rgba(255, 59, 48, 0.08) 315deg,
     transparent 360deg
   );
 }
@@ -83,16 +96,16 @@
   bottom: 0;
   background: linear-gradient(
     145deg,
-    rgba(0, 0, 0, 0.8) 0%,
-    rgba(0, 0, 0, 0.6) 50%,
-    rgba(0, 0, 0, 0.8) 100%
+    rgba(0, 0, 0, 0.7) 0%, /* Упростили */
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0.7) 100%
   );
   border-radius: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px); /* Уменьшили blur */
   animation: overlayAppear 0.3s ease;
 }
 
@@ -103,7 +116,7 @@
   }
   100% { 
     opacity: 1; 
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(6px);
   }
 }
 
@@ -113,23 +126,16 @@
   border: 4px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   border-top: 4px solid var(--primary-color);
-  animation: minesSpinEnhanced 1.2s linear infinite;
-  box-shadow: 
-    0 0 20px rgba(11, 168, 74, 0.4),
-    inset 0 0 20px rgba(11, 168, 74, 0.2);
+  animation: minesSpinSimple 1.5s linear infinite; /* Замедлили */
+  box-shadow: 0 0 15px rgba(11, 168, 74, 0.3); /* Упростили */
 }
 
-@keyframes minesSpinEnhanced {
+@keyframes minesSpinSimple {
   0% { 
     transform: rotate(0deg); 
-    box-shadow: 0 0 20px rgba(11, 168, 74, 0.4);
-  }
-  50% { 
-    box-shadow: 0 0 30px rgba(11, 168, 74, 0.6);
   }
   100% { 
     transform: rotate(360deg); 
-    box-shadow: 0 0 20px rgba(11, 168, 74, 0.4);
   }
 }
 
@@ -158,12 +164,12 @@
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease; /* Упростили transition */
   position: relative;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.15);
   box-shadow: 
-    0 6px 20px rgba(0, 0, 0, 0.2),
+    0 6px 15px rgba(0, 0, 0, 0.2), /* Упростили тени */
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
@@ -178,7 +184,7 @@
   background: linear-gradient(
     45deg,
     transparent 30%,
-    rgba(255, 255, 255, 0.03) 50%,
+    rgba(255, 255, 255, 0.02) 50%, /* Уменьшили интенсивность */
     transparent 70%
   );
   border-radius: 12px;
@@ -195,9 +201,9 @@
   right: -2px;
   bottom: -2px;
   background: linear-gradient(45deg, 
-    rgba(11, 168, 74, 0.6), 
-    rgba(255, 255, 255, 0.3), 
-    rgba(11, 168, 74, 0.6));
+    rgba(11, 168, 74, 0.4), /* Уменьшили интенсивность */
+    rgba(255, 255, 255, 0.2), 
+    rgba(11, 168, 74, 0.4));
   border-radius: 16px;
   z-index: -1;
   opacity: 0;
@@ -206,14 +212,14 @@
 
 .mines-cell:hover:not(.revealed):not(.disabled) {
   background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.15) 0%, 
-    rgba(255, 255, 255, 0.1) 50%, 
-    rgba(255, 255, 255, 0.15) 100%);
-  transform: translateY(-3px) scale(1.02);
+    rgba(255, 255, 255, 0.12) 0%, 
+    rgba(255, 255, 255, 0.08) 50%, 
+    rgba(255, 255, 255, 0.12) 100%);
+  transform: translateY(-2px) scale(1.01); /* Уменьшили трансформацию */
   box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.3),
-    0 0 25px rgba(11, 168, 74, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 8px 20px rgba(0, 0, 0, 0.3),
+    0 0 15px rgba(11, 168, 74, 0.2), /* Упростили */
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   border-color: rgba(11, 168, 74, 0.4);
 }
 
@@ -221,18 +227,18 @@
   background: linear-gradient(
     45deg,
     transparent 20%,
-    rgba(11, 168, 74, 0.1) 50%,
+    rgba(11, 168, 74, 0.06) 50%, /* Уменьшили интенсивность */
     transparent 80%
   );
 }
 
 .mines-cell:hover:not(.revealed):not(.disabled)::after {
   opacity: 1;
-  animation: cellGlowPulse 2s ease-in-out infinite;
+  animation: cellGlowPulseSimple 3s ease-in-out infinite; /* Замедлили */
 }
 
 .mines-cell:active:not(.revealed):not(.disabled) {
-  transform: translateY(-1px) scale(1.01);
+  transform: translateY(-1px) scale(1.005); /* Уменьшили */
   transition: all 0.1s ease;
 }
 
@@ -240,26 +246,26 @@
   cursor: default;
   transform: none;
   box-shadow: 
-    0 4px 15px rgba(0, 0, 0, 0.2),
-    inset 0 2px 8px rgba(0, 0, 0, 0.1);
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 2px 6px rgba(0, 0, 0, 0.1); /* Упростили */
 }
 
 .mines-cell.revealed.gem {
   background: linear-gradient(145deg, 
-    rgba(11, 168, 74, 0.25) 0%, 
-    rgba(11, 168, 74, 0.4) 50%, 
-    rgba(11, 168, 74, 0.25) 100%);
-  border: 2px solid rgba(11, 168, 74, 0.8);
-  animation: revealGemEnhanced 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    rgba(11, 168, 74, 0.2) 0%, 
+    rgba(11, 168, 74, 0.3) 50%, 
+    rgba(11, 168, 74, 0.2) 100%);
+  border: 2px solid rgba(11, 168, 74, 0.7);
+  animation: revealGemSimple 0.5s ease; /* Упростили и ускорили */
   box-shadow: 
-    0 0 30px rgba(11, 168, 74, 0.6),
-    inset 0 0 20px rgba(11, 168, 74, 0.3),
-    0 6px 20px rgba(0, 0, 0, 0.2);
+    0 0 20px rgba(11, 168, 74, 0.5), /* Упростили */
+    inset 0 0 15px rgba(11, 168, 74, 0.2),
+    0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
 .mines-cell.revealed.gem::before {
-  background: radial-gradient(circle, rgba(11, 168, 74, 0.3) 0%, transparent 70%);
-  animation: gemShimmer 2s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(11, 168, 74, 0.2) 0%, transparent 70%); /* Уменьшили */
+  animation: gemShimmerSimple 3s ease-in-out infinite; /* Замедлили */
 }
 
 .mines-cell.revealed.gem::after {
@@ -268,28 +274,28 @@
   top: 4px;
   right: 4px;
   font-size: 12px;
-  animation: sparkleGem 2s ease-in-out infinite;
+  animation: sparkleGemSimple 3s ease-in-out infinite; /* Замедлили */
   z-index: 10;
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
 .mines-cell.revealed.mine {
   background: linear-gradient(145deg, 
-    rgba(255, 59, 48, 0.3) 0%, 
-    rgba(255, 59, 48, 0.5) 50%, 
-    rgba(255, 59, 48, 0.3) 100%);
-  border: 2px solid rgba(255, 59, 48, 0.8);
-  animation: revealMineEnhanced 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    rgba(255, 59, 48, 0.25) 0%, 
+    rgba(255, 59, 48, 0.4) 50%, 
+    rgba(255, 59, 48, 0.25) 100%);
+  border: 2px solid rgba(255, 59, 48, 0.7);
+  animation: revealMineSimple 0.6s ease; /* Упростили и ускорили */
   z-index: 2;
   box-shadow: 
-    0 0 40px rgba(255, 59, 48, 0.8),
-    inset 0 0 25px rgba(255, 59, 48, 0.4),
-    0 8px 25px rgba(0, 0, 0, 0.3);
+    0 0 25px rgba(255, 59, 48, 0.6), /* Упростили */
+    inset 0 0 15px rgba(255, 59, 48, 0.3),
+    0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .mines-cell.revealed.mine::before {
-  background: radial-gradient(circle, rgba(255, 59, 48, 0.4) 0%, transparent 70%);
-  animation: mineFlash 1s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(255, 59, 48, 0.3) 0%, transparent 70%); /* Уменьшили */
+  animation: mineFlashSimple 2s ease-in-out infinite; /* Замедлили */
 }
 
 .mines-cell.revealed.mine::after {
@@ -298,7 +304,7 @@
   top: 2px;
   right: 2px;
   font-size: 10px;
-  animation: explosionEffect 1.5s ease-in-out infinite;
+  animation: explosionEffectSimple 2s ease-in-out infinite; /* Замедлили */
   z-index: 10;
 }
 
@@ -311,15 +317,15 @@
 .mines-cell.disabled:hover {
   transform: none;
   box-shadow: 
-    0 6px 20px rgba(0, 0, 0, 0.2),
+    0 6px 15px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Иконки */
 .gem-icon, .mine-icon {
   font-size: 32px;
-  animation: iconAppearEnhanced 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+  animation: iconAppearSimple 0.4s ease; /* Упростили */
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)); /* Упростили */
   position: relative;
   z-index: 3;
 }
@@ -327,23 +333,23 @@
 .gem-icon {
   color: #00ff88;
   text-shadow: 
-    0 0 20px rgba(11, 168, 74, 0.8),
-    0 0 40px rgba(0, 255, 136, 0.6);
-  animation: iconAppearEnhanced 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55),
-             gemPulse 2s ease-in-out infinite 0.5s;
+    0 0 15px rgba(11, 168, 74, 0.6), /* Упростили */
+    0 0 25px rgba(0, 255, 136, 0.4);
+  animation: iconAppearSimple 0.4s ease,
+             gemPulseSimple 3s ease-in-out infinite 0.4s; /* Замедлили */
 }
 
 .mine-icon {
   color: #ff4444;
   text-shadow: 
-    0 0 20px rgba(255, 59, 48, 0.8),
-    0 0 40px rgba(255, 68, 68, 0.6);
-  animation: iconAppearEnhanced 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55),
-             mineThrob 1.2s ease-in-out infinite 0.5s;
+    0 0 15px rgba(255, 59, 48, 0.6), /* Упростили */
+    0 0 25px rgba(255, 68, 68, 0.4);
+  animation: iconAppearSimple 0.4s ease,
+             mineThrob 2s ease-in-out infinite 0.4s; /* Замедлили */
 }
 
-/* Анимации */
-@keyframes cellGlowPulse {
+/* УПРОЩЕННЫЕ АНИМАЦИИ */
+@keyframes cellGlowPulseSimple {
   0%, 100% { 
     background-position: 0% 50%; 
   }
@@ -352,157 +358,107 @@
   }
 }
 
-@keyframes revealGemEnhanced {
+@keyframes revealGemSimple {
   0% {
-    transform: scale(0.8) rotate(-10deg);
+    transform: scale(0.8);
     background: rgba(11, 168, 74, 0);
-    box-shadow: 0 0 0 rgba(11, 168, 74, 0);
   }
-  30% {
-    transform: scale(1.1) rotate(5deg);
-    background: rgba(11, 168, 74, 0.5);
-  }
-  60% {
-    transform: scale(0.95) rotate(-2deg);
+  50% {
+    transform: scale(1.05);
   }
   100% {
-    transform: scale(1) rotate(0deg);
+    transform: scale(1);
     background: linear-gradient(145deg, 
-      rgba(11, 168, 74, 0.25) 0%, 
-      rgba(11, 168, 74, 0.4) 50%, 
-      rgba(11, 168, 74, 0.25) 100%);
-    box-shadow: 
-      0 0 30px rgba(11, 168, 74, 0.6),
-      inset 0 0 20px rgba(11, 168, 74, 0.3);
+      rgba(11, 168, 74, 0.2) 0%, 
+      rgba(11, 168, 74, 0.3) 50%, 
+      rgba(11, 168, 74, 0.2) 100%);
   }
 }
 
-@keyframes revealMineEnhanced {
+@keyframes revealMineSimple {
   0% {
-    transform: scale(0.8) rotate(-15deg);
+    transform: scale(0.8);
     background: rgba(255, 59, 48, 0);
-    box-shadow: 0 0 0 rgba(255, 59, 48, 0);
   }
-  20% {
-    transform: scale(1.2) rotate(10deg);
-    background: rgba(255, 59, 48, 0.6);
-  }
-  40% {
-    transform: rotate(-8deg) scale(1.1);
-  }
-  60% {
-    transform: rotate(5deg) scale(0.95);
-  }
-  80% {
-    transform: rotate(-2deg) scale(1.05);
+  50% {
+    transform: scale(1.05);
   }
   100% {
-    transform: scale(1) rotate(0);
+    transform: scale(1);
     background: linear-gradient(145deg, 
-      rgba(255, 59, 48, 0.3) 0%, 
-      rgba(255, 59, 48, 0.5) 50%, 
-      rgba(255, 59, 48, 0.3) 100%);
-    box-shadow: 
-      0 0 40px rgba(255, 59, 48, 0.8),
-      inset 0 0 25px rgba(255, 59, 48, 0.4);
+      rgba(255, 59, 48, 0.25) 0%, 
+      rgba(255, 59, 48, 0.4) 50%, 
+      rgba(255, 59, 48, 0.25) 100%);
   }
 }
 
-@keyframes iconAppearEnhanced {
+@keyframes iconAppearSimple {
   0% {
-    transform: scale(0) rotate(180deg);
+    transform: scale(0);
     opacity: 0;
   }
   50% {
-    transform: scale(1.3) rotate(360deg);
+    transform: scale(1.1);
     opacity: 0.8;
   }
-  70% {
-    transform: scale(0.9) rotate(375deg);
-    opacity: 1;
-  }
   100% {
-    transform: scale(1) rotate(360deg);
+    transform: scale(1);
     opacity: 1;
   }
 }
 
-@keyframes gemShimmer {
+@keyframes gemShimmerSimple {
+  0%, 100% { 
+    opacity: 0.2; 
+  }
+  50% { 
+    opacity: 0.4; 
+  }
+}
+
+@keyframes sparkleGemSimple {
+  0%, 100% { 
+    opacity: 0.5; 
+    transform: rotate(0deg) scale(0.9);
+  }
+  50% { 
+    opacity: 1; 
+    transform: rotate(180deg) scale(1.1);
+  }
+}
+
+@keyframes mineFlashSimple {
   0%, 100% { 
     opacity: 0.3; 
-    transform: translateX(-100%) rotate(45deg);
   }
   50% { 
-    opacity: 0.8; 
-    transform: translateX(100%) rotate(45deg);
+    opacity: 0.6; 
   }
 }
 
-@keyframes sparkleGem {
+@keyframes explosionEffectSimple {
   0%, 100% { 
     opacity: 0.6; 
-    transform: rotate(0deg) scale(0.8);
-  }
-  25% { 
-    opacity: 1; 
-    transform: rotate(90deg) scale(1.2);
+    transform: rotate(0deg) scale(0.9);
   }
   50% { 
-    opacity: 0.8; 
-    transform: rotate(180deg) scale(1);
-  }
-  75% { 
     opacity: 1; 
-    transform: rotate(270deg) scale(1.1);
+    transform: rotate(180deg) scale(1.1);
   }
 }
 
-@keyframes mineFlash {
-  0%, 100% { 
-    opacity: 0.4; 
-    background: radial-gradient(circle, rgba(255, 59, 48, 0.4) 0%, transparent 70%);
-  }
-  50% { 
-    opacity: 0.9; 
-    background: radial-gradient(circle, rgba(255, 59, 48, 0.7) 0%, transparent 70%);
-  }
-}
-
-@keyframes explosionEffect {
-  0%, 100% { 
-    opacity: 0.7; 
-    transform: rotate(0deg) scale(0.8);
-  }
-  20% { 
-    opacity: 1; 
-    transform: rotate(72deg) scale(1.3);
-  }
-  40% { 
-    opacity: 0.8; 
-    transform: rotate(144deg) scale(1);
-  }
-  60% { 
-    opacity: 1; 
-    transform: rotate(216deg) scale(1.2);
-  }
-  80% { 
-    opacity: 0.9; 
-    transform: rotate(288deg) scale(1.1);
-  }
-}
-
-@keyframes gemPulse {
+@keyframes gemPulseSimple {
   0%, 100% { 
     transform: scale(1);
     text-shadow: 
-      0 0 20px rgba(11, 168, 74, 0.8),
-      0 0 40px rgba(0, 255, 136, 0.6);
+      0 0 15px rgba(11, 168, 74, 0.6),
+      0 0 25px rgba(0, 255, 136, 0.4);
   }
   50% { 
-    transform: scale(1.05);
+    transform: scale(1.02);
     text-shadow: 
-      0 0 30px rgba(11, 168, 74, 1),
-      0 0 60px rgba(0, 255, 136, 0.8);
+      0 0 20px rgba(11, 168, 74, 0.8),
+      0 0 30px rgba(0, 255, 136, 0.6);
   }
 }
 
@@ -510,14 +466,14 @@
   0%, 100% { 
     transform: scale(1);
     text-shadow: 
-      0 0 20px rgba(255, 59, 48, 0.8),
-      0 0 40px rgba(255, 68, 68, 0.6);
+      0 0 15px rgba(255, 59, 48, 0.6),
+      0 0 25px rgba(255, 68, 68, 0.4);
   }
   50% { 
-    transform: scale(1.08);
+    transform: scale(1.05);
     text-shadow: 
-      0 0 30px rgba(255, 59, 48, 1),
-      0 0 60px rgba(255, 68, 68, 0.9);
+      0 0 20px rgba(255, 59, 48, 0.8),
+      0 0 35px rgba(255, 68, 68, 0.6);
   }
 }
 
@@ -567,6 +523,14 @@
     margin-bottom: 10px;
     gap: 5px;
   }
+}
+
+/* ОПТИМИЗАЦИЯ: Отключение всех анимаций для слабых устройств */
+.mines-grid.low-performance *,
+.mines-grid.low-performance *::before,
+.mines-grid.low-performance *::after {
+  animation: none !important;
+  transition: none !important;
 }
 
 /* Отключение анимаций для пользователей с ограничениями */

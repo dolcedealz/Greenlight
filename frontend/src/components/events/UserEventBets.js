@@ -442,12 +442,12 @@ const UserEventBets = ({ onRefresh }) => {
                 <div style={styles.detailsGrid}>
                   <div style={styles.detailItem}>
                     <span style={styles.label}>Ставка:</span>
-                    <span style={styles.value}>{bet.betAmount.toFixed(2)} USDT</span>
+                    <span style={styles.value}>{(bet.betAmount || 0).toFixed(2)} USDT</span>
                   </div>
                   
                   <div style={styles.detailItem}>
                     <span style={styles.label}>Коэффициент:</span>
-                    <span style={styles.value}>×{bet.odds.toFixed(2)}</span>
+                    <span style={styles.value}>×{(bet.odds || bet.oddsAtBet || 2.0).toFixed(2)}</span>
                   </div>
 
                   <div style={styles.detailItem}>
@@ -455,7 +455,7 @@ const UserEventBets = ({ onRefresh }) => {
                       {bet.isSettled && bet.isWin ? 'Выигрыш:' : 'Потенциальный выигрыш:'}
                     </span>
                     <span style={{ ...styles.value, ...styles.positive }}>
-                      {bet.isSettled && bet.isWin ? bet.actualWin.toFixed(2) : potentialWin} USDT
+                      {bet.isSettled && bet.isWin ? (bet.actualWin || 0).toFixed(2) : potentialWin} USDT
                     </span>
                   </div>
 
@@ -466,7 +466,7 @@ const UserEventBets = ({ onRefresh }) => {
                         ...styles.value,
                         ...(bet.isWin ? styles.positive : styles.negative)
                       }}>
-                        {bet.isWin ? '+' : '-'}{Math.abs(bet.isWin ? (bet.actualWin - bet.betAmount) : bet.betAmount).toFixed(2)} USDT
+                        {bet.isWin ? '+' : '-'}{Math.abs(bet.isWin ? ((bet.actualWin || 0) - (bet.betAmount || 0)) : (bet.betAmount || 0)).toFixed(2)} USDT
                       </span>
                     </div>
                   )}
@@ -516,7 +516,7 @@ const UserEventBets = ({ onRefresh }) => {
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'white' }}>
-                {displayBets.reduce((sum, bet) => sum + bet.betAmount, 0).toFixed(2)}
+                {displayBets.reduce((sum, bet) => sum + (bet.betAmount || 0), 0).toFixed(2)}
               </div>
               <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
                 Поставлено USDT

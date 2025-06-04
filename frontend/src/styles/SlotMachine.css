@@ -1,4 +1,4 @@
-/* frontend/src/styles/SlotMachine.css - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ */
+/* frontend/src/styles/SlotMachine.css - ИСПРАВЛЕННАЯ АНИМАЦИЯ */
 .slot-machine {
   display: flex;
   flex-direction: column;
@@ -14,16 +14,17 @@
   margin: 0 auto;
   position: relative;
   border: 1px solid rgba(11, 168, 74, 0.2);
-  backdrop-filter: blur(10px); /* Уменьшили blur */
+  backdrop-filter: blur(10px);
 }
 
-/* ОПТИМИЗАЦИЯ: Упрощенный фоновый эффект для слабых устройств */
+/* ОПТИМИЗАЦИЯ: Упрощенный фон для слабых устройств */
 .slot-machine.low-performance {
   background: #1a1a1a;
   backdrop-filter: none;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
+/* ИСПРАВЛЕНО: Убрали сложную анимацию фона */
 .slot-machine::before {
   content: '';
   position: absolute;
@@ -31,33 +32,18 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: conic-gradient(
-    from 0deg at 50% 50%,
-    transparent 0deg,
-    rgba(11, 168, 74, 0.05) 45deg, /* Уменьшили интенсивность */
-    transparent 90deg,
-    rgba(142, 68, 173, 0.03) 135deg,
-    transparent 180deg,
-    rgba(255, 215, 0, 0.03) 225deg,
-    transparent 270deg,
-    rgba(11, 168, 74, 0.05) 315deg,
-    transparent 360deg
-  );
+  background: linear-gradient(135deg, 
+    rgba(11, 168, 74, 0.03) 0%, 
+    transparent 50%, 
+    rgba(142, 68, 173, 0.02) 100%);
   border-radius: 24px;
-  animation: rotateGlow 20s linear infinite; /* Замедлили анимацию */
   pointer-events: none;
   z-index: -1;
 }
 
-/* ОПТИМИЗАЦИЯ: Отключаем фоновые анимации для слабых устройств */
+/* ОПТИМИЗАЦИЯ: Отключаем фоновые эффекты для слабых устройств */
 .slot-machine.low-performance::before {
-  animation: none;
-  background: none;
-}
-
-@keyframes rotateGlow {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  display: none;
 }
 
 .slot-display {
@@ -65,16 +51,16 @@
   background: linear-gradient(145deg, #0f0f0f 0%, #1f1f1f 50%, #0f0f0f 100%);
   border-radius: 20px;
   padding: 30px;
-  border: 3px solid #333; /* Упростили border */
+  border: 3px solid #333;
   box-shadow: 
-    inset 0 0 20px rgba(0, 0, 0, 0.8), /* Уменьшили размытие */
+    inset 0 0 20px rgba(0, 0, 0, 0.8),
     inset 0 2px 5px rgba(255, 255, 255, 0.05),
     0 10px 30px rgba(0, 0, 0, 0.5);
   margin-bottom: 25px;
   overflow: hidden;
 }
 
-/* ОПТИМИЗАЦИЯ: Упрощенный фон для дисплея */
+/* ИСПРАВЛЕНО: Убрали анимированный фон дисплея */
 .slot-display::before {
   content: '';
   position: absolute;
@@ -83,25 +69,13 @@
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 20% 30%, rgba(11, 168, 74, 0.04) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(142, 68, 173, 0.03) 0%, transparent 50%);
+    radial-gradient(circle at 20% 30%, rgba(11, 168, 74, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(142, 68, 173, 0.01) 0%, transparent 50%);
   pointer-events: none;
   z-index: 1;
-  animation: ambientGlow 10s ease-in-out infinite; /* Замедлили */
 }
 
 .slot-machine.low-performance .slot-display::before {
-  animation: none;
-  background: none;
-}
-
-@keyframes ambientGlow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.8; }
-}
-
-/* ОПТИМИЗАЦИЯ: Убрали сложную border анимацию */
-.slot-display::after {
   display: none;
 }
 
@@ -121,14 +95,24 @@
   border: 2px solid #333;
   overflow: hidden;
   box-shadow: 
-    inset 0 4px 8px rgba(0, 0, 0, 0.5), /* Упростили тени */
+    inset 0 4px 8px rgba(0, 0, 0, 0.5),
     0 4px 15px rgba(0, 0, 0, 0.4);
   position: relative;
   transform-origin: center;
-  transition: all 0.3s ease; /* Упростили transition */
+  transition: all 0.2s ease;
 }
 
-.slot-reel::before {
+/* ИСПРАВЛЕНО: Простая анимация вращения без перегрева */
+.slot-reel.spinning {
+  border-color: rgba(11, 168, 74, 0.6);
+  box-shadow: 
+    inset 0 4px 8px rgba(0, 0, 0, 0.5),
+    0 4px 15px rgba(0, 0, 0, 0.4),
+    0 0 15px rgba(11, 168, 74, 0.3);
+  /* Убрали CSS анимацию - анимацию делает только JavaScript */
+}
+
+.slot-reel.spinning::before {
   content: '';
   position: absolute;
   top: 0;
@@ -137,48 +121,28 @@
   bottom: 0;
   background: linear-gradient(
     180deg,
-    rgba(11, 168, 74, 0.05) 0%, /* Уменьшили интенсивность */
+    rgba(11, 168, 74, 0.05) 0%,
     transparent 20%,
     transparent 80%,
     rgba(11, 168, 74, 0.05) 100%
   );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
   border-radius: 14px;
-}
-
-/* ОПТИМИЗАЦИЯ: Упрощенная анимация вращения */
-.slot-reel.spinning {
-  animation: reelSpinSimple 0.2s linear infinite; /* Увеличили интервал */
-  border-color: rgba(11, 168, 74, 0.6);
-  box-shadow: 
-    inset 0 4px 8px rgba(0, 0, 0, 0.5),
-    0 4px 15px rgba(0, 0, 0, 0.4),
-    0 0 15px rgba(11, 168, 74, 0.3); /* Упростили свечение */
-}
-
-.slot-reel.spinning::before {
-  opacity: 1;
-}
-
-/* ОПТИМИЗАЦИЯ: Убрали сложные анимационные эффекты ::after */
-.slot-reel.spinning::after {
-  display: none;
+  pointer-events: none;
 }
 
 .slot-reel.stopping {
-  animation: reelSlowStop 0.6s ease-out forwards; /* Ускорили */
   border-color: rgba(11, 168, 74, 0.8);
+  transition: all 0.4s ease-out;
 }
 
 .slot-reel.stopped {
-  animation: reelFinalBounce 0.3s ease forwards; /* Ускорили */
   border-color: var(--primary-color);
   box-shadow: 
     inset 0 4px 8px rgba(0, 0, 0, 0.5),
     0 4px 15px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(11, 168, 74, 0.4); /* Упростили */
+    0 0 20px rgba(11, 168, 74, 0.4);
+  /* ИСПРАВЛЕНО: Убрали анимацию bounce - только transition */
+  transition: all 0.3s ease;
 }
 
 .slot-cell {
@@ -188,7 +152,7 @@
   height: 75px;
   background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #2a2a2a 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease; /* Упростили transition */
+  transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -203,7 +167,7 @@
   background: linear-gradient(
     45deg,
     transparent 30%,
-    rgba(255, 255, 255, 0.02) 50%, /* Уменьшили интенсивность */
+    rgba(255, 255, 255, 0.01) 50%,
     transparent 70%
   );
   pointer-events: none;
@@ -218,7 +182,7 @@
   border-radius: 14px 14px 0 0;
 }
 
-/* ОПТИМИЗАЦИЯ: Упрощенные выигрышные ячейки */
+/* ИСПРАВЛЕНО: Упрощенные выигрышные ячейки без сложных анимаций */
 .slot-cell.winning {
   background: linear-gradient(145deg, 
     rgba(11, 168, 74, 0.3) 0%, 
@@ -226,17 +190,16 @@
     rgba(11, 168, 74, 0.3) 100%);
   border: 2px solid var(--primary-color);
   border-radius: 12px !important;
-  animation: winningPulseSimple 2s ease-in-out infinite; /* Упростили */
   z-index: 5;
   box-shadow: 
-    0 0 20px rgba(11, 168, 74, 0.6), /* Упростили тени */
+    0 0 20px rgba(11, 168, 74, 0.6),
     0 4px 15px rgba(11, 168, 74, 0.4);
-  transform: scale(1.02); /* Уменьшили масштаб */
+  transform: scale(1.02);
+  /* ИСПРАВЛЕНО: Простое статичное свечение вместо анимации */
 }
 
 .slot-cell.winning::before {
   background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-  animation: winningShimmerSimple 2s ease-in-out infinite; /* Упростили */
 }
 
 .slot-cell.winning::after {
@@ -245,30 +208,31 @@
   top: 4px;
   right: 4px;
   font-size: 12px;
-  animation: sparkleFloatSimple 3s ease-in-out infinite; /* Замедлили */
   z-index: 10;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.6); /* Упростили */
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+  /* ИСПРАВЛЕНО: Убрали анимацию sparkle */
 }
 
 /* Символы */
 .slot-symbol {
   font-size: 42px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); /* Упростили тень */
-  transition: all 0.3s ease; /* Упростили */
-  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2)); /* Упростили */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  transition: all 0.2s ease;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
   z-index: 3;
   position: relative;
   transform-origin: center;
+  /* ИСПРАВЛЕНО: Убрали постоянные анимации символов */
 }
 
 .slot-cell.winning .slot-symbol {
-  transform: scale(1.1) rotate(4deg); /* Уменьшили масштаб и поворот */
-  animation: symbolCelebrationSimple 2s ease-in-out infinite alternate; /* Упростили */
-  filter: drop-shadow(0 0 15px var(--primary-color)); /* Упростили */
-  text-shadow: 0 0 20px var(--primary-color); /* Упростили */
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 15px var(--primary-color));
+  text-shadow: 0 0 20px var(--primary-color);
+  /* ИСПРАВЛЕНО: Статичное увеличение вместо анимации */
 }
 
-/* Линии выплат */
+/* Линии выплат - УПРОЩЕННЫЕ */
 .paylines {
   position: absolute;
   top: 0;
@@ -288,14 +252,15 @@
     rgba(11, 168, 74, 0.7) 80%, 
     transparent 100%);
   opacity: 0;
-  transition: opacity 0.6s ease;
+  transition: opacity 0.4s ease;
   border-radius: 3px;
-  box-shadow: 0 0 10px var(--primary-color); /* Упростили тень */
+  box-shadow: 0 0 10px var(--primary-color);
+  /* ИСПРАВЛЕНО: Убрали анимацию glow */
 }
 
 .payline.active {
   opacity: 0.9;
-  animation: paylineSimpleGlow 3s ease-in-out infinite; /* Замедлили */
+  /* ИСПРАВЛЕНО: Простое статичное отображение */
 }
 
 /* Информация о результате */
@@ -304,10 +269,12 @@
   padding: 25px;
   border-radius: 18px;
   margin-top: 25px;
-  animation: resultRevealSimple 0.6s ease-out; /* Упростили */
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(10px); /* Уменьшили blur */
+  backdrop-filter: blur(10px);
+  /* ИСПРАВЛЕНО: Убрали анимацию появления */
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .last-spin-info::before {
@@ -318,7 +285,7 @@
   right: 0;
   bottom: 0;
   background: inherit;
-  filter: blur(8px); /* Уменьшили blur */
+  filter: blur(8px);
   z-index: -1;
 }
 
@@ -329,14 +296,9 @@
     rgba(11, 168, 74, 0.2) 100%);
   border: 2px solid var(--primary-color);
   box-shadow: 
-    0 0 30px rgba(11, 168, 74, 0.5), /* Упростили */
+    0 0 30px rgba(11, 168, 74, 0.5),
     0 10px 25px rgba(0, 0, 0, 0.3);
-  animation: winDisplaySimplePulse 3s ease-in-out infinite; /* Замедлили */
-}
-
-/* ОПТИМИЗАЦИЯ: Убрали сложную border анимацию */
-.win-display::before {
-  display: none;
+  /* ИСПРАВЛЕНО: Убрали анимацию pulse */
 }
 
 .lose-display {
@@ -360,8 +322,8 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 10px;
-  text-shadow: 0 0 15px rgba(11, 168, 74, 0.6); /* Упростили */
-  animation: textGlowFlowSimple 3s ease-in-out infinite; /* Замедлили */
+  text-shadow: 0 0 15px rgba(11, 168, 74, 0.6);
+  /* ИСПРАВЛЕНО: Убрали анимацию gradient flow */
 }
 
 .win-amount {
@@ -373,7 +335,7 @@
     0 0 20px var(--primary-color),
     0 3px 6px rgba(0, 0, 0, 0.8);
   margin-bottom: 15px;
-  animation: amountBounceSimple 2s ease-in-out infinite alternate; /* Замедлили */
+  /* ИСПРАВЛЕНО: Убрали анимацию bounce */
 }
 
 .winning-symbols {
@@ -386,140 +348,40 @@
 
 .winning-symbol {
   font-size: 32px;
-  filter: drop-shadow(0 0 15px rgba(11, 168, 74, 0.8)); /* Упростили */
-  animation: symbolJoySimple 2s ease-in-out infinite alternate; /* Замедлили */
+  filter: drop-shadow(0 0 15px rgba(11, 168, 74, 0.8));
   transform-origin: center;
-  text-shadow: 0 0 25px rgba(255, 255, 255, 0.6); /* Упростили */
+  text-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
+  /* ИСПРАВЛЕНО: Убрали анимацию joy */
 }
 
-/* ОПТИМИЗИРОВАННЫЕ АНИМАЦИИ */
-@keyframes reelSpinSimple {
-  0%, 100% { 
-    transform: translateY(0); 
-  }
-  50% { 
-    transform: translateY(-2px);
-  }
+.winning-lines-count {
+  margin-top: 15px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
 }
 
-@keyframes reelSlowStop {
-  0% { 
-    transform: scaleY(1.02); 
-    border-color: rgba(11, 168, 74, 0.6);
-  }
-  100% { 
-    transform: scaleY(1); 
-    border-color: rgba(11, 168, 74, 0.8);
-  }
+.winning-lines-details {
+  margin-top: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-@keyframes reelFinalBounce {
-  0% { 
-    transform: scaleY(1); 
-  }
-  50% { 
-    transform: scaleY(1.02); 
-  }
-  100% { 
-    transform: scaleY(1); 
-  }
+.line-detail {
+  margin: 5px 0;
+  padding: 5px 10px;
+  background: rgba(11, 168, 74, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(11, 168, 74, 0.3);
 }
 
-@keyframes winningPulseSimple {
-  0%, 100% {
-    transform: scale(1.02);
-    box-shadow: 0 0 20px rgba(11, 168, 74, 0.6);
-  }
-  50% {
-    transform: scale(1.04);
-    box-shadow: 0 0 25px rgba(11, 168, 74, 0.8);
-  }
+.lose-text {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
 }
 
-@keyframes winningShimmerSimple {
-  0%, 100% { 
-    opacity: 0.1; 
-  }
-  50% { 
-    opacity: 0.3; 
-  }
-}
-
-@keyframes sparkleFloatSimple {
-  0%, 100% { 
-    opacity: 0.6; 
-    transform: rotate(0deg) scale(0.9);
-  }
-  50% { 
-    opacity: 1; 
-    transform: rotate(180deg) scale(1.1);
-  }
-}
-
-@keyframes symbolCelebrationSimple {
-  0% {
-    transform: scale(1.1) rotate(4deg);
-  }
-  100% {
-    transform: scale(1.15) rotate(-4deg);
-  }
-}
-
-@keyframes paylineSimpleGlow {
-  0%, 100% { 
-    opacity: 0.9; 
-    box-shadow: 0 0 10px var(--primary-color);
-  }
-  50% { 
-    opacity: 1; 
-    box-shadow: 0 0 15px var(--primary-color);
-  }
-}
-
-@keyframes resultRevealSimple {
-  0% {
-    opacity: 0;
-    transform: translateY(20px) scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes winDisplaySimplePulse {
-  0%, 100% {
-    box-shadow: 0 0 30px rgba(11, 168, 74, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 35px rgba(11, 168, 74, 0.6);
-  }
-}
-
-@keyframes textGlowFlowSimple {
-  0%, 100% { 
-    background-position: 0% 50%;
-    text-shadow: 0 0 15px rgba(11, 168, 74, 0.6);
-  }
-  50% { 
-    background-position: 100% 50%;
-    text-shadow: 0 0 20px rgba(11, 168, 74, 0.8);
-  }
-}
-
-@keyframes amountBounceSimple {
-  0% { transform: translateY(0) scale(1); }
-  100% { transform: translateY(-3px) scale(1.01); }
-}
-
-@keyframes symbolJoySimple {
-  0% {
-    transform: rotate(-5deg) scale(1);
-  }
-  100% {
-    transform: rotate(5deg) scale(1.05);
-  }
-}
+/* ИСПРАВЛЕНО: Удалили все сложные keyframes анимации */
 
 /* Адаптивность */
 @media (max-width: 500px) {
@@ -545,7 +407,7 @@
   }
   
   .slot-cell.winning .slot-symbol {
-    transform: scale(1.08) rotate(3deg);
+    transform: scale(1.08);
   }
   
   .winning-symbol {
@@ -587,29 +449,20 @@
   }
 }
 
-/* ОПТИМИЗАЦИЯ: Отключение всех анимаций для слабых устройств */
+/* ОПТИМИЗАЦИЯ: Полное отключение анимаций для слабых устройств */
 .slot-machine.low-performance *,
 .slot-machine.low-performance *::before,
 .slot-machine.low-performance *::after {
   animation: none !important;
-  transition: none !important;
+  transition: opacity 0.2s ease, transform 0.2s ease !important;
 }
 
 /* Отключение анимаций для пользователей с ограничениями */
 @media (prefers-reduced-motion: reduce) {
-  .slot-machine::before,
-  .slot-display::before,
-  .slot-reel.spinning,
-  .slot-cell.winning,
-  .payline.active,
-  .win-display,
-  .win-text,
-  .win-amount,
-  .winning-symbol {
-    animation: none;
-  }
-  
-  .slot-reel {
-    transition: transform 0.3s ease;
+  .slot-machine *,
+  .slot-machine *::before,
+  .slot-machine *::after {
+    animation: none !important;
+    transition: opacity 0.3s ease, transform 0.3s ease !important;
   }
 }

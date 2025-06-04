@@ -241,18 +241,6 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           </div>
         </div>
         
-        <div className="profile-referral-hint">
-          <h3>💰 Реферальная программа</h3>
-          <p className="referral-description">
-            Зарабатывайте с каждым приглашенным другом! Подробности в разделе "Рефералы".
-          </p>
-          <button 
-            className="referral-tab-button"
-            onClick={() => handleTabChange('referrals')}
-          >
-            👥 Перейти к рефералам
-          </button>
-        </div>
       </div>
     );
   };
@@ -782,7 +770,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               className={`tab-button ${activeTab === 'referrals' ? 'active' : ''}`} 
               onClick={() => handleTabChange('referrals')}
             >
-              👥 Рефералы
+              Рефералы
             </button>
             <button 
               className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`} 

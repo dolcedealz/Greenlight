@@ -813,6 +813,383 @@ input:checked + .slider:before {
   }
 }
 
+/* Вкладка рефералов - стилизация в общей теме */
+.referrals-tab {
+  animation: fadeIn 0.3s ease;
+}
+
+.referrals-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  padding: 20px;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  margin-bottom: 15px;
+}
+
+/* Карточка уровня партнера */
+.referral-level-card {
+  padding: 20px;
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(11, 168, 74, 0.05) 100%);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  border: 2px solid;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.referral-level-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.level-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.level-icon {
+  font-size: 32px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.level-info h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.commission-rate {
+  margin: 5px 0 0 0;
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.level-progress {
+  margin-top: 15px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* Реферальный баланс */
+.referral-balance-card {
+  padding: 20px;
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(255, 215, 0, 0.05) 100%);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.referral-balance-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 215, 0, 0.4);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.balance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.balance-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--primary-color);
+}
+
+.payout-button {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--primary-color), #0c9740);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.payout-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0c9740, #0a8235);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(11, 168, 74, 0.3);
+}
+
+.payout-button:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+}
+
+.balance-amount {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.balance-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.balance-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.balance-stats .stat-item span:first-child {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 5px;
+}
+
+.balance-stats .stat-item span:last-child {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+/* Статистика рефералов - сетка карточек */
+.referral-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  padding: 18px 15px;
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(11, 168, 74, 0.05) 100%);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(11, 168, 74, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(11, 168, 74, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.stat-icon {
+  font-size: 24px;
+  margin-bottom: 10px;
+  opacity: 0.8;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: white;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+/* Реферальная ссылка */
+.referral-link-section {
+  padding: 20px;
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.referral-link-section:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.referral-link-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: var(--primary-color);
+}
+
+.link-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.link-container input {
+  flex: 1;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-family: monospace;
+}
+
+.link-container input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(11, 168, 74, 0.2);
+}
+
+.link-container button {
+  padding: 12px 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.link-container button:hover {
+  background: #0c9740;
+  transform: scale(1.05);
+}
+
+.referral-code {
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.referral-code span {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-family: monospace;
+}
+
+/* Компоненты рефералов */
+.referral-components {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.referral-section {
+  padding: 20px;
+  background: var(--card-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.referral-section h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: var(--primary-color);
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .referral-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .balance-stats {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .level-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  .balance-header {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .referral-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .link-container {
+    flex-direction: column;
+  }
+  
+  .referral-level-card,
+  .referral-balance-card,
+  .referral-link-section {
+    padding: 15px;
+  }
+  
+  .balance-amount {
+    font-size: 24px;
+  }
+  
+  .level-icon {
+    font-size: 28px;
+    width: 45px;
+    height: 45px;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

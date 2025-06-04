@@ -1,4 +1,4 @@
-/* frontend/src/styles/MinesControls.css - ОБНОВЛЕННАЯ ВЕРСИЯ */
+/* frontend/src/styles/MinesControls.css - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ */
 .mines-controls {
   padding: 25px;
   background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
@@ -8,9 +8,9 @@
     0 20px 60px rgba(0, 0, 0, 0.4),
     0 0 40px rgba(255, 59, 48, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease; /* Упростили */
   border: 1px solid rgba(255, 59, 48, 0.15);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(15px); /* Уменьшили blur */
   position: relative;
   overflow: hidden;
 }
@@ -28,12 +28,12 @@
     rgba(11, 168, 74, 0.02) 70%, 
     transparent 100%);
   pointer-events: none;
-  animation: minesControlsAmbient 12s ease-in-out infinite;
+  animation: minesControlsAmbient 18s ease-in-out infinite; /* Замедлили */
 }
 
 @keyframes minesControlsAmbient {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.3; } /* Уменьшили */
+  50% { opacity: 0.7; }
 }
 
 /* Выбранное количество мин */
@@ -42,30 +42,30 @@
   color: #ff6b6b;
   margin-left: 6px;
   font-size: 20px;
-  text-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
-  animation: minesCountGlow 2s ease-in-out infinite;
+  text-shadow: 0 0 12px rgba(255, 107, 107, 0.5); /* Упростили */
+  animation: minesCountGlow 3s ease-in-out infinite; /* Замедлили */
 }
 
 @keyframes minesCountGlow {
   0%, 100% { 
-    text-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
+    text-shadow: 0 0 12px rgba(255, 107, 107, 0.5);
   }
   50% { 
-    text-shadow: 0 0 25px rgba(255, 107, 107, 0.9);
+    text-shadow: 0 0 18px rgba(255, 107, 107, 0.7); /* Упростили */
   }
 }
 
 .quick-mines-button.active {
   background: linear-gradient(145deg, #ff6b6b 0%, #ff5252 100%);
   color: white;
-  transform: translateY(-3px) scale(1.02);
+  transform: translateY(-2px) scale(1.01); /* Уменьшили */
   box-shadow: 
-    0 8px 25px rgba(255, 107, 107, 0.4),
-    0 0 30px rgba(255, 107, 107, 0.3);
+    0 6px 20px rgba(255, 107, 107, 0.35), /* Упростили */
+    0 0 25px rgba(255, 107, 107, 0.25);
   border-color: #ff6b6b;
 }
 
-/* Отображение максимального выигрыша - ОБНОВЛЕННОЕ */
+/* Отображение максимального выигрыша - ОПТИМИЗИРОВАННОЕ */
 .max-win-display {
   display: flex;
   justify-content: space-between;
@@ -73,16 +73,16 @@
   margin: 15px 0;
   padding: 18px;
   background: linear-gradient(145deg, 
-    rgba(11, 168, 74, 0.15) 0%, 
-    rgba(11, 168, 74, 0.08) 50%, 
-    rgba(11, 168, 74, 0.15) 100%);
+    rgba(11, 168, 74, 0.12) 0%, 
+    rgba(11, 168, 74, 0.06) 50%, 
+    rgba(11, 168, 74, 0.12) 100%);
   border: 2px solid rgba(11, 168, 74, 0.4);
   border-radius: 16px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease; /* Упростили */
   position: relative;
   overflow: hidden;
   box-shadow: 
-    0 8px 25px rgba(11, 168, 74, 0.2),
+    0 6px 20px rgba(11, 168, 74, 0.15), /* Упростили */
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
@@ -95,20 +95,20 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(11, 168, 74, 0.2), 
+    rgba(11, 168, 74, 0.15), /* Уменьшили интенсивность */
     transparent);
-  transition: left 0.8s ease;
+  transition: left 0.6s ease; /* Замедлили */
 }
 
 .max-win-display:hover {
   background: linear-gradient(145deg, 
-    rgba(11, 168, 74, 0.2) 0%, 
-    rgba(11, 168, 74, 0.12) 50%, 
-    rgba(11, 168, 74, 0.2) 100%);
-  border-color: rgba(11, 168, 74, 0.6);
-  transform: translateY(-2px);
+    rgba(11, 168, 74, 0.16) 0%, 
+    rgba(11, 168, 74, 0.1) 50%, 
+    rgba(11, 168, 74, 0.16) 100%);
+  border-color: rgba(11, 168, 74, 0.5);
+  transform: translateY(-1px); /* Уменьшили */
   box-shadow: 
-    0 12px 35px rgba(11, 168, 74, 0.3),
+    0 8px 25px rgba(11, 168, 74, 0.2), /* Упростили */
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
@@ -137,7 +137,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 0 15px rgba(11, 168, 74, 0.4);
+  text-shadow: 0 0 12px rgba(11, 168, 74, 0.3); /* Упростили */
 }
 
 .max-win-multiplier {
@@ -170,14 +170,14 @@
   height: 1px;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(255, 59, 48, 0.3), 
+    rgba(255, 59, 48, 0.25), /* Уменьшили интенсивность */
     transparent);
-  animation: sectionDivider 4s ease-in-out infinite;
+  animation: sectionDivider 5s ease-in-out infinite; /* Замедлили */
 }
 
 @keyframes sectionDivider {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.8; }
+  0%, 100% { opacity: 0.2; } /* Уменьшили */
+  50% { opacity: 0.6; }
 }
 
 /* Контролы ставки и количества мин */
@@ -210,11 +210,11 @@
   color: white;
   font-size: 18px;
   text-align: center;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease; /* Упростили */
   font-weight: 700;
   box-shadow: 
-    inset 0 2px 8px rgba(0, 0, 0, 0.2),
-    0 4px 15px rgba(0, 0, 0, 0.1);
+    inset 0 2px 6px rgba(0, 0, 0, 0.2), /* Упростили */
+    0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .mines-controls input::placeholder {
@@ -227,10 +227,10 @@
   outline: none;
   box-shadow: 
     0 0 0 3px rgba(11, 168, 74, 0.3),
-    inset 0 2px 8px rgba(0, 0, 0, 0.2),
-    0 8px 25px rgba(11, 168, 74, 0.2);
+    inset 0 2px 6px rgba(0, 0, 0, 0.2),
+    0 6px 20px rgba(11, 168, 74, 0.15); /* Упростили */
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
-  transform: translateY(-2px);
+  transform: translateY(-1px); /* Уменьшили */
 }
 
 .mines-controls input:disabled {
@@ -249,7 +249,7 @@
   font-weight: 500;
 }
 
-/* Быстрые ставки и мины - ОБНОВЛЕННЫЕ */
+/* Быстрые ставки и мины - ОПТИМИЗИРОВАННЫЕ */
 .quick-bets,
 .quick-mines {
   display: flex;
@@ -263,20 +263,20 @@
   flex: 1;
   padding: 14px 16px;
   background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(255, 255, 255, 0.06) 50%, 
-    rgba(255, 255, 255, 0.1) 100%);
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.04) 50%, 
+    rgba(255, 255, 255, 0.08) 100%);
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   color: white;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease; /* Упростили */
   position: relative;
   overflow: hidden;
   box-shadow: 
-    0 4px 15px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.2), /* Упростили */
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
@@ -290,21 +290,21 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(11, 168, 74, 0.3), 
+    rgba(11, 168, 74, 0.2), /* Уменьшили интенсивность */
     transparent);
-  transition: left 0.6s ease;
+  transition: left 0.5s ease; /* Замедлили */
 }
 
 .quick-bet-button:hover:not(:disabled),
 .quick-mines-button:hover:not(:disabled) {
   background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.15) 0%, 
-    rgba(255, 255, 255, 0.1) 50%, 
-    rgba(255, 255, 255, 0.15) 100%);
-  transform: translateY(-3px) scale(1.02);
+    rgba(255, 255, 255, 0.12) 0%, 
+    rgba(255, 255, 255, 0.08) 50%, 
+    rgba(255, 255, 255, 0.12) 100%);
+  transform: translateY(-2px) scale(1.01); /* Уменьшили */
   box-shadow: 
-    0 8px 25px rgba(0, 0, 0, 0.3),
-    0 0 20px rgba(11, 168, 74, 0.2),
+    0 6px 20px rgba(0, 0, 0, 0.3), /* Упростили */
+    0 0 15px rgba(11, 168, 74, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   border-color: rgba(11, 168, 74, 0.4);
 }
@@ -316,7 +316,7 @@
 
 .quick-bet-button:active:not(:disabled),
 .quick-mines-button:active:not(:disabled) {
-  transform: translateY(-1px) scale(1.01);
+  transform: translateY(-1px) scale(1.005); /* Уменьшили */
   transition: all 0.1s ease;
 }
 
@@ -342,7 +342,7 @@
     rgba(255, 255, 255, 0.02) 100%);
   border-radius: 12px;
   text-align: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
@@ -357,16 +357,16 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(255, 59, 48, 0.1), 
+    rgba(255, 59, 48, 0.08), /* Уменьшили интенсивность */
     transparent);
-  transition: left 0.6s ease;
+  transition: left 0.5s ease; /* Замедлили */
 }
 
 .info-item:hover {
   background: linear-gradient(145deg, 
     rgba(255, 255, 255, 0.1) 0%, 
     rgba(255, 255, 255, 0.06) 100%);
-  transform: translateY(-2px);
+  transform: translateY(-1px); /* Уменьшили */
   border-color: rgba(255, 59, 48, 0.3);
 }
 
@@ -388,7 +388,7 @@
   font-size: 16px;
   font-weight: bold;
   color: var(--primary-color);
-  text-shadow: 0 0 10px rgba(11, 168, 74, 0.5);
+  text-shadow: 0 0 8px rgba(11, 168, 74, 0.4); /* Упростили */
 }
 
 /* Кнопки действий (если не скрыты) */
@@ -405,7 +405,7 @@
   border: none;
   border-radius: 16px;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease; /* Упростили */
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
@@ -416,8 +416,8 @@
   background: linear-gradient(145deg, var(--primary-color) 0%, #0a8735 50%, #087d30 100%);
   color: white;
   box-shadow: 
-    0 8px 30px rgba(11, 168, 74, 0.4),
-    0 0 40px rgba(11, 168, 74, 0.2),
+    0 8px 25px rgba(11, 168, 74, 0.4),
+    0 0 30px rgba(11, 168, 74, 0.2), /* Упростили */
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -431,17 +431,17 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(255, 255, 255, 0.4), 
+    rgba(255, 255, 255, 0.3), /* Уменьшили интенсивность */
     transparent);
-  transition: left 0.8s ease;
+  transition: left 0.6s ease; /* Замедлили */
 }
 
 .play-button:hover:not(:disabled) {
   background: linear-gradient(145deg, #087d30 0%, #0a8735 50%, var(--primary-color) 100%);
-  transform: translateY(-4px) scale(1.02);
+  transform: translateY(-3px) scale(1.01); /* Уменьшили */
   box-shadow: 
-    0 12px 40px rgba(11, 168, 74, 0.6),
-    0 0 60px rgba(11, 168, 74, 0.4),
+    0 10px 30px rgba(11, 168, 74, 0.5), /* Упростили */
+    0 0 40px rgba(11, 168, 74, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
@@ -463,8 +463,8 @@
   background: linear-gradient(145deg, #ffc107 0%, #ffb300 50%, #ff8f00 100%);
   color: #000;
   box-shadow: 
-    0 8px 30px rgba(255, 193, 7, 0.4),
-    0 0 40px rgba(255, 193, 7, 0.2),
+    0 8px 25px rgba(255, 193, 7, 0.4),
+    0 0 30px rgba(255, 193, 7, 0.2), /* Упростили */
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
   font-weight: 900;
 }
@@ -478,17 +478,17 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(255, 255, 255, 0.5), 
+    rgba(255, 255, 255, 0.4), /* Уменьшили интенсивность */
     transparent);
-  transition: left 0.8s ease;
+  transition: left 0.6s ease; /* Замедлили */
 }
 
 .cashout-button:hover:not(:disabled) {
   background: linear-gradient(145deg, #ff8f00 0%, #ffb300 50%, #ffc107 100%);
-  transform: translateY(-4px) scale(1.02);
+  transform: translateY(-3px) scale(1.01); /* Уменьшили */
   box-shadow: 
-    0 12px 40px rgba(255, 193, 7, 0.6),
-    0 0 60px rgba(255, 193, 7, 0.4),
+    0 10px 30px rgba(255, 193, 7, 0.5), /* Упростили */
+    0 0 40px rgba(255, 193, 7, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
@@ -529,11 +529,11 @@
   height: 26px;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
   border-radius: 26px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease; /* Упростили */
   border: 2px solid rgba(255, 255, 255, 0.2);
   box-shadow: 
-    inset 0 2px 6px rgba(0, 0, 0, 0.3),
-    0 3px 12px rgba(0, 0, 0, 0.1);
+    inset 0 2px 5px rgba(0, 0, 0, 0.3), /* Упростили */
+    0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
 .toggle-slider:before {
@@ -545,26 +545,26 @@
   bottom: 2px;
   background: linear-gradient(145deg, #ffffff 0%, #f0f0f0 100%);
   border-radius: 50%;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease; /* Упростили */
   box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.3),
-    0 0 12px rgba(255, 255, 255, 0.2);
+    0 2px 5px rgba(0, 0, 0, 0.3), /* Упростили */
+    0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 input:checked + .toggle-slider {
   background: linear-gradient(145deg, var(--primary-color) 0%, #087d30 100%);
   border-color: var(--primary-color);
   box-shadow: 
-    inset 0 2px 6px rgba(0, 0, 0, 0.2),
-    0 0 15px rgba(11, 168, 74, 0.4);
+    inset 0 2px 5px rgba(0, 0, 0, 0.2),
+    0 0 12px rgba(11, 168, 74, 0.3); /* Упростили */
 }
 
 input:checked + .toggle-slider:before {
   transform: translateX(24px);
   background: linear-gradient(145deg, #ffffff 0%, #e0ffe0 100%);
   box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.2),
-    0 0 12px rgba(11, 168, 74, 0.4);
+    0 2px 5px rgba(0, 0, 0, 0.2),
+    0 0 10px rgba(11, 168, 74, 0.3); /* Упростили */
 }
 
 .toggle-text {

@@ -1,4 +1,4 @@
-// frontend/src/components/games/slots/SlotMachine.js - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ
+// frontend/src/components/games/slots/SlotMachine.js - ИСПРАВЛЕННАЯ АНИМАЦИЯ
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
 
@@ -41,26 +41,28 @@ const SlotMachine = ({
   const [spinPhase, setSpinPhase] = useState('idle');
   
   // Рефы для управления анимацией
-  const animationIntervals = useRef([]);
+  const animationFrames = useRef([]);
   const animationTimeouts = useRef([]);
   const lastResultRef = useRef(null);
   const finalResultRef = useRef(null);
   const isStoppingRef = useRef(false);
   const animationCompleteRef = useRef(false);
+  const frameCounters = useRef([0, 0, 0, 0]); // Счетчики кадров для каждого барабана
   
   // ОПТИМИЗАЦИЯ: Детектор производительности устройства
   const [isLowPerformance, setIsLowPerformance] = useState(false);
   
   useEffect(() => {
-    // Простая проверка производительности устройства
+    // Проверка производительности устройства
     const checkPerformance = () => {
       const start = performance.now();
-      for (let i = 0; i < 10000; i++) {
+      for (let i = 0; i < 5000; i++) {
         Math.random();
       }
       const end = performance.now();
-      const isLow = (end - start) > 10; // Если операция заняла больше 10ms
+      const isLow = (end - start) > 8; // Если операция заняла больше 8ms
       setIsLowPerformance(isLow);
+      console.log('🎰 PERFORMANCE: Устройство', isLow ? 'слабое' : 'мощное', `(${(end - start).toFixed(2)}ms)`);
     };
     
     checkPerformance();
@@ -86,30 +88,66 @@ const SlotMachine = ({
     return SLOT_SYMBOLS[0].symbol;
   }, []);
   
-  // Очистка таймаутов и интервалов
+  // Очистка анимаций
   const clearAnimations = useCallback(() => {
-    console.log('СЛОТЫ: Очищаем все анимации');
+    console.log('🎰 ANIM: Очищаем все анимации');
     
-    animationIntervals.current.forEach((interval, index) => {
-      if (interval) {
-        clearInterval(interval);
-        console.log(`СЛОТЫ: Очищен интервал ${index}`);
+    animationFrames.current.forEach((frameId, index) => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+        console.log(`🎰 ANIM: Очищен фрейм ${index}`);
       }
     });
-    animationIntervals.current = [];
+    animationFrames.current = [];
+    frameCounters.current = [0, 0, 0, 0];
     
     animationTimeouts.current.forEach((timeout, index) => {
       if (timeout) {
         clearTimeout(timeout);
-        console.log(`СЛОТЫ: Очищен таймаут ${index}`);
+        console.log(`🎰 ANIM: Очищен таймаут ${index}`);
       }
     });
     animationTimeouts.current = [];
   }, []);
   
+  // Функция анимации одного барабана с requestAnimationFrame
+  const animateReel = useCallback((reelIndex) => {
+    if (isStoppingRef.current || animationCompleteRef.current) {
+      return;
+    }
+    
+    const animate = () => {
+      // Увеличиваем счетчик кадров
+      frameCounters.current[reelIndex]++;
+      
+      // ОПТИМИЗАЦИЯ: Обновляем символы не каждый кадр
+      const frameSkip = isLowPerformance ? 8 : 4; // Для слабых устройств - каждый 8й кадр, для мощных - каждый 4й
+      
+      if (frameCounters.current[reelIndex] % frameSkip === 0) {
+        setReels(prevReels => {
+          if (isStoppingRef.current || animationCompleteRef.current) {
+            return prevReels;
+          }
+          
+          const newReels = [...prevReels];
+          newReels[reelIndex] = Array(4).fill().map(() => getRandomSymbol());
+          return newReels;
+        });
+      }
+      
+      // Продолжаем анимацию, если не остановлена
+      if (!isStoppingRef.current && !animationCompleteRef.current) {
+        animationFrames.current[reelIndex] = requestAnimationFrame(animate);
+      }
+    };
+    
+    // Запускаем анимацию
+    animationFrames.current[reelIndex] = requestAnimationFrame(animate);
+  }, [getRandomSymbol, isLowPerformance]);
+  
   // Функция для полной остановки анимации
   const stopAllAnimations = useCallback(() => {
-    console.log('СЛОТЫ: Принудительная остановка всех анимаций');
+    console.log('🎰 ANIM: Принудительная остановка всех анимаций');
     
     clearAnimations();
     setIsAnimating(false);
@@ -122,12 +160,12 @@ const SlotMachine = ({
   // Функция для плавной остановки барабана на нужном символе
   const stopReelWithResult = useCallback((reelIndex, targetColumn, delay) => {
     const timeout = setTimeout(() => {
-      console.log(`СЛОТЫ: Останавливаем барабан ${reelIndex} на символах:`, targetColumn);
+      console.log(`🎰 ANIM: Останавливаем барабан ${reelIndex} на символах:`, targetColumn);
       
-      // Останавливаем интервал для этого барабана
-      if (animationIntervals.current[reelIndex]) {
-        clearInterval(animationIntervals.current[reelIndex]);
-        animationIntervals.current[reelIndex] = null;
+      // Останавливаем анимацию для этого барабана
+      if (animationFrames.current[reelIndex]) {
+        cancelAnimationFrame(animationFrames.current[reelIndex]);
+        animationFrames.current[reelIndex] = null;
       }
       
       // Устанавливаем финальные символы для этого барабана
@@ -146,7 +184,7 @@ const SlotMachine = ({
       
       // Если это последний барабан
       if (reelIndex === 3) {
-        console.log('СЛОТЫ: Все барабаны остановлены');
+        console.log('🎰 ANIM: Все барабаны остановлены');
         
         // Завершаем анимацию
         setIsAnimating(false);
@@ -172,7 +210,7 @@ const SlotMachine = ({
           // Уведомляем родительский компонент ПОСЛЕ визуального завершения
           setTimeout(() => {
             if (onAnimationComplete) {
-              console.log('СЛОТЫ: Вызываем onAnimationComplete после показа результата');
+              console.log('🎰 ANIM: Вызываем onAnimationComplete после показа результата');
               onAnimationComplete();
             }
           }, 800);
@@ -186,7 +224,7 @@ const SlotMachine = ({
   // Сброс состояния при начале нового спина
   useEffect(() => {
     if (isSpinning && !isAnimating && !animationCompleteRef.current) {
-      console.log('СЛОТЫ: Запуск новой анимации');
+      console.log('🎰 ANIM: Запуск новой анимации');
       
       // Сбрасываем все состояния
       clearAnimations();
@@ -199,33 +237,14 @@ const SlotMachine = ({
       finalResultRef.current = null;
       lastResultRef.current = null;
       animationCompleteRef.current = false;
+      frameCounters.current = [0, 0, 0, 0];
       
-      // ОПТИМИЗАЦИЯ: Адаптивная частота обновления
-      const updateInterval = isLowPerformance ? 200 : 150; // Увеличили с 100ms
-      
-      // Запускаем анимацию быстрой смены символов
-      const intervals = [];
-      
+      // Запускаем анимацию для каждого барабана
       for (let reelIndex = 0; reelIndex < 4; reelIndex++) {
-        const interval = setInterval(() => {
-          // Не обновляем барабан если уже начался процесс остановки
-          if (isStoppingRef.current || animationCompleteRef.current) {
-            return;
-          }
-          
-          setReels(prevReels => {
-            const newReels = [...prevReels];
-            newReels[reelIndex] = Array(4).fill().map(() => getRandomSymbol());
-            return newReels;
-          });
-        }, updateInterval);
-        
-        intervals.push(interval);
+        animateReel(reelIndex);
       }
-      
-      animationIntervals.current = intervals;
     }
-  }, [isSpinning, isAnimating, getRandomSymbol, clearAnimations, stopReelWithResult, isLowPerformance]);
+  }, [isSpinning, isAnimating, clearAnimations, animateReel]);
   
   // Обработка результата с сервера
   useEffect(() => {
@@ -236,7 +255,7 @@ const SlotMachine = ({
         !isStoppingRef.current &&
         !animationCompleteRef.current) {
       
-      console.log('СЛОТЫ: Получен результат с сервера, начинаем остановку:', lastResult);
+      console.log('🎰 ANIM: Получен результат с сервера, начинаем остановку:', lastResult);
       
       lastResultRef.current = lastResult;
       finalResultRef.current = lastResult;
@@ -244,8 +263,8 @@ const SlotMachine = ({
       
       setSpinPhase('stopping');
       
-      // ОПТИМИЗАЦИЯ: Уменьшили задержки между остановками барабанов
-      const stopDelays = isLowPerformance ? [300, 450, 600, 750] : [400, 600, 800, 1000];
+      // ОПТИМИЗАЦИЯ: Адаптивные задержки между остановками барабанов
+      const stopDelays = isLowPerformance ? [200, 350, 500, 650] : [300, 500, 700, 900];
       
       lastResult.reels.forEach((targetColumn, reelIndex) => {
         stopReelWithResult(reelIndex, targetColumn, stopDelays[reelIndex]);
@@ -256,7 +275,7 @@ const SlotMachine = ({
   // Сброс состояния анимации при остановке спина
   useEffect(() => {
     if (!isSpinning && animationCompleteRef.current) {
-      console.log('СЛОТЫ: Спин завершен, сбрасываем флаг анимации');
+      console.log('🎰 ANIM: Спин завершен, сбрасываем флаг анимации');
       animationCompleteRef.current = false;
     }
   }, [isSpinning]);
@@ -264,7 +283,7 @@ const SlotMachine = ({
   // Аварийная остановка анимации
   useEffect(() => {
     if (!isSpinning && isAnimating) {
-      console.log('СЛОТЫ: Аварийная остановка анимации');
+      console.log('🎰 ANIM: Аварийная остановка анимации');
       const emergencyTimeout = setTimeout(() => {
         stopAllAnimations();
       }, 500);
@@ -276,7 +295,7 @@ const SlotMachine = ({
   // Очистка при размонтировании
   useEffect(() => {
     return () => {
-      console.log('СЛОТЫ: Размонтирование компонента, очищаем все');
+      console.log('🎰 ANIM: Размонтирование компонента, очищаем все');
       clearAnimations();
     };
   }, [clearAnimations]);
@@ -325,18 +344,20 @@ const SlotMachine = ({
           ))}
         </div>
         
-        {/* ОПТИМИЗАЦИЯ: Упрощенные линии выплат */}
-        {!isLowPerformance && (
+        {/* ОПТИМИЗАЦИЯ: Упрощенные линии выплат только для мощных устройств */}
+        {!isLowPerformance && winningLines.length > 0 && (
           <div className="paylines">
-            {/* Горизонтальные линии */}
-            <div className={`payline horizontal line-1 ${winningLines.some(line => line.includes('0-0') && line.includes('1-0')) ? 'active' : ''}`}></div>
-            <div className={`payline horizontal line-2 ${winningLines.some(line => line.includes('0-1') && line.includes('1-1')) ? 'active' : ''}`}></div>
-            <div className={`payline horizontal line-3 ${winningLines.some(line => line.includes('0-2') && line.includes('1-2')) ? 'active' : ''}`}></div>
-            <div className={`payline horizontal line-4 ${winningLines.some(line => line.includes('0-3') && line.includes('1-3')) ? 'active' : ''}`}></div>
-            
-            {/* Диагональные линии */}
-            <div className={`payline diagonal line-main ${winningLines.some(line => line.includes('0-0') && line.includes('1-1') && line.includes('2-2')) ? 'active' : ''}`}></div>
-            <div className={`payline diagonal line-anti ${winningLines.some(line => line.includes('0-3') && line.includes('1-2') && line.includes('2-1')) ? 'active' : ''}`}></div>
+            {/* Показываем только активные линии */}
+            {winningLines.map((line, index) => (
+              <div key={index} className="payline active" style={{
+                // Простая стилизация без сложных анимаций
+                position: 'absolute',
+                background: 'rgba(11, 168, 74, 0.8)',
+                height: '2px',
+                borderRadius: '1px',
+                zIndex: 10
+              }}></div>
+            ))}
           </div>
         )}
       </div>

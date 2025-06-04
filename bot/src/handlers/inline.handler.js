@@ -41,11 +41,11 @@ function registerInlineHandlers(bot) {
             inline_keyboard: [[
               {
                 text: '⚔️ Принять вызов',
-                callback_data: `pvp_accept_${userId}_${amount}_${targetUsername || 'any'}`
+                callback_data: `accept_duel_${userId}_${amount}`
               },
               {
                 text: '❌ Отклонить',
-                callback_data: `pvp_decline_${userId}`
+                callback_data: `decline_duel_${userId}`
               }
             ]]
           }

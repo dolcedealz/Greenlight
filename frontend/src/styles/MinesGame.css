@@ -1,4 +1,4 @@
-/* frontend/src/styles/MinesGame.css - ОБНОВЛЕННАЯ ВЕРСИЯ */
+/* frontend/src/styles/MinesGame.css - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ */
 .mines-game {
   display: flex;
   flex-direction: column;
@@ -20,20 +20,20 @@
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 20% 20%, rgba(255, 59, 48, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(11, 168, 74, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.04) 0%, transparent 70%);
+    radial-gradient(circle at 20% 20%, rgba(255, 59, 48, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(11, 168, 74, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.02) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
-  animation: gameAmbient 20s ease-in-out infinite;
+  animation: gameAmbient 30s ease-in-out infinite;
 }
 
 @keyframes gameAmbient {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
 }
 
-/* Кнопки действий под игровым полем - ОБНОВЛЕННЫЕ */
+/* Кнопки действий под игровым полем - ОПТИМИЗИРОВАННЫЕ */
 .mines-action-buttons {
   display: flex;
   justify-content: center;
@@ -53,9 +53,9 @@
   border: none;
   border-radius: 18px;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
   box-shadow: 
-    0 8px 30px rgba(0, 0, 0, 0.3),
+    0 8px 25px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   text-transform: uppercase;
   letter-spacing: 1.5px;
@@ -64,7 +64,6 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Блики для кнопок */
 .mines-play-button::before,
 .mines-cashout-button::before {
   content: '';
@@ -75,9 +74,9 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(255, 255, 255, 0.4), 
+    rgba(255, 255, 255, 0.3), 
     transparent);
-  transition: left 0.8s ease;
+  transition: left 0.6s ease;
 }
 
 .mines-play-button::after,
@@ -99,24 +98,24 @@
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   box-shadow: 
-    0 8px 30px rgba(11, 168, 74, 0.4),
-    0 0 40px rgba(11, 168, 74, 0.2),
+    0 8px 25px rgba(11, 168, 74, 0.4),
+    0 0 30px rgba(11, 168, 74, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .mines-play-button::after {
   background: linear-gradient(45deg, 
-    rgba(11, 168, 74, 0.8), 
-    rgba(255, 255, 255, 0.3), 
-    rgba(11, 168, 74, 0.8));
+    rgba(11, 168, 74, 0.6), 
+    rgba(255, 255, 255, 0.2), 
+    rgba(11, 168, 74, 0.6));
 }
 
 .mines-play-button:hover:not(:disabled) {
   background: linear-gradient(145deg, #087d30 0%, #0a8735 50%, var(--primary-color) 100%);
-  transform: translateY(-5px) scale(1.02);
+  transform: translateY(-3px) scale(1.01);
   box-shadow: 
-    0 15px 45px rgba(11, 168, 74, 0.6),
-    0 0 60px rgba(11, 168, 74, 0.4),
+    0 12px 35px rgba(11, 168, 74, 0.5),
+    0 0 40px rgba(11, 168, 74, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
@@ -126,11 +125,11 @@
 
 .mines-play-button:hover:not(:disabled)::after {
   opacity: 1;
-  animation: buttonGlowFlow 2s ease-in-out infinite;
+  animation: buttonGlowFlow 3s ease-in-out infinite;
 }
 
 .mines-play-button:active:not(:disabled) {
-  transform: translateY(-2px) scale(1.01);
+  transform: translateY(-1px) scale(1.005);
   transition: all 0.1s ease;
 }
 
@@ -150,24 +149,24 @@
   font-weight: 900;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   box-shadow: 
-    0 8px 30px rgba(255, 193, 7, 0.4),
-    0 0 40px rgba(255, 193, 7, 0.2),
+    0 8px 25px rgba(255, 193, 7, 0.4),
+    0 0 30px rgba(255, 193, 7, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .mines-cashout-button::after {
   background: linear-gradient(45deg, 
-    rgba(255, 193, 7, 0.8), 
-    rgba(255, 255, 255, 0.5), 
-    rgba(255, 193, 7, 0.8));
+    rgba(255, 193, 7, 0.6), 
+    rgba(255, 255, 255, 0.4), 
+    rgba(255, 193, 7, 0.6));
 }
 
 .mines-cashout-button:hover:not(:disabled) {
   background: linear-gradient(145deg, #ff8f00 0%, #ffb300 50%, #ffc107 100%);
-  transform: translateY(-5px) scale(1.02);
+  transform: translateY(-3px) scale(1.01);
   box-shadow: 
-    0 15px 45px rgba(255, 193, 7, 0.6),
-    0 0 60px rgba(255, 193, 7, 0.4),
+    0 12px 35px rgba(255, 193, 7, 0.5),
+    0 0 40px rgba(255, 193, 7, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
@@ -177,11 +176,11 @@
 
 .mines-cashout-button:hover:not(:disabled)::after {
   opacity: 1;
-  animation: buttonGlowFlow 2s ease-in-out infinite;
+  animation: buttonGlowFlow 3s ease-in-out infinite;
 }
 
 .mines-cashout-button:active:not(:disabled) {
-  transform: translateY(-2px) scale(1.01);
+  transform: translateY(-1px) scale(1.005);
   transition: all 0.1s ease;
 }
 
@@ -194,7 +193,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* Загрузочный экран для мин - ОБНОВЛЕННЫЙ */
+/* Загрузочный экран для мин - ОПТИМИЗИРОВАННЫЙ */
 .mines-loading-screen {
   position: fixed;
   top: 0;
@@ -217,9 +216,9 @@
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 30% 30%, rgba(255, 59, 48, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(11, 168, 74, 0.08) 0%, transparent 50%);
-  animation: loadingAmbient 8s ease-in-out infinite;
+    radial-gradient(circle at 30% 30%, rgba(255, 59, 48, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(11, 168, 74, 0.04) 0%, transparent 50%);
+  animation: loadingAmbient 15s ease-in-out infinite;
 }
 
 @keyframes loadingScreenFadeIn {
@@ -228,8 +227,8 @@
 }
 
 @keyframes loadingAmbient {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.8; }
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.5; }
 }
 
 .mines-loading-content {
@@ -262,9 +261,9 @@
 
 .logo-icon.mines-icon {
   font-size: 90px;
-  animation: minesIconFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 25px rgba(255, 59, 48, 0.6));
-  text-shadow: 0 0 40px rgba(255, 59, 48, 0.8);
+  animation: minesIconFloat 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 59, 48, 0.5));
+  text-shadow: 0 0 30px rgba(255, 59, 48, 0.6);
 }
 
 @keyframes minesIconFloat {
@@ -272,13 +271,13 @@
     transform: translateY(0) rotate(0deg) scale(1);
   }
   25% {
-    transform: translateY(-12px) rotate(5deg) scale(1.05);
+    transform: translateY(-8px) rotate(3deg) scale(1.02);
   }
   50% {
     transform: translateY(0) rotate(0deg) scale(1);
   }
   75% {
-    transform: translateY(-6px) rotate(-3deg) scale(0.98);
+    transform: translateY(-4px) rotate(-2deg) scale(0.99);
   }
 }
 
@@ -290,9 +289,9 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-shadow: 
-    0 0 25px rgba(11, 168, 74, 0.6),
-    0 0 50px rgba(255, 59, 48, 0.4);
-  animation: logoTextGlow 2.5s ease-in-out infinite alternate;
+    0 0 20px rgba(11, 168, 74, 0.5),
+    0 0 35px rgba(255, 59, 48, 0.3);
+  animation: logoTextGlow 3s ease-in-out infinite alternate;
   letter-spacing: 3px;
 }
 
@@ -300,14 +299,14 @@
   0% {
     background-position: 0% 50%;
     text-shadow: 
-      0 0 25px rgba(11, 168, 74, 0.6),
-      0 0 50px rgba(255, 59, 48, 0.4);
+      0 0 20px rgba(11, 168, 74, 0.5),
+      0 0 35px rgba(255, 59, 48, 0.3);
   }
   100% {
     background-position: 100% 50%;
     text-shadow: 
-      0 0 35px rgba(11, 168, 74, 0.9),
-      0 0 70px rgba(255, 59, 48, 0.6);
+      0 0 25px rgba(11, 168, 74, 0.7),
+      0 0 50px rgba(255, 59, 48, 0.4);
   }
 }
 
@@ -316,7 +315,7 @@
   color: rgba(255, 255, 255, 0.85);
   font-weight: 600;
   letter-spacing: 1.5px;
-  animation: subtitleFade 2.5s ease-in-out infinite alternate;
+  animation: subtitleFade 3s ease-in-out infinite alternate;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -337,33 +336,33 @@
   height: 100%;
   border: 4px solid transparent;
   border-radius: 50%;
-  animation: spinnerRotate 2s linear infinite;
+  animation: spinnerRotate 2.5s linear infinite;
 }
 
 .spinner-ring:nth-child(1) {
   border-top-color: var(--primary-color);
   animation-delay: 0s;
-  box-shadow: 0 0 20px rgba(11, 168, 74, 0.4);
+  box-shadow: 0 0 15px rgba(11, 168, 74, 0.3);
 }
 
 .spinner-ring:nth-child(2) {
-  border-right-color: rgba(255, 59, 48, 0.7);
+  border-right-color: rgba(255, 59, 48, 0.6);
   animation-delay: 0.3s;
   width: 75%;
   height: 75%;
   top: 12.5%;
   left: 12.5%;
-  box-shadow: 0 0 15px rgba(255, 59, 48, 0.3);
+  box-shadow: 0 0 12px rgba(255, 59, 48, 0.2);
 }
 
 .spinner-ring:nth-child(3) {
-  border-bottom-color: rgba(255, 215, 0, 0.6);
+  border-bottom-color: rgba(255, 215, 0, 0.5);
   animation-delay: 0.6s;
   width: 50%;
   height: 50%;
   top: 25%;
   left: 25%;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
 }
 
 @keyframes spinnerRotate {
@@ -375,7 +374,7 @@
   font-size: 20px;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
-  animation: loadingTextPulse 1.8s ease-in-out infinite;
+  animation: loadingTextPulse 2.5s ease-in-out infinite;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -386,7 +385,7 @@
   }
   50% { 
     opacity: 1; 
-    transform: scale(1.02);
+    transform: scale(1.01);
   }
 }
 
@@ -410,7 +409,7 @@
   justify-content: center;
   font-size: 1.4rem;
   transition: all 0.4s ease;
-  animation: cellGlowDemo 3s ease-in-out infinite;
+  animation: cellGlowDemo 4s ease-in-out infinite;
   position: relative;
   overflow: hidden;
 }
@@ -424,9 +423,9 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(255, 255, 255, 0.2), 
+    rgba(255, 255, 255, 0.15), 
     transparent);
-  transition: left 0.8s ease;
+  transition: left 1s ease;
 }
 
 .mine-cell-demo.revealed {
@@ -434,9 +433,9 @@
   border-color: var(--primary-color);
   color: white;
   box-shadow: 
-    0 0 20px rgba(11, 168, 74, 0.6),
-    inset 0 0 10px rgba(11, 168, 74, 0.3);
-  animation: cellRevealDemo 0.6s ease forwards;
+    0 0 15px rgba(11, 168, 74, 0.5),
+    inset 0 0 8px rgba(11, 168, 74, 0.2);
+  animation: cellRevealDemo 0.5s ease forwards;
 }
 
 .mine-cell-demo.mine {
@@ -444,9 +443,9 @@
   border-color: #ff4444;
   color: white;
   box-shadow: 
-    0 0 20px rgba(255, 68, 68, 0.6),
-    inset 0 0 10px rgba(255, 68, 68, 0.3);
-  animation: mineFlashDemo 1.2s ease-in-out infinite;
+    0 0 15px rgba(255, 68, 68, 0.5),
+    inset 0 0 8px rgba(255, 68, 68, 0.2);
+  animation: mineFlashDemo 2s ease-in-out infinite;
 }
 
 .mine-cell-demo:hover::before {
@@ -460,13 +459,13 @@
   }
   50% { 
     border-color: var(--primary-color); 
-    box-shadow: 0 0 15px rgba(11, 168, 74, 0.4); 
+    box-shadow: 0 0 12px rgba(11, 168, 74, 0.3);
   }
 }
 
 @keyframes cellRevealDemo {
-  0% { transform: scale(0.8); }
-  50% { transform: scale(1.1); }
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
 
@@ -477,7 +476,7 @@
   }
   50% { 
     opacity: 0.8; 
-    transform: scale(1.05);
+    transform: scale(1.02);
   }
 }
 
@@ -485,7 +484,7 @@
   font-size: 16px;
   color: #ff6b6b;
   margin-top: 20px;
-  animation: warningPulse 2.5s ease-in-out infinite;
+  animation: warningPulse 3s ease-in-out infinite;
   text-align: center;
   font-weight: 600;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);

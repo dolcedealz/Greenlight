@@ -7,9 +7,9 @@
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
   min-height: 100vh;
   padding-bottom: 80px;
-  transition: all 0.2s ease;
-  overflow-x: hidden;
   position: relative;
+  /* ИСПРАВЛЕНО: Добавляем touch-action для лучшего скролла на мобильных */
+  touch-action: pan-y pinch-zoom;
 }
 
 /* НОВОЕ: Легкий динамичный фон для слотов */
@@ -26,6 +26,8 @@
     radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.01) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
+  /* ИСПРАВЛЕНО: Используем transform3d для аппаратного ускорения */
+  will-change: transform, opacity;
   animation: slotsAmbientGlow 25s ease-in-out infinite;
 }
 
@@ -37,15 +39,16 @@
 @keyframes slotsAmbientGlow {
   0%, 100% { 
     opacity: 0.3;
-    transform: scale(1) rotate(0deg);
+    /* ИСПРАВЛЕНО: Используем transform3d для аппаратного ускорения */
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1) rotate3d(0, 0, 1, 0deg);
   }
   33% { 
     opacity: 0.5;
-    transform: scale(1.02) rotate(1deg);
+    transform: translate3d(0, 0, 0) scale3d(1.02, 1.02, 1) rotate3d(0, 0, 1, 1deg);
   }
   66% { 
     opacity: 0.4;
-    transform: scale(0.98) rotate(-1deg);
+    transform: translate3d(0, 0, 0) scale3d(0.98, 0.98, 1) rotate3d(0, 0, 1, -1deg);
   }
 }
 
@@ -66,6 +69,8 @@
   background-repeat: repeat;
   pointer-events: none;
   z-index: 1;
+  /* ИСПРАВЛЕНО: Используем transform3d и will-change для аппаратного ускорения */
+  will-change: transform, opacity;
   animation: slotsParticlesFloat 30s linear infinite;
 }
 
@@ -75,15 +80,16 @@
 
 @keyframes slotsParticlesFloat {
   0% { 
-    transform: translateX(0) translateY(0);
+    /* ИСПРАВЛЕНО: Используем translate3d для аппаратного ускорения */
+    transform: translate3d(0, 0, 0);
     opacity: 0.2;
   }
   50% { 
-    transform: translateX(-50px) translateY(-30px);
+    transform: translate3d(-50px, -30px, 0);
     opacity: 0.4;
   }
   100% { 
-    transform: translateX(-100px) translateY(-60px);
+    transform: translate3d(-100px, -60px, 0);
     opacity: 0.2;
   }
 }
@@ -101,6 +107,8 @@
   align-items: center;
   z-index: 9999;
   animation: loadingScreenFadeIn 0.5s ease;
+  /* ИСПРАВЛЕНО: Не блокируем события скролла когда экран не отображается */
+  pointer-events: auto;
 }
 
 @keyframes loadingScreenFadeIn {
@@ -123,11 +131,12 @@
 @keyframes loadingContentSlideIn {
   0% {
     opacity: 0;
-    transform: translateY(30px);
+    /* ИСПРАВЛЕНО: Используем translate3d вместо translateY */
+    transform: translate3d(0, 30px, 0);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -142,20 +151,23 @@
   font-size: 80px;
   animation: slotsIconFloat 3s ease-in-out infinite;
   filter: drop-shadow(0 0 20px rgba(11, 168, 74, 0.5));
+  /* ИСПРАВЛЕНО: Добавляем will-change для оптимизации */
+  will-change: transform;
 }
 
 @keyframes slotsIconFloat {
   0%, 100% {
-    transform: translateY(0) rotate(0deg);
+    /* ИСПРАВЛЕНО: Используем translate3d и rotate3d */
+    transform: translate3d(0, 0, 0) rotate3d(0, 0, 1, 0deg);
   }
   25% {
-    transform: translateY(-10px) rotate(5deg);
+    transform: translate3d(0, -10px, 0) rotate3d(0, 0, 1, 5deg);
   }
   50% {
-    transform: translateY(0) rotate(0deg);
+    transform: translate3d(0, 0, 0) rotate3d(0, 0, 1, 0deg);
   }
   75% {
-    transform: translateY(-5px) rotate(-3deg);
+    transform: translate3d(0, -5px, 0) rotate3d(0, 0, 1, -3deg);
   }
 }
 
@@ -213,6 +225,8 @@
   border: 3px solid transparent;
   border-radius: 50%;
   animation: spinnerRotate 2s linear infinite;
+  /* ИСПРАВЛЕНО: Добавляем will-change для оптимизации */
+  will-change: transform;
 }
 
 .spinner-ring:nth-child(1) {
@@ -240,10 +254,11 @@
 
 @keyframes spinnerRotate {
   0% {
-    transform: rotate(0deg);
+    /* ИСПРАВЛЕНО: Используем rotate3d для аппаратного ускорения */
+    transform: rotate3d(0, 0, 1, 0deg);
   }
   100% {
-    transform: rotate(360deg);
+    transform: rotate3d(0, 0, 1, 360deg);
   }
 }
 
@@ -283,6 +298,8 @@
   font-size: 2rem;
   animation: slotReelSpin 2s ease-in-out infinite;
   box-shadow: 0 0 15px rgba(11, 168, 74, 0.3);
+  /* ИСПРАВЛЕНО: Добавляем will-change для оптимизации */
+  will-change: transform;
 }
 
 .reel-demo:nth-child(1) { animation-delay: 0s; }
@@ -290,9 +307,16 @@
 .reel-demo:nth-child(3) { animation-delay: 0.6s; }
 
 @keyframes slotReelSpin {
-  0% { transform: rotateX(0deg); }
-  50% { transform: rotateX(180deg); }
-  100% { transform: rotateX(360deg); }
+  0% { 
+    /* ИСПРАВЛЕНО: Используем rotate3d для аппаратного ускорения */
+    transform: rotate3d(1, 0, 0, 0deg); 
+  }
+  50% { 
+    transform: rotate3d(1, 0, 0, 180deg); 
+  }
+  100% { 
+    transform: rotate3d(1, 0, 0, 360deg); 
+  }
 }
 
 /* Адаптивность для загрузочного экрана */
@@ -385,6 +409,8 @@
   .slots-game::before,
   .slots-game::after {
     animation: none;
+    /* ИСПРАВЛЕНО: Отключаем will-change когда анимации выключены */
+    will-change: auto;
   }
   
   .slots-game::before,

@@ -315,8 +315,27 @@ class PvPService {
     // Запускаем игру
     await duel.start();
 
-    // Генерируем результат
-    const result = await this.generateGameResult();
+    // НОВОЕ: Используем тот же механизм генерации, что и в обычной монетке
+    const randomService = require('./random.service');
+    const serverSeed = randomService.generateServerSeed();
+    const clientSeed = `pvp_${sessionId}`;
+    const nonce = 1;
+    
+    // Генерируем результат честно
+    const randomValue = randomService.generateRandomNumber(serverSeed, clientSeed, nonce);
+    const result = randomValue < 0.5 ? 'heads' : 'tails';
+    
+    // Сохраняем данные для верификации
+    duel.gameData = {
+      serverSeed,
+      serverSeedHashed: randomService.hashServerSeed(serverSeed),
+      clientSeed,
+      nonce,
+      randomValue
+    };
+    
+    // Сохраняем gameData в базе
+    await duel.save();
 
     // Завершаем игру
     await duel.complete(result);
@@ -335,26 +354,14 @@ class PvPService {
         loserUsername: duel.loserUsername,
         winAmount: duel.winAmount,
         commission: duel.commission,
+        challengerSide: duel.challengerSide,
+        opponentSide: duel.opponentSide,
+        serverSeedHashed: duel.gameData.serverSeedHashed,
         status: 'completed'
       }
     };
   }
 
-  /**
-   * Сгенерировать результат игры
-   * @returns {Promise<string>}
-   */
-  async generateGameResult() {
-    // Провабли фейр генерация
-    const serverSeed = crypto.randomBytes(32).toString('hex');
-    const hash = crypto.createHash('sha256').update(serverSeed).digest('hex');
-    
-    // Первый байт хэша определяет результат
-    const firstByte = parseInt(hash.substr(0, 2), 16);
-    const result = firstByte % 2 === 0 ? 'heads' : 'tails';
-    
-    return result;
-  }
 
   /**
    * Резервировать средства у игроков

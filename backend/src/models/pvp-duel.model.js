@@ -115,6 +115,26 @@ const pvpDuelSchema = new mongoose.Schema({
     type: String,
     enum: ['heads', 'tails']
   },
+  
+  // Данные игры для провабли фейр верификации
+  gameData: {
+    serverSeed: {
+      type: String
+    },
+    serverSeedHashed: {
+      type: String
+    },
+    clientSeed: {
+      type: String
+    },
+    nonce: {
+      type: Number
+    },
+    randomValue: {
+      type: Number
+    }
+  },
+  
   winnerId: {
     type: String
   },

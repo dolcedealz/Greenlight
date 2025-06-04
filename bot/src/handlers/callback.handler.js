@@ -434,6 +434,60 @@ function registerCallbackHandlers(bot) {
 
   // ===== PvP ДУЭЛИ ОБРАБОТЧИКИ =====
 
+  // Обработка принятия дуэли
+  bot.action(/^accept_duel_(\d+)_(\d+)$/, async (ctx) => {
+    const challengerId = ctx.match[1];
+    const amount = parseFloat(ctx.match[2]);
+    const opponentId = ctx.from.id.toString();
+    
+    // Создаем дуэль
+    const duel = await apiService.createPvPChallenge({
+      challengerId,
+      challengerUsername: ctx.callbackQuery.message.text.match(/@(\w+)/)[1],
+      opponentId,
+      opponentUsername: ctx.from.username,
+      amount,
+      chatId: ctx.chat.id,
+      messageId: ctx.callbackQuery.message.message_id
+    });
+    
+    // Принимаем дуэль
+    const response = await apiService.respondToPvPChallenge(
+      duel.data.duelId,
+      opponentId,
+      'accept'
+    );
+    
+    // Обновляем сообщение
+    await ctx.editMessageText(
+      `🪙 **ДУЭЛЬ ПРИНЯТА!** 🪙\n\n` +
+      `⚔️ Игроки готовятся к битве!\n` +
+      `🆔 Сессия: ${response.data.sessionId}\n\n` +
+      `👇 Войдите в игровую комнату:`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: Markup.inlineKeyboard([[
+          Markup.button.webApp(
+            '🎮 Войти в игру', 
+            `${config.webAppUrl}?pvp=${response.data.sessionId}`
+          )
+        ]])
+      }
+    );
+  });
+
+  // Обработка отклонения дуэли
+  bot.action(/^decline_duel_(\d+)$/, async (ctx) => {
+    const challengerId = ctx.match[1];
+    
+    await ctx.editMessageText(
+      `🪙 **ДУЭЛЬ ОТКЛОНЕНА** 🪙\n\n` +
+      `❌ Вызов отклонен\n\n` +
+      `💡 Попробуйте предложить дуэль другому игроку!`,
+      { parse_mode: 'Markdown' }
+    );
+  });
+
   // Обработка входа в PvP комнату (новая упрощенная логика)
   bot.action(/^pvp_join_(\d+)_(\d+(?:\.\d+)?)_(.*)$/, async (ctx) => {
     try {

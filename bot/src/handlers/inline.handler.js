@@ -19,61 +19,43 @@ function registerInlineHandlers(bot) {
       // Создаем варианты inline результатов
       const results = [];
 
-      // Парсим команду дуэли: "дуэль @username 50" или "дуэль 50"
-      const duelMatch = query.match(/^дуэль\s*(@?\w+)?\s*(\d+(?:\.\d+)?)?$/);
-      
-      if (duelMatch) {
-        const targetUsername = duelMatch[1]?.replace('@', '');
-        const amount = parseFloat(duelMatch[2]);
+      if (query.startsWith('дуэль')) {
+        const match = query.match(/^дуэль\s*(@?\w+)?\s*(\d+)?$/);
         
-        if (amount && amount >= 1 && amount <= 1000) {
-          const duelTitle = targetUsername 
-            ? `🎯 Дуэль с @${targetUsername} на ${amount} USDT`
-            : `🎯 Дуэль на ${amount} USDT`;
-            
-          const duelDescription = targetUsername
-            ? `Вызвать @${targetUsername} на дуэль в монетку`
-            : `Предложить дуэль в монетку на ${amount} USDT`;
-
-          results.push({
-            type: 'article',
-            id: `pvp_duel_${amount}_${targetUsername || 'any'}`,
-            title: duelTitle,
-            description: duelDescription,
-            thumb_url: 'https://i.imgur.com/duel-coin.png',
-            input_message_content: {
-              message_text: targetUsername 
-                ? `🎯 **ИГРОВАЯ КОМНАТА СОЗДАНА** 🪙\n\n👤 @${username} создал(а) дуэль с @${targetUsername}!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n🚪 Оба игрока должны войти в комнату и подтвердить готовность!`
-                : `🎯 **ИГРОВАЯ КОМНАТА СОЗДАНА** 🪙\n\n👤 @${username} создал(а) открытую дуэль!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n🚪 Любой может войти в комнату и принять вызов!`,
-              parse_mode: 'Markdown'
-            },
-            reply_markup: Markup.inlineKeyboard([
-              [Markup.button.webApp('🎮 Создать дуэль', `${webAppUrl}?pvp=create&challengerId=${userId}&amount=${amount}&target=${targetUsername || 'open'}`)],
-              [Markup.button.switchToPM('💬 Управление через бота', `pvp_manage_${userId}_${amount}`)]
-            ])
-          });
-        } else if (duelMatch[1] && !amount) {
-          // Только username без суммы - показываем варианты сумм
-          results.push(
-            ...generateDuelAmountOptions(userId, username, targetUsername)
-          );
-        } else if (!duelMatch[1] && amount) {
-          // Только сумма без username - показываем общий вызов
-          results.push({
-            type: 'article',
-            id: `pvp_open_duel_${amount}`,
-            title: `🎯 Открытая дуэль на ${amount} USDT`,
-            description: 'Предложить дуэль всем участникам чата',
-            thumb_url: 'https://i.imgur.com/duel-coin.png',
-            input_message_content: {
-              message_text: `🎯 **ОТКРЫТАЯ ИГРОВАЯ КОМНАТА** 🪙\n\n👤 @${username} создал(а) открытую дуэль!\n💰 Ставка: ${amount} USDT каждый\n🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n\n🚪 Любой может войти в комнату и принять вызов!`,
-              parse_mode: 'Markdown'
-            },
-            reply_markup: Markup.inlineKeyboard([
-              [Markup.button.webApp('🎮 Создать дуэль', `${webAppUrl}?pvp=create&challengerId=${userId}&amount=${amount}&target=open`)],
-              [Markup.button.switchToPM('💬 Управление через бота', `pvp_manage_${userId}_${amount}`)]
-            ])
-          });
+        if (match) {
+          const targetUsername = match[1]?.replace('@', '');
+          const amount = parseFloat(match[2]) || null;
+          
+          // Генерируем варианты
+          if (!amount) {
+            // Показать preset суммы
+            results.push(...[10, 25, 50, 100, 250, 500].map(sum => ({
+              type: 'article',
+              id: `duel_${sum}`,
+              title: `🪙 Дуэль на ${sum} USDT`,
+              description: targetUsername 
+                ? `Вызвать @${targetUsername}` 
+                : 'Открытый вызов',
+              input_message_content: {
+                message_text: createDuelMessage(username, targetUsername, sum),
+                parse_mode: 'Markdown'
+              },
+              reply_markup: createDuelKeyboard(userId, targetUsername, sum)
+            })));
+          } else {
+            // Конкретная сумма
+            results.push({
+              type: 'article',
+              id: `duel_custom_${amount}`,
+              title: `🪙 Дуэль на ${amount} USDT`,
+              description: getDuelDescription(targetUsername),
+              input_message_content: {
+                message_text: createDuelMessage(username, targetUsername, amount),
+                parse_mode: 'Markdown'
+              },
+              reply_markup: createDuelKeyboard(userId, targetUsername, amount)
+            });
+          }
         }
       }
       
@@ -174,6 +156,37 @@ function generateDuelAmountOptions(challengerId, challengerUsername, targetUsern
       [Markup.button.switchToPM('💬 Управление через бота', `pvp_manage_${challengerId}_${amount}`)]
     ])
   }));
+}
+
+// Helper functions for duel creation
+function createDuelMessage(challenger, target, amount) {
+  return `🪙 **ВЫЗОВ НА ДУЭЛЬ** 🪙\n\n` +
+    `👤 ${challenger} ${target ? `вызывает @${target}` : 'бросает открытый вызов'}\n` +
+    `💰 Ставка: ${amount} USDT каждый\n` +
+    `🏆 Призовой фонд: ${(amount * 2 * 0.95).toFixed(2)} USDT\n` +
+    `⚔️ Игра: Монетка (Орел или Решка)\n\n` +
+    `⏱ Вызов действителен 5 минут`;
+}
+
+function createDuelKeyboard(challengerId, targetUsername, amount) {
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback(
+        '⚔️ Принять вызов', 
+        `accept_duel_${challengerId}_${amount}`
+      ),
+      Markup.button.callback(
+        '❌ Отклонить', 
+        `decline_duel_${challengerId}`
+      )
+    ]
+  ]);
+}
+
+function getDuelDescription(targetUsername) {
+  return targetUsername 
+    ? `Вызвать @${targetUsername}` 
+    : 'Открытый вызов';
 }
 
 module.exports = {

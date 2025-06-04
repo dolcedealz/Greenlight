@@ -75,12 +75,12 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     }
   }, [activeTab, referralData]);
   
-  // Копирование реферального кода с вибрацией
+  // Копирование реферального кода для вкладки рефералов
   const copyReferralCode = () => {
-    if (userData && userData.referralCode) {
+    if (referralData?.partner?.referralCode) {
       buttonPressFeedback(); // Вибрация при нажатии
       
-      navigator.clipboard.writeText(`https://t.me/Greenlightgames_bot?start=${userData.referralCode}`)
+      navigator.clipboard.writeText(`https://t.me/Greenlightgames_bot?start=${referralData.partner.referralCode}`)
         .then(() => {
           successNotification(); // Вибрация успеха
           showNotification('Реферальная ссылка скопирована!');
@@ -241,25 +241,17 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           </div>
         </div>
         
-        <div className="profile-referral">
-          <h3>Реферальная программа</h3>
+        <div className="profile-referral-hint">
+          <h3>💰 Реферальная программа</h3>
           <p className="referral-description">
-            Приглашайте друзей и получайте 10% от их депозитов!
+            Зарабатывайте с каждым приглашенным другом! Подробности в разделе "Рефералы".
           </p>
-          <div className="referral-code">
-            <div className="code">{userData.referralCode}</div>
-            <button className="copy-button" onClick={copyReferralCode}>Копировать ссылку</button>
-          </div>
-          <div className="referral-stats">
-            <div className="referral-item">
-              <span className="referral-label">Приглашено друзей</span>
-              <span className="referral-value">{userData.referralStats?.totalReferrals || 0}</span>
-            </div>
-            <div className="referral-item">
-              <span className="referral-label">Заработано</span>
-              <span className="referral-value">{userData.referralStats?.totalEarned?.toFixed(2) || '0.00'} USDT</span>
-            </div>
-          </div>
+          <button 
+            className="referral-tab-button"
+            onClick={() => handleTabChange('referrals')}
+          >
+            👥 Перейти к рефералам
+          </button>
         </div>
       </div>
     );

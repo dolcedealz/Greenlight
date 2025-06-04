@@ -80,7 +80,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     if (userData && userData.referralCode) {
       buttonPressFeedback(); // Вибрация при нажатии
       
-      navigator.clipboard.writeText(`https://t.me/greenlight_casino_bot?start=${userData.referralCode}`)
+      navigator.clipboard.writeText(`https://t.me/Greenlightgames_bot?start=${userData.referralCode}`)
         .then(() => {
           successNotification(); // Вибрация успеха
           showNotification('Реферальная ссылка скопирована!');
@@ -586,7 +586,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           <div className="link-container">
             <input 
               type="text" 
-              value={`https://t.me/greenlight_casino_bot?start=${partner.referralCode}`}
+              value={`https://t.me/Greenlightgames_bot?start=${partner.referralCode}`}
               readOnly
             />
             <button onClick={copyReferralCode}>📋</button>

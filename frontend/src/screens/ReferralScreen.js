@@ -64,7 +64,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
     if (!partnerData) return;
     
     buttonPressFeedback();
-    const link = `https://t.me/greenlight_casino_bot?start=${partnerData.partner.referralCode}`;
+    const link = `https://t.me/Greenlightgames_bot?start=${partnerData.partner.referralCode}`;
     
     navigator.clipboard.writeText(link)
       .then(() => {
@@ -82,7 +82,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
     if (!partnerData) return;
     
     buttonPressFeedback();
-    const link = `https://t.me/greenlight_casino_bot?start=${partnerData.partner.referralCode}`;
+    const link = `https://t.me/Greenlightgames_bot?start=${partnerData.partner.referralCode}`;
     const text = `🎰 Играй в Greenlight Casino и зарабатывай!\n\n💰 Бонус за регистрацию\n🎮 Лучшие игры\n💸 Быстрые выплаты\n\nРегистрируйся по моей ссылке:`;
     
     if (window.Telegram?.WebApp) {
@@ -257,7 +257,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
           <div className="link-container">
             <input 
               type="text" 
-              value={`https://t.me/greenlight_casino_bot?start=${partnerData.partner.referralCode}`}
+              value={`https://t.me/Greenlightgames_bot?start=${partnerData.partner.referralCode}`}
               readOnly
             />
             <button onClick={copyReferralLink}>📋</button>
@@ -293,7 +293,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
               `💸 Моментальные выплаты в USDT\n` +
               `🔥 Еженедельные турниры\n\n` +
               `Регистрируйся по моей ссылке:\n` +
-              `https://t.me/greenlight_casino_bot?start=${partnerData.partner.referralCode}`
+              `https://t.me/Greenlightgames_bot?start=${partnerData.partner.referralCode}`
             );
             showNotification('Промо-текст скопирован!');
           }}>

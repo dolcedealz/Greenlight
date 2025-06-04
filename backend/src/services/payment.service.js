@@ -115,7 +115,7 @@ class PaymentService {
         description: `Пополнение баланса Greenlight Casino`,
         hidden_message: `Депозит для пользователя ${userId}`,
         paid_btn_name: 'callback', // После оплаты вернется в приложение
-        paid_btn_url: process.env.WEBAPP_URL || 'https://t.me/greenlight_casino_bot',
+        paid_btn_url: process.env.WEBAPP_URL || 'https://t.me/Greenlightgames_bot',
         allow_comments: false,
         allow_anonymous: true,
         expires_in: 3600 // 1 час на оплату

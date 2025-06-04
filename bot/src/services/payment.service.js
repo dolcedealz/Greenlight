@@ -32,7 +32,7 @@ class PaymentService {
         description: `Пополнение баланса в Greenlight Casino`,
         hidden_message: `Пополнение для пользователя #${userId}`,
         paid_btn_name: 'callback', // Изменено с 'return' на 'callback'
-        paid_btn_url: config.webAppUrl || 'https://t.me/greenlight_casino_bot',
+        paid_btn_url: config.webAppUrl || 'https://t.me/Greenlightgames_bot',
         allow_comments: false,
         allow_anonymous: true,
         expires_in: 3600 // 1 час на оплату

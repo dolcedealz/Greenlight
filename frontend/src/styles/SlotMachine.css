@@ -10,7 +10,7 @@
     0 0 40px rgba(11, 168, 74, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   width: 100%;
-  max-width: 560px; /* УВЕЛИЧИЛИ: с 520px до 560px */
+  max-width: 600px; /* УВЕЛИЧИЛИ: с 560px до 600px */
   margin: 0 auto;
   position: relative;
   border: 1px solid rgba(11, 168, 74, 0.2);
@@ -50,7 +50,7 @@
   position: relative;
   background: linear-gradient(145deg, #0f0f0f 0%, #1f1f1f 50%, #0f0f0f 100%);
   border-radius: 20px;
-  padding: 30px;
+  padding: 35px; /* УВЕЛИЧИЛИ: с 30px до 35px */
   border: 3px solid #333;
   box-shadow: 
     inset 0 0 20px rgba(0, 0, 0, 0.8),
@@ -82,7 +82,7 @@
 .slot-reels {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 22px; /* УВЕЛИЧИЛИ: с 18px до 22px */
+  gap: 25px; /* УВЕЛИЧИЛИ: с 22px до 25px */
   position: relative;
   z-index: 2;
 }
@@ -100,6 +100,7 @@
   position: relative;
   transform-origin: center;
   transition: all 0.2s ease;
+  min-width: 90px; /* ДОБАВИЛИ: минимальная ширина для каждого барабана */
 }
 
 /* ИСПРАВЛЕНО: Простая анимация вращения без перегрева */
@@ -263,12 +264,12 @@
   /* ИСПРАВЛЕНО: Простое статичное отображение */
 }
 
-/* ИСПРАВЛЕНО: Еще более компактная информация о результате */
+/* МАКСИМАЛЬНО КОМПАКТНАЯ информация о результате */
 .last-spin-info {
   text-align: center;
-  padding: 8px 12px; /* УМЕНЬШИЛИ: с 12px 15px */
-  border-radius: 10px; /* УМЕНЬШИЛИ: с 12px */
-  margin-top: 8px; /* УМЕНЬШИЛИ: с 12px */
+  padding: 6px 10px; /* УМЕНЬШИЛИ: с 8px 12px */
+  border-radius: 8px; /* УМЕНЬШИЛИ: с 10px */
+  margin-top: 6px; /* УМЕНЬШИЛИ: с 8px */
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);

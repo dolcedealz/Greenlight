@@ -1,7 +1,7 @@
 // backend/src/routes/auth.routes.js
 const express = require('express');
 const { authController } = require('../controllers');
-const { telegramAuthMiddleware } = require('../middleware');
+const { telegramAuthMiddleware, authLimit } = require('../middleware');
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const router = express.Router();
  * - initData (string, required) - 0==K5 8=8F80;870F88 >B Telegram WebApp
  * - referralCode (string, optional) -  5D5@0;L=K9 :>4
  */
-router.post('/telegram', authController.authenticateWithTelegram);
+router.post('/telegram', authLimit, authController.authenticateWithTelegram);
 
 /**
  * 1=>2;5=85 JWT B>:5=0

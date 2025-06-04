@@ -67,13 +67,13 @@ class EventController {
   }
   
   /**
-   * Получить событие по ID
+   * Получить событие по ID (для пользователей)
    */
   async getEventById(req, res) {
     try {
       const { eventId } = req.params;
       
-      console.log('EVENT CONTROLLER: Запрос события по ID:', eventId);
+      console.log('EVENT CONTROLLER: Запрос события по ID (пользователь):', eventId);
       
       const event = await eventService.getEventById(eventId);
       
@@ -86,6 +86,49 @@ class EventController {
       });
     } catch (error) {
       console.error('EVENT CONTROLLER: Ошибка получения события:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Ошибка получения события'
+      });
+    }
+  },
+
+  /**
+   * Получить событие по ID (для админов - с расширенной информацией)
+   */
+  async getEventByIdAdmin(req, res) {
+    try {
+      const { eventId } = req.params;
+      
+      console.log('EVENT CONTROLLER: Админский запрос события по ID:', eventId);
+      
+      // Проверяем права админа
+      if (req.user.role !== 'admin' && !req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Доступ запрещен. Требуются права администратора'
+        });
+      }
+      
+      const event = await eventService.getEventById(eventId);
+      
+      // Для админов добавляем расширенную статистику
+      const oddsStats = event.metadata?.flexibleOddsStats || {};
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          event: event,
+          flexibleOdds: true,
+          adminData: {
+            oddsHistory: oddsStats.oddsHistory || [],
+            recalculations: oddsStats.oddsRecalculations || 0,
+            extremeOdds: oddsStats.extremeOdds || {}
+          }
+        }
+      });
+    } catch (error) {
+      console.error('EVENT CONTROLLER: Ошибка получения события (админ):', error);
       
       if (error.message.includes('не найдено')) {
         res.status(404).json({
@@ -99,8 +142,8 @@ class EventController {
         });
       }
     }
-  }
-  
+  },
+
   /**
    * Разместить ставку на событие
    */

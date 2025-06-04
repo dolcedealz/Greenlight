@@ -331,7 +331,7 @@ class EventService {
       console.log('EVENT SERVICE: Запрос к базе:', JSON.stringify(query, null, 2));
       
       try {
-        // Получаем ставки с детальной обработкой ошибок
+        // Оптимизированный запрос ставок с использованием индексов
         const bets = await EventBet.find(query)
           .populate({
             path: 'event',
@@ -343,7 +343,8 @@ class EventService {
           .sort({ placedAt: -1 })
           .limit(parseInt(limit))
           .skip(parseInt(skip))
-          .lean();
+          .lean()
+          .hint('user_bets_optimized'); // Принудительно используем оптимизированный индекс
         
         console.log(`EVENT SERVICE: Найдено ставок в базе: ${bets.length}`);
         

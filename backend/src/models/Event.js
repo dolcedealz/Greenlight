@@ -1,6 +1,9 @@
 // backend/src/models/Event.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ОПТИМИЗАЦИЯМИ ДЛЯ ГИБКИХ КОЭФФИЦИЕНТОВ
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const { createLogger } = require('../utils/logger');
+
+const logger = createLogger('Event');
 
 const eventSchema = new Schema({
   title: {
@@ -259,7 +262,7 @@ eventSchema.pre('save', function(next) {
 
 // ОБНОВЛЕННЫЙ метод для расчета коэффициентов с сохранением истории
 eventSchema.methods.calculateOdds = function(saveHistory = false) {
-  console.log(`Event ${this._id}: Расчет коэффициентов (всего ставок: ${this.totalPool} USDT)`);
+  logger.debug(`Расчет коэффициентов (всего ставок: ${this.totalPool} USDT)`, { eventId: this._id });
   
   if (this.totalPool === 0) {
     const defaultOdds = {
@@ -267,7 +270,7 @@ eventSchema.methods.calculateOdds = function(saveHistory = false) {
       [this.outcomes[1].id]: this.initialOdds
     };
     
-    console.log(`Event ${this._id}: Нет ставок, используем начальные коэффициенты:`, defaultOdds);
+    logger.debug('Нет ставок, используем начальные коэффициенты', { eventId: this._id, defaultOdds });
     return defaultOdds;
   }
   
@@ -547,14 +550,60 @@ eventSchema.statics.getFlexibleOddsStatistics = async function() {
   };
 };
 
-// Индексы для производительности
-eventSchema.index({ status: 1, bettingEndsAt: 1 });
-eventSchema.index({ featured: 1, priority: -1 });
-eventSchema.index({ category: 1, status: 1 });
-eventSchema.index({ createdBy: 1 });
-eventSchema.index({ endTime: 1, status: 1 }); // Для уведомлений
-eventSchema.index({ 'metadata.correctOutcomeId': 1 }); // Для поиска событий с установленным исходом
-eventSchema.index({ 'metadata.flexibleOddsStats.oddsRecalculations': 1 }); // Для статистики гибких коэффициентов
+// Оптимизированные индексы для производительности
+
+// Основной композитный индекс для получения активных событий (наиболее частый запрос)
+eventSchema.index({ 
+  status: 1, 
+  bettingEndsAt: 1, 
+  priority: -1, 
+  createdAt: -1 
+}, { 
+  name: 'active_events_optimized' 
+});
+
+// Индекс для поиска главного события
+eventSchema.index({ 
+  featured: 1, 
+  status: 1, 
+  bettingEndsAt: 1,
+  priority: -1 
+}, { 
+  name: 'featured_events' 
+});
+
+// Индексы для административных запросов
+eventSchema.index({ createdBy: 1, createdAt: -1 }, { name: 'admin_events' });
+eventSchema.index({ status: 1, endTime: 1 }, { name: 'events_by_end_time' });
+
+// Индекс для уведомлений и мониторинга
+eventSchema.index({ 
+  endTime: 1, 
+  status: 1,
+  'metadata.notificationsSent.overdue': 1
+}, { 
+  name: 'notifications_index' 
+});
+
+// Индекс для поиска событий готовых к завершению
+eventSchema.index({ 
+  'metadata.correctOutcomeId': 1,
+  status: 1
+}, { 
+  name: 'ready_to_finish' 
+});
+
+// Текстовый индекс для поиска по названию и описанию
+eventSchema.index({ 
+  title: 'text', 
+  description: 'text' 
+}, { 
+  name: 'text_search',
+  weights: { title: 10, description: 1 }
+});
+
+// Индекс для категорий
+eventSchema.index({ category: 1, status: 1, priority: -1 }, { name: 'category_events' });
 
 const Event = mongoose.model('Event', eventSchema);
 

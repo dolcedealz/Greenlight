@@ -1,7 +1,18 @@
 // backend/src/routes/event.routes.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const express = require('express');
 const { eventController } = require('../controllers');
-const { telegramAuthMiddleware, adminAuthMiddleware } = require('../middleware');
+const { 
+  telegramAuthMiddleware, 
+  adminAuthMiddleware, 
+  bettingLimit, 
+  generalLimit, 
+  adminLimit,
+  validatePlaceBet,
+  validateCreateEvent,
+  validateFinishEvent,
+  validateObjectId,
+  sanitizeStrings
+} = require('../middleware');
 
 const router = express.Router();
 
@@ -11,6 +22,7 @@ console.log('EVENT ROUTES: Регистрация маршрутов событ�
 
 // Получить активные события
 router.get('/active', 
+  generalLimit,
   telegramAuthMiddleware, 
   eventController.getActiveEvents
 );
@@ -33,16 +45,24 @@ router.get('/admin/all',
 );
 
 router.post('/admin/create', 
+  adminLimit,
+  sanitizeStrings,
+  validateCreateEvent,
   adminAuthMiddleware, 
   eventController.createEvent
 );
 
 router.get('/admin/:eventId', 
+  adminLimit,
+  validateObjectId('eventId'),
   adminAuthMiddleware, 
-  eventController.getEventById
+  eventController.getEventByIdAdmin
 );
 
 router.put('/admin/:eventId/finish', 
+  adminLimit,
+  sanitizeStrings,
+  validateFinishEvent,
   adminAuthMiddleware, 
   eventController.finishEvent
 );
@@ -59,12 +79,16 @@ router.get('/user/bets',
 
 // Разместить ставку на событие
 router.post('/:eventId/bet', 
+  bettingLimit,
+  sanitizeStrings,
+  validatePlaceBet,
   telegramAuthMiddleware, 
   eventController.placeBet
 );
 
 // Получить событие по ID (ДЛЯ ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ)
 router.get('/:eventId', 
+  validateObjectId('eventId'),
   telegramAuthMiddleware, 
   eventController.getEventById
 );

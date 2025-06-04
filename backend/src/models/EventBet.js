@@ -1,6 +1,9 @@
 // backend/src/models/EventBet.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ГИБКИМИ КОЭФФИЦИЕНТАМИ
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const { createLogger } = require('../utils/logger');
+
+const logger = createLogger('EventBet');
 
 const eventBetSchema = new Schema({
   // Связь с пользователем
@@ -137,9 +140,9 @@ eventBetSchema.pre('save', function(next) {
   if (!this.estimatedWin || this.estimatedWin === 0) {
     if (this.betAmount && this.oddsAtBet && !isNaN(this.betAmount) && !isNaN(this.oddsAtBet)) {
       this.estimatedWin = this.betAmount * this.oddsAtBet;
-      console.log(`EventBet: Рассчитан estimatedWin = ${this.betAmount} * ${this.oddsAtBet} = ${this.estimatedWin}`);
+      logger.debug(`Рассчитан estimatedWin = ${this.betAmount} * ${this.oddsAtBet} = ${this.estimatedWin}`);
     } else {
-      console.error('EventBet: Невозможно рассчитать estimatedWin, betAmount:', this.betAmount, 'oddsAtBet:', this.oddsAtBet);
+      logger.error('Невозможно рассчитать estimatedWin', { betAmount: this.betAmount, oddsAtBet: this.oddsAtBet });
       this.estimatedWin = this.betAmount || 0;
     }
   }
@@ -155,13 +158,15 @@ eventBetSchema.methods.markAsWonWithFinalOdds = async function(finalOdds) {
   this.profit = this.actualWin - this.betAmount;
   this.settledAt = new Date();
   
-  console.log(`EventBet ${this._id}: Выигрыш рассчитан по финальным коэффициентам`);
-  console.log(`  Ставка: ${this.betAmount} USDT`);
-  console.log(`  Коэффициент при ставке: ${this.oddsAtBet}`);
-  console.log(`  Финальный коэффициент: ${this.finalOdds}`);
-  console.log(`  Ожидаемый выигрыш: ${this.estimatedWin} USDT`);
-  console.log(`  Фактический выигрыш: ${this.actualWin} USDT`);
-  console.log(`  Разница: ${(this.actualWin - this.estimatedWin).toFixed(2)} USDT`);
+  logger.info(`Выигрыш рассчитан по финальным коэффициентам`, {
+    betId: this._id,
+    betAmount: this.betAmount,
+    oddsAtBet: this.oddsAtBet,
+    finalOdds: this.finalOdds,
+    estimatedWin: this.estimatedWin,
+    actualWin: this.actualWin,
+    difference: (this.actualWin - this.estimatedWin).toFixed(2)
+  });
   
   return this.save();
 };
@@ -232,7 +237,7 @@ eventBetSchema.statics.settleBetsWithFinalOdds = async function(eventId, winning
   
   // Рассчитываем финальные коэффициенты
   const finalOdds = event.calculateOdds();
-  const winningFinalOdds = finalOdds[winningOutcomeId];
+  let winningFinalOdds = finalOdds[winningOutcomeId];
   
   console.log(`EventBet: Финальные коэффициенты:`, finalOdds);
   console.log(`EventBet: Коэффициент победившего исхода: ${winningFinalOdds}`);
@@ -317,11 +322,62 @@ eventBetSchema.statics.settleBetsWithFinalOdds = async function(eventId, winning
   return results;
 };
 
-// Индексы для производительности
-eventBetSchema.index({ user: 1, createdAt: -1 });
-eventBetSchema.index({ event: 1, outcomeId: 1 });
-eventBetSchema.index({ status: 1, settledAt: 1 });
-eventBetSchema.index({ placedAt: -1 });
+// Оптимизированные индексы для производительности
+
+// Основной композитный индекс для getUserBets (наиболее частый запрос)
+eventBetSchema.index({ 
+  user: 1, 
+  status: 1, 
+  placedAt: -1 
+}, { 
+  name: 'user_bets_optimized' 
+});
+
+// Индекс для ставок на событие (группировка по исходам)
+eventBetSchema.index({ 
+  event: 1, 
+  outcomeId: 1, 
+  status: 1 
+}, { 
+  name: 'event_bets_by_outcome' 
+});
+
+// Индекс для активных ставок (для расчетов)
+eventBetSchema.index({ 
+  event: 1, 
+  status: 1 
+}, { 
+  name: 'event_active_bets' 
+});
+
+// Индекс для временной сортировки всех ставок
+eventBetSchema.index({ placedAt: -1 }, { name: 'bets_by_time' });
+
+// Индекс для расчета статистики пользователя
+eventBetSchema.index({ 
+  user: 1, 
+  status: 1, 
+  settledAt: -1 
+}, { 
+  name: 'user_stats' 
+});
+
+// Индекс для финансовой аналитики
+eventBetSchema.index({ 
+  settledAt: 1, 
+  status: 1 
+}, { 
+  name: 'financial_analytics' 
+});
+
+// Индекс для поиска завершенных ставок конкретного события
+eventBetSchema.index({ 
+  event: 1, 
+  status: 1, 
+  settledAt: -1 
+}, { 
+  name: 'event_settled_bets' 
+});
 
 const EventBet = mongoose.model('EventBet', eventBetSchema);
 

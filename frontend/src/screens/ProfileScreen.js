@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
 import Deposits from '../components/profile/Deposits';
 import Withdrawals from '../components/profile/Withdrawals';
+import { ReferralsList, EarningsHistory, PayoutModal } from '../components/referral';
 import useTactileFeedback from '../hooks/useTactileFeedback';
-import { userApi, gameApi } from '../services';
+import { userApi, gameApi, referralApi } from '../services';
 import { showNotification } from '../utils/telegram';
 import '../styles/ProfileScreen.css';
 
@@ -15,6 +16,8 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
+  const [referralData, setReferralData] = useState(null);
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
   
   // Добавляем тактильную обратную связь
   const { 
@@ -52,6 +55,25 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     
     fetchUserData();
   }, []);
+
+  // Загружаем реферальные данные при переходе на вкладку рефералов
+  useEffect(() => {
+    if (activeTab === 'referrals' && !referralData) {
+      const fetchReferralData = async () => {
+        try {
+          const response = await referralApi.getPartnerStats();
+          if (response.data.success) {
+            setReferralData(response.data.data);
+          }
+        } catch (err) {
+          console.error('Ошибка загрузки реферальных данных:', err);
+          showNotification('Не удалось загрузить реферальные данные');
+        }
+      };
+      
+      fetchReferralData();
+    }
+  }, [activeTab, referralData]);
   
   // Копирование реферального кода с вибрацией
   const copyReferralCode = () => {
@@ -95,6 +117,36 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
   // Обработчик ссылок с вибрацией
   const handleLinkClick = () => {
     buttonPressFeedback(); // Вибрация при нажатии на ссылку
+  };
+
+  // Создание реферальной выплаты
+  const handleCreatePayout = async (amount) => {
+    try {
+      buttonPressFeedback();
+      
+      const response = await referralApi.createPayout(amount);
+      
+      if (response.data.success) {
+        successNotification();
+        showNotification(`Выплата ${amount} USDT переведена на основной баланс!`);
+        
+        // Обновляем реферальные данные
+        const updatedReferralData = await referralApi.getPartnerStats();
+        if (updatedReferralData.data.success) {
+          setReferralData(updatedReferralData.data.data);
+        }
+        
+        // Обновляем основной баланс
+        if (onBalanceUpdate) {
+          onBalanceUpdate();
+        }
+        
+        setShowPayoutModal(false);
+      }
+    } catch (error) {
+      console.error('Ошибка создания выплаты:', error);
+      showNotification(error.response?.data?.message || 'Ошибка создания выплаты');
+    }
   };
   
   // Форматирование даты
@@ -413,6 +465,153 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     );
   };
   
+  // Рендер вкладки рефералов
+  const renderReferralsTab = () => {
+    if (!referralData) {
+      return (
+        <div className="referrals-tab">
+          <div className="referrals-loading">
+            <div className="loader"></div>
+            <p>Загрузка реферальных данных...</p>
+          </div>
+        </div>
+      );
+    }
+
+    const { partner, stats } = referralData;
+    
+    // Функция для получения отображения уровня
+    const getLevelDisplay = (level) => {
+      const levels = {
+        bronze: { name: 'Бронза', icon: '🥉', color: '#CD7F32' },
+        silver: { name: 'Серебро', icon: '🥈', color: '#C0C0C0' },
+        gold: { name: 'Золото', icon: '🥇', color: '#FFD700' },
+        platinum: { name: 'Платина', icon: '💎', color: '#E5E4E2' },
+        vip: { name: 'VIP', icon: '🌟', color: '#9400D3' }
+      };
+      return levels[level] || { name: level, icon: '🎯', color: '#0ba84a' };
+    };
+
+    const levelInfo = getLevelDisplay(partner.level);
+    const progress = partner.progress;
+
+    return (
+      <div className="referrals-tab">
+        {/* Карточка уровня партнера */}
+        <div className="referral-level-card" style={{ borderColor: levelInfo.color }}>
+          <div className="level-header">
+            <div className="level-icon">{levelInfo.icon}</div>
+            <div className="level-info">
+              <h3>{levelInfo.name}</h3>
+              <p className="commission-rate">{stats.commissionPercent}% комиссия</p>
+            </div>
+          </div>
+          
+          {progress.nextLevel && (
+            <div className="level-progress">
+              <div className="progress-info">
+                <span>До {getLevelDisplay(progress.nextLevel).name}</span>
+                <span>{progress.current}/{progress.current + progress.needed} активных</span>
+              </div>
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ 
+                    width: `${progress.progress}%`,
+                    backgroundColor: levelInfo.color 
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Реферальный баланс */}
+        <div className="referral-balance-card">
+          <div className="balance-header">
+            <h3>💰 Реферальный баланс</h3>
+            <button 
+              className="payout-button"
+              onClick={() => setShowPayoutModal(true)}
+              disabled={stats.referralBalance < 10}
+            >
+              Вывести
+            </button>
+          </div>
+          <div className="balance-amount">
+            {stats.referralBalance.toFixed(2)} USDT
+          </div>
+          <div className="balance-stats">
+            <div className="stat-item">
+              <span>Всего заработано</span>
+              <span>{stats.totalEarned.toFixed(2)} USDT</span>
+            </div>
+            <div className="stat-item">
+              <span>Выведено</span>
+              <span>{stats.totalWithdrawn.toFixed(2)} USDT</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Статистика рефералов */}
+        <div className="referral-stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">👥</div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.totalReferrals}</div>
+              <div className="stat-label">Всего рефералов</div>
+            </div>
+          </div>
+          
+          <div className="stat-card">
+            <div className="stat-icon">🔥</div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.activeReferrals}</div>
+              <div className="stat-label">Активных</div>
+            </div>
+          </div>
+          
+          <div className="stat-card">
+            <div className="stat-icon">💎</div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.referralsWithDeposits}</div>
+              <div className="stat-label">С депозитами</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Реферальная ссылка */}
+        <div className="referral-link-section">
+          <h3>🔗 Ваша реферальная ссылка</h3>
+          <div className="link-container">
+            <input 
+              type="text" 
+              value={`https://t.me/greenlight_casino_bot?start=${partner.referralCode}`}
+              readOnly
+            />
+            <button onClick={copyReferralCode}>📋</button>
+          </div>
+          <div className="referral-code">
+            Ваш код: <span>{partner.referralCode}</span>
+          </div>
+        </div>
+
+        {/* Компоненты рефералов */}
+        <div className="referral-components">
+          <div className="referral-section">
+            <h4>👥 Список рефералов</h4>
+            <ReferralsList />
+          </div>
+          
+          <div className="referral-section">
+            <h4>💰 История начислений</h4>
+            <EarningsHistory />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Рендер вкладки настроек с вибрацией
   const renderSettingsTab = () => {
     return (
@@ -539,6 +738,8 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
         return renderTransactionsTab();
       case 'stats':
         return renderStatsTab();
+      case 'referrals':
+        return renderReferralsTab();
       case 'settings':
         return renderSettingsTab();
       default:
@@ -586,6 +787,12 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               Статистика
             </button>
             <button 
+              className={`tab-button ${activeTab === 'referrals' ? 'active' : ''}`} 
+              onClick={() => handleTabChange('referrals')}
+            >
+              👥 Рефералы
+            </button>
+            <button 
               className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`} 
               onClick={() => handleTabChange('settings')}
             >
@@ -596,6 +803,15 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           <div className="profile-content">
             {renderActiveTab()}
           </div>
+
+          {/* Модальное окно выплаты */}
+          {showPayoutModal && referralData && (
+            <PayoutModal
+              referralBalance={referralData.stats.referralBalance}
+              onConfirm={handleCreatePayout}
+              onClose={() => setShowPayoutModal(false)}
+            />
+          )}
         </>
       )}
     </div>

@@ -1,0 +1,361 @@
+/* frontend/src/styles/EarningsHistory.css */
+.earnings-history {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Секции */
+.history-sections {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 5px;
+  border-radius: 10px;
+}
+
+.section-button {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.section-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.section-button.active {
+  background: linear-gradient(135deg, #0ba84a, #0c9740);
+  color: white;
+}
+
+/* Фильтры начислений */
+.earnings-filters {
+  display: flex;
+  gap: 10px;
+}
+
+.earnings-filters button {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.earnings-filters button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.earnings-filters button.active {
+  background: linear-gradient(135deg, #0ba84a, #0c9740);
+  border-color: transparent;
+  color: white;
+}
+
+/* Список начислений */
+.earnings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.earnings-day {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 15px;
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.day-date {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.day-total {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0ba84a;
+}
+
+.day-earnings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.earning-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.earning-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(5px);
+}
+
+.earning-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.earning-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.earning-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.earning-type {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.earning-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0ba84a;
+}
+
+.earning-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 5px;
+}
+
+.earning-referral {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.earning-time {
+  flex-shrink: 0;
+}
+
+.earning-game {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.game-icon {
+  font-size: 16px;
+}
+
+/* Список выплат */
+.payouts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.payout-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.payout-item:hover {
+  border-color: rgba(11, 168, 74, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(11, 168, 74, 0.1);
+}
+
+.payout-status {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.payout-details {
+  flex: 1;
+}
+
+.payout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.payout-amount {
+  font-size: 20px;
+  font-weight: bold;
+  color: #0ba84a;
+}
+
+.payout-date {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.payout-info {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.transfer-info {
+  color: #0ba84a;
+}
+
+.payout-balances {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Пустые состояния */
+.no-earnings,
+.no-payouts {
+  text-align: center;
+  padding: 60px 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
+
+.no-earnings-icon,
+.no-payouts-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  opacity: 0.5;
+}
+
+.no-earnings h3,
+.no-payouts h3 {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+}
+
+.no-earnings p,
+.no-payouts p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Загрузка */
+.history-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+.history-loading p {
+  margin-top: 15px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Кнопка загрузки еще */
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.load-more-button {
+  padding: 12px 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.load-more-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(11, 168, 74, 0.3);
+}
+
+.load-more-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .earning-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .earning-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+  
+  .earning-referral {
+    max-width: 100%;
+  }
+  
+  .payout-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .payout-info {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .payout-balances {
+    flex-wrap: wrap;
+  }
+}

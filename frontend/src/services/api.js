@@ -506,10 +506,9 @@ const eventsApi = {
 // API для рефералов
 const referralApi = {
   // Получить статистику партнера
-  getPartnerStats: (partnerId = null, period = null) => {
-    console.log('Получение статистики партнера:', { partnerId, period });
-    const url = partnerId ? `/referrals/partner/${partnerId}/stats` : '/referrals/my/stats';
-    return api.get(url, { params: { period } });
+  getPartnerStats: (period = null) => {
+    console.log('Получение статистики партнера:', { period });
+    return api.get('/referrals/stats', { params: { period } });
   },
   
   // Создать выплату реферальных средств
@@ -533,7 +532,7 @@ const referralApi = {
   // Получить список рефералов
   getReferrals: (params = {}) => {
     console.log('Получение списка рефералов:', params);
-    return api.get('/referrals/my/referrals', { params });
+    return api.get('/referrals/list', { params });
   }
 };
 

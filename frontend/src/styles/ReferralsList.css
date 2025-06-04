@@ -1,0 +1,340 @@
+/* frontend/src/styles/ReferralsList.css */
+.referrals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Контролы */
+.referrals-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+}
+
+.filter-buttons button {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-buttons button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.filter-buttons button.active {
+  background: linear-gradient(135deg, #0ba84a, #0c9740);
+  border-color: transparent;
+  color: white;
+}
+
+.sort-select {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sort-select:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Сетка рефералов */
+.referrals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 15px;
+}
+
+.referral-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.referral-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0ba84a, #0c9740);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.referral-card:hover::before {
+  transform: scaleX(1);
+}
+
+.referral-card.active {
+  border-color: rgba(11, 168, 74, 0.3);
+  background: linear-gradient(135deg, rgba(11, 168, 74, 0.05), rgba(11, 168, 74, 0.02));
+}
+
+.referral-card.inactive {
+  opacity: 0.7;
+}
+
+.referral-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.referral-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #0ba84a, #0c9740);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+  flex-shrink: 0;
+}
+
+.referral-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.referral-info h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.referral-username {
+  margin: 2px 0 0 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.referral-status {
+  font-size: 16px;
+}
+
+.referral-status.active {
+  filter: drop-shadow(0 0 4px rgba(11, 168, 74, 0.5));
+}
+
+/* Статистика реферала */
+.referral-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.stat {
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 2px;
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stat-value.earned {
+  color: #0ba84a;
+}
+
+/* Индикатор прибыли */
+.referral-profit {
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profit-indicator {
+  text-align: center;
+}
+
+.profit {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.profit.positive {
+  background: rgba(11, 168, 74, 0.1);
+  color: #0ba84a;
+}
+
+.profit.negative {
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+}
+
+/* Загрузка */
+.referrals-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+.referrals-loading p {
+  margin-top: 15px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Пустое состояние */
+.no-referrals {
+  text-align: center;
+  padding: 60px 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
+
+.no-referrals-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  opacity: 0.5;
+}
+
+.no-referrals h3 {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+}
+
+.no-referrals p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Кнопка загрузки еще */
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.load-more-button {
+  padding: 12px 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.load-more-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(11, 168, 74, 0.3);
+}
+
+.load-more-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Сводка внизу */
+.referrals-summary {
+  margin-top: 40px;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, rgba(11, 168, 74, 0.1), rgba(11, 168, 74, 0.05));
+  border: 1px solid rgba(11, 168, 74, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.summary-card h4 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-card ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.summary-card li {
+  position: relative;
+  padding-left: 20px;
+  margin: 8px 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.summary-card li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #0ba84a;
+  font-weight: bold;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .referrals-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .referrals-controls {
+    flex-direction: column;
+  }
+  
+  .filter-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .sort-select {
+    width: 100%;
+  }
+  
+  .referral-stats {
+    grid-template-columns: 1fr;
+  }
+}

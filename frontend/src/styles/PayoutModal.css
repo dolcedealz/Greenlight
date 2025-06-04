@@ -1,0 +1,381 @@
+/* frontend/src/styles/PayoutModal.css */
+.payout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.payout-modal {
+  background: linear-gradient(135deg, #1e1e1e, #1a1a1a);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Заголовок модального окна */
+.payout-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.payout-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.close-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transform: rotate(90deg);
+}
+
+/* Тело модального окна */
+.payout-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(90vh - 180px);
+}
+
+/* Информация о балансе */
+.balance-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(11, 168, 74, 0.1), rgba(11, 168, 74, 0.05));
+  border: 1px solid rgba(11, 168, 74, 0.3);
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.balance-info .label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.balance-info .amount {
+  font-size: 24px;
+  font-weight: bold;
+  color: #0ba84a;
+}
+
+/* Секция ввода суммы */
+.amount-input-section {
+  margin-bottom: 20px;
+}
+
+.amount-input-section label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.amount-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.amount-input-wrapper input {
+  flex: 1;
+  padding: 15px;
+  padding-right: 60px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.amount-input-wrapper input:focus {
+  outline: none;
+  border-color: rgba(11, 168, 74, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.amount-input-wrapper input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.amount-input-wrapper .currency {
+  position: absolute;
+  right: 15px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+/* Предустановленные суммы */
+.preset-amounts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.preset-button {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.preset-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(11, 168, 74, 0.3);
+  transform: translateY(-2px);
+}
+
+.preset-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.preset-button.active {
+  background: linear-gradient(135deg, #0ba84a, #0c9740);
+  border-color: transparent;
+  color: white;
+}
+
+/* Чекбокс полной суммы */
+.full-amount-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.full-amount-checkbox:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.full-amount-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #0ba84a;
+  cursor: pointer;
+}
+
+.full-amount-checkbox span {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Информация о выводе */
+.payout-info {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.payout-info h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.payout-info ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.payout-info li {
+  position: relative;
+  padding-left: 20px;
+  margin: 8px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.payout-info li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #0ba84a;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Сообщение об ошибке */
+.error-message {
+  padding: 12px 16px;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: 8px;
+  color: #ff3b30;
+  font-size: 14px;
+  margin-bottom: 20px;
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Подвал модального окна */
+.payout-modal-footer {
+  display: flex;
+  gap: 15px;
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cancel-button,
+.confirm-button {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-button {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cancel-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.confirm-button {
+  background: linear-gradient(135deg, #0ba84a, #0c9740);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.confirm-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.confirm-button:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.confirm-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(11, 168, 74, 0.4);
+}
+
+.confirm-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #666, #555);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .payout-modal {
+    max-width: 100%;
+    margin: 10px;
+  }
+  
+  .preset-amounts {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .balance-info {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  
+  .payout-modal-footer {
+    flex-direction: column;
+  }
+}

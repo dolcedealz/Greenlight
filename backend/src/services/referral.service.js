@@ -9,31 +9,31 @@ class ReferralService {
       bronze: {
         name: 'Бронза',
         requiredActiveReferrals: 0,
-        commissionPercent: 5,
+        commissionPercent: 2, // Понижено с 5% до 2%
         color: '🥉'
       },
       silver: {
         name: 'Серебро',
         requiredActiveReferrals: 6,
-        commissionPercent: 7,
+        commissionPercent: 3, // Понижено с 7% до 3%
         color: '🥈'
       },
       gold: {
         name: 'Золото',
         requiredActiveReferrals: 21,
-        commissionPercent: 10,
+        commissionPercent: 4, // Понижено с 10% до 4%
         color: '🥇'
       },
       platinum: {
         name: 'Платина',
         requiredActiveReferrals: 51,
-        commissionPercent: 12,
+        commissionPercent: 5, // Понижено с 12% до 5%
         color: '💎'
       },
       vip: {
         name: 'VIP',
         requiredActiveReferrals: 101,
-        commissionPercent: 15,
+        commissionPercent: 6, // Понижено с 15% до 6%
         color: '🌟'
       }
     };
@@ -81,9 +81,16 @@ class ReferralService {
         return null;
       }
       
-      // 3. Проверяем минимальную ставку для предотвращения спама
-      if (Math.abs(profit) < 0.1) {
-        console.warn(`REFERRAL SECURITY: Ставка слишком мала для реферальной комиссии: ${Math.abs(profit)}`);
+      // 3. Проверяем что игрок ПРОИГРАЛ (нет комиссии с выигрышей)
+      if (profit >= 0) {
+        // Игрок выиграл или сыграл в ноль - комиссии нет
+        await session.abortTransaction();
+        return null;
+      }
+      
+      // 4. Проверяем минимальную ставку для предотвращения спама
+      if (bet < 0.1) {
+        console.warn(`REFERRAL SECURITY: Ставка слишком мала для реферальной комиссии: ${bet}`);
         await session.abortTransaction();
         return null;
       }
@@ -107,9 +114,10 @@ class ReferralService {
       // Получаем актуальную информацию о партнере
       const updatedPartner = await User.findById(partner._id).session(session);
       
-      // Рассчитываем комиссию
+      // Рассчитываем комиссию с ПРОИГРЫША реферала
       const commissionPercent = updatedPartner.referralStats.commissionPercent;
-      const earnedAmount = Math.abs(profit) * (commissionPercent / 100);
+      const lossAmount = Math.abs(profit); // Размер проигрыша
+      const earnedAmount = lossAmount * (commissionPercent / 100);
       
       // Создаем запись о начислении
       const earning = new ReferralEarning({
@@ -118,7 +126,7 @@ class ReferralService {
         game: gameId,
         type: 'game_loss',
         calculation: {
-          baseAmount: Math.abs(profit),
+          baseAmount: lossAmount, // Сумма проигрыша реферала
           partnerLevel: updatedPartner.referralStats.level,
           commissionPercent: commissionPercent,
           earnedAmount: earnedAmount
@@ -276,7 +284,7 @@ class ReferralService {
       
       // Определяем новый уровень
       let newLevel = 'bronze';
-      let newCommissionPercent = 5;
+      let newCommissionPercent = 2;
       
       for (const [level, config] of Object.entries(this.levels).reverse()) {
         if (activeReferralsCount >= config.requiredActiveReferrals) {

@@ -740,6 +740,44 @@ input:checked + .slider:before {
   cursor: pointer;
 }
 
+/* Обновленная секция реферальной программы */
+.referral-quick-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.referral-quick-stats span {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.referral-details-button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #0ba84a, #0c9740);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.referral-details-button:hover {
+  background: linear-gradient(135deg, #0c9740, #0a8235);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(11, 168, 74, 0.4);
+}
+
 /* НОВЫЕ адаптивные стили */
 @media (max-width: 768px) {
   .game-stats-summary {

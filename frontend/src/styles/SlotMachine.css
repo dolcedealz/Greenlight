@@ -1,16 +1,16 @@
-/* frontend/src/styles/SlotMachine.css - ИСПРАВЛЕННАЯ ВЕРСИЯ */
+/* frontend/src/styles/SlotMachine.css - ИСПРАВЛЕННАЯ КОМПАКТНАЯ ВЕРСИЯ */
 .slot-machine {
   display: flex;
   flex-direction: column;
   background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
-  border-radius: 24px;
-  padding: 25px;
+  border-radius: 20px; /* УМЕНЬШИЛИ: с 24px */
+  padding: 20px; /* УМЕНЬШИЛИ: с 25px */
   box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.4),
-    0 0 40px rgba(11, 168, 74, 0.15),
+    0 15px 40px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(11, 168, 74, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   width: 100%;
-  max-width: 600px; /* УВЕЛИЧИЛИ: с 560px до 600px */
+  max-width: 450px; /* СИЛЬНО УМЕНЬШИЛИ: с 600px до 450px */
   margin: 0 auto;
   position: relative;
   border: 1px solid rgba(11, 168, 74, 0.2);
@@ -24,7 +24,6 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
-/* ИСПРАВЛЕНО: Убрали сложную анимацию фона */
 .slot-machine::before {
   content: '';
   position: absolute;
@@ -36,12 +35,11 @@
     rgba(11, 168, 74, 0.03) 0%, 
     transparent 50%, 
     rgba(142, 68, 173, 0.02) 100%);
-  border-radius: 24px;
+  border-radius: 20px;
   pointer-events: none;
   z-index: -1;
 }
 
-/* ОПТИМИЗАЦИЯ: Отключаем фоновые эффекты для слабых устройств */
 .slot-machine.low-performance::before {
   display: none;
 }
@@ -49,18 +47,17 @@
 .slot-display {
   position: relative;
   background: linear-gradient(145deg, #0f0f0f 0%, #1f1f1f 50%, #0f0f0f 100%);
-  border-radius: 20px;
-  padding: 35px; /* УВЕЛИЧИЛИ: с 30px до 35px */
-  border: 3px solid #333;
+  border-radius: 16px; /* УМЕНЬШИЛИ: с 20px */
+  padding: 20px; /* СИЛЬНО УМЕНЬШИЛИ: с 35px до 20px */
+  border: 2px solid #333; /* УМЕНЬШИЛИ: с 3px */
   box-shadow: 
-    inset 0 0 20px rgba(0, 0, 0, 0.8),
+    inset 0 0 15px rgba(0, 0, 0, 0.8),
     inset 0 2px 5px rgba(255, 255, 255, 0.05),
-    0 10px 30px rgba(0, 0, 0, 0.5);
-  margin-bottom: 25px;
+    0 8px 25px rgba(0, 0, 0, 0.5);
+  margin-bottom: 20px; /* УМЕНЬШИЛИ: с 25px */
   overflow: hidden;
 }
 
-/* ИСПРАВЛЕНО: Убрали анимированный фон дисплея */
 .slot-display::before {
   content: '';
   position: absolute;
@@ -82,7 +79,7 @@
 .slot-reels {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 25px; /* УВЕЛИЧИЛИ: с 22px до 25px */
+  gap: 15px; /* СИЛЬНО УМЕНЬШИЛИ: с 25px до 15px */
   position: relative;
   z-index: 2;
 }
@@ -91,26 +88,24 @@
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 30%, #0f0f0f 70%, #0a0a0a 100%);
-  border-radius: 16px;
+  border-radius: 14px; /* УМЕНЬШИЛИ: с 16px */
   border: 2px solid #333;
   overflow: hidden;
   box-shadow: 
-    inset 0 4px 8px rgba(0, 0, 0, 0.5),
-    0 4px 15px rgba(0, 0, 0, 0.4);
+    inset 0 3px 6px rgba(0, 0, 0, 0.5),
+    0 3px 12px rgba(0, 0, 0, 0.4);
   position: relative;
   transform-origin: center;
   transition: all 0.2s ease;
-  min-width: 90px; /* ДОБАВИЛИ: минимальная ширина для каждого барабана */
+  min-width: 70px; /* УМЕНЬШИЛИ: с 90px до 70px */
 }
 
-/* ИСПРАВЛЕНО: Простая анимация вращения без перегрева */
 .slot-reel.spinning {
   border-color: rgba(11, 168, 74, 0.6);
   box-shadow: 
-    inset 0 4px 8px rgba(0, 0, 0, 0.5),
-    0 4px 15px rgba(0, 0, 0, 0.4),
-    0 0 15px rgba(11, 168, 74, 0.3);
-  /* Убрали CSS анимацию - анимацию делает только JavaScript */
+    inset 0 3px 6px rgba(0, 0, 0, 0.5),
+    0 3px 12px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(11, 168, 74, 0.3);
 }
 
 .slot-reel.spinning::before {
@@ -127,7 +122,7 @@
     transparent 80%,
     rgba(11, 168, 74, 0.05) 100%
   );
-  border-radius: 14px;
+  border-radius: 12px;
   pointer-events: none;
 }
 
@@ -139,10 +134,9 @@
 .slot-reel.stopped {
   border-color: var(--primary-color);
   box-shadow: 
-    inset 0 4px 8px rgba(0, 0, 0, 0.5),
-    0 4px 15px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(11, 168, 74, 0.4);
-  /* ИСПРАВЛЕНО: Убрали анимацию bounce - только transition */
+    inset 0 3px 6px rgba(0, 0, 0, 0.5),
+    0 3px 12px rgba(0, 0, 0, 0.4),
+    0 0 15px rgba(11, 168, 74, 0.4);
   transition: all 0.3s ease;
 }
 
@@ -150,7 +144,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 85px; /* УВЕЛИЧИЛИ: с 80px до 85px */
+  height: 65px; /* СИЛЬНО УМЕНЬШИЛИ: с 85px до 65px */
   background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #2a2a2a 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s ease;
@@ -176,27 +170,25 @@
 
 .slot-cell:last-child {
   border-bottom: none;
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 12px 12px; /* УМЕНЬШИЛИ: с 14px */
 }
 
 .slot-cell:first-child {
-  border-radius: 14px 14px 0 0;
+  border-radius: 12px 12px 0 0; /* УМЕНЬШИЛИ: с 14px */
 }
 
-/* ИСПРАВЛЕНО: Упрощенные выигрышные ячейки без сложных анимаций */
 .slot-cell.winning {
   background: linear-gradient(145deg, 
     rgba(11, 168, 74, 0.3) 0%, 
     rgba(11, 168, 74, 0.4) 50%, 
     rgba(11, 168, 74, 0.3) 100%);
   border: 2px solid var(--primary-color);
-  border-radius: 12px !important;
+  border-radius: 10px !important; /* УМЕНЬШИЛИ: с 12px */
   z-index: 5;
   box-shadow: 
-    0 0 20px rgba(11, 168, 74, 0.6),
-    0 4px 15px rgba(11, 168, 74, 0.4);
+    0 0 15px rgba(11, 168, 74, 0.6),
+    0 3px 12px rgba(11, 168, 74, 0.4);
   transform: scale(1.02);
-  /* ИСПРАВЛЕНО: Простое статичное свечение вместо анимации */
 }
 
 .slot-cell.winning::before {
@@ -206,31 +198,28 @@
 .slot-cell.winning::after {
   content: '✨';
   position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 12px;
+  top: 3px;
+  right: 3px;
+  font-size: 10px; /* УМЕНЬШИЛИ: с 12px */
   z-index: 10;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
-  /* ИСПРАВЛЕНО: Убрали анимацию sparkle */
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
 }
 
-/* Символы */
+/* Символы - КРИТИЧНО УМЕНЬШЕННЫЕ */
 .slot-symbol {
-  font-size: 50px; /* УВЕЛИЧИЛИ: с 46px до 50px */
+  font-size: 36px; /* СИЛЬНО УМЕНЬШИЛИ: с 50px до 36px */
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
   transition: all 0.2s ease;
-  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
   z-index: 3;
   position: relative;
   transform-origin: center;
-  /* ИСПРАВЛЕНО: Убрали постоянные анимации символов */
 }
 
 .slot-cell.winning .slot-symbol {
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 15px var(--primary-color));
-  text-shadow: 0 0 20px var(--primary-color);
-  /* ИСПРАВЛЕНО: Статичное увеличение вместо анимации */
+  transform: scale(1.08); /* УМЕНЬШИЛИ: с 1.1 */
+  filter: drop-shadow(0 0 12px var(--primary-color));
+  text-shadow: 0 0 15px var(--primary-color);
 }
 
 /* Линии выплат - УПРОЩЕННЫЕ */
@@ -254,26 +243,23 @@
     transparent 100%);
   opacity: 0;
   transition: opacity 0.4s ease;
-  border-radius: 3px;
-  box-shadow: 0 0 10px var(--primary-color);
-  /* ИСПРАВЛЕНО: Убрали анимацию glow */
+  border-radius: 2px; /* УМЕНЬШИЛИ: с 3px */
+  box-shadow: 0 0 8px var(--primary-color);
 }
 
 .payline.active {
   opacity: 0.9;
-  /* ИСПРАВЛЕНО: Простое статичное отображение */
 }
 
-/* МАКСИМАЛЬНО КОМПАКТНАЯ информация о результате */
+/* КОМПАКТНАЯ информация о результате */
 .last-spin-info {
   text-align: center;
-  padding: 6px 10px; /* УМЕНЬШИЛИ: с 8px 12px */
-  border-radius: 8px; /* УМЕНЬШИЛИ: с 10px */
-  margin-top: 6px; /* УМЕНЬШИЛИ: с 8px */
+  padding: 5px 8px; /* УМЕНЬШИЛИ: с 6px 10px */
+  border-radius: 6px; /* УМЕНЬШИЛИ: с 8px */
+  margin-top: 5px; /* УМЕНЬШИЛИ: с 6px */
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(10px);
-  /* ИСПРАВЛЕНО: Убрали анимацию появления */
+  backdrop-filter: blur(8px);
   opacity: 1;
   transform: translateY(0);
 }
@@ -286,7 +272,7 @@
   right: 0;
   bottom: 0;
   background: inherit;
-  filter: blur(8px);
+  filter: blur(6px);
   z-index: -1;
 }
 
@@ -297,9 +283,8 @@
     rgba(11, 168, 74, 0.2) 100%);
   border: 2px solid var(--primary-color);
   box-shadow: 
-    0 0 30px rgba(11, 168, 74, 0.5),
-    0 10px 25px rgba(0, 0, 0, 0.3);
-  /* ИСПРАВЛЕНО: Убрали анимацию pulse */
+    0 0 25px rgba(11, 168, 74, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .lose-display {
@@ -309,171 +294,208 @@
     rgba(255, 59, 48, 0.1) 100%);
   border: 2px solid rgba(255, 59, 48, 0.4);
   box-shadow: 
-    0 0 20px rgba(255, 59, 48, 0.3),
-    0 8px 20px rgba(0, 0, 0, 0.2);
+    0 0 15px rgba(255, 59, 48, 0.3),
+    0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
 .win-text {
   display: block;
-  font-size: 18px; /* УМЕНЬШИЛИ: с 20px */
+  font-size: 16px; /* УМЕНЬШИЛИ: с 18px */
   font-weight: bold;
   background: linear-gradient(45deg, var(--primary-color), #00ff88, var(--primary-color));
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 6px; /* УМЕНЬШИЛИ: с 8px */
-  text-shadow: 0 0 15px rgba(11, 168, 74, 0.6);
-  /* ИСПРАВЛЕНО: Убрали анимацию gradient flow */
+  margin-bottom: 4px; /* УМЕНЬШИЛИ: с 6px */
+  text-shadow: 0 0 12px rgba(11, 168, 74, 0.6);
 }
 
 .win-amount {
   display: block;
-  font-size: 22px; /* УМЕНЬШИЛИ: с 26px */
+  font-size: 18px; /* УМЕНЬШИЛИ: с 22px */
   font-weight: bold;
   color: #ffffff;
   text-shadow: 
-    0 0 20px var(--primary-color),
-    0 3px 6px rgba(0, 0, 0, 0.8);
-  margin-bottom: 8px; /* УМЕНЬШИЛИ: с 10px */
-  /* ИСПРАВЛЕНО: Убрали анимацию bounce */
+    0 0 15px var(--primary-color),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+  margin-bottom: 6px; /* УМЕНЬШИЛИ: с 8px */
 }
 
 .winning-symbols {
-  margin-top: 8px; /* УМЕНЬШИЛИ: с 12px */
+  margin-top: 6px; /* УМЕНЬШИЛИ: с 8px */
   display: flex;
   justify-content: center;
-  gap: 12px; /* УМЕНЬШИЛИ: с 15px */
+  gap: 8px; /* УМЕНЬШИЛИ: с 12px */
   flex-wrap: wrap;
 }
 
 .winning-symbol {
-  font-size: 24px; /* УМЕНЬШИЛИ: с 28px */
-  filter: drop-shadow(0 0 15px rgba(11, 168, 74, 0.8));
+  font-size: 20px; /* УМЕНЬШИЛИ: с 24px */
+  filter: drop-shadow(0 0 12px rgba(11, 168, 74, 0.8));
   transform-origin: center;
-  text-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
-  /* ИСПРАВЛЕНО: Убрали анимацию joy */
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
 }
 
 .winning-lines-count {
-  margin-top: 6px; /* УМЕНЬШИЛИ: с 10px */
-  font-size: 12px; /* УМЕНЬШИЛИ: с 14px */
+  margin-top: 5px; /* УМЕНЬШИЛИ: с 6px */
+  font-size: 11px; /* УМЕНЬШИЛИ: с 12px */
   color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
 }
 
 .winning-lines-details {
-  margin-top: 4px; /* УМЕНЬШИЛИ: с 8px */
-  font-size: 11px; /* УМЕНЬШИЛИ: с 12px */
+  margin-top: 3px; /* УМЕНЬШИЛИ: с 4px */
+  font-size: 10px; /* УМЕНЬШИЛИ: с 11px */
   color: rgba(255, 255, 255, 0.8);
 }
 
 .line-detail {
-  margin: 2px 0; /* УМЕНЬШИЛИ: с 3px */
-  padding: 3px 6px; /* УМЕНЬШИЛИ: padding */
+  margin: 2px 0;
+  padding: 2px 4px; /* УМЕНЬШИЛИ: с 3px 6px */
   background: rgba(11, 168, 74, 0.1);
-  border-radius: 4px; /* УМЕНЬШИЛИ: с 6px */
+  border-radius: 3px; /* УМЕНЬШИЛИ: с 4px */
   border: 1px solid rgba(11, 168, 74, 0.3);
 }
 
 .lose-text {
-  font-size: 16px; /* УМЕНЬШИЛИ: с 18px */
+  font-size: 14px; /* УМЕНЬШИЛИ: с 16px */
   color: rgba(255, 255, 255, 0.8);
   font-weight: 600;
 }
 
-/* ИСПРАВЛЕНО: Удалили все сложные keyframes анимации */
-
-/* Адаптивность */
+/* МОБИЛЬНАЯ АДАПТИВНОСТЬ - ЕЩЕ БОЛЕЕ КОМПАКТНАЯ */
 @media (max-width: 500px) {
   .slot-machine {
-    padding: 20px;
-    border-radius: 20px;
-    max-width: 520px; /* УВЕЛИЧИЛИ: с 480px */
+    padding: 15px; /* УМЕНЬШИЛИ: с 20px */
+    border-radius: 16px;
+    max-width: 380px; /* УМЕНЬШИЛИ: с 450px до 380px */
   }
   
   .slot-display {
-    padding: 25px;
+    padding: 15px; /* УМЕНЬШИЛИ: с 20px */
+    border-radius: 12px;
   }
   
   .slot-reels {
-    gap: 16px; /* УВЕЛИЧИЛИ: с 14px */
+    gap: 10px; /* СИЛЬНО УМЕНЬШИЛИ: с 15px до 10px */
+  }
+  
+  .slot-reel {
+    min-width: 60px; /* УМЕНЬШИЛИ: с 70px */
+    border-radius: 10px;
   }
   
   .slot-cell {
-    height: 70px; /* УВЕЛИЧИЛИ: с 65px */
+    height: 55px; /* УМЕНЬШИЛИ: с 65px */
   }
   
   .slot-symbol {
-    font-size: 44px; /* УВЕЛИЧИЛИ: с 40px */
+    font-size: 30px; /* УМЕНЬШИЛИ: с 36px */
   }
   
   .slot-cell.winning .slot-symbol {
-    transform: scale(1.08);
+    transform: scale(1.05);
   }
   
   .winning-symbol {
-    font-size: 22px; /* УМЕНЬШИЛИ для компактности */
+    font-size: 18px;
   }
   
   .win-text {
-    font-size: 16px; /* УМЕНЬШИЛИ: с 18px */
+    font-size: 14px;
   }
   
   .win-amount {
-    font-size: 20px; /* УМЕНЬШИЛИ: с 22px */
+    font-size: 16px;
   }
   
   .last-spin-info {
-    padding: 6px 10px; /* ЕЩЕ БОЛЕЕ КОМПАКТНО на мобильных */
-    margin-top: 6px;
+    padding: 4px 6px;
+    margin-top: 4px;
   }
   
   .winning-lines-count {
-    font-size: 11px;
-  }
-  
-  .winning-lines-details {
     font-size: 10px;
   }
   
+  .winning-lines-details {
+    font-size: 9px;
+  }
+  
   .lose-text {
-    font-size: 14px;
+    font-size: 12px;
   }
 }
 
 @media (max-width: 400px) {
   .slot-machine {
-    max-width: 460px; /* УВЕЛИЧИЛИ: с 420px */
+    max-width: 340px; /* ЕЩЕ МЕНЬШЕ: с 380px до 340px */
+    padding: 12px;
+  }
+  
+  .slot-display {
+    padding: 12px;
   }
   
   .slot-reels {
-    gap: 14px; /* УВЕЛИЧИЛИ: с 12px */
+    gap: 8px; /* МИНИМАЛЬНЫЙ gap */
+  }
+  
+  .slot-reel {
+    min-width: 55px; /* МИНИМАЛЬНАЯ ширина */
   }
   
   .slot-cell {
-    height: 60px; /* УВЕЛИЧИЛИ: с 55px */
+    height: 50px; /* МИНИМАЛЬНАЯ высота */
   }
   
   .slot-symbol {
-    font-size: 40px; /* УВЕЛИЧИЛИ: с 36px */
+    font-size: 26px; /* МИНИМАЛЬНЫЙ размер */
   }
   
   .winning-symbol {
-    font-size: 20px;
+    font-size: 16px;
   }
   
   .win-text {
-    font-size: 14px;
+    font-size: 12px;
   }
   
   .win-amount {
-    font-size: 18px;
+    font-size: 14px;
   }
   
   .last-spin-info {
-    padding: 5px 8px; /* МИНИМАЛЬНЫЙ padding */
-    margin-top: 5px;
+    padding: 3px 5px;
+    margin-top: 3px;
+  }
+}
+
+@media (max-width: 320px) {
+  .slot-machine {
+    max-width: 300px; /* ЭКСТРА МАЛЕНЬКИЕ экраны */
+    padding: 10px;
+  }
+  
+  .slot-display {
+    padding: 10px;
+  }
+  
+  .slot-reels {
+    gap: 6px;
+  }
+  
+  .slot-reel {
+    min-width: 50px;
+  }
+  
+  .slot-cell {
+    height: 45px;
+  }
+  
+  .slot-symbol {
+    font-size: 24px;
   }
 }
 

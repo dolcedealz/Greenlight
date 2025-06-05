@@ -315,6 +315,7 @@ class DuelService {
       
       // Если оба игрока сделали ходы, определяем победителя раунда
       if (currentRound.challengerResult !== null && currentRound.opponentResult !== null) {
+        console.log(`🎲 Оба игрока сделали ходы. Обрабатываем результат раунда...`);
         await this.processRoundResult(duel, currentRound, session);
       }
       
@@ -337,7 +338,18 @@ class DuelService {
   
   // Обработка результата раунда
   async processRoundResult(duel, round, session) {
+    console.log(`🎲 Обработка результата раунда ${round.roundNumber}:`, {
+      gameType: duel.gameType,
+      challengerResult: round.challengerResult,
+      opponentResult: round.opponentResult,
+      challengerScore: duel.challengerScore,
+      opponentScore: duel.opponentScore,
+      winsRequired: duel.winsRequired,
+      format: duel.format
+    });
+    
     const winner = this.determineWinner(duel.gameType, round.challengerResult, round.opponentResult);
+    console.log(`🏆 Победитель раунда: ${winner}`);
     
     if (winner === 'challenger') {
       duel.challengerScore++;
@@ -347,6 +359,7 @@ class DuelService {
       round.winnerId = duel.opponentId;
     } else {
       // Ничья - создаем новый раунд для переигровки
+      console.log('🤝 Ничья! Создаем новый раунд для переигровки');
       const newRound = {
         roundNumber: duel.rounds.length + 1,
         challengerResult: null,
@@ -359,22 +372,36 @@ class DuelService {
       return;
     }
     
+    console.log(`📊 Обновленный счёт: ${duel.challengerScore}:${duel.opponentScore} (нужно ${duel.winsRequired} для победы)`);
+    
     // Проверяем победителя дуэли
     if (duel.challengerScore >= duel.winsRequired) {
+      console.log(`🎆 Дуэль завершена! Победитель: ${duel.challengerUsername} (challenger)`);
       await this.finishDuel(duel, duel.challengerId, duel.challengerUsername, session);
     } else if (duel.opponentScore >= duel.winsRequired) {
+      console.log(`🎆 Дуэль завершена! Победитель: ${duel.opponentUsername} (opponent)`);
       await this.finishDuel(duel, duel.opponentId, duel.opponentUsername, session);
+    } else {
+      console.log(`🔄 Дуэль продолжается... Нужно ещё раундов`);
     }
-    // Если дуэль не завершена, новый раунд добавится автоматически при следующем ходе
   }
   
   // Завершение дуэли
   async finishDuel(duel, winnerId, winnerUsername, session) {
+    console.log(`🎯 Завершаем дуэль ${duel.sessionId}:`, {
+      winnerId,
+      winnerUsername,
+      finalScore: `${duel.challengerScore}:${duel.opponentScore}`
+    });
+    
     // Обновляем дуэль
     duel.status = 'completed';
     duel.winnerId = winnerId;
     duel.winnerUsername = winnerUsername;
+    duel.completedAt = new Date();
     await duel.save({ session });
+    
+    console.log(`✅ Дуэль ${duel.sessionId} завершена со статусом: ${duel.status}`);
     
     // Выплачиваем выигрыш и разблокируем средства
     await this.processPayouts(duel, session);

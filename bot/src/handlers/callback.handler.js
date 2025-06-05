@@ -401,30 +401,30 @@ function registerCallbackHandlers(bot) {
       
       console.log(`🎮 Игрок ${username} (${userId}) сыграл ${gameType}: ${gameResult} в дуэли ${sessionId}`);
       
+      // Сначала отправляем результат текущему игроку
+      const resultMessage = await ctx.reply(
+        `${gameConfig.emoji} **${gameConfig.resultText}**\n\n` +
+        `🎯 Результат: **${gameResult}**\n` +
+        `📋 Сессия: \`${sessionId}\`\n\n` +
+        `⏳ Ожидание хода противника...`,
+        { parse_mode: 'Markdown' }
+      );
+      
+      // Сохраняем messageId для будущих обновлений
+      const messageId = resultMessage.message_id;
+      
       // Сохраняем результат в API после получения результата
       const roundData = {
         userId,
         username,
         gameType: gameType,
         result: gameResult,
-        timestamp: Date.now(),
-        messageId: messageId // Для редактирования сообщений
+        timestamp: Date.now()
       };
       
       const saveResult = await apiService.saveDuelRound(sessionId, roundData);
       
       if (saveResult.success) {
-        // Отправляем результат текущему игроку
-        const resultMessage = await ctx.reply(
-          `${gameConfig.emoji} **${gameConfig.resultText}**\n\n` +
-          `🎯 Результат: **${gameResult}**\n` +
-          `📋 Сессия: \`${sessionId}\`\n\n` +
-          `⏳ Ожидание хода противника...`,
-          { parse_mode: 'Markdown' }
-        );
-        
-        // Сохраняем messageId для будущих обновлений
-        const messageId = resultMessage.message_id;
         
         // Получаем данные дуэли для определения противника
         const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
@@ -447,36 +447,54 @@ function registerCallbackHandlers(bot) {
               const loserUsername = updatedDuel.winnerId === userId ? opponentUsername : username;
               const isWinner = updatedDuel.winnerId === userId;
               
-              // Обновляем сообщение с результатом
-              try {
-                await ctx.editMessageText(
-                  `🏆 **ДУЭЛЬ ЗАВЕРШЕНА!**\n\n` +
-                  `${isWinner ? '🎉 ПОБЕДА!' : '😢 ПОРАЖЕНИЕ'} ${gameConfig.emoji}\n\n` +
-                  `👑 Победитель: @${winnerUsername}\n` +
-                  `💰 Выигрыш: ${updatedDuel.winAmount} USDT\n` +
-                  `🎯 Ваш результат: **${gameResult}**\n` +
-                  `📋 Сессия: \`${sessionId}\``,
-                  { 
-                    parse_mode: 'Markdown',
-                    message_id: messageId,
-                    chat_id: userId
-                  }
-                );
-              } catch (editError) {
-                console.error('❌ Не удалось обновить сообщение:', editError.message);
-              }
+              // Отправляем новое сообщение с результатом
+              await ctx.reply(
+                `🏆 **ДУЭЛЬ ЗАВЕРШЕНА!** 🏆\n\n` +
+                `${isWinner ? '🎉 **ПОЗДРАВЛЯЕМ!**' : '😢 **К СОЖАЛЕНИЮ...**'}\n\n` +
+                `${gameConfig.emoji} Игра: ${getGameName(gameType)}\n` +
+                `📊 Окончательный счёт: ${updatedDuel.challengerScore}:${updatedDuel.opponentScore}\n` +
+                `👑 Победитель: @${winnerUsername}\n` +
+                `💰 Выигрыш: ${updatedDuel.winAmount} USDT\n\n` +
+                `🎯 Ваш результат: **${gameResult}**\n\n` +
+                `📍 Результаты раундов:\n${roundsText}\n` +
+                `📋 ID дуэли: \`${sessionId}\``,
+                { parse_mode: 'Markdown' }
+              );
               
               // Уведомляем противника о завершении
               if (opponentId) {
                 try {
                   await ctx.telegram.sendMessage(
                     opponentId,
-                    `🏆 **ДУЭЛЬ ЗАВЕРШЕНА!**\n\n` +
-                    `${updatedDuel.winnerId === opponentId ? '🎉 ПОБЕДА!' : '😢 ПОРАЖЕНИЕ'} ${gameConfig.emoji}\n\n` +
+                    `🏆 **ДУЭЛЬ ЗАВЕРШЕНА!** 🏆\n\n` +
+                    `${updatedDuel.winnerId === opponentId ? '🎉 **ПОЗДРАВЛЯЕМ!**' : '😢 **К СОЖАЛЕНИЮ...**'}\n\n` +
+                    `${gameConfig.emoji} Игра: ${getGameName(gameType)}\n` +
+                    `📊 Окончательный счёт: ${updatedDuel.challengerScore}:${updatedDuel.opponentScore}\n` +
                     `👑 Победитель: @${winnerUsername}\n` +
-                    `💰 Выигрыш: ${updatedDuel.winAmount} USDT\n` +
-                    `🎯 Ваш результат: @${username} получил **${gameResult}**\n` +
-                    `📋 Сессия: \`${sessionId}\``,
+                    `💰 Выигрыш: ${updatedDuel.winAmount} USDT\n\n` +
+                    `📍 Результаты раундов:\n`;
+                  
+                  // Добавляем результаты всех раундов
+                  let roundsText = '';
+                  if (updatedDuel.rounds && updatedDuel.rounds.length > 0) {
+                    updatedDuel.rounds.forEach((round, index) => {
+                      if (round.challengerResult !== null && round.opponentResult !== null) {
+                        const challengerWon = round.winnerId === updatedDuel.challengerId;
+                        roundsText += `• Раунд ${index + 1}: @${updatedDuel.challengerUsername} [${round.challengerResult}] vs @${updatedDuel.opponentUsername} [${round.opponentResult}] ${challengerWon ? '🅰️' : '🅱️'}\n`;
+                      }
+                    });
+                  }
+                  
+                  await ctx.telegram.sendMessage(
+                    opponentId,
+                    `🏆 **ДУЭЛЬ ЗАВЕРШЕНА!** 🏆\n\n` +
+                    `${updatedDuel.winnerId === opponentId ? '🎉 **ПОЗДРАВЛЯЕМ!**' : '😢 **К СОЖАЛЕНИЮ...**'}\n\n` +
+                    `${gameConfig.emoji} Игра: ${getGameName(gameType)}\n` +
+                    `📊 Окончательный счёт: ${updatedDuel.challengerScore}:${updatedDuel.opponentScore}\n` +
+                    `👑 Победитель: @${winnerUsername}\n` +
+                    `💰 Выигрыш: ${updatedDuel.winAmount} USDT\n\n` +
+                    `📍 Результаты раундов:\n${roundsText}\n` +
+                    `📋 ID дуэли: \`${sessionId}\``,
                     { parse_mode: 'Markdown' }
                   );
                 } catch (notifyError) {
@@ -492,13 +510,18 @@ function registerCallbackHandlers(bot) {
                     [Markup.button.callback('📊 Показать результаты', `show_results_${sessionId}`)]
                   ]);
                   
+                  // Получаем текущий раунд
+                  const currentRound = updatedDuel.rounds[updatedDuel.rounds.length - 1];
+                  const isOpponentTurn = currentRound && currentRound.opponentResult === null;
+                  
                   await ctx.telegram.sendMessage(
                     opponentId,
                     `${gameConfig.emoji} **Ход противника!**\n\n` +
-                    `👤 @${username} сыграл ${gameType}: **${gameResult}**\n` +
-                    `📊 Счёт: ${updatedDuel.challengerScore}:${updatedDuel.opponentScore}\n` +
-                    `📋 Сессия: \`${sessionId}\`\n\n` +
-                    `🎯 Теперь ваш ход!`,
+                    `👤 @${username} сыграл ${getGameName(gameType)}: **${gameResult}**\n` +
+                    `📊 Текущий счёт: ${updatedDuel.challengerScore}:${updatedDuel.opponentScore}\n` +
+                    `🎲 Раунд: ${currentRound ? currentRound.roundNumber : 1}\n` +
+                    `📋 ID: \`${sessionId}\`\n\n` +
+                    `${isOpponentTurn ? '🎯 **Теперь ваш ход!**' : '⏳ Ожидание вашего хода...'}`,
                     { 
                       parse_mode: 'Markdown',
                       ...gameMarkup
@@ -537,17 +560,46 @@ function registerCallbackHandlers(bot) {
         const duel = duelData.data;
         
         let resultsText = `📊 **Результаты дуэли**\n\n`;
-        resultsText += `🆔 Сессия: \`${sessionId}\`\n`;
-        resultsText += `🎮 Игра: ${duel.gameType}\n`;
-        resultsText += `💰 Ставка: ${duel.amount} USDT\n\n`;
+        resultsText += `🆔 ID: \`${sessionId}\`\n`;
+        resultsText += `🎮 Игра: ${getGameName(duel.gameType)} ${duel.gameType}\n`;
+        resultsText += `🏆 Формат: ${duel.format.toUpperCase()} (до ${duel.winsRequired} побед)\n`;
+        resultsText += `💰 Ставка: ${duel.amount} USDT\n`;
+        resultsText += `💵 Банк: ${duel.totalAmount} USDT\n`;
+        resultsText += `👑 Выигрыш: ${duel.winAmount} USDT\n\n`;
+        
+        resultsText += `👥 **Игроки:**\n`;
+        resultsText += `• @${duel.challengerUsername} (инициатор)\n`;
+        resultsText += `• @${duel.opponentUsername || '...'} (оппонент)\n\n`;
+        
+        resultsText += `📊 **Текущий счёт:** ${duel.challengerScore}:${duel.opponentScore}\n`;
+        resultsText += `📍 **Статус:** ${duel.status}\n\n`;
         
         if (duel.rounds && duel.rounds.length > 0) {
-          resultsText += `📈 **Раунды:**\n`;
+          resultsText += `🎲 **Раунды:**\n`;
           duel.rounds.forEach((round, index) => {
-            resultsText += `${index + 1}. @${round.username}: ${round.result}\n`;
+            if (round.challengerResult !== null || round.opponentResult !== null) {
+              resultsText += `\n**Раунд ${round.roundNumber}:**\n`;
+              if (round.challengerResult !== null) {
+                resultsText += `• @${duel.challengerUsername}: ${round.challengerResult}\n`;
+              }
+              if (round.opponentResult !== null) {
+                resultsText += `• @${duel.opponentUsername}: ${round.opponentResult}\n`;
+              }
+              if (round.winnerId) {
+                const winner = round.winnerId === duel.challengerId ? duel.challengerUsername : duel.opponentUsername;
+                resultsText += `🏆 Победитель раунда: @${winner}\n`;
+              }
+            }
           });
         } else {
           resultsText += `📭 Раундов пока нет`;
+        }
+        
+        // Если дуэль завершена
+        if (duel.status === 'completed' && duel.winnerId) {
+          resultsText += `\n\n🎆 **ДУЭЛЬ ЗАВЕРШЕНА!**\n`;
+          resultsText += `👑 Победитель: @${duel.winnerUsername}\n`;
+          resultsText += `💰 Выигрыш: ${duel.winAmount} USDT`;
         }
         
         await ctx.reply(resultsText, { parse_mode: 'Markdown' });
@@ -636,7 +688,193 @@ function registerCallbackHandlers(bot) {
 
   // ============ ОБРАБОТЧИКИ INLINE ДУЭЛЕЙ ============
   
-  // Принятие inline дуэли
+  // Принятие inline дуэли (новый формат с коротким ID)
+  bot.action(/^inline_accept_(.+)$/, async (ctx) => {
+    try {
+      const shortId = ctx.match[1];
+      const acceptorId = ctx.from.id.toString();
+      const acceptorUsername = ctx.from.username;
+      
+      console.log(`🎯 Принятие inline дуэли по shortId: ${shortId}`);
+      
+      // Получаем данные дуэли из глобального хранилища
+      if (!global.inlineDuelData || !global.inlineDuelData[shortId]) {
+        return await ctx.answerCbQuery('❌ Данные дуэли не найдены или устарели');
+      }
+      
+      const duelData = global.inlineDuelData[shortId];
+      const { challengerId, challengerUsername, targetUsername, amount, gameType, format } = duelData;
+      
+      console.log('📋 Данные дуэли:', {
+        challengerId,
+        challengerUsername,
+        targetUsername,
+        amount,
+        gameType,
+        format,
+        acceptorId,
+        acceptorUsername
+      });
+      
+      // Проверяем что пользователь принимает свой вызов
+      if (acceptorUsername !== targetUsername) {
+        return await ctx.answerCbQuery('❌ Это приглашение не для вас');
+      }
+      
+      await ctx.answerCbQuery('⏳ Создаем дуэль...');
+      
+      try {
+        // Создаем дуэль через API
+        const chatId = ctx.chat?.id?.toString() || ctx.callbackQuery?.message?.chat?.id?.toString() || 'inline_private';
+        
+        console.log('🔄 Создание дуэли через API:', {
+          challengerId,
+          challengerUsername,
+          opponentId: acceptorId,
+          opponentUsername: acceptorUsername,
+          gameType,
+          format,
+          amount,
+          chatId
+        });
+        
+        const duelApiData = await apiService.createDuel({
+          challengerId,
+          challengerUsername,
+          opponentId: acceptorId,
+          opponentUsername: acceptorUsername,
+          gameType,
+          format,
+          amount,
+          chatId,
+          chatType: 'private'
+        }, ctx.from);
+        
+        if (duelApiData.success) {
+          const sessionId = duelApiData.data.sessionId;
+          
+          await ctx.editMessageText(
+            `${gameType} **ДУЭЛЬ ПРИНЯТА!** ${gameType}\n\n` +
+            `🎮 Игра: ${getGameName(gameType)}\n` +
+            `💰 Ставка: ${amount} USDT каждый\n` +
+            `🏆 Формат: ${format.toUpperCase()}\n` +
+            `👥 Игроки: @${challengerUsername} vs @${acceptorUsername}\n\n` +
+            `✅ **Дуэль началась! Играйте в личных чатах с ботом**\n` +
+            `📋 ID: \`${sessionId}\``,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: undefined
+            }
+          );
+          
+          // Создаем игровые кнопки для inline дуэли
+          const gameMarkup = createGameButtons(sessionId, gameType);
+          
+          // Отправляем игровое сообщение принявшему игроку В ЛИЧКУ
+          try {
+            await ctx.telegram.sendMessage(
+              acceptorId,
+              `🎯 **Дуэль началась!**\n\n` +
+              `👤 Противник: @${challengerUsername}\n` +
+              `🎮 Игра: ${getGameName(gameType)}\n` +
+              `💰 Ставка: ${amount} USDT\n` +
+              `📋 ID: \`${sessionId}\`\n\n` +
+              `${gameType} Ваш ход! Нажмите кнопку для игры:`,
+              { 
+                parse_mode: 'Markdown',
+                ...gameMarkup
+              }
+            );
+            console.log(`✅ Игровое сообщение отправлено принявшему игроку ${acceptorId}`);
+          } catch (sendError) {
+            console.error('❌ Не удалось отправить игровое сообщение принявшему:', sendError.message);
+          }
+          
+          // Отправляем игровое сообщение инициатору В ЛИЧКУ
+          try {
+            await ctx.telegram.sendMessage(
+              challengerId,
+              `🎯 **Ваша дуэль принята!**\n\n` +
+              `👤 Противник: @${acceptorUsername}\n` +
+              `🎮 Игра: ${getGameName(gameType)}\n` +
+              `💰 Ставка: ${amount} USDT\n` +
+              `📋 ID: \`${sessionId}\`\n\n` +
+              `${gameType} Ваш ход! Нажмите кнопку для игры:`,
+              { 
+                parse_mode: 'Markdown',
+                ...gameMarkup
+              }
+            );
+            console.log(`✅ Игровое сообщение отправлено инициатору ${challengerId}`);
+          } catch (sendError) {
+            console.error('❌ Не удалось отправить игровое сообщение инициатору:', sendError.message);
+          }
+          
+          // Удаляем данные из временного хранилища
+          delete global.inlineDuelData[shortId];
+          
+        } else {
+          await ctx.answerCbQuery(`❌ ${duelApiData.error}`);
+        }
+        
+      } catch (error) {
+        console.error('Ошибка создания inline дуэли:', error);
+        await ctx.answerCbQuery('❌ Ошибка создания дуэли: ' + error.message);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка обработки inline принятия:', error);
+      await ctx.answerCbQuery('❌ Ошибка обработки');
+    }
+  });
+  
+  // Отклонение inline дуэли (новый формат)
+  bot.action(/^inline_decline_(.+)$/, async (ctx) => {
+    try {
+      const shortId = ctx.match[1];
+      const acceptorUsername = ctx.from.username;
+      
+      console.log(`❌ Отклонение inline дуэли по shortId: ${shortId}`);
+      
+      // Получаем данные дуэли
+      if (global.inlineDuelData && global.inlineDuelData[shortId]) {
+        const duelData = global.inlineDuelData[shortId];
+        const challengerId = duelData.challengerId;
+        
+        await ctx.answerCbQuery('❌ Дуэль отклонена');
+        
+        await ctx.editMessageText(
+          ctx.callbackQuery.message.text + `\n\n❌ **ДУЭЛЬ ОТКЛОНЕНА**\n@${acceptorUsername} отклонил(а) приглашение`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: undefined
+          }
+        );
+        
+        // Уведомляем инициатора
+        try {
+          await ctx.telegram.sendMessage(
+            challengerId,
+            `❌ **Дуэль отклонена**\n\n@${acceptorUsername} отклонил(а) ваше приглашение на дуэль.`,
+            { parse_mode: 'Markdown' }
+          );
+        } catch (notifyError) {
+          console.log('Не удалось уведомить инициатора об отклонении:', notifyError.message);
+        }
+        
+        // Удаляем данные
+        delete global.inlineDuelData[shortId];
+      } else {
+        await ctx.answerCbQuery('❌ Данные дуэли не найдены');
+      }
+      
+    } catch (error) {
+      console.error('Ошибка отклонения inline дуэли:', error);
+      await ctx.answerCbQuery('❌ Ошибка отклонения');
+    }
+  });
+  
+  // Старый обработчик для совместимости
   bot.action(/^duel_accept_(\d+)_(\w+)_(\w+)_(\d+)_(.+)_(.+)$/, async (ctx) => {
     try {
       const challengerId = ctx.match[1];
@@ -768,7 +1006,7 @@ function registerCallbackHandlers(bot) {
     }
   });
 
-  // Отклонение inline дуэли
+  // Старое отклонение inline дуэли (для совместимости)
   bot.action(/^duel_decline_(\d+)$/, async (ctx) => {
     try {
       const challengerId = ctx.match[1];

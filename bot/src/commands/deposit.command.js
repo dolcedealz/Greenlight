@@ -2,12 +2,19 @@
 const { Markup } = require('telegraf');
 const config = require('../config');
 const { createInvoice } = require('../services/payment.service');
+const { checkChatType } = require('../utils/chat-utils');
 
 /**
  * Обработчик команды /deposit
  * @param {Object} ctx - Контекст Telegraf
  */
 async function depositCommand(ctx) {
+  // Только в личных сообщениях
+  const chatCheck = checkChatType(ctx, ['private']);
+  if (!chatCheck.isAllowed) {
+    await ctx.reply(chatCheck.message, { parse_mode: 'Markdown' });
+    return;
+  }
   try {
     // Получаем данные пользователя
     const { id } = ctx.from;

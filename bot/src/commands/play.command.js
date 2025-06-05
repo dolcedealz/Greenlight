@@ -1,6 +1,7 @@
 // play.command.js
 const { Markup } = require('telegraf');
 const config = require('../config');
+const { checkChatType } = require('../utils/chat-utils');
 
 /**
  * Обработчик команды /play
@@ -8,6 +9,13 @@ const config = require('../config');
  */
 async function playCommand(ctx) {
   try {
+    // Проверяем тип чата - команда работает только в личных сообщениях
+    const chatCheck = checkChatType(ctx, ['private']);
+    if (!chatCheck.isAllowed) {
+      await ctx.reply(chatCheck.message, { parse_mode: 'Markdown' });
+      return;
+    }
+    
     const { webAppUrl } = config;
     
     // Отправляем сообщение с кнопками для выбора игры

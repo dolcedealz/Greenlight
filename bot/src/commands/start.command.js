@@ -1,6 +1,7 @@
 // start.command.js - УПРОЩЕННАЯ ВЕРСИЯ
 const { Markup } = require('telegraf');
 const config = require('../config');
+const { checkChatType } = require('../utils/chat-utils');
 
 /**
  * Обработчик команды /start
@@ -8,6 +9,13 @@ const config = require('../config');
  */
 async function startCommand(ctx) {
   try {
+    // Проверяем тип чата - команда работает только в личных сообщениях
+    const chatCheck = checkChatType(ctx, ['private']);
+    if (!chatCheck.isAllowed) {
+      await ctx.reply(chatCheck.message, { parse_mode: 'Markdown' });
+      return;
+    }
+    
     const { webAppUrl } = config;
     const apiService = require('../services/api.service');
     const { checkPendingInvites } = require('../handlers/inline.handler');

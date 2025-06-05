@@ -1,5 +1,6 @@
 // bot/src/commands/balance.command.js
 const apiService = require('../services/api.service');
+const { checkChatType } = require('../utils/chat-utils');
 
 /**
  * Обработчик команды /balance
@@ -7,6 +8,12 @@ const apiService = require('../services/api.service');
  */
 async function balanceCommand(ctx) {
   try {
+    // Только в личных сообщениях
+    const chatCheck = checkChatType(ctx, ['private']);
+    if (!chatCheck.isAllowed) {
+      await ctx.reply(chatCheck.message, { parse_mode: 'Markdown' });
+      return;
+    }
     console.log(`БАЛАНС: Запрос баланса от пользователя ${ctx.from.id}`);
     
     // Показываем индикатор загрузки

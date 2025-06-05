@@ -1,6 +1,7 @@
 // profile.command.js
 const { Markup } = require('telegraf');
 const config = require('../config');
+const { checkChatType } = require('../utils/chat-utils');
 
 /**
  * Обработчик команды /profile
@@ -8,6 +9,12 @@ const config = require('../config');
  */
 async function profileCommand(ctx) {
   try {
+    // Только в личных сообщениях
+    const chatCheck = checkChatType(ctx, ['private']);
+    if (!chatCheck.isAllowed) {
+      await ctx.reply(chatCheck.message, { parse_mode: 'Markdown' });
+      return;
+    }
     const { webAppUrl } = config;
     
     // Отправляем сообщение с кнопкой для открытия профиля

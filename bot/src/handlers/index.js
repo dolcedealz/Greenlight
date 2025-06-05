@@ -1,6 +1,5 @@
 // index.js
 const { registerCallbackHandlers } = require('./callback.handler');
-const { registerInlineHandlers } = require('./inline.handler');
 const { registerMessageHandlers } = require('./message.handler');
 const { initializeDuelHandlers } = require('./duel');
 
@@ -8,13 +7,12 @@ const { initializeDuelHandlers } = require('./duel');
 function registerHandlers(bot) {
   console.log('🤖 Регистрация обработчиков...');
   
-  // Регистрируем новые обработчики дуэлей
-  initializeDuelHandlers(bot);
-  
-  // Регистрируем остальные обработчики (пока оставляем для совместимости)
+  // Регистрируем остальные обработчики сначала
   registerCallbackHandlers(bot);
-  registerInlineHandlers(bot);
   registerMessageHandlers(bot);
+  
+  // Регистрируем новые обработчики дуэлей (включая inline)
+  initializeDuelHandlers(bot);
   
   console.log('✅ Все обработчики зарегистрированы');
   

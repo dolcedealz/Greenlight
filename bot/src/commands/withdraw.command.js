@@ -1,6 +1,7 @@
 // bot/src/commands/withdraw.command.js
 const { Markup } = require('telegraf');
 const config = require('../config');
+const { checkChatType } = require('../utils/chat-utils');
 
 /**
  * Обработчик команды /withdraw
@@ -8,6 +9,12 @@ const config = require('../config');
  */
 async function withdrawCommand(ctx) {
   try {
+    // Только в личных сообщениях
+    const chatCheck = checkChatType(ctx, ['private']);
+    if (!chatCheck.isAllowed) {
+      await ctx.reply(chatCheck.message, { parse_mode: 'Markdown' });
+      return;
+    }
     // Отправляем сообщение с кнопками для выбора суммы вывода
     await ctx.reply(
       '💸 Вывод средств\n\n' +

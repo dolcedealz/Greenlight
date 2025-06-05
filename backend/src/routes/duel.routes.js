@@ -202,35 +202,35 @@ router.post('/create',
 
 // Принятие дуэли
 router.post('/:sessionId/accept',
-  rateLimitingMiddleware({ windowMs: 60000, max: 30 }),
+  createRateLimit('general'),
   validateSessionId,
   duelController.acceptDuel
 );
 
 // Отклонение дуэли
 router.post('/:sessionId/decline',
-  rateLimitingMiddleware({ windowMs: 60000, max: 30 }),
+  createRateLimit('general'),
   validateSessionId,
   duelController.declineDuel
 );
 
 // Присоединение к открытой дуэли
 router.post('/:sessionId/join',
-  rateLimitingMiddleware({ windowMs: 60000, max: 30 }),
+  createRateLimit('general'),
   validateSessionId,
   duelController.joinDuel
 );
 
 // Начало игры
 router.post('/:sessionId/start',
-  rateLimitingMiddleware({ windowMs: 60000, max: 30 }),
+  createRateLimit('general'),
   validateSessionId,
   duelController.startGame
 );
 
 // Сделать ход в дуэли
 router.post('/:sessionId/move',
-  rateLimitingMiddleware({ windowMs: 10000, max: 10 }), // 10 ходов в 10 секунд
+  createRateLimit('general'), // используем общий лимит
   validateSessionId,
   validateMakeMove,
   duelController.makeMove
@@ -238,7 +238,7 @@ router.post('/:sessionId/move',
 
 // Сохранение результата раунда
 router.post('/:sessionId/rounds',
-  rateLimitingMiddleware({ windowMs: 10000, max: 20 }),
+  createRateLimit('general'),
   validateSessionId,
   duelController.saveRound
 );
@@ -296,7 +296,7 @@ router.get('/stats/:userId',
 
 // Получение открытых дуэлей (для общего просмотра)
 router.get('/public/open',
-  rateLimitingMiddleware({ windowMs: 60000, max: 60 }),
+  createRateLimit('general'),
   duelController.getOpenDuels
 );
 

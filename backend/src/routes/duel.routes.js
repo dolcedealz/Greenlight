@@ -1,5 +1,4 @@
 const express = require('express');
-const { body, param } = require('express-validator');
 const router = express.Router();
 
 const duelController = require('../controllers/duel.controller');
@@ -9,93 +8,180 @@ const rateLimitingMiddleware = require('../middleware/rateLimiting.middleware');
 // Применяем специальную аутентификацию для дуэлей
 router.use(duelAuthMiddleware);
 
-// Валидационные правила
-const createInvitationValidation = [
-  body('gameType')
-    .isIn(['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'])
-    .withMessage('Неподдерживаемый тип игры'),
-  body('format')
-    .optional()
-    .isIn(['bo1', 'bo3', 'bo5', 'bo7'])
-    .withMessage('Неподдерживаемый формат дуэли'),
-  body('amount')
-    .isFloat({ min: 1, max: 1000 })
-    .withMessage('Ставка должна быть от 1 до 1000 USDT'),
-  body('targetUsername')
-    .optional()
-    .isLength({ min: 1, max: 32 })
-    .withMessage('Некорректное имя пользователя')
-];
+// Middleware для валидации
+function validateCreateInvitation(req, res, next) {
+  const { gameType, format, amount, targetUsername } = req.body;
+  
+  const validGameTypes = ['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'];
+  if (!gameType || !validGameTypes.includes(gameType)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Неподдерживаемый тип игры'
+    });
+  }
+  
+  const validFormats = ['bo1', 'bo3', 'bo5', 'bo7'];
+  if (format && !validFormats.includes(format)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Неподдерживаемый формат дуэли'
+    });
+  }
+  
+  if (!amount || isNaN(amount) || amount < 1 || amount > 1000) {
+    return res.status(400).json({
+      success: false,
+      message: 'Ставка должна быть от 1 до 1000 USDT'
+    });
+  }
+  
+  if (targetUsername && (typeof targetUsername !== 'string' || targetUsername.length > 32)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Некорректное имя пользователя'
+    });
+  }
+  
+  next();
+}
 
-const createDuelValidation = [
-  body('gameType')
-    .isIn(['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'])
-    .withMessage('Неподдерживаемый тип игры'),
-  body('format')
-    .optional()
-    .isIn(['bo1', 'bo3', 'bo5', 'bo7'])
-    .withMessage('Неподдерживаемый формат дуэли'),
-  body('amount')
-    .isFloat({ min: 1, max: 1000 })
-    .withMessage('Ставка должна быть от 1 до 1000 USDT'),
-  body('chatId')
-    .notEmpty()
-    .withMessage('ID чата обязателен'),
-  body('chatType')
-    .isIn(['private', 'group', 'supergroup', 'channel'])
-    .withMessage('Неподдерживаемый тип чата'),
-  body('opponentId')
-    .optional()
-    .isString()
-    .withMessage('Некорректный ID противника'),
-  body('opponentUsername')
-    .optional()
-    .isLength({ min: 1, max: 32 })
-    .withMessage('Некорректное имя противника')
-];
+function validateCreateDuel(req, res, next) {
+  const { gameType, format, amount, chatId, chatType, opponentId, opponentUsername } = req.body;
+  
+  const validGameTypes = ['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'];
+  if (!gameType || !validGameTypes.includes(gameType)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Неподдерживаемый тип игры'
+    });
+  }
+  
+  const validFormats = ['bo1', 'bo3', 'bo5', 'bo7'];
+  if (format && !validFormats.includes(format)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Неподдерживаемый формат дуэли'
+    });
+  }
+  
+  if (!amount || isNaN(amount) || amount < 1 || amount > 1000) {
+    return res.status(400).json({
+      success: false,
+      message: 'Ставка должна быть от 1 до 1000 USDT'
+    });
+  }
+  
+  if (!chatId) {
+    return res.status(400).json({
+      success: false,
+      message: 'ID чата обязателен'
+    });
+  }
+  
+  const validChatTypes = ['private', 'group', 'supergroup', 'channel'];
+  if (!chatType || !validChatTypes.includes(chatType)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Неподдерживаемый тип чата'
+    });
+  }
+  
+  if (opponentId && typeof opponentId !== 'string') {
+    return res.status(400).json({
+      success: false,
+      message: 'Некорректный ID противника'
+    });
+  }
+  
+  if (opponentUsername && (typeof opponentUsername !== 'string' || opponentUsername.length > 32)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Некорректное имя противника'
+    });
+  }
+  
+  next();
+}
 
-const makeMoveValidation = [
-  body('result')
-    .isInt({ min: 1, max: 64 })
-    .withMessage('Результат должен быть числом от 1 до 64'),
-  body('messageId')
-    .optional()
-    .isInt()
-    .withMessage('ID сообщения должен быть числом')
-];
+function validateMakeMove(req, res, next) {
+  const { result, messageId } = req.body;
+  
+  if (!result || isNaN(result) || result < 1 || result > 64) {
+    return res.status(400).json({
+      success: false,
+      message: 'Результат должен быть числом от 1 до 64'
+    });
+  }
+  
+  if (messageId && isNaN(messageId)) {
+    return res.status(400).json({
+      success: false,
+      message: 'ID сообщения должен быть числом'
+    });
+  }
+  
+  next();
+}
 
-const sessionIdValidation = [
-  param('sessionId')
-    .isLength({ min: 10 })
-    .withMessage('Некорректный ID сессии')
-];
+function validateSessionId(req, res, next) {
+  const { sessionId } = req.params;
+  
+  if (!sessionId || sessionId.length < 10) {
+    return res.status(400).json({
+      success: false,
+      message: 'Некорректный ID сессии'
+    });
+  }
+  
+  next();
+}
 
-const inviteIdValidation = [
-  param('inviteId')
-    .isLength({ min: 10 })
-    .withMessage('Некорректный ID приглашения')
-];
+function validateInviteId(req, res, next) {
+  const { inviteId } = req.params;
+  
+  if (!inviteId || inviteId.length < 10) {
+    return res.status(400).json({
+      success: false,
+      message: 'Некорректный ID приглашения'
+    });
+  }
+  
+  next();
+}
+
+function validateUserId(req, res, next) {
+  const { userId } = req.params;
+  
+  if (!userId || typeof userId !== 'string') {
+    return res.status(400).json({
+      success: false,
+      message: 'Некорректный ID пользователя'
+    });
+  }
+  
+  next();
+}
 
 // === РОУТЫ ДЛЯ ПРИГЛАШЕНИЙ ===
 
 // Создание приглашения на дуэль (для inline режима)
 router.post('/invitation', 
   rateLimitingMiddleware({ windowMs: 60000, max: 10 }), // 10 приглашений в минуту
-  createInvitationValidation,
+  validateCreateInvitation,
   duelController.createInvitation
 );
 
 // Принятие приглашения
 router.post('/invitation/:inviteId/accept',
   rateLimitingMiddleware({ windowMs: 60000, max: 20 }),
-  inviteIdValidation,
+  validateInviteId,
   duelController.acceptInvitation
 );
 
 // Отклонение приглашения
 router.post('/invitation/:inviteId/decline',
   rateLimitingMiddleware({ windowMs: 60000, max: 20 }),
-  inviteIdValidation,
+  validateInviteId,
   duelController.declineInvitation
 );
 
@@ -104,76 +190,76 @@ router.post('/invitation/:inviteId/decline',
 // Создание дуэли напрямую (для групповых чатов)
 router.post('/',
   rateLimitingMiddleware({ windowMs: 60000, max: 15 }),
-  createDuelValidation,
+  validateCreateDuel,
   duelController.createDuel
 );
 
 router.post('/create',
   rateLimitingMiddleware({ windowMs: 60000, max: 15 }),
-  createDuelValidation,
+  validateCreateDuel,
   duelController.createDuel
 );
 
 // Принятие дуэли
 router.post('/:sessionId/accept',
   rateLimitingMiddleware({ windowMs: 60000, max: 30 }),
-  sessionIdValidation,
+  validateSessionId,
   duelController.acceptDuel
 );
 
 // Отклонение дуэли
 router.post('/:sessionId/decline',
   rateLimitingMiddleware({ windowMs: 60000, max: 30 }),
-  sessionIdValidation,
+  validateSessionId,
   duelController.declineDuel
 );
 
 // Присоединение к открытой дуэли
 router.post('/:sessionId/join',
   rateLimitingMiddleware({ windowMs: 60000, max: 30 }),
-  sessionIdValidation,
+  validateSessionId,
   duelController.joinDuel
 );
 
 // Начало игры
 router.post('/:sessionId/start',
   rateLimitingMiddleware({ windowMs: 60000, max: 30 }),
-  sessionIdValidation,
+  validateSessionId,
   duelController.startGame
 );
 
 // Сделать ход в дуэли
 router.post('/:sessionId/move',
   rateLimitingMiddleware({ windowMs: 10000, max: 10 }), // 10 ходов в 10 секунд
-  sessionIdValidation,
-  makeMoveValidation,
+  validateSessionId,
+  validateMakeMove,
   duelController.makeMove
 );
 
 // Сохранение результата раунда
 router.post('/:sessionId/rounds',
   rateLimitingMiddleware({ windowMs: 10000, max: 20 }),
-  sessionIdValidation,
+  validateSessionId,
   duelController.saveRound
 );
 
 // Завершение дуэли
 router.post('/:sessionId/finish',
   rateLimitingMiddleware({ windowMs: 60000, max: 20 }),
-  sessionIdValidation,
+  validateSessionId,
   duelController.finishDuel
 );
 
 // Получение информации о дуэли
 router.get('/:sessionId',
-  sessionIdValidation,
+  validateSessionId,
   duelController.getDuel
 );
 
 // Отмена дуэли
 router.post('/:sessionId/cancel',
   rateLimitingMiddleware({ windowMs: 60000, max: 20 }),
-  sessionIdValidation,
+  validateSessionId,
   duelController.cancelDuel
 );
 
@@ -191,7 +277,7 @@ router.get('/user/history',
 
 // Получение истории дуэлей конкретного пользователя
 router.get('/history/:userId',
-  param('userId').isString().withMessage('Некорректный ID пользователя'),
+  validateUserId,
   duelController.getUserHistoryById
 );
 
@@ -202,7 +288,7 @@ router.get('/user/stats',
 
 // Получение статистики конкретного пользователя
 router.get('/stats/:userId',
-  param('userId').isString().withMessage('Некорректный ID пользователя'),
+  validateUserId,
   duelController.getUserStatsById
 );
 
@@ -227,18 +313,7 @@ router.use((error, req, res, next) => {
     });
   }
   
-  if (error.name === 'SequelizeValidationError') {
-    return res.status(400).json({
-      success: false,
-      message: 'Ошибка валидации данных',
-      errors: error.errors.map(e => ({
-        field: e.path,
-        message: e.message
-      }))
-    });
-  }
-  
-  if (error.name === 'SequelizeUniqueConstraintError') {
+  if (error.name === 'MongoError' && error.code === 11000) {
     return res.status(409).json({
       success: false,
       message: 'Конфликт данных',

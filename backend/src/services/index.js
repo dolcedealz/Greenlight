@@ -9,7 +9,8 @@ const casinoFinanceService = require('./casino-finance.service');
 const referralService = require('./referral.service');
 const crashService = require('./crash.service');
 const authService = require('./auth.service');
-const eventService = require('./event.service'); // Добавляем сервис событий
+const eventService = require('./event.service');
+const duelService = require('./duel.service');
 
 module.exports = {
   gameService,
@@ -22,5 +23,6 @@ module.exports = {
   referralService,
   crashService,
   authService,
-  eventService // Добавляем сервис событий
+  eventService,
+  duelService
 };

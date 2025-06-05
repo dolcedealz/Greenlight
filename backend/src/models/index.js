@@ -9,8 +9,11 @@ const CasinoFinance = require('./casino-finance.model');
 const ReferralEarning = require('./referral-earning.model');
 const ReferralPayout = require('./referral-payout.model');
 const GameSettings = require('./game-settings.model');
-const Event = require('./Event'); // Добавляем события
-const EventBet = require('./EventBet'); // Добавляем ставки на события
+const Event = require('./Event');
+const EventBet = require('./EventBet');
+const Duel = require('./duel.model');
+const DuelRound = require('./duel-round.model');
+const DuelInvitation = require('./duel-invitation.model');
 
 module.exports = {
   User,
@@ -23,6 +26,9 @@ module.exports = {
   ReferralEarning,
   ReferralPayout,
   GameSettings,
-  Event, // Добавляем события
-  EventBet // Добавляем ставки на события
+  Event,
+  EventBet,
+  Duel,
+  DuelRound,
+  DuelInvitation
 };

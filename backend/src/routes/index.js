@@ -8,7 +8,8 @@ const withdrawalRoutes = require('./withdrawal.routes');
 const referralRoutes = require('./referral.routes');
 const authRoutes = require('./auth.routes');
 const webhookRoutes = require('./webhook.routes');
-const eventRoutes = require('./event.routes'); // Добавляем события
+const eventRoutes = require('./event.routes');
+const duelRoutes = require('./duel.routes');
 
 const router = express.Router();
 
@@ -21,7 +22,8 @@ router.use('/withdrawals', withdrawalRoutes);
 router.use('/referrals', referralRoutes);
 router.use('/auth', authRoutes);
 router.use('/webhooks', webhookRoutes);
-router.use('/events', eventRoutes); // Добавляем события
+router.use('/events', eventRoutes);
+router.use('/duels', duelRoutes);
 
 // Маршрут для проверки работоспособности API
 router.get('/health', (req, res) => {
@@ -37,7 +39,8 @@ router.get('/health', (req, res) => {
       withdrawals: 'активен',
       referrals: 'активен',
       auth: 'активен',
-      events: 'активен' // Добавляем события
+      events: 'активен',
+      duels: 'активен'
     }
   });
 });

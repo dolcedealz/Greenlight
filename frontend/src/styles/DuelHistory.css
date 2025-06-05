@@ -1,0 +1,221 @@
+/* frontend/src/styles/DuelHistory.css */
+
+.duel-history-item {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.duel-history-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+}
+
+.duel-main-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.duel-game {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-emoji {
+  font-size: 24px;
+}
+
+.game-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.duel-opponent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+}
+
+.vs-text {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.opponent-name {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.duel-result {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-icon {
+  font-size: 18px;
+}
+
+.status-text {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.duel-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.duel-score {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.duel-amount .profit {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.duel-amount .profit.positive {
+  color: var(--success-color);
+}
+
+.duel-amount .profit.negative {
+  color: var(--error-color);
+}
+
+.duel-format {
+  background: var(--primary-color);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.duel-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.duel-date {
+  opacity: 0.8;
+}
+
+.duel-id {
+  font-family: 'Monaco', 'Menlo', monospace;
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Состояния дуэлей */
+.duel-history-item[data-status="completed"] {
+  border-left: 4px solid var(--success-color);
+}
+
+.duel-history-item[data-status="active"] {
+  border-left: 4px solid var(--warning-color);
+  background: linear-gradient(90deg, rgba(255, 193, 7, 0.05) 0%, var(--card-bg) 100%);
+}
+
+.duel-history-item[data-status="pending"] {
+  border-left: 4px solid var(--info-color);
+  background: linear-gradient(90deg, rgba(33, 150, 243, 0.05) 0%, var(--card-bg) 100%);
+}
+
+.duel-history-item[data-status="cancelled"] {
+  border-left: 4px solid var(--error-color);
+  opacity: 0.7;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .duel-history-item {
+    padding: 12px;
+  }
+  
+  .duel-main-info {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .duel-opponent {
+    justify-content: flex-start;
+  }
+  
+  .duel-details {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .game-emoji {
+    font-size: 20px;
+  }
+}
+
+/* Анимации для активных дуэлей */
+.duel-history-item[data-status="active"] .status-icon {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* Особые стили для разных типов результатов */
+.duel-result .status-text {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.duel-history-item[data-winner="true"] .status-text {
+  color: var(--success-color);
+}
+
+.duel-history-item[data-winner="false"] .status-text {
+  color: var(--error-color);
+}
+
+/* Пустое состояние */
+.duels-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.duels-empty .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.duels-empty .empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.duels-empty .empty-description {
+  font-size: 14px;
+  opacity: 0.8;
+}

@@ -41,17 +41,17 @@ commands.registerCommands(bot);
 const { registerCallbackHandlers } = require('./handlers/callback.handler');
 registerCallbackHandlers(bot);
 
-// 4. Затем регистрируем inline handlers
-const { registerInlineHandlers } = require('./handlers/inline.handler');
-registerInlineHandlers(bot);
+// 4. Затем регистрируем inline handlers (ВРЕМЕННО ОТКЛЮЧЕНО)
+// const { registerInlineHandlers } = require('./handlers/inline.handler');
+// registerInlineHandlers(bot);
 
-// 5. Регистрируем обработчики эмодзи дуэлей
-const { registerEmojiDuelHandlers } = require('./handlers/emoji-duel.handler');
-registerEmojiDuelHandlers(bot);
+// 5. Регистрируем новые обработчики дуэлей (заменяет emoji-duel.handler)
+const { registerDuelHandlers } = require('./handlers/duel.handler');
+registerDuelHandlers(bot);
 
-// 5.1. Регистрируем обработчики личных дуэлей
-const { registerPrivateDuelHandlers } = require('./handlers/private-duel.handler');
-registerPrivateDuelHandlers(bot);
+// 5.1. Регистрируем обработчики личных дуэлей (ВРЕМЕННО ОТКЛЮЧЕНО)
+// const { registerPrivateDuelHandlers } = require('./handlers/private-duel.handler');
+// registerPrivateDuelHandlers(bot);
 
 // 6. И в самом конце - обработчики текстовых сообщений
 const { registerMessageHandlers } = require('./handlers/message.handler');

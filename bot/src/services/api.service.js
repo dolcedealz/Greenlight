@@ -546,6 +546,276 @@ class ApiService {
       throw new Error(error.response?.data?.message || 'Пользователь не найден');
     }
   }
+
+  // ============ МЕТОДЫ ДЛЯ ДУЭЛЕЙ ============
+
+  /**
+   * Создание дуэли
+   * @param {Object} duelData - Данные дуэли
+   * @returns {Object} - Результат создания
+   */
+  async createDuel(duelData) {
+    try {
+      console.log('API: Создаем дуэль:', duelData);
+      
+      const response = await this.api.post('/duels', duelData);
+      
+      console.log('API: Дуэль создана успешно');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('API: Ошибка создания дуэли:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка создания дуэли' 
+      };
+    }
+  }
+
+  /**
+   * Принятие дуэли
+   * @param {string} sessionId - ID сессии дуэли
+   * @param {string} userId - ID пользователя
+   * @returns {Object} - Результат принятия
+   */
+  async acceptDuel(sessionId, userId) {
+    try {
+      console.log(`API: Принимаем дуэль ${sessionId} пользователем ${userId}`);
+      
+      const response = await this.api.post(`/duels/${sessionId}/accept`, { userId });
+      
+      console.log('API: Дуэль принята успешно');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('API: Ошибка принятия дуэли:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка принятия дуэли' 
+      };
+    }
+  }
+
+  /**
+   * Отклонение дуэли
+   * @param {string} sessionId - ID сессии дуэли
+   * @param {string} userId - ID пользователя
+   * @returns {Object} - Результат отклонения
+   */
+  async declineDuel(sessionId, userId) {
+    try {
+      console.log(`API: Отклоняем дуэль ${sessionId} пользователем ${userId}`);
+      
+      const response = await this.api.post(`/duels/${sessionId}/decline`, { userId });
+      
+      console.log('API: Дуэль отклонена');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('API: Ошибка отклонения дуэли:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка отклонения дуэли' 
+      };
+    }
+  }
+
+  /**
+   * Сохранение результата раунда
+   * @param {string} sessionId - ID сессии дуэли
+   * @param {Object} roundData - Данные раунда
+   * @returns {Object} - Результат сохранения
+   */
+  async saveDuelRound(sessionId, roundData) {
+    try {
+      console.log(`API: Сохраняем результат раунда для дуэли ${sessionId}:`, roundData);
+      
+      const response = await this.api.post(`/duels/${sessionId}/rounds`, roundData);
+      
+      console.log('API: Результат раунда сохранен');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('API: Ошибка сохранения раунда:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка сохранения раунда' 
+      };
+    }
+  }
+
+  /**
+   * Завершение дуэли
+   * @param {string} sessionId - ID сессии дуэли
+   * @param {string} winnerId - ID победителя
+   * @returns {Object} - Результат завершения
+   */
+  async finishDuel(sessionId, winnerId) {
+    try {
+      console.log(`API: Завершаем дуэль ${sessionId}, победитель: ${winnerId}`);
+      
+      const response = await this.api.post(`/duels/${sessionId}/finish`, { winnerId });
+      
+      console.log('API: Дуэль завершена успешно');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('API: Ошибка завершения дуэли:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка завершения дуэли' 
+      };
+    }
+  }
+
+  /**
+   * Отмена дуэли
+   * @param {string} sessionId - ID сессии дуэли
+   * @param {string} userId - ID пользователя (может быть null для системной отмены)
+   * @returns {Object} - Результат отмены
+   */
+  async cancelDuel(sessionId, userId) {
+    try {
+      console.log(`API: Отменяем дуэль ${sessionId}`);
+      
+      const response = await this.api.post(`/duels/${sessionId}/cancel`, { userId });
+      
+      console.log('API: Дуэль отменена');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('API: Ошибка отмены дуэли:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка отмены дуэли' 
+      };
+    }
+  }
+
+  /**
+   * Получение данных дуэли
+   * @param {string} sessionId - ID сессии дуэли
+   * @param {string} userId - ID пользователя (для проверки прав)
+   * @returns {Object} - Данные дуэли
+   */
+  async getDuelData(sessionId, userId) {
+    try {
+      console.log(`API: Получаем данные дуэли ${sessionId} для пользователя ${userId}`);
+      
+      const response = await this.api.get(`/duels/${sessionId}?userId=${userId}`);
+      
+      console.log('API: Данные дуэли получены');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('API: Ошибка получения данных дуэли:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка получения данных дуэли' 
+      };
+    }
+  }
+
+  /**
+   * Получение статистики дуэлей пользователя
+   * @param {string} userId - ID пользователя
+   * @returns {Object} - Статистика дуэлей
+   */
+  async getUserDuelStats(userId) {
+    try {
+      console.log(`API: Получаем статистику дуэлей для пользователя ${userId}`);
+      
+      const response = await this.api.get(`/duels/stats/${userId}`);
+      
+      console.log('API: Статистика дуэлей получена');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('API: Ошибка получения статистики дуэлей:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Статистика недоступна' 
+      };
+    }
+  }
+
+  /**
+   * Получение истории дуэлей пользователя
+   * @param {string} userId - ID пользователя
+   * @param {number} limit - Лимит записей
+   * @param {number} offset - Смещение
+   * @returns {Object} - История дуэлей
+   */
+  async getUserDuelHistory(userId, limit = 20, offset = 0) {
+    try {
+      console.log(`API: Получаем историю дуэлей для пользователя ${userId}`);
+      
+      const response = await this.api.get(`/duels/history/${userId}?limit=${limit}&offset=${offset}`);
+      
+      console.log('API: История дуэлей получена');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('API: Ошибка получения истории дуэлей:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'История недоступна' 
+      };
+    }
+  }
+
+  // ============ СОВМЕСТИМОСТЬ СО СТАРЫМИ МЕТОДАМИ ============
+
+  /**
+   * Создание PvP вызова (совместимость со старым API)
+   * @param {Object} challengeData - Данные вызова
+   * @returns {Object} - Результат создания
+   */
+  async createPvPChallenge(challengeData) {
+    console.log('API: Создание PvP вызова (совместимость)');
+    return this.createDuel({
+      challengerId: challengeData.challengerId,
+      challengerUsername: challengeData.challengerUsername,
+      opponentUsername: challengeData.opponentUsername,
+      amount: challengeData.amount,
+      gameType: challengeData.gameType,
+      format: challengeData.format,
+      winsRequired: challengeData.winsRequired,
+      chatId: challengeData.chatId,
+      chatType: challengeData.chatType,
+      messageId: challengeData.messageId
+    });
+  }
+
+  /**
+   * Ответ на PvP вызов (совместимость со старым API)
+   * @param {string} duelId - ID дуэли
+   * @param {string} opponentId - ID оппонента
+   * @param {string} response - Ответ ('accept' или 'decline')
+   * @returns {Object} - Результат ответа
+   */
+  async respondToPvPChallenge(duelId, opponentId, response) {
+    console.log(`API: Ответ на PvP вызов (совместимость): ${response}`);
+    
+    if (response === 'accept') {
+      return this.acceptDuel(duelId, opponentId);
+    } else {
+      return this.declineDuel(duelId, opponentId);
+    }
+  }
+
+  /**
+   * Получение PvP сессии (совместимость со старым API)
+   * @param {string} sessionId - ID сессии
+   * @param {string} userId - ID пользователя
+   * @returns {Object} - Данные сессии
+   */
+  async getPvPSession(sessionId, userId) {
+    console.log('API: Получение PvP сессии (совместимость)');
+    return this.getDuelData(sessionId, userId);
+  }
+
+  /**
+   * Завершение PvP дуэли (совместимость со старым API)
+   * @param {string} sessionId - ID сессии
+   * @param {string} winnerId - ID победителя
+   * @returns {Object} - Результат завершения
+   */
+  async finishPvPDuel(sessionId, winnerId) {
+    console.log('API: Завершение PvP дуэли (совместимость)');
+    return this.finishDuel(sessionId, winnerId);
+  }
 }
 
 // Экспортируем singleton instance

@@ -89,8 +89,12 @@ async function telegramAuthMiddleware(req, res, next) {
     user.lastActivity = new Date();
     await user.save();
     
-    // Сохраняем пользователя в запросе
-    req.user = user;
+    // Сохраняем пользователя в запросе с дополнительными полями для дуэлей
+    req.user = {
+      ...user.toObject(),
+      id: user._id.toString(), // Для совместимости с дуэлями
+      username: telegramUser.username || user.username
+    };
     
     console.log(`AUTH: Аутентификация успешна для ${user._id}`);
     
@@ -180,7 +184,70 @@ function adminAuthMiddleware(req, res, next) {
   next();
 }
 
+/**
+ * Более мягкий middleware для дуэлей от Telegram бота
+ */
+async function duelAuthMiddleware(req, res, next) {
+  try {
+    console.log('DUEL AUTH: Проверка для дуэли:', req.method, req.originalUrl);
+    
+    // Сначала пытаемся стандартную аутентификацию
+    const initData = req.headers['telegram-data'];
+    
+    if (initData) {
+      // Используем стандартную аутентификацию
+      return telegramAuthMiddleware(req, res, next);
+    }
+    
+    // Если нет telegram-data, проверяем данные из body (для бота)
+    const { challengerId, challengerUsername } = req.body;
+    
+    if (challengerId && challengerUsername) {
+      console.log(`DUEL AUTH: Используем данные из запроса: ${challengerId}`);
+      
+      // Ищем пользователя по ID
+      let user = await User.findOne({ telegramId: challengerId });
+      
+      if (!user) {
+        console.log(`DUEL AUTH: Создаем временного пользователя для ${challengerId}`);
+        // Создаем временного пользователя для дуэли
+        const { userService } = require('../services');
+        user = await userService.createOrUpdateUser({
+          id: parseInt(challengerId),
+          username: challengerUsername,
+          first_name: challengerUsername
+        });
+      }
+      
+      // Устанавливаем req.user
+      req.user = {
+        ...user.toObject(),
+        id: user._id.toString(),
+        username: challengerUsername
+      };
+      
+      console.log(`DUEL AUTH: Временная аутентификация для дуэли успешна`);
+      return next();
+    }
+    
+    // Если ничего не помогло
+    console.log('DUEL AUTH: Данные аутентификации не найдены');
+    return res.status(401).json({
+      success: false,
+      message: 'Отсутствуют данные аутентификации'
+    });
+    
+  } catch (error) {
+    console.error('DUEL AUTH: Ошибка:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка аутентификации'
+    });
+  }
+}
+
 module.exports = {
   telegramAuthMiddleware,
-  adminAuthMiddleware
+  adminAuthMiddleware,
+  duelAuthMiddleware
 };

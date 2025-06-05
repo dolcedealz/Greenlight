@@ -73,10 +73,10 @@ class DuelController {
       const { inviteId } = req.params;
       const userId = req.user.id;
       
-      const { DuelInvitation } = require('../models');
+      const DuelInvitation = require('../models/duel-invitation.model');
       
       // Находим приглашение и обновляем статус
-      const invitation = await DuelInvitation.findOne({ where: { inviteId } });
+      const invitation = await DuelInvitation.findOne({ inviteId });
       
       if (!invitation) {
         return res.status(404).json({
@@ -92,7 +92,8 @@ class DuelController {
         });
       }
       
-      await invitation.update({ status: 'declined' });
+      invitation.status = 'declined';
+      await invitation.save();
       
       res.json({
         success: true,
@@ -596,67 +597,106 @@ class DuelController {
   async getUserStatsById(req, res) {
     try {
       const { userId } = req.params;
-      const { Duel } = require('../models');
-      const { Op } = require('sequelize');
+      const Duel = require('../models/duel.model');
       
-      // Получаем статистику
-      const stats = await Duel.findAll({
-        where: {
-          [Op.or]: [
-            { challengerId: userId },
-            { opponentId: userId }
-          ],
-          status: 'completed'
+      // MongoDB aggregation pipeline для безопасной статистики
+      const statsAggregation = await Duel.aggregate([
+        {
+          $match: {
+            $or: [
+              { challengerId: userId },
+              { opponentId: userId }
+            ],
+            status: 'completed'
+          }
         },
-        attributes: [
-          [Duel.sequelize.fn('COUNT', '*'), 'totalGames'],
-          [Duel.sequelize.fn('SUM', 
-            Duel.sequelize.literal(`CASE WHEN winnerId = '${userId}' THEN 1 ELSE 0 END`)
-          ), 'wins'],
-          [Duel.sequelize.fn('SUM', 
-            Duel.sequelize.literal(`CASE WHEN winnerId = '${userId}' THEN winAmount ELSE -amount END`)
-          ), 'totalProfit'],
-          'gameType'
-        ],
-        group: ['gameType'],
-        raw: true
-      });
+        {
+          $group: {
+            _id: '$gameType',
+            totalGames: { $sum: 1 },
+            wins: {
+              $sum: {
+                $cond: [
+                  { $eq: ['$winnerId', userId] },
+                  1,
+                  0
+                ]
+              }
+            },
+            totalProfit: {
+              $sum: {
+                $cond: [
+                  { $eq: ['$winnerId', userId] },
+                  '$winAmount',
+                  { $multiply: ['$amount', -1] }
+                ]
+              }
+            }
+          }
+        }
+      ]);
       
       // Общая статистика
-      const totalStats = await Duel.findOne({
-        where: {
-          [Op.or]: [
-            { challengerId: userId },
-            { opponentId: userId }
-          ],
-          status: 'completed'
+      const totalStatsAggregation = await Duel.aggregate([
+        {
+          $match: {
+            $or: [
+              { challengerId: userId },
+              { opponentId: userId }
+            ],
+            status: 'completed'
+          }
         },
-        attributes: [
-          [Duel.sequelize.fn('COUNT', '*'), 'totalGames'],
-          [Duel.sequelize.fn('SUM', 
-            Duel.sequelize.literal(`CASE WHEN winnerId = '${userId}' THEN 1 ELSE 0 END`)
-          ), 'totalWins'],
-          [Duel.sequelize.fn('SUM', 
-            Duel.sequelize.literal(`CASE WHEN winnerId = '${userId}' THEN winAmount ELSE -amount END`)
-          ), 'totalProfit']
-        ],
-        raw: true
-      });
+        {
+          $group: {
+            _id: null,
+            totalGames: { $sum: 1 },
+            totalWins: {
+              $sum: {
+                $cond: [
+                  { $eq: ['$winnerId', userId] },
+                  1,
+                  0
+                ]
+              }
+            },
+            totalProfit: {
+              $sum: {
+                $cond: [
+                  { $eq: ['$winnerId', userId] },
+                  '$winAmount',
+                  { $multiply: ['$amount', -1] }
+                ]
+              }
+            }
+          }
+        }
+      ]);
 
+      const totalStats = totalStatsAggregation[0] || { totalGames: 0, totalWins: 0, totalProfit: 0 };
+      
       // Получаем любимую игру
-      const favoriteGame = stats.reduce((prev, current) => 
+      const favoriteGame = statsAggregation.reduce((prev, current) => 
         (prev.totalGames > current.totalGames) ? prev : current
-      )?.gameType || '🎲';
+      )?._id || '🎲';
+
+      // Преобразуем формат данных для совместимости
+      const statsByGame = statsAggregation.map(stat => ({
+        gameType: stat._id,
+        totalGames: stat.totalGames,
+        wins: stat.wins,
+        totalProfit: stat.totalProfit
+      }));
 
       res.json({
         success: true,
         data: {
-          wins: parseInt(totalStats?.totalWins) || 0,
-          losses: (parseInt(totalStats?.totalGames) || 0) - (parseInt(totalStats?.totalWins) || 0),
-          totalWinnings: Math.max(parseFloat(totalStats?.totalProfit) || 0, 0),
-          totalLosses: Math.abs(Math.min(parseFloat(totalStats?.totalProfit) || 0, 0)),
+          wins: totalStats.totalWins,
+          losses: totalStats.totalGames - totalStats.totalWins,
+          totalWinnings: Math.max(totalStats.totalProfit, 0),
+          totalLosses: Math.abs(Math.min(totalStats.totalProfit, 0)),
           favoriteGame: favoriteGame,
-          byGame: stats
+          byGame: statsByGame
         }
       });
       

@@ -755,6 +755,25 @@ class ApiService {
     }
   }
 
+  /**
+   * Получение активных дуэлей пользователя
+   * @param {string} userId - ID пользователя
+   * @returns {Array} - Массив активных дуэлей
+   */
+  async getUserActiveDuels(userId) {
+    try {
+      console.log(`API: Получаем активные дуэли для пользователя ${userId}`);
+      
+      const response = await this.api.get(`/duels/user/active?userId=${userId}`);
+      
+      console.log('API: Активные дуэли получены');
+      return response.data.data || [];
+    } catch (error) {
+      console.error('API: Ошибка получения активных дуэлей:', error.response?.data || error.message);
+      return [];
+    }
+  }
+
   // ============ СОВМЕСТИМОСТЬ СО СТАРЫМИ МЕТОДАМИ ============
 
   /**

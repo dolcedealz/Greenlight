@@ -133,9 +133,7 @@ function registerDuelHandlers(bot) {
   bot.command('duel_cancel', async (ctx) => {
     try {
       const userId = ctx.from.id.toString();
-      const userDuels = Array.from(activeDuels.values()).filter(
-        duel => duel.challengerId === userId || duel.opponentId === userId
-      );
+      const userDuels = await apiService.getUserActiveDuels(userId);
       
       if (userDuels.length === 0) {
         await ctx.reply('❌ У вас нет активных дуэлей для отмены');
@@ -144,7 +142,6 @@ function registerDuelHandlers(bot) {
 
       // Отменяем все активные дуэли пользователя
       for (const duel of userDuels) {
-        activeDuels.delete(duel.sessionId);
         await apiService.cancelDuel(duel.sessionId, userId);
       }
 

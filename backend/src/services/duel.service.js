@@ -634,27 +634,53 @@ class DuelService {
   }
   
   async lockUserFunds(userId, amount, session) {
-    const user = await User.findOne({ telegramId: parseInt(userId) }).session(session);
-    if (!user || user.balance < amount) {
+    // Атомарная операция блокировки средств
+    const result = await User.findOneAndUpdate(
+      { 
+        telegramId: parseInt(userId),
+        balance: { $gte: amount }  // Атомарная проверка достаточности средств
+      },
+      { 
+        $inc: { balance: -amount },
+        $push: { 
+          lockedFunds: { 
+            amount, 
+            reason: 'duel', 
+            lockedAt: new Date(),
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 минут
+          }
+        }
+      },
+      { session, new: true }
+    );
+    
+    if (!result) {
       throw new Error('Недостаточно средств для блокировки');
     }
-    
-    user.balance -= amount;
-    await user.save({ session });
     
     return true;
   }
   
   async unlockUserFunds(userId, amount, session) {
-    const user = await User.findOne({ telegramId: parseInt(userId) }).session(session);
-    if (!user) {
+    // Атомарная операция разблокировки средств
+    const result = await User.findOneAndUpdate(
+      { telegramId: parseInt(userId) },
+      { 
+        $inc: { balance: amount },
+        $pull: { 
+          lockedFunds: { 
+            amount, 
+            reason: 'duel' 
+          }
+        }
+      },
+      { session, new: true }
+    );
+    
+    if (!result) {
       throw new Error('Пользователь не найден');
     }
     
-    user.balance += amount;
-    await user.save({ session });
-    
-    return true;
   }
   
   async creditUserFunds(userId, amount, type, reference, session) {

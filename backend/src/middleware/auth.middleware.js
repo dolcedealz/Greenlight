@@ -23,38 +23,34 @@ async function telegramAuthMiddleware(req, res, next) {
       });
     }
     
-    console.log('AUTH: Получены initData (длина):', initData.length);
+    const telegramAuth = require('../utils/telegram-auth');
     
-    // В этом примере мы просто извлекаем telegramId из данных
-    let telegramId;
-    let telegramUser;
-    try {
-      const parts = initData.split('&');
-      for (const part of parts) {
-        if (part.startsWith('user=')) {
-          const userJson = decodeURIComponent(part.split('=')[1]);
-          telegramUser = JSON.parse(userJson);
-          telegramId = telegramUser.id;
-          break;
-        }
-      }
-    } catch (error) {
-      console.error('AUTH: Ошибка парсинга данных аутентификации:', error);
+    // Верифицируем Telegram данные криптографически
+    const verificationResult = process.env.NODE_ENV === 'development' 
+      ? telegramAuth.devVerifyTelegramData(initData)
+      : telegramAuth.verifyTelegramData(initData);
+    
+    if (!verificationResult.isValid) {
+      console.error('AUTH: Верификация не пройдена:', verificationResult.error);
       return res.status(401).json({
         success: false,
-        message: 'Некорректные данные аутентификации'
+        message: 'Данные аутентификации не прошли верификацию'
       });
     }
     
+    const { userData } = verificationResult;
+    const telegramUser = userData.user;
+    const telegramId = telegramUser?.id;
+    
     if (!telegramId) {
-      console.log('AUTH: Идентификатор пользователя не найден');
+      console.log('AUTH: Идентификатор пользователя не найден в верифицированных данных');
       return res.status(401).json({
         success: false,
         message: 'Идентификатор пользователя не найден'
       });
     }
     
-    console.log(`AUTH: TelegramId извлечен: ${telegramId}`);
+    console.log(`AUTH: TelegramId верифицирован: ${telegramId}`);
     
     // Находим пользователя по Telegram ID
     let user = await User.findOne({ telegramId });

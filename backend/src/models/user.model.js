@@ -25,6 +25,26 @@ const userSchema = new Schema({
     default: 0,
     min: 0
   },
+  // Заблокированные средства для активных операций
+  lockedFunds: [{
+    amount: {
+      type: Number,
+      required: true
+    },
+    reason: {
+      type: String,
+      enum: ['duel', 'casino', 'withdrawal'],
+      required: true
+    },
+    lockedAt: {
+      type: Date,
+      default: Date.now
+    },
+    expiresAt: {
+      type: Date,
+      required: true
+    }
+  }],
   isBlocked: {
     type: Boolean,
     default: false

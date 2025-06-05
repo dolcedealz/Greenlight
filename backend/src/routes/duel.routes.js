@@ -10,35 +10,15 @@ router.use(duelAuthMiddleware);
 
 // Middleware для валидации
 function validateCreateInvitation(req, res, next) {
-  const { gameType, format, amount, targetUsername } = req.body;
+  const gameValidation = require('../utils/game-validation');
   
-  const validGameTypes = ['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'];
-  if (!gameType || !validGameTypes.includes(gameType)) {
+  const validationResult = gameValidation.validateDuelCreation(req.body);
+  
+  if (!validationResult.isValid) {
     return res.status(400).json({
       success: false,
-      message: 'Неподдерживаемый тип игры'
-    });
-  }
-  
-  const validFormats = ['bo1', 'bo3', 'bo5', 'bo7'];
-  if (format && !validFormats.includes(format)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Неподдерживаемый формат дуэли'
-    });
-  }
-  
-  if (!amount || isNaN(amount) || amount < 1 || amount > 1000) {
-    return res.status(400).json({
-      success: false,
-      message: 'Ставка должна быть от 1 до 1000 USDT'
-    });
-  }
-  
-  if (targetUsername && (typeof targetUsername !== 'string' || targetUsername.length > 32)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Некорректное имя пользователя'
+      message: 'Ошибки валидации',
+      errors: validationResult.errors
     });
   }
   
@@ -46,31 +26,21 @@ function validateCreateInvitation(req, res, next) {
 }
 
 function validateCreateDuel(req, res, next) {
-  const { gameType, format, amount, chatId, chatType, opponentId, opponentUsername } = req.body;
+  const gameValidation = require('../utils/game-validation');
+  const { chatId, chatType, opponentId, opponentUsername } = req.body;
   
-  const validGameTypes = ['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'];
-  if (!gameType || !validGameTypes.includes(gameType)) {
+  // Валидируем основные данные дуэли
+  const validationResult = gameValidation.validateDuelCreation(req.body);
+  
+  if (!validationResult.isValid) {
     return res.status(400).json({
       success: false,
-      message: 'Неподдерживаемый тип игры'
+      message: 'Ошибки валидации',
+      errors: validationResult.errors
     });
   }
   
-  const validFormats = ['bo1', 'bo3', 'bo5', 'bo7'];
-  if (format && !validFormats.includes(format)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Неподдерживаемый формат дуэли'
-    });
-  }
-  
-  if (!amount || isNaN(amount) || amount < 1 || amount > 1000) {
-    return res.status(400).json({
-      success: false,
-      message: 'Ставка должна быть от 1 до 1000 USDT'
-    });
-  }
-  
+  // Дополнительная валидация для чата
   if (!chatId) {
     return res.status(400).json({
       success: false,
@@ -93,23 +63,35 @@ function validateCreateDuel(req, res, next) {
     });
   }
   
-  if (opponentUsername && (typeof opponentUsername !== 'string' || opponentUsername.length > 32)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Некорректное имя противника'
-    });
+  if (opponentUsername) {
+    const usernameValidation = gameValidation.validateUsername(opponentUsername);
+    if (!usernameValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: usernameValidation.error
+      });
+    }
   }
   
   next();
 }
 
 function validateMakeMove(req, res, next) {
-  const { result, messageId } = req.body;
+  const gameValidation = require('../utils/game-validation');
+  const { result, messageId, gameType, sessionId } = req.body;
   
-  if (!result || isNaN(result) || result < 1 || result > 64) {
+  // Валидируем ход
+  const moveValidation = gameValidation.validateMove({
+    sessionId,
+    gameType,
+    result
+  });
+  
+  if (!moveValidation.isValid) {
     return res.status(400).json({
       success: false,
-      message: 'Результат должен быть числом от 1 до 64'
+      message: 'Ошибки валидации хода',
+      errors: moveValidation.errors
     });
   }
   
@@ -124,12 +106,15 @@ function validateMakeMove(req, res, next) {
 }
 
 function validateSessionId(req, res, next) {
+  const gameValidation = require('../utils/game-validation');
   const { sessionId } = req.params;
   
-  if (!sessionId || sessionId.length < 10) {
+  const validation = gameValidation.validateSessionId(sessionId);
+  
+  if (!validation.isValid) {
     return res.status(400).json({
       success: false,
-      message: 'Некорректный ID сессии'
+      message: validation.error
     });
   }
   

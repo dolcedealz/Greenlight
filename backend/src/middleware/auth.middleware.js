@@ -236,7 +236,7 @@ async function duelAuthMiddleware(req, res, next) {
           username: usernameFromBody || user.username
         };
         
-        console.log(`DUEL AUTH: Bot аутентификация успешна для ${user._id}`);
+        console.log(`DUEL AUTH: Bot аутентификация успешна для ${user._id}, telegramId: ${user.telegramId}`);
         return next();
       }
     }

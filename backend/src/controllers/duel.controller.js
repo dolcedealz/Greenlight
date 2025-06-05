@@ -272,11 +272,14 @@ class DuelController {
     try {
       const { sessionId } = req.params;
       const userId = req.user.id;
+      const telegramId = req.user.telegramId?.toString();
       
       const duel = await duelService.getDuel(sessionId);
       
-      // Проверяем права доступа
-      if (!duel.isParticipant(userId)) {
+      console.log(`DUEL ACCESS: Проверка доступа - telegramId: ${telegramId}, challengerId: ${duel.challengerId}, opponentId: ${duel.opponentId}`);
+      
+      // Проверяем права доступа (используем Telegram ID, не MongoDB ID)
+      if (!duel.isParticipant(telegramId)) {
         return res.status(403).json({
           success: false,
           message: 'Нет доступа к этой дуэли'

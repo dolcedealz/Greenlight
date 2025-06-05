@@ -1,19 +1,10 @@
 const duelService = require('../services/duel.service');
-const { validationResult } = require('express-validator');
 
 class DuelController {
   
   // Создание приглашения на дуэль (для inline режима)
   async createInvitation(req, res) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Ошибка валидации',
-          errors: errors.array()
-        });
-      }
       
       const { targetUsername, gameType, format = 'bo1', amount } = req.body;
       const challengerId = req.user.id;
@@ -120,14 +111,6 @@ class DuelController {
   // Создание дуэли напрямую (для групповых чатов)
   async createDuel(req, res) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Ошибка валидации',
-          errors: errors.array()
-        });
-      }
       
       const {
         challengerId,

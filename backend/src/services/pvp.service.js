@@ -363,6 +363,12 @@ class PvPService {
     // Обрабатываем выплаты
     await this.processPayouts(duel);
     
+    // Создаем записи в истории игр для обоих игроков
+    await this.createGameHistoryRecords(duel, session);
+    
+    // Обновляем финансовую статистику казино
+    await this.updateCasinoFinances(duel);
+    
     return {
       success: true,
       data: {
@@ -434,6 +440,12 @@ class PvPService {
 
     // Обрабатываем выплаты
     await this.processPayouts(duel);
+    
+    // Создаем записи в истории игр для обоих игроков
+    await this.createGameHistoryRecords(duel, session);
+    
+    // Обновляем финансовую статистику казино
+    await this.updateCasinoFinances(duel);
 
     return {
       success: true,
@@ -885,6 +897,149 @@ class PvPService {
         isChallenger: duel.challengerId === userId
       }
     };
+  }
+
+  /**
+   * Создает записи в истории игр для обоих участников PvP дуэли
+   * @param {Object} duel - Объект дуэли
+   * @param {Object} session - MongoDB сессия
+   */
+  async createGameHistoryRecords(duel, session) {
+    try {
+      const { Game, User } = require('../models');
+      
+      // Получаем объекты пользователей
+      const challenger = await User.findOne({ telegramId: duel.challengerId }).session(session);
+      const opponent = await User.findOne({ telegramId: duel.opponentId }).session(session);
+      
+      if (!challenger || !opponent) {
+        console.log('PvP: Не удалось найти пользователей для создания игровых записей');
+        return;
+      }
+
+      // Определяем результат для каждого игрока
+      const challengerWon = duel.winnerId === duel.challengerId;
+      const opponentWon = duel.winnerId === duel.opponentId;
+
+      // Создаем результат дуэли
+      const duelResult = {
+        duelId: duel._id,
+        sessionId: duel.sessionId,
+        gameType: duel.gameType || 'coin',
+        format: duel.format || 'bo1',
+        score: duel.score,
+        rounds: duel.rounds,
+        opponent: {
+          challengerId: duel.challengerId,
+          challengerUsername: duel.challengerUsername,
+          opponentId: duel.opponentId, 
+          opponentUsername: duel.opponentUsername
+        },
+        totalBank: duel.totalBank,
+        commission: duel.commission
+      };
+
+      // Запись для challenger
+      const challengerGame = new Game({
+        user: challenger._id,
+        gameType: 'pvp',
+        bet: duel.amount,
+        multiplier: challengerWon ? (duel.winAmount / duel.amount) : 0,
+        result: {
+          ...duelResult,
+          playerRole: 'challenger',
+          opponentUsername: duel.opponentUsername
+        },
+        win: challengerWon,
+        profit: challengerWon ? (duel.winAmount - duel.amount) : -duel.amount,
+        balanceBefore: challenger.balance - (challengerWon ? (duel.winAmount - duel.amount) : -duel.amount),
+        balanceAfter: challenger.balance,
+        clientSeed: `pvp_${duel.sessionId}_challenger`,
+        serverSeed: duel.gameData?.serverSeed || `pvp_server_${duel.sessionId}`,
+        nonce: 1,
+        metadata: {
+          pvpDuel: true,
+          opponentId: duel.opponentId,
+          format: duel.format,
+          finalScore: `${duel.score.challenger}-${duel.score.opponent}`
+        }
+      });
+
+      // Запись для opponent  
+      const opponentGame = new Game({
+        user: opponent._id,
+        gameType: 'pvp',
+        bet: duel.amount,
+        multiplier: opponentWon ? (duel.winAmount / duel.amount) : 0,
+        result: {
+          ...duelResult,
+          playerRole: 'opponent',
+          opponentUsername: duel.challengerUsername
+        },
+        win: opponentWon,
+        profit: opponentWon ? (duel.winAmount - duel.amount) : -duel.amount,
+        balanceBefore: opponent.balance - (opponentWon ? (duel.winAmount - duel.amount) : -duel.amount),
+        balanceAfter: opponent.balance,
+        clientSeed: `pvp_${duel.sessionId}_opponent`,
+        serverSeed: duel.gameData?.serverSeed || `pvp_server_${duel.sessionId}`,
+        nonce: 2,
+        metadata: {
+          pvpDuel: true,
+          opponentId: duel.challengerId,
+          format: duel.format,
+          finalScore: `${duel.score.opponent}-${duel.score.challenger}`
+        }
+      });
+
+      // Сохраняем обе записи
+      await Game.create([challengerGame, opponentGame], { session });
+
+      console.log(`PvP: Созданы игровые записи для дуэли ${duel.sessionId}`);
+      
+    } catch (error) {
+      console.error('PvP: Ошибка создания игровых записей:', error);
+      // Не прерываем основную транзакцию из-за ошибки истории
+    }
+  }
+
+  /**
+   * Обновляет финансовую статистику казино после PvP дуэли
+   * @param {Object} duel - Объект дуэли
+   */
+  async updateCasinoFinances(duel) {
+    try {
+      const casinoFinanceService = require('./casino-finance.service');
+      
+      // Обновляем статистику по каждому игроку как отдельную игру
+      const totalBets = duel.amount * 2; // Общая сумма ставок
+      const totalWins = duel.winAmount; // Выигрыш победителя
+      const commission = duel.commission; // Комиссия казино
+      
+      // Рассчитываем реферальные выплаты
+      const referralPayouts = duel.referralPayouts || [];
+      const totalReferralPayouts = referralPayouts.reduce((sum, payout) => sum + payout.amount, 0);
+      
+      // Обновляем через casino finance service
+      await casinoFinanceService.updateAfterGame({
+        gameType: 'pvp',
+        bet: totalBets,
+        profit: commission - totalReferralPayouts, // Прибыль казино после реферальных выплат
+        win: false, // PvP всегда приносит прибыль казино
+        metadata: {
+          duelId: duel._id,
+          sessionId: duel.sessionId,
+          commission: commission,
+          referralPayouts: totalReferralPayouts,
+          gameFormat: duel.format
+        }
+      });
+      
+      console.log(`PvP: Обновлена финансовая статистика - ставки: ${totalBets}, комиссия: ${commission}, реферальные: ${totalReferralPayouts}`);
+      
+    } catch (error) {
+      console.error('PvP: Ошибка обновления финансовой статистики:', error);
+      // Не прерываем основную логику
+    }
   }
 }
 

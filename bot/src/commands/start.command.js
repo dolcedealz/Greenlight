@@ -18,7 +18,6 @@ async function startCommand(ctx) {
     
     const { webAppUrl } = config;
     const apiService = require('../services/api.service');
-    const { checkPendingInvites } = require('../handlers/inline.handler');
     
     // Получаем данные пользователя
     const { id, first_name, username } = ctx.from;
@@ -78,10 +77,7 @@ async function startCommand(ctx) {
       ])
     );
     
-    // Проверяем ожидающие приглашения на дуэли
-    if (username) {
-      await checkPendingInvites(ctx.telegram, username, id);
-    }
+    // Проверка ожидающих приглашений убрана - теперь обрабатывается новой системой дуэлей
   } catch (error) {
     console.error('Ошибка при обработке команды /start:', error);
     await ctx.reply('Произошла ошибка. Пожалуйста, попробуйте еще раз.');

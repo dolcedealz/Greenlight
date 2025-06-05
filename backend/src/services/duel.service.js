@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Duel, DuelRound, DuelInvitation, User, Transaction } = require('../models');
+const { Duel, DuelInvitation, User, Transaction } = require('../models');
 
 class DuelService {
   
@@ -207,8 +207,7 @@ class DuelService {
   
   // Начало игры (создание первого раунда)
   async startGame(sessionId, playerId) {
-    const duel = await Duel.findOne({ sessionId })
-      .populate('rounds');
+    const duel = await Duel.findOne({ sessionId });
     
     if (!duel) {
       throw new Error('Дуэль не найдена');
@@ -224,20 +223,25 @@ class DuelService {
     
     // Обновляем статус дуэли
     duel.status = 'active';
+    
+    // Создаем первый раунд если его еще нет
+    if (duel.rounds.length === 0) {
+      const firstRound = {
+        roundNumber: 1,
+        challengerResult: null,
+        opponentResult: null,
+        winnerId: null,
+        timestamp: new Date()
+      };
+      duel.rounds.push(firstRound);
+    }
+    
     await duel.save();
     
-    // Создаем первый раунд
-    const round = await DuelRound.create({
-      duelId: duel._id,
-      sessionId: duel.sessionId,
-      roundNumber: 1,
-      gameType: duel.gameType
-    });
-    
-    return { duel, round };
+    return { duel, round: duel.rounds[0] };
   }
   
-  // Сделать ход в раунде
+  // Сделать ход в дуэли
   async makeMove(sessionId, playerId, result, messageId = null) {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -249,53 +253,58 @@ class DuelService {
         throw new Error('Дуэль не найдена или вы не участвуете в ней');
       }
       
+      // Автоматически активируем дуэль если она принята
+      if (duel.status === 'accepted') {
+        duel.status = 'active';
+        duel.startedAt = new Date();
+      }
+      
       if (duel.status !== 'active') {
         throw new Error('Дуэль не активна');
       }
       
-      // Находим активный раунд
-      const round = await DuelRound.findOne({
-        duelId: duel._id,
-        status: { $in: ['waiting_challenger', 'waiting_opponent'] }
-      })
-        .sort({ roundNumber: -1 })
-        .session(session);
-      
-      if (!round) {
-        throw new Error('Активный раунд не найден');
-      }
-      
       const isChallenger = duel.challengerId === playerId;
-      const fieldName = isChallenger ? 'challengerResult' : 'opponentResult';
-      const timestampField = isChallenger ? 'challengerTimestamp' : 'opponentTimestamp';
-      const messageField = isChallenger ? 'challengerMessageId' : 'opponentMessageId';
       
-      // Проверяем что игрок еще не сделал ход
-      if (round[fieldName] !== null) {
-        throw new Error('Вы уже сделали ход в этом раунде');
+      // Находим или создаем текущий раунд
+      let currentRound = duel.rounds.find(round => 
+        (isChallenger && round.challengerResult === null) || 
+        (!isChallenger && round.opponentResult === null)
+      );
+      
+      if (!currentRound) {
+        // Создаем новый раунд
+        currentRound = {
+          roundNumber: duel.rounds.length + 1,
+          challengerResult: null,
+          opponentResult: null,
+          winnerId: null,
+          timestamp: new Date()
+        };
+        duel.rounds.push(currentRound);
       }
       
-      // Сохраняем ход
-      round[fieldName] = result;
-      round[timestampField] = new Date();
-      
-      if (messageId) {
-        round[messageField] = messageId;
+      // Сохраняем результат
+      if (isChallenger) {
+        if (currentRound.challengerResult !== null) {
+          throw new Error('Вы уже сделали ход в этом раунде');
+        }
+        currentRound.challengerResult = result;
+      } else {
+        if (currentRound.opponentResult !== null) {
+          throw new Error('Вы уже сделали ход в этом раунде');
+        }
+        currentRound.opponentResult = result;
       }
       
       // Если оба игрока сделали ходы, определяем победителя раунда
-      if (round.challengerResult !== null && round.opponentResult !== null) {
-        await this.processRoundResult(duel, round, session);
-      } else {
-        // Обновляем статус раунда
-        round.status = isChallenger ? 'waiting_opponent' : 'waiting_challenger';
-        await round.save({ session });
+      if (currentRound.challengerResult !== null && currentRound.opponentResult !== null) {
+        await this.processRoundResult(duel, currentRound, session);
       }
       
+      await duel.save({ session });
       await session.commitTransaction();
       
-      // Возвращаем обновленную информацию
-      return await this.getDuel(sessionId);
+      return duel;
       
     } catch (error) {
       await session.abortTransaction();
@@ -307,37 +316,27 @@ class DuelService {
   
   // Обработка результата раунда
   async processRoundResult(duel, round, session) {
-    const winner = round.determineWinner(round.gameType, round.challengerResult, round.opponentResult);
+    const winner = this.determineWinner(duel.gameType, round.challengerResult, round.opponentResult);
     
     if (winner === 'challenger') {
       duel.challengerScore++;
       round.winnerId = duel.challengerId;
-      round.winnerUsername = duel.challengerUsername;
-      round.status = 'completed';
     } else if (winner === 'opponent') {
       duel.opponentScore++;
       round.winnerId = duel.opponentId;
-      round.winnerUsername = duel.opponentUsername;
-      round.status = 'completed';
     } else {
-      // Ничья - переигрываем
-      round.isDraw = true;
-      round.status = 'completed';
-      await round.save({ session });
-      
-      // Создаем новый раунд для переигровки
-      await DuelRound.create([{
-        duelId: duel._id,
-        sessionId: duel.sessionId,
-        roundNumber: round.roundNumber + 1,
-        gameType: duel.gameType
-      }], { session });
-      
+      // Ничья - создаем новый раунд для переигровки
+      const newRound = {
+        roundNumber: duel.rounds.length + 1,
+        challengerResult: null,
+        opponentResult: null,
+        winnerId: null,
+        timestamp: new Date()
+      };
+      duel.rounds.push(newRound);
       await duel.save({ session });
       return;
     }
-    
-    await round.save({ session });
     
     // Проверяем победителя дуэли
     if (duel.challengerScore >= duel.winsRequired) {
@@ -346,13 +345,14 @@ class DuelService {
       await this.finishDuel(duel, duel.opponentId, duel.opponentUsername, session);
     } else {
       // Создаем следующий раунд
-      await DuelRound.create([{
-        duelId: duel._id,
-        sessionId: duel.sessionId,
-        roundNumber: round.roundNumber + 1,
-        gameType: duel.gameType
-      }], { session });
-      
+      const nextRound = {
+        roundNumber: duel.rounds.length + 1,
+        challengerResult: null,
+        opponentResult: null,
+        winnerId: null,
+        timestamp: new Date()
+      };
+      duel.rounds.push(nextRound);
       await duel.save({ session });
     }
   }
@@ -413,12 +413,7 @@ class DuelService {
   
   // Получение информации о дуэли
   async getDuel(sessionId) {
-    const duel = await Duel.findOne({ sessionId })
-      .populate({
-        path: 'rounds',
-        options: { sort: { roundNumber: 1 } }
-      })
-      .populate('invitation');
+    const duel = await Duel.findOne({ sessionId });
     
     if (!duel) {
       throw new Error('Дуэль не найдена');
@@ -436,7 +431,6 @@ class DuelService {
       ],
       status: { $in: ['pending', 'accepted', 'active'] }
     })
-      .populate('rounds')
       .sort({ createdAt: -1 });
     
     return duels;
@@ -454,7 +448,6 @@ class DuelService {
     
     const [duels, total] = await Promise.all([
       Duel.find(query)
-        .populate('rounds')
         .sort({ completedAt: -1 })
         .limit(limit)
         .skip(offset),
@@ -746,6 +739,22 @@ class DuelService {
       'bo7': 4
     };
     return formatMap[format] || 1;
+  }
+  
+  // Определение победителя раунда
+  determineWinner(gameType, challengerResult, opponentResult) {
+    if (challengerResult === null || opponentResult === null) {
+      return null; // Раунд не завершен
+    }
+    
+    // Для всех игр: больше = лучше
+    if (challengerResult > opponentResult) {
+      return 'challenger';
+    } else if (opponentResult > challengerResult) {
+      return 'opponent';
+    } else {
+      return 'draw'; // Ничья
+    }
   }
 }
 

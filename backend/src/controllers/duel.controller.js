@@ -497,22 +497,30 @@ class DuelController {
   async saveRound(req, res) {
     try {
       const { sessionId } = req.params;
-      const roundData = req.body;
+      const { userId, username, gameType, result, timestamp } = req.body;
       
       // Валидация данных раунда
-      if (!roundData.round || !roundData.challengerResult || !roundData.opponentResult) {
+      if (!userId || !result) {
         return res.status(400).json({
           success: false,
           message: 'Недостаточно данных для сохранения раунда'
         });
       }
       
-      // Сохраняем раунд через сервис
-      const result = await duelService.makeMove(sessionId, roundData.winnerId, roundData.challengerResult);
+      // Проверяем валидность результата
+      if (typeof result !== 'number' || result < 1 || result > 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'Некорректный результат хода'
+        });
+      }
+      
+      // Сохраняем ход через сервис
+      const duel = await duelService.makeMove(sessionId, userId, result);
       
       res.json({
         success: true,
-        data: result
+        data: { duel }
       });
       
     } catch (error) {

@@ -88,6 +88,30 @@ const duelSchema = new mongoose.Schema({
     default: 0
   },
   
+  // Раунды дуэли
+  rounds: [{
+    roundNumber: {
+      type: Number,
+      required: true
+    },
+    challengerResult: {
+      type: Number,
+      default: null
+    },
+    opponentResult: {
+      type: Number,
+      default: null
+    },
+    winnerId: {
+      type: String,
+      default: null
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  
   // Информация о чате
   chatId: {
     type: String,

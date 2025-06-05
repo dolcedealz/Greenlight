@@ -726,12 +726,14 @@ class ApiService {
     try {
       console.log(`API: Получаем данные дуэли ${sessionId} для пользователя ${userId}`);
       
-      // Создаем заголовки для аутентификации бота
-      const headers = {
-        'Authorization': `Bot ${config.BOT_TOKEN}`,
-        'X-Telegram-User-Id': userId,
-        'Content-Type': 'application/json'
-      };
+      // Создаем заголовки для аутентификации бота  
+      const headers = telegramUser 
+        ? this.createTelegramAuthHeaders(telegramUser)
+        : {
+            'Authorization': `Bot ${config.BOT_TOKEN}`,
+            'X-Telegram-User-Id': userId,
+            'Content-Type': 'application/json'
+          };
       
       console.log('API: Отправляем заголовки для GET duel:', {
         'Authorization': `Bot ${config.BOT_TOKEN ? 'ТОКЕН_ЕСТЬ' : 'ТОКЕН_НЕ_НАЙДЕН'}`,
@@ -746,6 +748,15 @@ class ApiService {
       }
       
       const response = await this.api.get(`/duels/${sessionId}?userId=${userId}`, { headers });
+      
+      console.log('🔍 API DEBUG: Raw response from backend:', {
+        status: response.status,
+        dataType: typeof response.data.data,
+        gameType: response.data.data?.gameType,
+        format: response.data.data?.format,
+        responseKeys: Object.keys(response.data.data || {}),
+        fullData: JSON.stringify(response.data.data, null, 2)
+      });
       
       console.log('API: Данные дуэли получены');
       return { success: true, data: response.data.data };

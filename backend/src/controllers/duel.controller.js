@@ -274,7 +274,19 @@ class DuelController {
       const userId = req.user.id;
       const telegramId = req.user.telegramId?.toString();
       
+      console.log(`🔍 BACKEND DEBUG: getDuel called for sessionId: ${sessionId}, userId: ${userId}, telegramId: ${telegramId}`);
+      
       const duel = await duelService.getDuel(sessionId);
+      
+      console.log(`🔍 BACKEND DEBUG: Duel data from service:`, {
+        sessionId: duel.sessionId,
+        gameType: duel.gameType,
+        format: duel.format,
+        status: duel.status,
+        challengerId: duel.challengerId,
+        opponentId: duel.opponentId,
+        allFields: Object.keys(duel.toObject ? duel.toObject() : duel)
+      });
       
       console.log(`DUEL ACCESS: Проверка доступа - telegramId: ${telegramId}, challengerId: ${duel.challengerId}, opponentId: ${duel.opponentId}`);
       
@@ -286,9 +298,21 @@ class DuelController {
         });
       }
       
+      console.log(`🔍 BACKEND DEBUG: Returning duel data with gameType: ${duel.gameType}, format: ${duel.format}`);
+      
+      // Ensure the duel is serialized properly
+      const duelObject = duel.toObject ? duel.toObject() : duel;
+      
+      console.log(`🔍 BACKEND DEBUG: Serialized duel object:`, {
+        gameType: duelObject.gameType,
+        format: duelObject.format,
+        hasGameType: duelObject.hasOwnProperty('gameType'),
+        hasFormat: duelObject.hasOwnProperty('format')
+      });
+      
       res.json({
         success: true,
-        data: { duel }
+        data: { duel: duelObject }
       });
       
     } catch (error) {

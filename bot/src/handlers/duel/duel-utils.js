@@ -102,7 +102,7 @@ function getFormatConfig(format) {
     'bo7': { name: 'Bo7', winsRequired: 4, description: 'до 4 побед' }
   };
   
-  return formats[format.toLowerCase()] || formats['bo1'];
+  return formats[(format || 'bo1').toLowerCase()] || formats['bo1'];
 }
 
 /**

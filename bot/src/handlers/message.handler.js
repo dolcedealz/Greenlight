@@ -112,8 +112,8 @@ function registerMessageHandlers(bot) {
       const referralLink = `https://t.me/${ctx.botInfo.username}?start=${referralCode}`;
       console.log('🔍 Debug referralLink:', referralLink);
       
-      // Получаем URL для реферальной страницы
-      const webAppData = getWebAppUrl('?screen=referrals');
+      // Получаем URL для реферальной страницы фронтенда  
+      const webAppData = getWebAppUrl('?screen=referral');
       console.log('🔍 Debug webAppData:', webAppData);
       
       if (!webAppData.isValid) {

@@ -346,6 +346,17 @@ class GroupDuelHandler {
         
         const duel = duelData.data;
         
+        // DEBUG: Логируем полученные данные дуэли в группе
+        console.log('🔍 DEBUG GROUP: Полученные данные дуэли в группе:', {
+          sessionId: duel.sessionId,
+          gameType: duel.gameType,
+          format: duel.format,
+          status: duel.status,
+          challengerId: duel.challengerId,
+          opponentId: duel.opponentId,
+          duelKeys: Object.keys(duel)
+        });
+        
         // Проверяем может ли игрок сделать ход
         if (!duelGameHandler.canPlayerMove(duel, userId)) {
           await ctx.answerCbQuery('❌ Сейчас не ваш ход!');

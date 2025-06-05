@@ -22,6 +22,19 @@ class DuelGameHandler {
       }
       
       const duel = duelData.data;
+      
+      // DEBUG: Логируем полученные данные дуэли
+      console.log('🔍 DEBUG: Полученные данные дуэли:', {
+        sessionId: duel.sessionId,
+        gameType: duel.gameType,
+        format: duel.format,
+        status: duel.status,
+        challengerId: duel.challengerId,
+        opponentId: duel.opponentId,
+        duelKeys: Object.keys(duel),
+        fullDuel: JSON.stringify(duel, null, 2)
+      });
+      
       const gameConfig = getGameConfig(duel.gameType);
       
       await ctx.answerCbQuery(`${gameConfig.emoji} ${gameConfig.processText}`);

@@ -54,14 +54,14 @@ class InlineDuelHandler {
         
         let duelMatch = null;
         
-        // Основной regex - ищем минимум username
-        const basicMatch = query.match(/^duel\s+@?(\w{3,})(?:\s+(\d+))?(?:\s+(🎲|🎯|⚽|🏀|🎳|🎰|dice|darts|football|basketball|bowling|slots?))?(?:\s*(bo[1357]))?$/i);
+        // Основной regex - ищем минимум username (смягчен до 1+ символов)
+        const basicMatch = query.match(/^duel\s+@?(\w+)(?:\s+(\d+))?(?:\s+(🎲|🎯|⚽|🏀|🎳|🎰|dice|darts|football|basketball|bowling|slots?))?(?:\s*(bo[1357]))?$/i);
         
         if (basicMatch) {
           duelMatch = basicMatch;
         } else {
           // Пробуем поймать слитный формат типа "basketballbo3" 
-          const combinedMatch = query.match(/^duel\s+@?(\w{3,})\s+(\d+)\s*(\w+)$/i);
+          const combinedMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)\s*(\w+)$/i);
           if (combinedMatch) {
             const combined = combinedMatch[3];
             
@@ -74,6 +74,12 @@ class InlineDuelHandler {
               const gameOnlyMatch = combined.match(/^(basketball|football|bowling|slots?|dice|darts)$/i);
               if (gameOnlyMatch) {
                 duelMatch = [combinedMatch[0], combinedMatch[1], combinedMatch[2], gameOnlyMatch[1], 'bo1'];
+              } else {
+                // Может это неполный формат типа "bo" без цифры
+                const incompleteFormatMatch = combined.match(/^bo$/i);
+                if (incompleteFormatMatch) {
+                  duelMatch = [combinedMatch[0], combinedMatch[1], combinedMatch[2], '🎲', 'bo1']; // Default игра и bo1
+                }
               }
             }
           }

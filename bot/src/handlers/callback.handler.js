@@ -197,7 +197,7 @@ function registerCallbackHandlers(bot) {
       
       if (result.success) {
         // Получаем данные дуэли для определения типа игры
-        const duelData = await apiService.getDuelData(sessionId, userId);
+        const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
         const gameType = duelData.success ? duelData.data.gameType : '🎲';
         
         // Обновляем сообщение
@@ -275,7 +275,7 @@ function registerCallbackHandlers(bot) {
       
       if (result.success) {
         // Получаем данные дуэли для определения типа игры
-        const duelData = await apiService.getDuelData(sessionId, userId);
+        const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
         const gameType = duelData.success ? duelData.data.gameType : '🎲';
         
         // Обновляем сообщение
@@ -383,7 +383,7 @@ function registerCallbackHandlers(bot) {
       const username = ctx.from.username;
       
       // Получаем данные дуэли для определения типа игры
-      const duelData = await apiService.getDuelData(sessionId, userId);
+      const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
       
       if (!duelData.success) {
         await ctx.answerCbQuery('❌ Ошибка получения данных дуэли');
@@ -423,7 +423,7 @@ function registerCallbackHandlers(bot) {
         );
         
         // Получаем данные дуэли для определения противника
-        const duelData = await apiService.getDuelData(sessionId, userId);
+        const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
         
         if (duelData.success) {
           const duel = duelData.data;
@@ -474,7 +474,7 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('📊 Загружаем результаты...');
       
       // Получаем данные дуэли
-      const duelData = await apiService.getDuelData(sessionId, userId);
+      const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
       
       if (duelData.success) {
         const duel = duelData.data;
@@ -513,7 +513,7 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('🔄 Подготовка следующего раунда...');
       
       // Получаем данные дуэли для определения типа игры
-      const duelData = await apiService.getDuelData(sessionId, userId);
+      const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
       const gameType = duelData.success ? duelData.data.gameType : '🎲';
       
       // Создаем кнопки для следующего раунда с правильным типом игры
@@ -544,7 +544,7 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('📊 Проверяем статус...');
       
       // Получаем данные дуэли
-      const duelData = await apiService.getDuelData(sessionId, userId);
+      const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
       
       if (duelData.success) {
         const duel = duelData.data;

@@ -195,11 +195,14 @@ async function duelAuthMiddleware(req, res, next) {
       return telegramAuthMiddleware(req, res, next);
     }
     
-    // Если нет telegram-data, проверяем данные из body или URL (для бота)
+    // Если нет telegram-data, проверяем данные из body, URL или заголовков (для бота)
     const { challengerId, challengerUsername, userId, username } = req.body;
     const { userId: userIdFromQuery } = req.query;
-    const userIdFromBody = userId || challengerId || userIdFromQuery;
+    const userIdFromHeaders = req.headers['x-telegram-user-id'];
+    const userIdFromBody = userId || challengerId || userIdFromQuery || userIdFromHeaders;
     const usernameFromBody = username || challengerUsername;
+    
+    console.log(`DUEL AUTH: Источники userId - body: ${userId}, challenger: ${challengerId}, query: ${userIdFromQuery}, headers: ${userIdFromHeaders}, final: ${userIdFromBody}`);
     
     // Проверяем заголовки от бота
     const botToken = req.headers['authorization'];

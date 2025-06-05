@@ -708,11 +708,23 @@ class ApiService {
    * @param {string} userId - ID пользователя (для проверки прав)
    * @returns {Object} - Данные дуэли
    */
-  async getDuelData(sessionId, userId) {
+  async getDuelData(sessionId, userId, telegramUser = null) {
     try {
       console.log(`API: Получаем данные дуэли ${sessionId} для пользователя ${userId}`);
       
-      const response = await this.api.get(`/duels/${sessionId}?userId=${userId}`);
+      // Создаем заголовки для аутентификации бота
+      const headers = {
+        'Authorization': `Bot ${config.BOT_TOKEN}`,
+        'X-Telegram-User-Id': userId,
+        'Content-Type': 'application/json'
+      };
+      
+      // Если есть полные данные пользователя, используем их
+      if (telegramUser) {
+        Object.assign(headers, this.createTelegramAuthHeaders(telegramUser));
+      }
+      
+      const response = await this.api.get(`/duels/${sessionId}?userId=${userId}`, { headers });
       
       console.log('API: Данные дуэли получены');
       return { success: true, data: response.data.data };

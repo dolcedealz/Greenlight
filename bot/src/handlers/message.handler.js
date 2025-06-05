@@ -112,8 +112,8 @@ function registerMessageHandlers(bot) {
       const referralLink = `https://t.me/${ctx.botInfo.username}?start=${referralCode}`;
       console.log('🔍 Debug referralLink:', referralLink);
       
-      // Получаем URL для реферальной страницы фронтенда  
-      const webAppData = getWebAppUrl('?screen=referral');
+      // Получаем URL для профиля (по просьбе пользователя)
+      const webAppData = getWebAppUrl('?screen=profile');
       console.log('🔍 Debug webAppData:', webAppData);
       
       if (!webAppData.isValid) {
@@ -130,7 +130,7 @@ function registerMessageHandlers(bot) {
         `📊 Используйте кнопки ниже для подробной статистики:`,
         Markup.inlineKeyboard([
           [
-            Markup.button.webApp('👥 Подробная статистика', webAppData.url)
+            Markup.button.webApp('👤 Открыть профиль', webAppData.url)
           ],
           [
             Markup.button.url('📤 Поделиться ссылкой', `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('🎰 Играй в Greenlight Casino и зарабатывай!')}`)

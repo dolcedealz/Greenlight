@@ -41,7 +41,13 @@ class DuelGameHandler {
       
       // Отправляем соответствующий Telegram dice
       const diceMessage = await ctx.replyWithDice(gameConfig.emoji);
-      const gameResult = diceMessage.dice.value;
+      let gameResult = diceMessage.dice.value;
+      
+      // Корректируем результат для игр с ограниченным диапазоном
+      if (gameResult > gameConfig.maxValue) {
+        gameResult = gameConfig.maxValue;
+        console.log(`🔧 Результат ${diceMessage.dice.value} обрезан до ${gameResult} для игры ${duel.gameType}`);
+      }
       
       console.log(`🎮 Игрок ${username} (${userId}) сыграл ${duel.gameType}: ${gameResult} в дуэли ${sessionId}`);
       

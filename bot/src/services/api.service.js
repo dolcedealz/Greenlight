@@ -749,17 +749,31 @@ class ApiService {
       
       const response = await this.api.get(`/duels/${sessionId}?userId=${userId}`, { headers });
       
-      console.log('🔍 API DEBUG: Raw response from backend:', {
-        status: response.status,
-        dataType: typeof response.data.data,
-        gameType: response.data.data?.gameType,
-        format: response.data.data?.format,
-        responseKeys: Object.keys(response.data.data || {}),
-        fullData: JSON.stringify(response.data.data, null, 2)
+      // ИСПРАВЛЕНИЕ: Правильно извлекаем duel из ответа
+      let duelData;
+      
+      // Проверяем структуру ответа
+      if (response.data.data && response.data.data.duel) {
+        // Случай: { success: true, data: { duel: {...} } }
+        duelData = response.data.data.duel;
+        console.log('🔧 API: Извлечены данные из data.duel');
+      } else if (response.data.data) {
+        // Случай: { success: true, data: {...} }
+        duelData = response.data.data;
+        console.log('🔧 API: Использованы данные из data');
+      } else {
+        throw new Error('Неожиданная структура ответа API');
+      }
+      
+      console.log('✅ API: Извлеченные данные дуэли:', {
+        gameType: duelData.gameType,
+        format: duelData.format,
+        sessionId: duelData.sessionId,
+        status: duelData.status
       });
       
       console.log('API: Данные дуэли получены');
-      return { success: true, data: response.data.data };
+      return { success: true, data: duelData };
     } catch (error) {
       console.error('API: Ошибка получения данных дуэли:', error.response?.data || error.message);
       return { 

@@ -1,127 +1,99 @@
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
+const mongoose = require('mongoose');
 
-const DuelRound = sequelize.define('DuelRound', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  
+const duelRoundSchema = new mongoose.Schema({
   // Связь с дуэлью
   duelId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'duels',
-      key: 'id'
-    },
-    comment: 'ID дуэли'
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Duel',
+    required: true
   },
   sessionId: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'Session ID дуэли для быстрого поиска'
+    type: String,
+    required: true
   },
   
   // Информация о раунде
   roundNumber: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    comment: 'Номер раунда в дуэли'
+    type: Number,
+    required: true,
+    min: 1
+  },
+  gameType: {
+    type: String,
+    enum: ['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'],
+    required: true
   },
   
-  // Результаты бросков
+  // Результаты игроков
   challengerResult: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    comment: 'Результат броска инициатора (1-6 для кости, и т.д.)'
+    type: Number,
+    default: null
   },
-  challengerTimestamp: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    comment: 'Время броска инициатора'
+  opponentResult: {
+    type: Number,
+    default: null
   },
   
-  opponentResult: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    comment: 'Результат броска противника'
+  // Временные метки
+  challengerTimestamp: {
+    type: Date,
+    default: null
   },
   opponentTimestamp: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    comment: 'Время броска противника'
+    type: Date,
+    default: null
+  },
+  
+  // ID сообщений в Telegram
+  challengerMessageId: {
+    type: Number,
+    default: null
+  },
+  opponentMessageId: {
+    type: Number,
+    default: null
   },
   
   // Результат раунда
   winnerId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'ID победителя раунда (null для ничьи)'
+    type: String,
+    default: null
   },
   winnerUsername: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Username победителя раунда'
+    type: String,
+    default: null
   },
   isDraw: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    comment: 'Является ли раунд ничьей'
+    type: Boolean,
+    default: false
   },
   
   // Статус раунда
   status: {
-    type: DataTypes.ENUM('waiting_challenger', 'waiting_opponent', 'completed', 'cancelled'),
-    allowNull: false,
-    defaultValue: 'waiting_challenger',
-    comment: 'Статус раунда'
+    type: String,
+    enum: ['waiting_challenger', 'waiting_opponent', 'completed'],
+    default: 'waiting_challenger'
   },
   
-  // Telegram данные
-  challengerMessageId: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    comment: 'ID сообщения с броском инициатора'
-  },
-  opponentMessageId: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    comment: 'ID сообщения с броском противника'
-  },
-  
-  // Дополнительные данные
-  gameType: {
-    type: DataTypes.ENUM('🎲', '🎯', '⚽', '🏀', '🎳', '🎰'),
-    allowNull: false,
-    comment: 'Тип игры (копируется из дуэли)'
-  },
-  
+  // Метаданные
   metadata: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    comment: 'Дополнительные данные раунда'
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
-  tableName: 'duel_rounds',
-  timestamps: true,
-  indexes: [
-    { fields: ['duelId'] },
-    { fields: ['sessionId'] },
-    { fields: ['roundNumber'] },
-    { fields: ['status'] },
-    { fields: ['winnerId'] },
-    { fields: ['createdAt'] },
-    {
-      fields: ['duelId', 'roundNumber'],
-      unique: true
-    }
-  ]
+  timestamps: true
 });
 
-// Методы модели
-DuelRound.prototype.determineWinner = function(gameType, challengerResult, opponentResult) {
+// Индексы
+duelRoundSchema.index({ duelId: 1 });
+duelRoundSchema.index({ sessionId: 1 });
+duelRoundSchema.index({ roundNumber: 1 });
+duelRoundSchema.index({ status: 1 });
+duelRoundSchema.index({ createdAt: -1 });
+duelRoundSchema.index({ duelId: 1, roundNumber: 1 }, { unique: true });
+
+// Методы экземпляра
+duelRoundSchema.methods.determineWinner = function(gameType, challengerResult, opponentResult) {
   let result = null;
   
   switch (gameType) {
@@ -148,7 +120,6 @@ DuelRound.prototype.determineWinner = function(gameType, challengerResult, oppon
       break;
       
     case '🎰': // Слоты - лучшая комбинация
-      // Предполагаем что 1-32 это выигрышные комбинации разного уровня
       const challengerWin = challengerResult >= 1 && challengerResult <= 64;
       const opponentWin = opponentResult >= 1 && opponentResult <= 64;
       if (challengerWin && !opponentWin) result = 'challenger';
@@ -164,7 +135,7 @@ DuelRound.prototype.determineWinner = function(gameType, challengerResult, oppon
   return result; // 'challenger', 'opponent' или null для ничьи
 };
 
-DuelRound.prototype.getResultText = function() {
+duelRoundSchema.methods.getResultText = function() {
   const gameType = this.gameType;
   const c = this.challengerResult;
   const o = this.opponentResult;
@@ -201,49 +172,42 @@ DuelRound.prototype.getResultText = function() {
   }
 };
 
-DuelRound.prototype.isComplete = function() {
+duelRoundSchema.methods.isComplete = function() {
   return this.challengerResult !== null && this.opponentResult !== null;
 };
 
-DuelRound.prototype.needsChallengerMove = function() {
+duelRoundSchema.methods.needsChallengerMove = function() {
   return this.challengerResult === null;
 };
 
-DuelRound.prototype.needsOpponentMove = function() {
+duelRoundSchema.methods.needsOpponentMove = function() {
   return this.opponentResult === null;
 };
 
 // Хуки модели
-DuelRound.addHook('beforeUpdate', async (round) => {
+duelRoundSchema.pre('save', async function(next) {
   // Автоматически определяем победителя когда оба броска сделаны
-  if (round.changed('opponentResult') && round.challengerResult !== null && round.opponentResult !== null) {
-    const winner = round.determineWinner(round.gameType, round.challengerResult, round.opponentResult);
+  if (this.isModified('opponentResult') && this.challengerResult !== null && this.opponentResult !== null) {
+    const winner = this.determineWinner(this.gameType, this.challengerResult, this.opponentResult);
     
     if (winner) {
       // Получаем информацию о дуэли для usernames
       const Duel = require('./duel.model');
-      const duel = await Duel.findOne({ where: { id: round.duelId } });
+      const duel = await Duel.findById(this.duelId);
       
       if (duel) {
-        round.winnerId = winner === 'challenger' ? duel.challengerId : duel.opponentId;
-        round.winnerUsername = winner === 'challenger' ? duel.challengerUsername : duel.opponentUsername;
-        round.isDraw = false;
+        this.winnerId = winner === 'challenger' ? duel.challengerId : duel.opponentId;
+        this.winnerUsername = winner === 'challenger' ? duel.challengerUsername : duel.opponentUsername;
+        this.isDraw = false;
       }
     } else {
-      round.isDraw = true;
+      this.isDraw = true;
     }
     
-    round.status = 'completed';
+    this.status = 'completed';
   }
+  
+  next();
 });
 
-// Устанавливаем связи с другими моделями
-DuelRound.associate = function(models) {
-  // Раунд принадлежит дуэли
-  DuelRound.belongsTo(models.Duel, {
-    foreignKey: 'duelId',
-    as: 'duel'
-  });
-};
-
-module.exports = DuelRound;
+module.exports = mongoose.model('DuelRound', duelRoundSchema);

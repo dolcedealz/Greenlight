@@ -20,6 +20,3 @@ export * from './history';
 
 // Events components
 export * from './events';
-
-// PvP components
-export * from './pvp';

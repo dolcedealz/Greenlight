@@ -49,10 +49,6 @@ registerCallbackHandlers(bot);
 const { registerDuelHandlers } = require('./handlers/duel.handler');
 registerDuelHandlers(bot);
 
-// 5.1. Регистрируем обработчики личных дуэлей (ВРЕМЕННО ОТКЛЮЧЕНО)
-// const { registerPrivateDuelHandlers } = require('./handlers/private-duel.handler');
-// registerPrivateDuelHandlers(bot);
-
 // 6. И в самом конце - обработчики текстовых сообщений
 const { registerMessageHandlers } = require('./handlers/message.handler');
 registerMessageHandlers(bot);

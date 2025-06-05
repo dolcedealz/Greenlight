@@ -1,6 +1,5 @@
+const mongoose = require('mongoose');
 const { Duel, DuelRound, DuelInvitation, User, Transaction } = require('../models');
-const { sequelize } = require('../config/database');
-const { Op } = require('sequelize');
 
 class DuelService {
   
@@ -30,13 +29,15 @@ class DuelService {
   
   // Принятие приглашения и создание дуэли
   async acceptInvitation(inviteId, acceptorId, acceptorUsername) {
-    const transaction = await sequelize.transaction();
+    const session = await mongoose.startSession();
+    session.startTransaction();
     
     try {
       // Находим приглашение
       const invitation = await DuelInvitation.findOne({
-        where: { inviteId, status: 'pending' }
-      });
+        inviteId,
+        status: 'pending'
+      }).session(session);
       
       if (!invitation) {
         throw new Error('Приглашение не найдено или уже недействительно');
@@ -50,11 +51,11 @@ class DuelService {
       await this.validateDuelParameters(acceptorId, invitation.amount);
       
       // Блокируем средства у обоих игроков
-      await this.lockUserFunds(invitation.challengerId, invitation.amount, transaction);
-      await this.lockUserFunds(acceptorId, invitation.amount, transaction);
+      await this.lockUserFunds(invitation.challengerId, invitation.amount, session);
+      await this.lockUserFunds(acceptorId, invitation.amount, session);
       
       // Создаем дуэль
-      const duel = await Duel.create({
+      const duel = await Duel.create([{
         challengerId: invitation.challengerId,
         challengerUsername: invitation.challengerUsername,
         opponentId: acceptorId,
@@ -65,22 +66,23 @@ class DuelService {
         status: 'accepted',
         chatId: '0', // Будет обновлено при старте
         chatType: 'private'
-      }, { transaction });
+      }], { session });
       
       // Обновляем приглашение
-      await invitation.update({
-        status: 'accepted',
-        targetUserId: acceptorId,
-        duelId: duel.id
-      }, { transaction });
+      invitation.status = 'accepted';
+      invitation.targetUserId = acceptorId;
+      invitation.duelId = duel[0]._id;
+      await invitation.save({ session });
       
-      await transaction.commit();
+      await session.commitTransaction();
       
-      return { duel, invitation };
+      return { duel: duel[0], invitation };
       
     } catch (error) {
-      await transaction.rollback();
+      await session.abortTransaction();
       throw error;
+    } finally {
+      session.endSession();
     }
   }
   
@@ -93,7 +95,8 @@ class DuelService {
       chatId, chatType, messageId 
     } = data;
     
-    const transaction = await sequelize.transaction();
+    const session = await mongoose.startSession();
+    session.startTransaction();
     
     try {
       // Валидация
@@ -108,13 +111,13 @@ class DuelService {
       }
       
       // Блокируем средства
-      await this.lockUserFunds(challengerId, amount, transaction);
+      await this.lockUserFunds(challengerId, amount, session);
       if (opponentId) {
-        await this.lockUserFunds(opponentId, amount, transaction);
+        await this.lockUserFunds(opponentId, amount, session);
       }
       
       // Создаем дуэль
-      const duel = await Duel.create({
+      const duel = await Duel.create([{
         challengerId,
         challengerUsername,
         opponentId,
@@ -126,24 +129,27 @@ class DuelService {
         chatType,
         messageId,
         status: opponentId ? 'accepted' : 'pending'
-      }, { transaction });
+      }], { session });
       
-      await transaction.commit();
+      await session.commitTransaction();
       
-      return duel;
+      return duel[0];
       
     } catch (error) {
-      await transaction.rollback();
+      await session.abortTransaction();
       throw error;
+    } finally {
+      session.endSession();
     }
   }
   
   // Присоединение к открытой дуэли
   async joinDuel(duelId, playerId, playerUsername) {
-    const transaction = await sequelize.transaction();
+    const session = await mongoose.startSession();
+    session.startTransaction();
     
     try {
-      const duel = await Duel.findByPk(duelId);
+      const duel = await Duel.findById(duelId).session(session);
       
       if (!duel) {
         throw new Error('Дуэль не найдена');
@@ -159,31 +165,30 @@ class DuelService {
       
       // Валидация и блокировка средств
       await this.validateDuelParameters(playerId, duel.amount);
-      await this.lockUserFunds(playerId, duel.amount, transaction);
+      await this.lockUserFunds(playerId, duel.amount, session);
       
       // Обновляем дуэль
-      await duel.update({
-        opponentId: playerId,
-        opponentUsername: playerUsername,
-        status: 'accepted'
-      }, { transaction });
+      duel.opponentId = playerId;
+      duel.opponentUsername = playerUsername;
+      duel.status = 'accepted';
+      await duel.save({ session });
       
-      await transaction.commit();
+      await session.commitTransaction();
       
       return duel;
       
     } catch (error) {
-      await transaction.rollback();
+      await session.abortTransaction();
       throw error;
+    } finally {
+      session.endSession();
     }
   }
   
   // Начало игры (создание первого раунда)
   async startGame(sessionId, playerId) {
-    const duel = await Duel.findOne({
-      where: { sessionId },
-      include: ['rounds']
-    });
+    const duel = await Duel.findOne({ sessionId })
+      .populate('rounds');
     
     if (!duel) {
       throw new Error('Дуэль не найдена');
@@ -198,11 +203,12 @@ class DuelService {
     }
     
     // Обновляем статус дуэли
-    await duel.update({ status: 'active' });
+    duel.status = 'active';
+    await duel.save();
     
     // Создаем первый раунд
     const round = await DuelRound.create({
-      duelId: duel.id,
+      duelId: duel._id,
       sessionId: duel.sessionId,
       roundNumber: 1,
       gameType: duel.gameType
@@ -213,20 +219,11 @@ class DuelService {
   
   // Сделать ход в раунде
   async makeMove(sessionId, playerId, result, messageId = null) {
-    const transaction = await sequelize.transaction();
+    const session = await mongoose.startSession();
+    session.startTransaction();
     
     try {
-      const duel = await Duel.findOne({
-        where: { sessionId },
-        include: [{
-          model: DuelRound,
-          as: 'rounds',
-          where: { status: { [Op.in]: ['waiting_challenger', 'waiting_opponent'] } },
-          required: false,
-          limit: 1,
-          order: [['roundNumber', 'DESC']]
-        }]
-      });
+      const duel = await Duel.findOne({ sessionId }).session(session);
       
       if (!duel || !duel.isParticipant(playerId)) {
         throw new Error('Дуэль не найдена или вы не участвуете в ней');
@@ -236,7 +233,14 @@ class DuelService {
         throw new Error('Дуэль не активна');
       }
       
-      let round = duel.rounds?.[0];
+      // Находим активный раунд
+      const round = await DuelRound.findOne({
+        duelId: duel._id,
+        status: { $in: ['waiting_challenger', 'waiting_opponent'] }
+      })
+        .sort({ roundNumber: -1 })
+        .session(session);
+      
       if (!round) {
         throw new Error('Активный раунд не найден');
       }
@@ -252,157 +256,149 @@ class DuelService {
       }
       
       // Сохраняем ход
-      const updateData = {
-        [fieldName]: result,
-        [timestampField]: new Date()
-      };
+      round[fieldName] = result;
+      round[timestampField] = new Date();
       
       if (messageId) {
-        updateData[messageField] = messageId;
+        round[messageField] = messageId;
       }
-      
-      await round.update(updateData, { transaction });
       
       // Если оба игрока сделали ходы, определяем победителя раунда
       if (round.challengerResult !== null && round.opponentResult !== null) {
-        await this.processRoundResult(duel, round, transaction);
+        await this.processRoundResult(duel, round, session);
       } else {
         // Обновляем статус раунда
-        const nextStatus = isChallenger ? 'waiting_opponent' : 'waiting_challenger';
-        await round.update({ status: nextStatus }, { transaction });
+        round.status = isChallenger ? 'waiting_opponent' : 'waiting_challenger';
+        await round.save({ session });
       }
       
-      await transaction.commit();
+      await session.commitTransaction();
       
       // Возвращаем обновленную информацию
       return await this.getDuel(sessionId);
       
     } catch (error) {
-      await transaction.rollback();
+      await session.abortTransaction();
       throw error;
+    } finally {
+      session.endSession();
     }
   }
   
   // Обработка результата раунда
-  async processRoundResult(duel, round, transaction) {
+  async processRoundResult(duel, round, session) {
     const winner = round.determineWinner(round.gameType, round.challengerResult, round.opponentResult);
     
     if (winner === 'challenger') {
       duel.challengerScore++;
-      await round.update({
-        winnerId: duel.challengerId,
-        winnerUsername: duel.challengerUsername,
-        status: 'completed'
-      }, { transaction });
+      round.winnerId = duel.challengerId;
+      round.winnerUsername = duel.challengerUsername;
+      round.status = 'completed';
     } else if (winner === 'opponent') {
       duel.opponentScore++;
-      await round.update({
-        winnerId: duel.opponentId,
-        winnerUsername: duel.opponentUsername,
-        status: 'completed'
-      }, { transaction });
+      round.winnerId = duel.opponentId;
+      round.winnerUsername = duel.opponentUsername;
+      round.status = 'completed';
     } else {
       // Ничья - переигрываем
-      await round.update({
-        isDraw: true,
-        status: 'completed'
-      }, { transaction });
+      round.isDraw = true;
+      round.status = 'completed';
+      await round.save({ session });
       
       // Создаем новый раунд для переигровки
-      await DuelRound.create({
-        duelId: duel.id,
+      await DuelRound.create([{
+        duelId: duel._id,
         sessionId: duel.sessionId,
         roundNumber: round.roundNumber + 1,
         gameType: duel.gameType
-      }, { transaction });
+      }], { session });
       
+      await duel.save({ session });
       return;
     }
     
-    // Обновляем счет дуэли
-    await duel.update({
-      challengerScore: duel.challengerScore,
-      opponentScore: duel.opponentScore
-    }, { transaction });
+    await round.save({ session });
     
     // Проверяем победителя дуэли
     if (duel.challengerScore >= duel.winsRequired) {
-      await this.finishDuel(duel, duel.challengerId, duel.challengerUsername, transaction);
+      await this.finishDuel(duel, duel.challengerId, duel.challengerUsername, session);
     } else if (duel.opponentScore >= duel.winsRequired) {
-      await this.finishDuel(duel, duel.opponentId, duel.opponentUsername, transaction);
+      await this.finishDuel(duel, duel.opponentId, duel.opponentUsername, session);
     } else {
       // Создаем следующий раунд
-      await DuelRound.create({
-        duelId: duel.id,
+      await DuelRound.create([{
+        duelId: duel._id,
         sessionId: duel.sessionId,
         roundNumber: round.roundNumber + 1,
         gameType: duel.gameType
-      }, { transaction });
+      }], { session });
+      
+      await duel.save({ session });
     }
   }
   
   // Завершение дуэли
-  async finishDuel(duel, winnerId, winnerUsername, transaction) {
+  async finishDuel(duel, winnerId, winnerUsername, session) {
     // Обновляем дуэль
-    await duel.update({
-      status: 'completed',
-      winnerId,
-      winnerUsername
-    }, { transaction });
+    duel.status = 'completed';
+    duel.winnerId = winnerId;
+    duel.winnerUsername = winnerUsername;
+    await duel.save({ session });
     
     // Выплачиваем выигрыш и разблокируем средства
-    await this.processPayouts(duel, transaction);
+    await this.processPayouts(duel, session);
   }
   
   // Обработка выплат
-  async processPayouts(duel, transaction) {
+  async processPayouts(duel, session) {
     const winnerId = duel.winnerId;
     const loserId = duel.challengerId === winnerId ? duel.opponentId : duel.challengerId;
     
     // Разблокируем средства проигравшего (они уже списаны)
-    await this.unlockUserFunds(loserId, duel.amount, transaction);
+    await this.unlockUserFunds(loserId, duel.amount, session);
     
     // Возвращаем средства победителю + выигрыш
-    await this.unlockUserFunds(winnerId, duel.amount, transaction);
-    await this.creditUserFunds(winnerId, duel.winAmount, 'duel_win', duel.sessionId, transaction);
+    await this.unlockUserFunds(winnerId, duel.amount, session);
+    await this.creditUserFunds(winnerId, duel.winAmount, 'duel_win', duel.sessionId, session);
+    
+    // Находим пользователей для транзакций
+    const winner = await User.findOne({ telegramId: parseInt(winnerId) }).session(session);
+    const loser = await User.findOne({ telegramId: parseInt(loserId) }).session(session);
+    
+    if (!winner || !loser) {
+      throw new Error('Пользователи не найдены');
+    }
     
     // Записываем транзакции
-    await Transaction.create({
-      userId: winnerId,
-      type: 'duel_win',
+    await Transaction.create([{
+      user: winner._id,
+      type: 'win',
       amount: duel.winAmount,
       description: `Выигрыш в дуэли ${duel.sessionId}`,
-      metadata: { duelId: duel.id, gameType: duel.gameType }
-    }, { transaction });
+      balanceBefore: winner.balance - duel.winAmount,
+      balanceAfter: winner.balance
+    }], { session });
     
-    await Transaction.create({
-      userId: loserId,
-      type: 'duel_loss',
+    await Transaction.create([{
+      user: loser._id,
+      type: 'bet',
       amount: -duel.amount,
       description: `Проигрыш в дуэли ${duel.sessionId}`,
-      metadata: { duelId: duel.id, gameType: duel.gameType }
-    }, { transaction });
+      balanceBefore: loser.balance + duel.amount,
+      balanceAfter: loser.balance
+    }], { session });
     
     // Комиссия казино уже учтена в winAmount
   }
   
   // Получение информации о дуэли
   async getDuel(sessionId) {
-    const duel = await Duel.findOne({
-      where: { sessionId },
-      include: [
-        {
-          model: DuelRound,
-          as: 'rounds',
-          order: [['roundNumber', 'ASC']]
-        },
-        {
-          model: DuelInvitation,
-          as: 'invitation',
-          required: false
-        }
-      ]
-    });
+    const duel = await Duel.findOne({ sessionId })
+      .populate({
+        path: 'rounds',
+        options: { sort: { roundNumber: 1 } }
+      })
+      .populate('invitation');
     
     if (!duel) {
       throw new Error('Дуэль не найдена');
@@ -413,46 +409,51 @@ class DuelService {
   
   // Получение активных дуэлей пользователя
   async getUserActiveDuels(userId) {
-    const duels = await Duel.findAll({
-      where: {
-        [Op.or]: [
-          { challengerId: userId },
-          { opponentId: userId }
-        ],
-        status: { [Op.in]: ['pending', 'accepted', 'active'] }
-      },
-      include: ['rounds'],
-      order: [['createdAt', 'DESC']]
-    });
+    const duels = await Duel.find({
+      $or: [
+        { challengerId: userId },
+        { opponentId: userId }
+      ],
+      status: { $in: ['pending', 'accepted', 'active'] }
+    })
+      .populate('rounds')
+      .sort({ createdAt: -1 });
     
     return duels;
   }
   
   // Получение истории дуэлей пользователя
   async getUserDuelHistory(userId, limit = 20, offset = 0) {
-    const duels = await Duel.findAndCountAll({
-      where: {
-        [Op.or]: [
-          { challengerId: userId },
-          { opponentId: userId }
-        ],
-        status: 'completed'
-      },
-      include: ['rounds'],
-      order: [['completedAt', 'DESC']],
-      limit,
-      offset
-    });
+    const query = {
+      $or: [
+        { challengerId: userId },
+        { opponentId: userId }
+      ],
+      status: 'completed'
+    };
     
-    return duels;
+    const [duels, total] = await Promise.all([
+      Duel.find(query)
+        .populate('rounds')
+        .sort({ completedAt: -1 })
+        .limit(limit)
+        .skip(offset),
+      Duel.countDocuments(query)
+    ]);
+    
+    return {
+      rows: duels,
+      count: total
+    };
   }
   
   // Отмена дуэли
   async cancelDuel(sessionId, userId, reason = 'user_cancel') {
-    const transaction = await sequelize.transaction();
+    const session = await mongoose.startSession();
+    session.startTransaction();
     
     try {
-      const duel = await Duel.findOne({ where: { sessionId } });
+      const duel = await Duel.findOne({ sessionId }).session(session);
       
       if (!duel) {
         throw new Error('Дуэль не найдена');
@@ -467,24 +468,25 @@ class DuelService {
       }
       
       // Разблокируем средства
-      await this.unlockUserFunds(duel.challengerId, duel.amount, transaction);
+      await this.unlockUserFunds(duel.challengerId, duel.amount, session);
       if (duel.opponentId) {
-        await this.unlockUserFunds(duel.opponentId, duel.amount, transaction);
+        await this.unlockUserFunds(duel.opponentId, duel.amount, session);
       }
       
       // Обновляем статус
-      await duel.update({
-        status: 'cancelled',
-        metadata: { ...duel.metadata, cancelReason: reason, cancelledBy: userId }
-      }, { transaction });
+      duel.status = 'cancelled';
+      duel.metadata = { ...duel.metadata, cancelReason: reason, cancelledBy: userId };
+      await duel.save({ session });
       
-      await transaction.commit();
+      await session.commitTransaction();
       
       return duel;
       
     } catch (error) {
-      await transaction.rollback();
+      await session.abortTransaction();
       throw error;
+    } finally {
+      session.endSession();
     }
   }
   
@@ -492,7 +494,7 @@ class DuelService {
   
   async validateDuelParameters(userId, amount, gameType = null, format = null, opponentId = null, clientIp = null) {
     // Проверяем существование пользователя
-    const user = await User.findByPk(userId);
+    const user = await User.findOne({ telegramId: parseInt(userId) });
     if (!user) {
       throw new Error('Пользователь не найден');
     }
@@ -532,15 +534,11 @@ class DuelService {
   
   // Проверка на сговор между игроками
   async checkForCollusion(challengerId, opponentId, clientIp) {
-    const { Op } = require('sequelize');
-    
     // 1. Проверяем IP адреса (для WebApp)
     if (clientIp) {
-      const sameIpUsers = await User.findAll({
-        where: {
-          lastIp: clientIp,
-          telegramId: { [Op.in]: [challengerId, opponentId] }
-        }
+      const sameIpUsers = await User.find({
+        lastIp: clientIp,
+        telegramId: { $in: [parseInt(challengerId), parseInt(opponentId)] }
       });
       
       if (sameIpUsers.length > 1) {
@@ -549,21 +547,19 @@ class DuelService {
     }
     
     // 2. Проверяем частоту дуэлей между одними игроками
-    const recentDuels = await Duel.count({
-      where: {
-        [Op.or]: [
-          {
-            challengerId: challengerId,
-            opponentId: opponentId
-          },
-          {
-            challengerId: opponentId,
-            opponentId: challengerId
-          }
-        ],
-        createdAt: {
-          [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) // За последние 24 часа
+    const recentDuels = await Duel.countDocuments({
+      $or: [
+        {
+          challengerId: challengerId,
+          opponentId: opponentId
+        },
+        {
+          challengerId: opponentId,
+          opponentId: challengerId
         }
+      ],
+      createdAt: {
+        $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // За последние 24 часа
       }
     });
     
@@ -572,26 +568,24 @@ class DuelService {
     }
     
     // 3. Проверяем подозрительные паттерны выигрышей
-    const duelsHistory = await Duel.findAll({
-      where: {
-        [Op.or]: [
-          {
-            challengerId: challengerId,
-            opponentId: opponentId
-          },
-          {
-            challengerId: opponentId,
-            opponentId: challengerId
-          }
-        ],
-        status: 'completed',
-        createdAt: {
-          [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // За последнюю неделю
+    const duelsHistory = await Duel.find({
+      $or: [
+        {
+          challengerId: challengerId,
+          opponentId: opponentId
+        },
+        {
+          challengerId: opponentId,
+          opponentId: challengerId
         }
-      },
-      order: [['createdAt', 'DESC']],
-      limit: 20
-    });
+      ],
+      status: 'completed',
+      createdAt: {
+        $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // За последнюю неделю
+      }
+    })
+      .sort({ createdAt: -1 })
+      .limit(20);
     
     if (duelsHistory.length >= 10) {
       // Считаем статистику побед
@@ -624,14 +618,12 @@ class DuelService {
     
     // Проверяем cooldown (30 секунд между дуэлями)
     const recentDuel = await Duel.findOne({
-      where: {
-        challengerId: userId,
-        createdAt: {
-          [Op.gte]: new Date(Date.now() - 30000)
-        }
-      },
-      order: [['createdAt', 'DESC']]
-    });
+      challengerId: userId,
+      createdAt: {
+        $gte: new Date(Date.now() - 30000)
+      }
+    })
+      .sort({ createdAt: -1 });
     
     if (recentDuel) {
       const timeDiff = 30 - Math.floor((Date.now() - recentDuel.createdAt) / 1000);
@@ -641,41 +633,38 @@ class DuelService {
     return true;
   }
   
-  async lockUserFunds(userId, amount, transaction) {
-    const user = await User.findByPk(userId);
+  async lockUserFunds(userId, amount, session) {
+    const user = await User.findOne({ telegramId: parseInt(userId) }).session(session);
     if (!user || user.balance < amount) {
       throw new Error('Недостаточно средств для блокировки');
     }
     
-    await user.update({
-      balance: user.balance - amount
-    }, { transaction });
+    user.balance -= amount;
+    await user.save({ session });
     
     return true;
   }
   
-  async unlockUserFunds(userId, amount, transaction) {
-    const user = await User.findByPk(userId);
+  async unlockUserFunds(userId, amount, session) {
+    const user = await User.findOne({ telegramId: parseInt(userId) }).session(session);
     if (!user) {
       throw new Error('Пользователь не найден');
     }
     
-    await user.update({
-      balance: user.balance + amount
-    }, { transaction });
+    user.balance += amount;
+    await user.save({ session });
     
     return true;
   }
   
-  async creditUserFunds(userId, amount, type, reference, transaction) {
-    const user = await User.findByPk(userId);
+  async creditUserFunds(userId, amount, type, reference, session) {
+    const user = await User.findOne({ telegramId: parseInt(userId) }).session(session);
     if (!user) {
       throw new Error('Пользователь не найден');
     }
     
-    await user.update({
-      balance: user.balance + amount
-    }, { transaction });
+    user.balance += amount;
+    await user.save({ session });
     
     return true;
   }
@@ -685,12 +674,10 @@ class DuelService {
     const expiredInvitations = await DuelInvitation.cleanupExpired();
     
     // Отменяем истекшие дуэли
-    const expiredDuels = await Duel.findAll({
-      where: {
-        status: 'pending',
-        expiresAt: {
-          [Op.lt]: new Date()
-        }
+    const expiredDuels = await Duel.find({
+      status: 'pending',
+      expiresAt: {
+        $lt: new Date()
       }
     });
     

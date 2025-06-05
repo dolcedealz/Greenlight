@@ -1,171 +1,143 @@
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
+const mongoose = require('mongoose');
 
-const Duel = sequelize.define('Duel', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  
+const duelSchema = new mongoose.Schema({
   // Базовая информация о дуэли
   sessionId: {
-    type: DataTypes.STRING,
+    type: String,
     unique: true,
-    allowNull: false,
-    comment: 'Уникальный идентификатор сессии дуэли'
+    required: true,
+    default: () => `duel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   },
   
   // Участники дуэли
   challengerId: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'ID инициатора дуэли'
+    type: String,
+    required: true
   },
   challengerUsername: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'Username инициатора'
+    type: String,
+    required: true
   },
   opponentId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'ID противника (null для открытых дуэлей)'
+    type: String,
+    default: null
   },
   opponentUsername: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Username противника'
+    type: String,
+    default: null
   },
   
   // Настройки игры
   gameType: {
-    type: DataTypes.ENUM('🎲', '🎯', '⚽', '🏀', '🎳', '🎰'),
-    allowNull: false,
-    comment: 'Тип игры через эмодзи'
+    type: String,
+    enum: ['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'],
+    required: true
   },
   format: {
-    type: DataTypes.ENUM('bo1', 'bo3', 'bo5', 'bo7'),
-    allowNull: false,
-    defaultValue: 'bo1',
-    comment: 'Формат дуэли (best of N)'
+    type: String,
+    enum: ['bo1', 'bo3', 'bo5', 'bo7'],
+    default: 'bo1'
   },
   winsRequired: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    comment: 'Количество побед для выигрыша серии'
+    type: Number,
+    required: true
   },
   
   // Финансовая информация
   amount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    comment: 'Ставка каждого игрока в USDT'
+    type: Number,
+    required: true,
+    min: 1,
+    max: 1000
   },
   totalAmount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    comment: 'Общий банк (amount * 2)'
+    type: Number,
+    required: true
   },
   winAmount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    comment: 'Сумма выигрыша (totalAmount * 0.95)'
+    type: Number,
+    required: true
   },
   commission: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    comment: 'Комиссия казино (totalAmount * 0.05)'
+    type: Number,
+    required: true
   },
   
   // Статус дуэли
   status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'active', 'completed', 'cancelled', 'expired'),
-    allowNull: false,
-    defaultValue: 'pending',
-    comment: 'Текущий статус дуэли'
+    type: String,
+    enum: ['pending', 'accepted', 'active', 'completed', 'cancelled', 'expired'],
+    default: 'pending'
   },
   
   // Результаты
   winnerId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'ID победителя'
+    type: String,
+    default: null
   },
   winnerUsername: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Username победителя'
+    type: String,
+    default: null
   },
   challengerScore: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    comment: 'Счет инициатора'
+    type: Number,
+    default: 0
   },
   opponentScore: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    comment: 'Счет противника'
+    type: Number,
+    default: 0
   },
   
   // Информация о чате
   chatId: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    comment: 'ID чата где создана дуэль'
+    type: String,
+    required: true
   },
   chatType: {
-    type: DataTypes.ENUM('private', 'group', 'supergroup', 'channel'),
-    allowNull: false,
-    comment: 'Тип чата'
+    type: String,
+    enum: ['private', 'group', 'supergroup', 'channel'],
+    required: true
   },
   messageId: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    comment: 'ID сообщения с дуэлью'
+    type: Number,
+    default: null
   },
   
   // Временные ограничения
   expiresAt: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    comment: 'Время истечения приглашения'
+    type: Date,
+    default: null
   },
   startedAt: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    comment: 'Время начала дуэли'
+    type: Date,
+    default: null
   },
   completedAt: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    comment: 'Время завершения дуэли'
+    type: Date,
+    default: null
   },
   
   // Метаданные
   metadata: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    comment: 'Дополнительные данные (IP адреса, источник и т.д.)'
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
-  tableName: 'duels',
-  timestamps: true,
-  paranoid: true, // Мягкое удаление
-  indexes: [
-    { fields: ['sessionId'] },
-    { fields: ['challengerId'] },
-    { fields: ['opponentId'] },
-    { fields: ['status'] },
-    { fields: ['chatId'] },
-    { fields: ['createdAt'] },
-    { fields: ['winnerId'] },
-    { fields: ['gameType'] }
-  ]
+  timestamps: true
 });
 
+// Индексы
+duelSchema.index({ sessionId: 1 });
+duelSchema.index({ challengerId: 1 });
+duelSchema.index({ opponentId: 1 });
+duelSchema.index({ status: 1 });
+duelSchema.index({ chatId: 1 });
+duelSchema.index({ winnerId: 1 });
+duelSchema.index({ gameType: 1 });
+duelSchema.index({ createdAt: -1 });
+
 // Виртуальные поля
-Duel.prototype.getGameName = function() {
+duelSchema.virtual('gameName').get(function() {
   const gameNames = {
     '🎲': 'Кости',
     '🎯': 'Дартс',
@@ -175,9 +147,9 @@ Duel.prototype.getGameName = function() {
     '🎰': 'Слоты'
   };
   return gameNames[this.gameType] || 'Неизвестная игра';
-};
+});
 
-Duel.prototype.getFormatName = function() {
+duelSchema.virtual('formatName').get(function() {
   const formatNames = {
     'bo1': 'Bo1 (1 раунд)',
     'bo3': 'Bo3 (до 2 побед)',
@@ -185,74 +157,55 @@ Duel.prototype.getFormatName = function() {
     'bo7': 'Bo7 (до 4 побед)'
   };
   return formatNames[this.format] || 'Неизвестный формат';
-};
+});
 
-Duel.prototype.isExpired = function() {
+// Методы экземпляра
+duelSchema.methods.isExpired = function() {
   return this.expiresAt && new Date() > this.expiresAt;
 };
 
-Duel.prototype.canAccept = function(userId) {
+duelSchema.methods.canAccept = function(userId) {
   return this.status === 'pending' && 
          !this.isExpired() && 
          this.challengerId !== userId &&
          (!this.opponentId || this.opponentId === userId);
 };
 
-Duel.prototype.isParticipant = function(userId) {
+duelSchema.methods.isParticipant = function(userId) {
   return this.challengerId === userId || this.opponentId === userId;
 };
 
 // Хуки модели
-Duel.addHook('beforeCreate', (duel) => {
-  // Устанавливаем sessionId если не задан
-  if (!duel.sessionId) {
-    duel.sessionId = `duel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-  
+duelSchema.pre('save', function(next) {
   // Рассчитываем финансовые поля
-  duel.totalAmount = duel.amount * 2;
-  duel.winAmount = duel.totalAmount * 0.95;
-  duel.commission = duel.totalAmount * 0.05;
+  if (this.isNew || this.isModified('amount')) {
+    this.totalAmount = this.amount * 2;
+    this.winAmount = this.totalAmount * 0.95;
+    this.commission = this.totalAmount * 0.05;
+  }
   
   // Устанавливаем количество побед для формата
-  const winsMap = { bo1: 1, bo3: 2, bo5: 3, bo7: 4 };
-  duel.winsRequired = winsMap[duel.format] || 1;
+  if (this.isNew || this.isModified('format')) {
+    const winsMap = { bo1: 1, bo3: 2, bo5: 3, bo7: 4 };
+    this.winsRequired = winsMap[this.format] || 1;
+  }
   
   // Устанавливаем время истечения (5 минут для приглашений)
-  if (duel.status === 'pending') {
-    duel.expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+  if (this.isNew && this.status === 'pending') {
+    this.expiresAt = new Date(Date.now() + 5 * 60 * 1000);
   }
-});
-
-Duel.addHook('beforeUpdate', (duel) => {
+  
   // Устанавливаем время начала при принятии дуэли
-  if (duel.changed('status') && duel.status === 'active' && !duel.startedAt) {
-    duel.startedAt = new Date();
+  if (this.isModified('status') && this.status === 'active' && !this.startedAt) {
+    this.startedAt = new Date();
   }
   
   // Устанавливаем время завершения при завершении дуэли
-  if (duel.changed('status') && duel.status === 'completed' && !duel.completedAt) {
-    duel.completedAt = new Date();
+  if (this.isModified('status') && this.status === 'completed' && !this.completedAt) {
+    this.completedAt = new Date();
   }
+  
+  next();
 });
 
-// Устанавливаем связи с другими моделями
-Duel.associate = function(models) {
-  // Дуэль имеет много раундов
-  Duel.hasMany(models.DuelRound, {
-    foreignKey: 'duelId',
-    as: 'rounds',
-    onDelete: 'CASCADE'
-  });
-  
-  // Дуэль может иметь приглашение
-  Duel.hasOne(models.DuelInvitation, {
-    foreignKey: 'duelId',
-    as: 'invitation'
-  });
-  
-  // Дуэль связана с пользователями (инициатор и противник)
-  // Связи с User моделью будут добавлены позже если понадобится
-};
-
-module.exports = Duel;
+module.exports = mongoose.model('Duel', duelSchema);

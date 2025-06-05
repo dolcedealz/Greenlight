@@ -8,7 +8,7 @@ const { validatePlaceBet, validateCreateEvent, validateFinishEvent, validateObje
 module.exports = {
   telegramAuthMiddleware,
   adminAuthMiddleware,
-  authMiddleware: telegramAuthMiddleware, // Добавляем алиас для PvP routes
+  authMiddleware: telegramAuthMiddleware, // Alias for auth middleware
   validateCoinFlip,
   validateTelegramAuth,
   validateMinesPlay,

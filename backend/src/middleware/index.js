@@ -1,5 +1,5 @@
 // backend/src/middleware/index.js
-const { telegramAuthMiddleware, adminAuthMiddleware } = require('./auth.middleware');
+const { telegramAuthMiddleware, universalAuthMiddleware, adminAuthMiddleware } = require('./auth.middleware');
 const { validateCoinFlip, validateTelegramAuth, validateMinesPlay, validateMinesComplete } = require('./validation.middleware');
 const errorMiddleware = require('./error.middleware');
 const { bettingLimit, generalLimit, adminLimit, authLimit, createRateLimit } = require('./rateLimiting.middleware');
@@ -7,6 +7,7 @@ const { validatePlaceBet, validateCreateEvent, validateFinishEvent, validateObje
 
 module.exports = {
   telegramAuthMiddleware,
+  universalAuthMiddleware,
   adminAuthMiddleware,
   authMiddleware: telegramAuthMiddleware, // Alias for auth middleware
   validateCoinFlip,

@@ -1,7 +1,7 @@
 // bot/src/handlers/duel/inline-duel.handler.js
 
 const { Markup } = require('telegraf');
-const { validateDuelParams, generateShortId, getGameConfig, formatDuelMessage } = require('./duel-utils');
+const { validateDuelParams, generateShortId, getGameConfig, formatDuelMessage, convertGameNameToEmoji } = require('./duel-utils');
 const duelGameHandler = require('./duel-game.handler');
 const apiService = require('../../services/api.service');
 
@@ -45,8 +45,23 @@ class InlineDuelHandler {
         
         const results = [];
         
-        // Проверяем на duel команду (гибкий regex как в старой версии)
-        const duelMatch = query.match(/^duel\s+@?(\w+)(?:\s+(\d+))?(?:\s*([🎲🎯⚽🏀🎳🎰]))?(?:\s*(bo[1357]))?$/i);
+        // Проверяем на duel команду (очень гибкий regex)
+        // Ищем: duel username amount [game] [format]
+        // Сначала пробуем точный формат, потом более гибкий
+        let duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)(?:\s+(🎲|🎯|⚽|🏀|🎳|🎰|dice|darts|football|basketball|bowling|slots?))?\s*(bo[1357])?$/i);
+        
+        if (!duelMatch) {
+          // Пробуем поймать случаи типа "basketballbo3" или "basketball bo3" 
+          duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)\s*(\w+)$/i);
+          if (duelMatch) {
+            const combined = duelMatch[3];
+            // Пытаемся разделить игру и формат
+            const gameFormatMatch = combined.match(/^(basketball|football|bowling|slots?|dice|darts)(bo[1357])?$/i);
+            if (gameFormatMatch) {
+              duelMatch = [duelMatch[0], duelMatch[1], duelMatch[2], gameFormatMatch[1], gameFormatMatch[2] || 'bo1'];
+            }
+          }
+        }
         
         if (duelMatch) {
           console.log(`🔍 Проверка duel match: {
@@ -57,8 +72,11 @@ class InlineDuelHandler {
           
           const targetUsername = duelMatch[1];
           const amount = duelMatch[2] ? parseInt(duelMatch[2]) : 10; // Default 10 USDT
-          const gameType = duelMatch[3] || '🎲'; // Default кости
+          const rawGameType = duelMatch[3] || '🎲'; // Default кости  
+          const gameType = convertGameNameToEmoji(rawGameType); // Конвертируем текст в эмодзи
           const format = duelMatch[4] || 'bo1'; // Default bo1
+          
+          console.log(`🔄 Парсинг: rawGameType='${rawGameType}' -> gameType='${gameType}'`);
           
           // Валидация параметров
           const validation = validateDuelParams(targetUsername, amount, gameType, format);
@@ -127,6 +145,8 @@ class InlineDuelHandler {
             
             console.log(`💾 Сохранены данные для shortId: ${shortId}`);
           }
+        } else {
+          console.log(`❌ Duel regex не совпал для query: '${query}'`);
         }
         
         // Всегда добавляем тестовый результат для отладки
@@ -169,6 +189,14 @@ class InlineDuelHandler {
    * Обработка кнопок inline дуэлей
    */
   handleInlineCallbacks(bot) {
+    // Логирование всех callback queries для отладки
+    bot.on('callback_query', async (ctx, next) => {
+      if (ctx.callbackQuery.data && ctx.callbackQuery.data.startsWith('inline_')) {
+        console.log(`🔘 Inline callback получен: ${ctx.callbackQuery.data}`);
+        console.log(`👤 От пользователя: ${ctx.from.username} (${ctx.from.id})`);
+      }
+      await next();
+    });
     // Принятие inline дуэли
     bot.action(/^inline_accept_(.+)$/, async (ctx) => {
       try {
@@ -177,6 +205,7 @@ class InlineDuelHandler {
         const acceptorUsername = ctx.from.username;
         
         console.log(`🎯 Принятие inline дуэли по shortId: ${shortId}`);
+        console.log(`📋 Callback data: ${ctx.callbackQuery.data}`);
         
         const duelData = this.inlineData.get(shortId);
         
@@ -245,6 +274,9 @@ class InlineDuelHandler {
     bot.action(/^inline_decline_(.+)$/, async (ctx) => {
       try {
         const shortId = ctx.match[1];
+        console.log(`❌ Отклонение inline дуэли по shortId: ${shortId}`);
+        console.log(`📋 Callback data: ${ctx.callbackQuery.data}`);
+        
         const duelData = this.inlineData.get(shortId);
         
         if (duelData) {
@@ -277,6 +309,9 @@ class InlineDuelHandler {
     bot.action(/^inline_rules_(.+)$/, async (ctx) => {
       try {
         const gameType = ctx.match[1];
+        console.log(`📋 Показ правил для игры: ${gameType}`);
+        console.log(`📋 Callback data: ${ctx.callbackQuery.data}`);
+        
         const gameConfig = getGameConfig(gameType);
         
         await ctx.answerCbQuery(

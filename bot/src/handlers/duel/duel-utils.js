@@ -72,6 +72,26 @@ function getGameName(gameType) {
 }
 
 /**
+ * Конвертация текстового названия игры в эмодзи
+ */
+function convertGameNameToEmoji(gameName) {
+  if (!gameName) return '🎲'; // По умолчанию кости
+  
+  const gameMap = {
+    'dice': '🎲',
+    'darts': '🎯', 
+    'football': '⚽',
+    'basketball': '🏀',
+    'bowling': '🎳',
+    'slots': '🎰',
+    'slot': '🎰'
+  };
+  
+  const normalizedName = gameName.toLowerCase();
+  return gameMap[normalizedName] || gameName; // Если эмодзи, возвращаем как есть
+}
+
+/**
  * Форматы дуэлей
  */
 function getFormatConfig(format) {
@@ -185,6 +205,7 @@ function formatRoundResults(rounds, challengerUsername, opponentUsername) {
 module.exports = {
   getGameConfig,
   getGameName,
+  convertGameNameToEmoji,
   getFormatConfig,
   validateDuelParams,
   generateShortId,

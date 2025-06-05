@@ -81,7 +81,7 @@ async function createOpenDuel(ctx) {
       chatId: ctx.chat.id.toString(),
       chatType: ctx.chat.type,
       messageId: ctx.message.message_id
-    });
+    }, ctx.from);
 
     if (!duelData.success) {
       throw new Error(duelData.error || 'Не удалось создать дуэль');
@@ -171,7 +171,7 @@ async function createPersonalDuel(ctx) {
       chatId: ctx.chat.id.toString(),
       chatType: ctx.chat.type,
       messageId: ctx.message.message_id
-    });
+    }, ctx.from);
 
     if (!duelData.success) {
       throw new Error(duelData.error || 'Не удалось создать дуэль');

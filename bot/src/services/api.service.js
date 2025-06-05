@@ -554,11 +554,24 @@ class ApiService {
    * @param {Object} duelData - Данные дуэли
    * @returns {Object} - Результат создания
    */
-  async createDuel(duelData) {
+  async createDuel(duelData, telegramUser = null) {
     try {
       console.log('API: Создаем дуэль:', duelData);
       
-      const response = await this.api.post('/duels', duelData);
+      // Если не передан telegramUser, создаем fallback
+      if (!telegramUser) {
+        telegramUser = {
+          id: duelData.challengerId,
+          username: duelData.challengerUsername,
+          first_name: duelData.challengerUsername,
+          language_code: 'ru'
+        };
+      }
+      
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.post('/duels', duelData, { headers });
       
       console.log('API: Дуэль создана успешно');
       return { success: true, data: response.data.data };
@@ -577,11 +590,14 @@ class ApiService {
    * @param {string} userId - ID пользователя
    * @returns {Object} - Результат принятия
    */
-  async acceptDuel(sessionId, userId) {
+  async acceptDuel(sessionId, userId, telegramUser) {
     try {
       console.log(`API: Принимаем дуэль ${sessionId} пользователем ${userId}`);
       
-      const response = await this.api.post(`/duels/${sessionId}/accept`, { userId });
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.post(`/duels/${sessionId}/accept`, { userId }, { headers });
       
       console.log('API: Дуэль принята успешно');
       return { success: true, data: response.data.data };
@@ -669,11 +685,14 @@ class ApiService {
    * @param {string} userId - ID пользователя (может быть null для системной отмены)
    * @returns {Object} - Результат отмены
    */
-  async cancelDuel(sessionId, userId) {
+  async cancelDuel(sessionId, userId, telegramUser) {
     try {
       console.log(`API: Отменяем дуэль ${sessionId}`);
       
-      const response = await this.api.post(`/duels/${sessionId}/cancel`, { userId });
+      // Добавляем заголовки аутентификации
+      const headers = this.createTelegramAuthHeaders(telegramUser);
+      
+      const response = await this.api.post(`/duels/${sessionId}/cancel`, { userId }, { headers });
       
       console.log('API: Дуэль отменена');
       return { success: true, data: response.data };

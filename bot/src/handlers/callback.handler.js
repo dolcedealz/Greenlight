@@ -114,8 +114,8 @@ function registerCallbackHandlers(bot) {
       
       await ctx.answerCbQuery('⏳ Принимаем дуэль...');
       
-      // Принимаем дуэль через API
-      const result = await apiService.acceptDuel(sessionId, userId);
+      // Принимаем дуэль через API (backend проверит что это не инициатор)
+      const result = await apiService.acceptDuel(sessionId, userId, ctx.from);
       
       if (result.success) {
         // Обновляем сообщение
@@ -151,8 +151,8 @@ function registerCallbackHandlers(bot) {
       
       await ctx.answerCbQuery('⏳ Отменяем дуэль...');
       
-      // Отменяем дуэль через API
-      const result = await apiService.cancelDuel(sessionId, userId);
+      // Отменяем дуэль через API (backend проверит права на отмену)
+      const result = await apiService.cancelDuel(sessionId, userId, ctx.from);
       
       if (result.success) {
         await ctx.editMessageText(
@@ -182,7 +182,7 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('⏳ Принимаем дуэль...');
       
       // Принимаем дуэль через API
-      const result = await apiService.acceptDuel(sessionId, userId);
+      const result = await apiService.acceptDuel(sessionId, userId, ctx.from);
       
       if (result.success) {
         // Обновляем сообщение
@@ -220,7 +220,7 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('❌ Дуэль отклонена');
       
       // Отклоняем дуэль через API
-      const result = await apiService.cancelDuel(sessionId, userId);
+      const result = await apiService.cancelDuel(sessionId, userId, ctx.from);
       
       if (result.success) {
         await ctx.editMessageText(
@@ -268,13 +268,14 @@ function registerCallbackHandlers(bot) {
   // ============ ОБРАБОТЧИКИ INLINE ДУЭЛЕЙ ============
   
   // Принятие inline дуэли
-  bot.action(/^inline_accept_(\d+)_(\w+)_(\d+)_(.+)_(.+)$/, async (ctx) => {
+  bot.action(/^inline_accept_(\d+)_(\w+)_(\w+)_(\d+)_(.+)_(.+)$/, async (ctx) => {
     try {
       const challengerId = ctx.match[1];
-      const targetUsername = ctx.match[2];
-      const amount = parseInt(ctx.match[3]);
-      const gameType = ctx.match[4];
-      const format = ctx.match[5];
+      const challengerUsername = ctx.match[2];
+      const targetUsername = ctx.match[3];
+      const amount = parseInt(ctx.match[4]);
+      const gameType = ctx.match[5];
+      const format = ctx.match[6];
       const acceptorId = ctx.from.id.toString();
       const acceptorUsername = ctx.from.username;
       
@@ -286,9 +287,7 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('⏳ Создаем дуэль...');
       
       try {
-        // Получаем challenger username из профиля пользователя
-        const challengerData = await apiService.getUserProfile({ id: challengerId });
-        const challengerUsername = challengerData?.username || 'unknown';
+        // Challenger username уже извлечен из callback data выше
         
         // Создаем дуэль через API
         const duelData = await apiService.createDuel({
@@ -301,7 +300,7 @@ function registerCallbackHandlers(bot) {
           amount,
           chatId: ctx.chat.id.toString(),
           chatType: 'private'
-        });
+        }, ctx.from);
         
         if (duelData.success) {
           await ctx.editMessageText(

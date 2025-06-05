@@ -24,9 +24,9 @@ function registerInlineHandlers(bot) {
       
       const results = [];
       
-      // Парсим команду дуэли для личных сообщений
+          // Парсим команду дуэли для личных сообщений
       // Формат: duel @username 50 🎲 bo3 (более гибкий парсинг)
-      const duelMatch = query.match(/^duel\s+@?(\w+)(?:\s+(\d+))?(?:\s*(🎲|🎯|⚽|🏀|🎰|🎳))?(?:\s*(bo\d+))?/i);
+      const duelMatch = query.match(/^duel\s+@?(\w+)(?:\s+(\d+))?(?:\s*(🎲|🎯|⚽️?|🏀|🎳|🎰))?(?:\s*(bo\d+))?/i);
       
       console.log('🔍 Проверка duel match:', {
         query: query,
@@ -38,6 +38,14 @@ function registerInlineHandlers(bot) {
         const targetUsername = duelMatch[1].replace('@', '');
         const amount = duelMatch[2] ? parseInt(duelMatch[2]) : 10; // Default 10 USDT
         const gameType = duelMatch[3] || '🎲';
+        
+        console.log('🎮 Парсинг дуэли:', {
+          targetUsername,
+          amount,
+          gameType,
+          format,
+          challengerUsername: username
+        });
         const format = duelMatch[4] || 'bo1';
         
         // Определяем количество побед
@@ -45,6 +53,7 @@ function registerInlineHandlers(bot) {
         
         // Создаем URL для Deep Link
         const challengerId = ctx.from.id;
+        const challengerUsername = username; // Используем реальный username
         const deepLinkData = `duel_${challengerId}_${targetUsername}_${amount}_${gameType}_${format}`;
         const botUsername = bot.botInfo?.username || 'Greenlightgames_bot';
         
@@ -55,7 +64,7 @@ function registerInlineHandlers(bot) {
           description: `${amount} USDT, ${format.toUpperCase()} - ${getGameName(gameType)}`,
           input_message_content: {
             message_text: `${gameType} **ПРИГЛАШЕНИЕ НА ДУЭЛЬ** ${gameType}\n\n` +
-              `@${username} приглашает @${targetUsername} на дуэль!\n` +
+              `@${challengerUsername} приглашает @${targetUsername} на дуэль!\n` +
               `💰 Ставка: ${amount} USDT каждый\n` +
               `🎮 Игра: ${getGameName(gameType)}\n` +
               `🏆 Формат: ${format.toUpperCase()}\n\n` +
@@ -66,7 +75,7 @@ function registerInlineHandlers(bot) {
             inline_keyboard: [[
               {
                 text: `✅ Принять дуэль ${gameType}`,
-                callback_data: `duel_accept_${challengerId}_${targetUsername}_${amount}_${gameType}_${format}`.substring(0, 64)
+                callback_data: `duel_accept_${challengerId}_${challengerUsername}_${targetUsername}_${amount}_${gameType}_${format}`.substring(0, 64)
               },
               {
                 text: '❌ Отклонить',

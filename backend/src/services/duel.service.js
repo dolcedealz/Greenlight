@@ -253,6 +253,11 @@ class DuelService {
         throw new Error('Дуэль не найдена или вы не участвуете в ней');
       }
       
+      // Проверяем что дуэль не завершена
+      if (duel.status === 'completed' || duel.status === 'cancelled') {
+        throw new Error(`Дуэль уже завершена (статус: ${duel.status})`);
+      }
+      
       // Автоматически активируем дуэль если она принята
       if (duel.status === 'accepted') {
         duel.status = 'active';
@@ -313,7 +318,11 @@ class DuelService {
         await this.processRoundResult(duel, currentRound, session);
       }
       
-      await duel.save({ session });
+      // ВАЖНО: сохраняем только если дуэль еще активна
+      if (duel.status === 'active' || duel.status === 'completed') {
+        await duel.save({ session });
+      }
+      
       await session.commitTransaction();
       
       return duel;
@@ -355,18 +364,8 @@ class DuelService {
       await this.finishDuel(duel, duel.challengerId, duel.challengerUsername, session);
     } else if (duel.opponentScore >= duel.winsRequired) {
       await this.finishDuel(duel, duel.opponentId, duel.opponentUsername, session);
-    } else {
-      // Создаем следующий раунд
-      const nextRound = {
-        roundNumber: duel.rounds.length + 1,
-        challengerResult: null,
-        opponentResult: null,
-        winnerId: null,
-        timestamp: new Date()
-      };
-      duel.rounds.push(nextRound);
-      await duel.save({ session });
     }
+    // Если дуэль не завершена, новый раунд добавится автоматически при следующем ходе
   }
   
   // Завершение дуэли

@@ -181,6 +181,80 @@ function adminAuthMiddleware(req, res, next) {
 }
 
 /**
+ * Универсальный middleware - поддерживает WebApp и Bot аутентификацию
+ */
+async function universalAuthMiddleware(req, res, next) {
+  try {
+    console.log('UNIVERSAL AUTH: Проверка аутентификации для:', req.method, req.originalUrl);
+    
+    // Проверяем есть ли WebApp данные
+    const initData = req.headers['telegram-data'];
+    
+    if (initData) {
+      console.log('UNIVERSAL AUTH: Используем WebApp аутентификацию');
+      return telegramAuthMiddleware(req, res, next);
+    }
+    
+    // Проверяем Bot токен
+    const botToken = req.headers['authorization'];
+    const userIdFromHeaders = req.headers['x-telegram-user-id'];
+    const usernameFromHeaders = req.headers['x-telegram-username'];
+    
+    if (botToken && botToken.startsWith('Bot ') && userIdFromHeaders) {
+      const token = botToken.substring(4);
+      const expectedToken = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+      
+      console.log(`UNIVERSAL AUTH: Проверка Bot токена для пользователя ${userIdFromHeaders}`);
+      
+      if (token === expectedToken) {
+        // Ищем пользователя по ID
+        let user = await User.findOne({ telegramId: parseInt(userIdFromHeaders) });
+        
+        if (!user) {
+          console.log(`UNIVERSAL AUTH: Создаем пользователя для ${userIdFromHeaders}`);
+          const { userService } = require('../services');
+          user = await userService.createOrUpdateUser({
+            id: parseInt(userIdFromHeaders),
+            username: usernameFromHeaders,
+            first_name: req.headers['x-telegram-first-name'] || usernameFromHeaders
+          });
+        }
+        
+        // Устанавливаем req.user
+        req.user = {
+          ...user.toObject(),
+          id: user._id.toString(),
+          username: usernameFromHeaders || user.username
+        };
+        
+        console.log(`UNIVERSAL AUTH: Bot аутентификация успешна для ${user._id}`);
+        return next();
+      } else {
+        console.log('UNIVERSAL AUTH: Неверный Bot токен');
+        return res.status(401).json({
+          success: false,
+          message: 'Неверный токен бота'
+        });
+      }
+    }
+    
+    // Если ничего не подошло
+    console.log('UNIVERSAL AUTH: Данные аутентификации не найдены');
+    return res.status(401).json({
+      success: false,
+      message: 'Отсутствуют данные аутентификации'
+    });
+    
+  } catch (error) {
+    console.error('UNIVERSAL AUTH: Ошибка:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка аутентификации'
+    });
+  }
+}
+
+/**
  * Более мягкий middleware для дуэлей от Telegram бота
  */
 async function duelAuthMiddleware(req, res, next) {
@@ -287,6 +361,7 @@ async function duelAuthMiddleware(req, res, next) {
 
 module.exports = {
   telegramAuthMiddleware,
+  universalAuthMiddleware,
   adminAuthMiddleware,
   duelAuthMiddleware
 };

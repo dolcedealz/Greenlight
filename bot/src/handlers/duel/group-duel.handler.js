@@ -231,11 +231,7 @@ class GroupDuelHandler {
   username: '${username}'
 }`);
         
-        const result = await apiService.acceptDuel(sessionId, {
-          userId,
-          username,
-          telegramUser: ctx.from
-        });
+        const result = await apiService.acceptDuel(sessionId, userId, ctx.from);
         
         if (result.success) {
           const duel = result.data.duel;

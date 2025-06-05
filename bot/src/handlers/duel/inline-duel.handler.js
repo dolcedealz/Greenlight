@@ -46,19 +46,35 @@ class InlineDuelHandler {
         const results = [];
         
         // Проверяем на duel команду (очень гибкий regex)
-        // Ищем: duel username amount [game] [format]
-        // Сначала пробуем точный формат, потом более гибкий
-        let duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)(?:\s+(🎲|🎯|⚽|🏀|🎳|🎰|dice|darts|football|basketball|bowling|slots?))?\s*(bo[1357])?$/i);
+        // Поддерживаем разные форматы:
+        // duel @username - минимальный формат (defaults)
+        // duel @username amount - с суммой  
+        // duel @username amount game - с игрой
+        // duel @username amount game format - полный формат
         
-        if (!duelMatch) {
-          // Пробуем поймать случаи типа "basketballbo3" или "basketball bo3" 
-          duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)\s*(\w+)$/i);
-          if (duelMatch) {
-            const combined = duelMatch[3];
-            // Пытаемся разделить игру и формат
+        let duelMatch = null;
+        
+        // Основной regex - ищем минимум username
+        const basicMatch = query.match(/^duel\s+@?(\w{3,})(?:\s+(\d+))?(?:\s+(🎲|🎯|⚽|🏀|🎳|🎰|dice|darts|football|basketball|bowling|slots?))?(?:\s*(bo[1357]))?$/i);
+        
+        if (basicMatch) {
+          duelMatch = basicMatch;
+        } else {
+          // Пробуем поймать слитный формат типа "basketballbo3" 
+          const combinedMatch = query.match(/^duel\s+@?(\w{3,})\s+(\d+)\s*(\w+)$/i);
+          if (combinedMatch) {
+            const combined = combinedMatch[3];
+            
+            // Разделяем игру и формат (basketballbo3 -> basketball + bo3)
             const gameFormatMatch = combined.match(/^(basketball|football|bowling|slots?|dice|darts)(bo[1357])?$/i);
             if (gameFormatMatch) {
-              duelMatch = [duelMatch[0], duelMatch[1], duelMatch[2], gameFormatMatch[1], gameFormatMatch[2] || 'bo1'];
+              duelMatch = [combinedMatch[0], combinedMatch[1], combinedMatch[2], gameFormatMatch[1], gameFormatMatch[2] || 'bo1'];
+            } else {
+              // Может это просто длинная игра без формата
+              const gameOnlyMatch = combined.match(/^(basketball|football|bowling|slots?|dice|darts)$/i);
+              if (gameOnlyMatch) {
+                duelMatch = [combinedMatch[0], combinedMatch[1], combinedMatch[2], gameOnlyMatch[1], 'bo1'];
+              }
             }
           }
         }
@@ -343,7 +359,8 @@ class InlineDuelHandler {
       ]);
       
       // Отправляем сообщение принявшему игроку
-      await ctx.reply(
+      await ctx.telegram.sendMessage(
+        duel.opponentId,
         messageText + '\n\n🚀 **Игра начинается!**',
         { 
           parse_mode: 'Markdown',

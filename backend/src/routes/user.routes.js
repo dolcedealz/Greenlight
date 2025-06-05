@@ -1,7 +1,7 @@
 // user.routes.js
 const express = require('express');
 const { userController } = require('../controllers');
-const { telegramAuthMiddleware, validateTelegramAuth } = require('../middleware');
+const { telegramAuthMiddleware, universalAuthMiddleware, validateTelegramAuth } = require('../middleware');
 
 const router = express.Router();
 
@@ -11,15 +11,15 @@ router.post('/auth',
   userController.authWithTelegram
 );
 
-// Получение профиля пользователя
+// Получение профиля пользователя (WebApp + Bot)
 router.get('/profile', 
-  telegramAuthMiddleware, 
+  universalAuthMiddleware, 
   userController.getUserProfile
 );
 
-// Получение баланса пользователя
+// Получение баланса пользователя (WebApp + Bot)
 router.get('/balance', 
-  telegramAuthMiddleware, 
+  universalAuthMiddleware, 
   userController.getUserBalance
 );
 

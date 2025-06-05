@@ -140,14 +140,24 @@ function registerCallbackHandlers(bot) {
           }
         );
         
+        // Создаем кнопки для игры с использованием Telegraf Markup
+        const gameMarkup = Markup.inlineKeyboard([
+          [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
+          [Markup.button.callback('📊 Статус дуэли', `duel_status_${sessionId}`)]
+        ]);
+        
         await ctx.reply(
           `🎯 **Дуэль началась!**\n\n` +
-          `🎮 Используйте команды для игры\n` +
-          `📋 ID сессии: \`${sessionId}\``,
-          { parse_mode: 'Markdown' }
+          `🎮 Нажмите кнопку для игры\n` +
+          `📋 ID сессии: \`${sessionId}\`\n\n` +
+          `⚡ Игроки делают ходы по очереди`,
+          { 
+            parse_mode: 'Markdown',
+            ...gameMarkup
+          }
         );
       } else {
-        await ctx.answerCbQuery(`❌ ${result.error}`);
+        await ctx.answerCbQuery(`❌ ${result.error || 'Ошибка принятия дуэли'}`);
       }
       
     } catch (error) {
@@ -283,6 +293,171 @@ function registerCallbackHandlers(bot) {
     } catch (error) {
       console.error('Ошибка показа правил:', error);
       await ctx.answerCbQuery('❌ Ошибка загрузки правил');
+    }
+  });
+
+  // ============ ОБРАБОТЧИКИ ИГРОВОГО ПРОЦЕССА ============
+  
+  // Игра в дуэли
+  bot.action(/^play_game_(.+)$/, async (ctx) => {
+    try {
+      const sessionId = ctx.match[1];
+      const userId = ctx.from.id.toString();
+      const username = ctx.from.username;
+      
+      await ctx.answerCbQuery('🎲 Бросаем кость...');
+      
+      // Симуляция броска кости (1-6)
+      const diceResult = Math.floor(Math.random() * 6) + 1;
+      
+      console.log(`🎮 Игрок ${username} (${userId}) бросил кость: ${diceResult} в дуэли ${sessionId}`);
+      
+      // Сохраняем результат в API
+      const roundData = {
+        userId,
+        username,
+        gameType: '🎲',
+        result: diceResult,
+        timestamp: Date.now()
+      };
+      
+      const saveResult = await apiService.saveDuelRound(sessionId, roundData);
+      
+      if (saveResult.success) {
+        // Создаем кнопки для продолжения
+        const continueMarkup = Markup.inlineKeyboard([
+          [Markup.button.callback('📊 Показать результаты', `show_results_${sessionId}`)],
+          [Markup.button.callback('🔄 Следующий раунд', `next_round_${sessionId}`)]
+        ]);
+        
+        await ctx.reply(
+          `🎲 **Результат броска**\n\n` +
+          `👤 Игрок: @${username}\n` +
+          `🎯 Результат: **${diceResult}**\n` +
+          `📋 Сессия: \`${sessionId}\`\n\n` +
+          `⏳ Ожидание хода противника...`,
+          { 
+            parse_mode: 'Markdown',
+            ...continueMarkup
+          }
+        );
+      } else {
+        await ctx.reply(`❌ Ошибка сохранения результата: ${saveResult.error}`);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка игрового процесса:', error);
+      await ctx.answerCbQuery('❌ Ошибка игры');
+    }
+  });
+  
+  // Показ результатов раунда
+  bot.action(/^show_results_(.+)$/, async (ctx) => {
+    try {
+      const sessionId = ctx.match[1];
+      const userId = ctx.from.id.toString();
+      
+      await ctx.answerCbQuery('📊 Загружаем результаты...');
+      
+      // Получаем данные дуэли
+      const duelData = await apiService.getDuelData(sessionId, userId);
+      
+      if (duelData.success) {
+        const duel = duelData.data;
+        
+        let resultsText = `📊 **Результаты дуэли**\n\n`;
+        resultsText += `🆔 Сессия: \`${sessionId}\`\n`;
+        resultsText += `🎮 Игра: ${duel.gameType}\n`;
+        resultsText += `💰 Ставка: ${duel.amount} USDT\n\n`;
+        
+        if (duel.rounds && duel.rounds.length > 0) {
+          resultsText += `📈 **Раунды:**\n`;
+          duel.rounds.forEach((round, index) => {
+            resultsText += `${index + 1}. @${round.username}: ${round.result}\n`;
+          });
+        } else {
+          resultsText += `📭 Раундов пока нет`;
+        }
+        
+        await ctx.reply(resultsText, { parse_mode: 'Markdown' });
+      } else {
+        await ctx.reply(`❌ Ошибка получения результатов: ${duelData.error}`);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка показа результатов:', error);
+      await ctx.answerCbQuery('❌ Ошибка загрузки');
+    }
+  });
+  
+  // Следующий раунд
+  bot.action(/^next_round_(.+)$/, async (ctx) => {
+    try {
+      const sessionId = ctx.match[1];
+      
+      await ctx.answerCbQuery('🔄 Подготовка следующего раунда...');
+      
+      // Создаем кнопки для следующего раунда
+      const nextRoundMarkup = Markup.inlineKeyboard([
+        [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
+        [Markup.button.callback('📊 Показать результаты', `show_results_${sessionId}`)]
+      ]);
+      
+      await ctx.reply(
+        `🔄 **Следующий раунд**\n\n` +
+        `🎮 Нажмите кнопку для игры\n` +
+        `📋 Сессия: \`${sessionId}\``,
+        { 
+          parse_mode: 'Markdown',
+          ...nextRoundMarkup
+        }
+      );
+      
+    } catch (error) {
+      console.error('Ошибка следующего раунда:', error);
+      await ctx.answerCbQuery('❌ Ошибка раунда');
+    }
+  });
+  
+  // Статус дуэли
+  bot.action(/^duel_status_(.+)$/, async (ctx) => {
+    try {
+      const sessionId = ctx.match[1];
+      const userId = ctx.from.id.toString();
+      
+      await ctx.answerCbQuery('📊 Проверяем статус...');
+      
+      // Получаем данные дуэли
+      const duelData = await apiService.getDuelData(sessionId, userId);
+      
+      if (duelData.success) {
+        const duel = duelData.data;
+        
+        let statusText = `📋 **Статус дуэли**\n\n`;
+        statusText += `🆔 ID: \`${sessionId}\`\n`;
+        statusText += `🎮 Игра: ${duel.gameType}\n`;
+        statusText += `💰 Ставка: ${duel.amount} USDT\n`;
+        statusText += `🏆 Формат: ${duel.format}\n`;
+        statusText += `📊 Статус: ${duel.status}\n\n`;
+        
+        if (duel.challengerUsername && duel.opponentUsername) {
+          statusText += `👥 **Игроки:**\n`;
+          statusText += `• @${duel.challengerUsername}\n`;
+          statusText += `• @${duel.opponentUsername}\n\n`;
+        }
+        
+        if (duel.rounds && duel.rounds.length > 0) {
+          statusText += `📈 Раундов сыграно: ${duel.rounds.length}`;
+        }
+        
+        await ctx.reply(statusText, { parse_mode: 'Markdown' });
+      } else {
+        await ctx.reply(`❌ Ошибка получения статуса: ${duelData.error}`);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка статуса дуэли:', error);
+      await ctx.answerCbQuery('❌ Ошибка статуса');
     }
   });
 

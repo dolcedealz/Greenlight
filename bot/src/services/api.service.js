@@ -23,12 +23,17 @@ class ApiService {
    * @returns {Object} - Заголовки для запроса
    */
   createTelegramAuthHeaders(telegramUser) {
-    // Используем простой подход с bot token для аутентификации
+    // Очищаем строки от недопустимых символов для HTTP заголовков
+    const cleanString = (str) => {
+      if (!str) return '';
+      return str.replace(/[^\x20-\x7E]/g, ''); // Удаляем все не-ASCII символы
+    };
+
     return {
       'Authorization': `Bot ${process.env.BOT_TOKEN}`,
       'X-Telegram-User-Id': telegramUser.id.toString(),
-      'X-Telegram-Username': telegramUser.username || '',
-      'X-Telegram-First-Name': telegramUser.first_name || '',
+      'X-Telegram-Username': cleanString(telegramUser.username) || '',
+      'X-Telegram-First-Name': cleanString(telegramUser.first_name) || '',
       'Content-Type': 'application/json'
     };
   }
@@ -554,32 +559,19 @@ class ApiService {
     try {
       console.log('API: Создаем дуэль:', duelData);
       
-      // Временно отключаем аутентификацию для тестирования
-      const payload = {
-        ...duelData,
-        skipAuth: true,
-        botSource: true
-      };
+      // Добавляем заголовки аутентификации если есть пользователь
+      const headers = telegramUser ? this.createTelegramAuthHeaders(telegramUser) : {};
       
-      // Пробуем простой запрос без заголовков аутентификации
-      const response = await this.api.post('/duels', payload);
+      const response = await this.api.post('/duels', duelData, { headers });
       
-      console.log('API: Дуэль создана успешно');
+      console.log('API: Дуэль создана успешно:', response.data);
       return { success: true, data: response.data.data };
     } catch (error) {
       console.error('API: Ошибка создания дуэли:', error.response?.data || error.message);
       
-      // Возвращаем mock данные для тестирования
-      console.log('API: Используем mock данные для тестирования');
       return { 
-        success: true, 
-        data: { 
-          sessionId: 'mock_' + Date.now(),
-          challengerId: duelData.challengerId,
-          amount: duelData.amount,
-          gameType: duelData.gameType,
-          format: duelData.format
-        }
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка создания дуэли' 
       };
     }
   }
@@ -594,38 +586,22 @@ class ApiService {
     try {
       console.log(`API: Принимаем дуэль ${sessionId} пользователем ${userId}`);
       
-      // Временно используем mock для тестирования
-      if (sessionId.startsWith('mock_')) {
-        console.log('API: Mock принятие дуэли');
-        return { 
-          success: true, 
-          data: { 
-            sessionId, 
-            status: 'accepted',
-            opponentId: userId 
-          }
-        };
-      }
-      
       // Добавляем заголовки аутентификации
       const headers = this.createTelegramAuthHeaders(telegramUser);
       
-      const response = await this.api.post(`/duels/${sessionId}/accept`, { userId }, { headers });
+      const response = await this.api.post(`/duels/${sessionId}/accept`, { 
+        userId,
+        username: telegramUser.username || telegramUser.first_name || 'Unknown'
+      }, { headers });
       
-      console.log('API: Дуэль принята успешно');
+      console.log('API: Дуэль принята успешно:', response.data);
       return { success: true, data: response.data.data };
     } catch (error) {
       console.error('API: Ошибка принятия дуэли:', error.response?.data || error.message);
       
-      // Mock fallback
-      console.log('API: Mock принятие дуэли (fallback)');
       return { 
-        success: true, 
-        data: { 
-          sessionId, 
-          status: 'accepted',
-          opponentId: userId 
-        }
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка принятия дуэли' 
       };
     }
   }
@@ -709,38 +685,19 @@ class ApiService {
     try {
       console.log(`API: Отменяем дуэль ${sessionId}`);
       
-      // Временно используем mock для тестирования
-      if (sessionId.startsWith('mock_')) {
-        console.log('API: Mock отмена дуэли');
-        return { 
-          success: true, 
-          data: { 
-            sessionId, 
-            status: 'cancelled',
-            cancelledBy: userId 
-          }
-        };
-      }
-      
       // Добавляем заголовки аутентификации
       const headers = this.createTelegramAuthHeaders(telegramUser);
       
       const response = await this.api.post(`/duels/${sessionId}/cancel`, { userId }, { headers });
       
-      console.log('API: Дуэль отменена');
-      return { success: true, data: response.data };
+      console.log('API: Дуэль отменена:', response.data);
+      return { success: true, data: response.data.data };
     } catch (error) {
       console.error('API: Ошибка отмены дуэли:', error.response?.data || error.message);
       
-      // Mock fallback
-      console.log('API: Mock отмена дуэли (fallback)');
       return { 
-        success: true, 
-        data: { 
-          sessionId, 
-          status: 'cancelled',
-          cancelledBy: userId 
-        }
+        success: false, 
+        error: error.response?.data?.message || 'Ошибка отмены дуэли' 
       };
     }
   }

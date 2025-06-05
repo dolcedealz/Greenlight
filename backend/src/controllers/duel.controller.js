@@ -448,9 +448,13 @@ class DuelController {
       const { sessionId } = req.params;
       const { userId } = req.body;
       const playerId = userId || req.user.id;
-      const playerUsername = req.user.username;
+      const playerUsername = req.user.username || req.body.username || 'Unknown';
       
-      const duel = await duelService.joinDuel(sessionId, playerId, playerUsername);
+      // Сначала находим дуэль по sessionId
+      const existingDuel = await duelService.getDuel(sessionId);
+      
+      // Затем присоединяемся к ней
+      const duel = await duelService.joinDuel(existingDuel._id, playerId, playerUsername);
       
       res.json({
         success: true,

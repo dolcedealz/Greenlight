@@ -197,7 +197,8 @@ async function duelAuthMiddleware(req, res, next) {
     
     // Если нет telegram-data, проверяем данные из body или URL (для бота)
     const { challengerId, challengerUsername, userId, username } = req.body;
-    const userIdFromBody = userId || challengerId;
+    const { userId: userIdFromQuery } = req.query;
+    const userIdFromBody = userId || challengerId || userIdFromQuery;
     const usernameFromBody = username || challengerUsername;
     
     // Проверяем заголовки от бота

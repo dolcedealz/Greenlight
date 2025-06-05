@@ -16,6 +16,64 @@ function getGameName(gameType) {
   return gameNames[gameType] || 'Неизвестная игра';
 }
 
+// Функция получения конфигурации игры
+function getGameConfig(gameType) {
+  const gameConfigs = {
+    '🎲': {
+      emoji: '🎲',
+      actionText: 'Бросить кость',
+      processText: 'Бросаем кость...',
+      resultText: 'Ваш результат броска',
+      maxValue: 6
+    },
+    '🎯': {
+      emoji: '🎯',
+      actionText: 'Бросить дартс',
+      processText: 'Бросаем дартс...',
+      resultText: 'Ваш результат дартса',
+      maxValue: 6
+    },
+    '⚽': {
+      emoji: '⚽',
+      actionText: 'Удар по мячу',
+      processText: 'Бьем по мячу...',
+      resultText: 'Ваш результат удара',
+      maxValue: 5
+    },
+    '🏀': {
+      emoji: '🏀',
+      actionText: 'Бросок в корзину',
+      processText: 'Бросаем в корзину...',
+      resultText: 'Ваш результат броска',
+      maxValue: 5
+    },
+    '🎳': {
+      emoji: '🎳',
+      actionText: 'Бросок в боулинге',
+      processText: 'Бросаем боулинг...',
+      resultText: 'Ваш результат в боулинге',
+      maxValue: 6
+    },
+    '🎰': {
+      emoji: '🎰',
+      actionText: 'Крутить слоты',
+      processText: 'Крутим слоты...',
+      resultText: 'Ваш результат слотов',
+      maxValue: 64
+    }
+  };
+  return gameConfigs[gameType] || gameConfigs['🎲'];
+}
+
+// Функция создания игровых кнопок
+function createGameButtons(sessionId, gameType) {
+  const gameConfig = getGameConfig(gameType);
+  return Markup.inlineKeyboard([
+    [Markup.button.callback(`${gameConfig.emoji} ${gameConfig.actionText}`, `play_game_${sessionId}`)],
+    [Markup.button.callback('📊 Статус дуэли', `duel_status_${sessionId}`)]
+  ]);
+}
+
 /**
  * Обработчик callback запросов (нажатия на inline кнопки)
  * @param {Object} bot - Экземпляр бота Telegraf
@@ -138,6 +196,10 @@ function registerCallbackHandlers(bot) {
       const result = await apiService.acceptDuel(sessionId, userId, ctx.from);
       
       if (result.success) {
+        // Получаем данные дуэли для определения типа игры
+        const duelData = await apiService.getDuelData(sessionId, userId);
+        const gameType = duelData.success ? duelData.data.gameType : '🎲';
+        
         // Обновляем сообщение
         await ctx.editMessageText(
           ctx.callbackQuery.message.text + `\n\n✅ **ДУЭЛЬ ПРИНЯТА!**\nОппонент: @${username}`,
@@ -147,11 +209,8 @@ function registerCallbackHandlers(bot) {
           }
         );
         
-        // Создаем кнопки для игры с использованием Telegraf Markup
-        const gameMarkup = Markup.inlineKeyboard([
-          [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
-          [Markup.button.callback('📊 Статус дуэли', `duel_status_${sessionId}`)]
-        ]);
+        // Создаем кнопки для игры с использованием типа игры
+        const gameMarkup = createGameButtons(sessionId, gameType);
         
         await ctx.reply(
           `🎯 **Дуэль началась!**\n\n` +
@@ -215,6 +274,10 @@ function registerCallbackHandlers(bot) {
       const result = await apiService.acceptDuel(sessionId, userId, ctx.from);
       
       if (result.success) {
+        // Получаем данные дуэли для определения типа игры
+        const duelData = await apiService.getDuelData(sessionId, userId);
+        const gameType = duelData.success ? duelData.data.gameType : '🎲';
+        
         // Обновляем сообщение
         await ctx.editMessageText(
           ctx.callbackQuery.message.text + `\n\n✅ **ДУЭЛЬ ПРИНЯТА!**\nОппонент: @${username}`,
@@ -224,11 +287,8 @@ function registerCallbackHandlers(bot) {
           }
         );
         
-        // Создаем кнопки для игры с использованием Telegraf Markup
-        const gameMarkup = Markup.inlineKeyboard([
-          [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
-          [Markup.button.callback('📊 Статус дуэли', `duel_status_${sessionId}`)]
-        ]);
+        // Создаем кнопки для игры с использованием типа игры
+        const gameMarkup = createGameButtons(sessionId, gameType);
         
         await ctx.reply(
           `🎯 **Дуэль началась!**\n\n` +
@@ -322,19 +382,31 @@ function registerCallbackHandlers(bot) {
       const userId = ctx.from.id.toString();
       const username = ctx.from.username;
       
-      await ctx.answerCbQuery('🎲 Бросаем кость...');
+      // Получаем данные дуэли для определения типа игры
+      const duelData = await apiService.getDuelData(sessionId, userId);
       
-      // Симуляция броска кости (1-6)
-      const diceResult = Math.floor(Math.random() * 6) + 1;
+      if (!duelData.success) {
+        await ctx.answerCbQuery('❌ Ошибка получения данных дуэли');
+        return;
+      }
       
-      console.log(`🎮 Игрок ${username} (${userId}) бросил кость: ${diceResult} в дуэли ${sessionId}`);
+      const gameType = duelData.data.gameType;
+      const gameConfig = getGameConfig(gameType);
       
-      // Сохраняем результат в API
+      await ctx.answerCbQuery(`${gameConfig.emoji} ${gameConfig.processText}`);
+      
+      // Отправляем соответствующий Telegram dice
+      const diceMessage = await ctx.replyWithDice(gameConfig.emoji);
+      const gameResult = diceMessage.dice.value;
+      
+      console.log(`🎮 Игрок ${username} (${userId}) сыграл ${gameType}: ${gameResult} в дуэли ${sessionId}`);
+      
+      // Сохраняем результат в API после получения результата
       const roundData = {
         userId,
         username,
-        gameType: '🎲',
-        result: diceResult,
+        gameType: gameType,
+        result: gameResult,
         timestamp: Date.now()
       };
       
@@ -343,8 +415,8 @@ function registerCallbackHandlers(bot) {
       if (saveResult.success) {
         // Отправляем результат текущему игроку
         await ctx.reply(
-          `🎲 **Ваш результат броска**\n\n` +
-          `🎯 Результат: **${diceResult}**\n` +
+          `${gameConfig.emoji} **${gameConfig.resultText}**\n\n` +
+          `🎯 Результат: **${gameResult}**\n` +
           `📋 Сессия: \`${sessionId}\`\n\n` +
           `⏳ Ожидание хода противника...`,
           { parse_mode: 'Markdown' }
@@ -362,14 +434,14 @@ function registerCallbackHandlers(bot) {
           if (opponentId) {
             try {
               const gameMarkup = Markup.inlineKeyboard([
-                [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
+                [Markup.button.callback(`${gameConfig.emoji} ${gameConfig.actionText}`, `play_game_${sessionId}`)],
                 [Markup.button.callback('📊 Показать результаты', `show_results_${sessionId}`)]
               ]);
               
               await ctx.telegram.sendMessage(
                 opponentId,
-                `🎲 **Ход противника!**\n\n` +
-                `👤 @${username} бросил кость: **${diceResult}**\n` +
+                `${gameConfig.emoji} **Ход противника!**\n\n` +
+                `👤 @${username} сыграл ${gameType}: **${gameResult}**\n` +
                 `📋 Сессия: \`${sessionId}\`\n\n` +
                 `🎯 Теперь ваш ход!`,
                 { 
@@ -436,14 +508,16 @@ function registerCallbackHandlers(bot) {
   bot.action(/^next_round_(.+)$/, async (ctx) => {
     try {
       const sessionId = ctx.match[1];
+      const userId = ctx.from.id.toString();
       
       await ctx.answerCbQuery('🔄 Подготовка следующего раунда...');
       
-      // Создаем кнопки для следующего раунда
-      const nextRoundMarkup = Markup.inlineKeyboard([
-        [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
-        [Markup.button.callback('📊 Показать результаты', `show_results_${sessionId}`)]
-      ]);
+      // Получаем данные дуэли для определения типа игры
+      const duelData = await apiService.getDuelData(sessionId, userId);
+      const gameType = duelData.success ? duelData.data.gameType : '🎲';
+      
+      // Создаем кнопки для следующего раунда с правильным типом игры
+      const nextRoundMarkup = createGameButtons(sessionId, gameType);
       
       await ctx.reply(
         `🔄 **Следующий раунд**\n\n` +
@@ -559,10 +633,7 @@ function registerCallbackHandlers(bot) {
           );
           
           // Создаем игровые кнопки для inline дуэли
-          const gameMarkup = Markup.inlineKeyboard([
-            [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
-            [Markup.button.callback('📊 Статус дуэли', `duel_status_${sessionId}`)]
-          ]);
+          const gameMarkup = createGameButtons(sessionId, gameType);
           
           // Отправляем игровое сообщение принявшему игроку В ЛИЧКУ
           try {

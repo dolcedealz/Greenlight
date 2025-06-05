@@ -257,10 +257,22 @@ class DuelService {
       if (duel.status === 'accepted') {
         duel.status = 'active';
         duel.startedAt = new Date();
+        
+        // Создаем первый раунд если его еще нет
+        if (duel.rounds.length === 0) {
+          const firstRound = {
+            roundNumber: 1,
+            challengerResult: null,
+            opponentResult: null,
+            winnerId: null,
+            timestamp: new Date()
+          };
+          duel.rounds.push(firstRound);
+        }
       }
       
       if (duel.status !== 'active') {
-        throw new Error('Дуэль не активна');
+        throw new Error(`Дуэль не активна (статус: ${duel.status})`);
       }
       
       const isChallenger = duel.challengerId === playerId;

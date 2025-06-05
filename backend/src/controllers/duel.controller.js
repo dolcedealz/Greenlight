@@ -223,18 +223,39 @@ class DuelController {
       const { result, messageId } = req.body;
       const playerId = req.user.id;
       
-      if (!result || result < 1 || result > 6) {
+      // Получаем данные дуэли для валидации результата по типу игры
+      const duel = await duelService.getDuel(sessionId);
+      if (!duel) {
         return res.status(400).json({
           success: false,
-          message: 'Некорректный результат хода'
+          message: 'Дуэль не найдена'
         });
       }
       
-      const duel = await duelService.makeMove(sessionId, playerId, result, messageId);
+      // Валидация результата в зависимости от типа игры
+      const gameValidation = {
+        '🎲': { min: 1, max: 6 },      // Кости: 1-6
+        '🎯': { min: 1, max: 6 },      // Дартс: 1-6  
+        '⚽': { min: 1, max: 5 },      // Футбол: 1-5
+        '🏀': { min: 1, max: 5 },      // Баскетбол: 1-5
+        '🎳': { min: 1, max: 6 },      // Боулинг: 1-6
+        '🎰': { min: 1, max: 64 }      // Слоты: 1-64
+      };
+      
+      const validation = gameValidation[duel.gameType] || gameValidation['🎲'];
+      
+      if (!result || result < validation.min || result > validation.max) {
+        return res.status(400).json({
+          success: false,
+          message: `Некорректный результат для игры ${duel.gameType}: должен быть от ${validation.min} до ${validation.max}`
+        });
+      }
+      
+      const updatedDuel = await duelService.makeMove(sessionId, playerId, result, messageId);
       
       res.json({
         success: true,
-        data: { duel }
+        data: { duel: updatedDuel }
       });
       
     } catch (error) {
@@ -507,11 +528,31 @@ class DuelController {
         });
       }
       
-      // Проверяем валидность результата
-      if (typeof result !== 'number' || result < 1 || result > 6) {
+      // Получаем данные дуэли для валидации результата по типу игры
+      const duelData = await duelService.getDuel(sessionId);
+      if (!duelData) {
         return res.status(400).json({
           success: false,
-          message: 'Некорректный результат хода'
+          message: 'Дуэль не найдена'
+        });
+      }
+      
+      // Валидация результата в зависимости от типа игры
+      const gameValidation = {
+        '🎲': { min: 1, max: 6 },      // Кости: 1-6
+        '🎯': { min: 1, max: 6 },      // Дартс: 1-6  
+        '⚽': { min: 1, max: 5 },      // Футбол: 1-5
+        '🏀': { min: 1, max: 5 },      // Баскетбол: 1-5
+        '🎳': { min: 1, max: 6 },      // Боулинг: 1-6
+        '🎰': { min: 1, max: 64 }      // Слоты: 1-64
+      };
+      
+      const validation = gameValidation[duelData.gameType] || gameValidation['🎲'];
+      
+      if (typeof result !== 'number' || result < validation.min || result > validation.max) {
+        return res.status(400).json({
+          success: false,
+          message: `Некорректный результат для игры ${duelData.gameType}: должен быть от ${validation.min} до ${validation.max}`
         });
       }
       

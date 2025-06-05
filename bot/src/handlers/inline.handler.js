@@ -1,89 +1,52 @@
 // bot/src/handlers/inline.handler.js
 const config = require('../config');
-const { Markup } = require('telegraf');
 
 function registerInlineHandlers(bot) {
+  // Обработчик inline запросов
   bot.on('inline_query', async (ctx) => {
     try {
-      const query = ctx.inlineQuery.query.toLowerCase().trim();
-      const results = [];
+      console.log('Inline запрос получен от:', ctx.inlineQuery.from.username);
       
-      // Простой тест - любой запрос
-      results.push({
+      // Создаем один результат - кнопку для открытия казино
+      const results = [{
         type: 'article',
-        id: 'test_casino_' + Date.now(),
-        title: '🎰 Открыть казино',
+        id: 'casino_' + Date.now(),
+        title: '🎰 Открыть Greenlight Casino',
         description: 'Нажмите чтобы отправить кнопку казино',
         thumb_url: 'https://cdn-icons-png.flaticon.com/512/3163/3163238.png',
         input_message_content: {
-          message_text: '🎰 **Greenlight Casino** 🎰\n\n🎮 Играйте и выигрывайте!',
+          message_text: '🎰 **Greenlight Casino**\n\nНажмите кнопку ниже чтобы играть!',
           parse_mode: 'Markdown'
         },
         reply_markup: {
           inline_keyboard: [[
             {
-              text: '🎮 Открыть казино',
+              text: '🎮 Играть',
               web_app: { url: config.webAppUrl }
             }
           ]]
         }
-      });
+      }];
       
-      // Тест с обычной callback кнопкой
-      results.push({
-        type: 'article',
-        id: 'test_callback_' + Date.now(),
-        title: '🔘 Тест callback кнопки',
-        description: 'Проверка работы callback',
-        input_message_content: {
-          message_text: '🧪 Тест callback кнопки'
-        },
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: '👋 Нажми меня',
-              callback_data: 'test_button'
-            }
-          ]]
-        }
-      });
-      
-      // Тест с URL кнопкой
-      results.push({
-        type: 'article',
-        id: 'test_url_' + Date.now(),
-        title: '🔗 Тест URL кнопки',
-        description: 'Проверка работы URL',
-        input_message_content: {
-          message_text: '🔗 Тест URL кнопки'
-        },
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: '🌐 Google',
-              url: 'https://google.com'
-            }
-          ]]
-        }
-      });
-      
+      // Отправляем результат
       await ctx.answerInlineQuery(results, {
         cache_time: 0,
         is_personal: true
       });
       
+      console.log('Inline ответ отправлен');
+      
     } catch (error) {
-      console.error('Ошибка inline query:', error);
-      await ctx.answerInlineQuery([{
-        type: 'article',
-        id: 'error',
-        title: '❌ Ошибка',
-        description: error.message,
-        input_message_content: {
-          message_text: '❌ Произошла ошибка: ' + error.message
-        }
-      }]);
+      console.error('Ошибка в inline handler:', error);
     }
+  });
+  
+  // Логируем когда пользователь выбрал результат
+  bot.on('chosen_inline_result', async (ctx) => {
+    console.log('Пользователь выбрал inline результат:', {
+      resultId: ctx.chosenInlineResult.result_id,
+      user: ctx.chosenInlineResult.from.username
+    });
   });
 }
 

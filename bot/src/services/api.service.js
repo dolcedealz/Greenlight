@@ -794,6 +794,25 @@ class ApiService {
       throw new Error(error.response?.data?.message || 'Ошибка валидации вызова');
     }
   }
+
+  /**
+   * Найти пользователя по username
+   * @param {string} username - Username пользователя
+   * @returns {Object} - Данные пользователя
+   */
+  async findUserByUsername(username) {
+    try {
+      console.log(`API: Поиск пользователя по username: ${username}`);
+      
+      const response = await this.api.get(`/users/search?username=${encodeURIComponent(username)}`);
+      
+      console.log(`API: Пользователь найден:`, response.data.data);
+      return response.data.data;
+    } catch (error) {
+      console.error(`API: Ошибка поиска пользователя ${username}:`, error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Пользователь не найден');
+    }
+  }
 }
 
 // Экспортируем singleton instance

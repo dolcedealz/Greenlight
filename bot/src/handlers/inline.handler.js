@@ -116,7 +116,12 @@ function registerInlineHandlers(bot) {
   // Обработка выбора inline результата (когда пользователь отправляет сообщение)
   bot.on('chosen_inline_result', async (ctx) => {
     try {
-      console.log('✅ Inline результат выбран:', ctx.chosenInlineResult);
+      console.log('✅ Inline результат выбран:', {
+        resultId: ctx.chosenInlineResult.result_id,
+        query: ctx.chosenInlineResult.query,
+        from: ctx.from.username,
+        userId: ctx.from.id
+      });
       
       const resultId = ctx.chosenInlineResult.result_id;
       const query = ctx.chosenInlineResult.query;
@@ -159,25 +164,9 @@ async function sendDuelInvitations(bot, data) {
   try {
     const { challengerId, challengerUsername, targetUsername, amount, gameType, format, inlineMessageId } = data;
     
-    // Сохраняем данные о приглашении для последующего использования
-    const inviteData = {
-      challengerId,
-      challengerUsername,
-      targetUsername,
-      amount,
-      gameType,
-      format,
-      winsRequired: getWinsRequired(format),
-      timestamp: Date.now(),
-      inlineMessageId
-    };
+    console.log('🎯 Отправка приглашения на дуэль:', data);
     
-    // Для простоты сохраняем в памяти (в продакшене использовать Redis)
-    global.pendingDuelInvites = global.pendingDuelInvites || {};
-    const inviteId = `invite_${Date.now()}`;
-    global.pendingDuelInvites[inviteId] = inviteData;
-    
-    // Отправляем инициатору
+    // Отправляем инициатору подтверждение
     await bot.telegram.sendMessage(
       challengerId,
       `✅ **Приглашение отправлено!**\n\n` +
@@ -186,29 +175,67 @@ async function sendDuelInvitations(bot, data) {
       `🏆 Формат: ${format.toUpperCase()}\n` +
       `👤 Оппонент: @${targetUsername}\n\n` +
       `⏱ Ожидаем подтверждение от @${targetUsername}...\n\n` +
-      `💡 Подсказка: Попросите @${targetUsername} написать боту /start и проверить уведомления`,
+      `💡 Попросите @${targetUsername} написать боту /start для получения приглашения`,
       {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [[
-            { text: '❌ Отменить приглашение', callback_data: `cancel_invite_${inviteId}` }
-          ]]
-        }
+        parse_mode: 'Markdown'
       }
     );
     
-    // Здесь в идеале нужна интеграция с базой пользователей
-    // чтобы найти telegramId по username и отправить приглашение
-    // Для демонстрации логируем
-    console.log(`Приглашение создано: ${inviteId}`, inviteData);
-    
-    // Через 5 минут удаляем приглашение
-    setTimeout(() => {
-      delete global.pendingDuelInvites[inviteId];
-    }, 5 * 60 * 1000);
+    // Пытаемся найти пользователя через API
+    try {
+      const response = await apiService.findUserByUsername(targetUsername);
+      
+      if (response && response.telegramId) {
+        // Отправляем приглашение напрямую
+        await bot.telegram.sendMessage(
+          response.telegramId,
+          `${gameType} **ПРИГЛАШЕНИЕ НА ДУЭЛЬ** ${gameType}\n\n` +
+          `@${challengerUsername} приглашает вас на дуэль!\n` +
+          `💰 Ставка: ${amount} USDT\n` +
+          `🎮 Игра: ${getGameName(gameType)}\n` +
+          `🏆 Формат: ${format.toUpperCase()}\n\n` +
+          `Принять дуэль?`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [[
+                { text: '✅ Принять', callback_data: `accept_pvp_duel_${challengerId}_${amount}_${gameType}_${format}` },
+                { text: '❌ Отклонить', callback_data: `decline_pvp_duel_${challengerId}` }
+              ]]
+            }
+          }
+        );
+        
+        console.log(`✅ Приглашение отправлено пользователю ${targetUsername} (${response.telegramId})`);
+      } else {
+        console.log(`⚠️ Пользователь @${targetUsername} не найден в базе данных`);
+      }
+    } catch (apiError) {
+      console.log(`⚠️ Ошибка поиска пользователя @${targetUsername}:`, apiError.message);
+      
+      // Сохраняем приглашение для отправки при следующем /start
+      global.pendingDuelInvites = global.pendingDuelInvites || {};
+      const inviteId = `invite_${Date.now()}`;
+      global.pendingDuelInvites[inviteId] = {
+        challengerId,
+        challengerUsername,
+        targetUsername,
+        amount,
+        gameType,
+        format,
+        winsRequired: getWinsRequired(format),
+        timestamp: Date.now(),
+        inlineMessageId
+      };
+      
+      // Удаляем через 10 минут
+      setTimeout(() => {
+        delete global.pendingDuelInvites[inviteId];
+      }, 10 * 60 * 1000);
+    }
     
   } catch (error) {
-    console.error('Ошибка отправки приглашений:', error);
+    console.error('❌ Ошибка отправки приглашений:', error);
   }
 }
 

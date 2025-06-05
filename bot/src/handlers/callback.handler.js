@@ -3,6 +3,19 @@ const { Markup } = require('telegraf');
 const config = require('../config');
 const apiService = require('../services/api.service');
 
+// Функция получения названия игры
+function getGameName(gameType) {
+  const gameNames = {
+    '🎲': 'Кости',
+    '🎯': 'Дартс', 
+    '⚽': 'Футбол',
+    '🏀': 'Баскетбол',
+    '🎰': 'Слоты',
+    '🎳': 'Боулинг'
+  };
+  return gameNames[gameType] || 'Неизвестная игра';
+}
+
 /**
  * Обработчик callback запросов (нажатия на inline кнопки)
  * @param {Object} bot - Экземпляр бота Telegraf
@@ -87,6 +100,212 @@ function registerCallbackHandlers(bot) {
       console.error('ДЕПОЗИТ: Ошибка при обработке действия пополнения:', error);
       await ctx.reply('❌ Произошла ошибка. Пожалуйста, попробуйте еще раз.');
       await ctx.answerCbQuery('❌ Ошибка создания счета');
+    }
+  });
+
+  // ============ ОБРАБОТЧИКИ ДУЭЛЕЙ ============
+  
+  // Принятие открытой дуэли
+  bot.action(/^accept_open_duel_(.+)$/, async (ctx) => {
+    try {
+      const sessionId = ctx.match[1];
+      const userId = ctx.from.id.toString();
+      const username = ctx.from.username;
+      
+      await ctx.answerCbQuery('⏳ Принимаем дуэль...');
+      
+      // Принимаем дуэль через API
+      const result = await apiService.acceptDuel(sessionId, userId);
+      
+      if (result.success) {
+        // Обновляем сообщение
+        await ctx.editMessageText(
+          ctx.callbackQuery.message.text + `\n\n✅ **ДУЭЛЬ ПРИНЯТА!**\nОппонент: @${username}`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: undefined
+          }
+        );
+        
+        await ctx.reply(
+          `🎯 **Дуэль началась!**\n\n` +
+          `🎮 Используйте команды для игры\n` +
+          `📋 ID сессии: \`${sessionId}\``,
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        await ctx.answerCbQuery(`❌ ${result.error}`);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка принятия дуэли:', error);
+      await ctx.answerCbQuery('❌ Ошибка принятия дуэли');
+    }
+  });
+
+  // Отмена дуэли
+  bot.action(/^cancel_duel_(.+)$/, async (ctx) => {
+    try {
+      const sessionId = ctx.match[1];
+      const userId = ctx.from.id.toString();
+      
+      await ctx.answerCbQuery('⏳ Отменяем дуэль...');
+      
+      // Отменяем дуэль через API
+      const result = await apiService.cancelDuel(sessionId, userId);
+      
+      if (result.success) {
+        await ctx.editMessageText(
+          ctx.callbackQuery.message.text + `\n\n❌ **ДУЭЛЬ ОТМЕНЕНА**`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: undefined
+          }
+        );
+      } else {
+        await ctx.answerCbQuery(`❌ ${result.error}`);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка отмены дуэли:', error);
+      await ctx.answerCbQuery('❌ Ошибка отмены дуэли');
+    }
+  });
+
+  // Показ правил игры
+  bot.action(/^duel_rules_(.+)$/, async (ctx) => {
+    try {
+      const gameType = ctx.match[1];
+      
+      const gameRules = {
+        '🎲': 'Кости: Бросьте кость, у кого больше - тот выиграл раунд',
+        '🎯': 'Дартс: Попадите в цель, лучший результат побеждает',
+        '⚽': 'Футбол: Забейте гол, лучший результат побеждает',
+        '🏀': 'Баскетбол: Попадите в корзину, лучший результат побеждает',
+        '🎳': 'Боулинг: Сбейте кегли, больше кеглей = победа',
+        '🎰': 'Слоты: Получите комбинацию, больше очков = победа'
+      };
+      
+      await ctx.answerCbQuery(
+        gameRules[gameType] || 'Правила для этой игры не найдены',
+        { show_alert: true }
+      );
+      
+    } catch (error) {
+      console.error('Ошибка показа правил:', error);
+      await ctx.answerCbQuery('❌ Ошибка загрузки правил');
+    }
+  });
+
+  // ============ ОБРАБОТЧИКИ INLINE ДУЭЛЕЙ ============
+  
+  // Принятие inline дуэли
+  bot.action(/^inline_accept_(\d+)_(\w+)_(\d+)_(.+)_(.+)$/, async (ctx) => {
+    try {
+      const challengerId = ctx.match[1];
+      const targetUsername = ctx.match[2];
+      const amount = parseInt(ctx.match[3]);
+      const gameType = ctx.match[4];
+      const format = ctx.match[5];
+      const acceptorId = ctx.from.id.toString();
+      const acceptorUsername = ctx.from.username;
+      
+      // Проверяем что пользователь принимает свой вызов
+      if (acceptorUsername !== targetUsername) {
+        return await ctx.answerCbQuery('❌ Это приглашение не для вас');
+      }
+      
+      await ctx.answerCbQuery('⏳ Создаем дуэль...');
+      
+      try {
+        // Создаем дуэль через API
+        const duelData = await apiService.createDuel({
+          challengerId,
+          challengerUsername: ctx.callbackQuery.message.text.match(/@(\w+)/)?.[1] || 'unknown',
+          opponentId: acceptorId,
+          opponentUsername: acceptorUsername,
+          gameType,
+          format,
+          amount,
+          chatId: ctx.chat.id.toString(),
+          chatType: 'private'
+        });
+        
+        if (duelData.success) {
+          await ctx.editMessageText(
+            `${gameType} **ДУЭЛЬ ПРИНЯТА!** ${gameType}\n\n` +
+            `🎮 Игра: ${getGameName(gameType)}\n` +
+            `💰 Ставка: ${amount} USDT каждый\n` +
+            `🏆 Формат: ${format.toUpperCase()}\n` +
+            `👥 Игроки: @${ctx.callbackQuery.message.text.match(/@(\w+)/)?.[1]} vs @${acceptorUsername}\n\n` +
+            `✅ **Дуэль началась!**\n` +
+            `📋 ID: \`${duelData.data.sessionId}\``,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: undefined
+            }
+          );
+          
+          // Уведомляем инициатора (если возможно)
+          try {
+            await ctx.telegram.sendMessage(
+              challengerId,
+              `🎯 **Ваша дуэль принята!**\n\n` +
+              `👤 Оппонент: @${acceptorUsername}\n` +
+              `🎮 Игра: ${getGameName(gameType)}\n` +
+              `💰 Ставка: ${amount} USDT\n` +
+              `📋 ID: \`${duelData.data.sessionId}\``,
+              { parse_mode: 'Markdown' }
+            );
+          } catch (notifyError) {
+            console.log('Не удалось уведомить инициатора:', notifyError.message);
+          }
+          
+        } else {
+          await ctx.answerCbQuery(`❌ ${duelData.error}`);
+        }
+        
+      } catch (error) {
+        console.error('Ошибка создания inline дуэли:', error);
+        await ctx.answerCbQuery('❌ Ошибка создания дуэли: ' + error.message);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка обработки inline принятия:', error);
+      await ctx.answerCbQuery('❌ Ошибка обработки');
+    }
+  });
+
+  // Отклонение inline дуэли
+  bot.action(/^inline_decline_(\d+)$/, async (ctx) => {
+    try {
+      const challengerId = ctx.match[1];
+      const acceptorUsername = ctx.from.username;
+      
+      await ctx.answerCbQuery('❌ Дуэль отклонена');
+      
+      await ctx.editMessageText(
+        ctx.callbackQuery.message.text + `\n\n❌ **ДУЭЛЬ ОТКЛОНЕНА**\n@${acceptorUsername} отклонил(а) приглашение`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: undefined
+        }
+      );
+      
+      // Уведомляем инициатора
+      try {
+        await ctx.telegram.sendMessage(
+          challengerId,
+          `❌ **Дуэль отклонена**\n\n@${acceptorUsername} отклонил(а) ваше приглашение на дуэль.`,
+          { parse_mode: 'Markdown' }
+        );
+      } catch (notifyError) {
+        console.log('Не удалось уведомить инициатора об отклонении:', notifyError.message);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка отклонения inline дуэли:', error);
+      await ctx.answerCbQuery('❌ Ошибка отклонения');
     }
   });
   

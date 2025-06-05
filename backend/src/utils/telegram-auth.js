@@ -7,9 +7,9 @@ const crypto = require('crypto');
  */
 class TelegramAuth {
   constructor() {
-    this.botToken = process.env.BOT_TOKEN;
+    this.botToken = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     if (!this.botToken) {
-      throw new Error('BOT_TOKEN не установлен в переменных окружения');
+      throw new Error('BOT_TOKEN или TELEGRAM_BOT_TOKEN не установлен в переменных окружения');
     }
   }
 

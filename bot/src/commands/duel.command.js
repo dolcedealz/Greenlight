@@ -101,29 +101,59 @@ async function createOpenDuel(ctx) {
 
     // Отправляем сообщение с дуэлью
     console.log('📤 Отправляем сообщение с кнопками...');
-    const message = await ctx.reply(
-      `${gameType} **ОТКРЫТЫЙ ВЫЗОВ НА ДУЭЛЬ** ${gameType}\n\n` +
-      `🎮 Игра: ${game.name}\n` +
-      `💰 Ставка: ${amount} USDT каждый\n` +
-      `🏆 Формат: ${formatInfo.name} (${formatInfo.description})\n` +
-      `👤 Инициатор: @${ctx.from.username}\n\n` +
-      `📋 Правила: ${game.rules}\n` +
-      `⏱ Ожидание противника...`,
-      {
-        parse_mode: 'Markdown',
-        reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback('⚔️ Принять вызов', `accept_open_duel_${sessionId}`)],
-          [Markup.button.callback('📊 Правила игры', `duel_rules_${gameType}`)],
-          [Markup.button.callback('❌ Отменить', `cancel_duel_${sessionId}`)]
-        ])
-      }
-    );
+    
+    // Создаем безопасный sessionId для callback
+    const safeSessionId = sessionId.replace(/[^a-zA-Z0-9_]/g, '').substring(0, 32);
+    console.log('🔧 SessionId для кнопок:', { original: sessionId, safe: safeSessionId });
+    
+    try {
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('⚔️ Принять вызов', `accept_open_duel_${safeSessionId}`)],
+        [Markup.button.callback('📊 Правила игры', `duel_rules_${gameType}`)],
+        [Markup.button.callback('❌ Отменить', `cancel_duel_${safeSessionId}`)]
+      ]);
+      
+      console.log('🎹 Клавиатура создана:', {
+        hasKeyboard: !!keyboard,
+        keyboardType: keyboard.constructor.name
+      });
 
-    console.log('✅ Сообщение с кнопками отправлено:', {
-      messageId: message.message_id,
-      hasReplyMarkup: !!message.reply_markup,
-      buttonsCount: message.reply_markup?.inline_keyboard?.length || 0
-    });
+      const message = await ctx.reply(
+        `${gameType} **ОТКРЫТЫЙ ВЫЗОВ НА ДУЭЛЬ** ${gameType}\n\n` +
+        `🎮 Игра: ${game.name}\n` +
+        `💰 Ставка: ${amount} USDT каждый\n` +
+        `🏆 Формат: ${formatInfo.name} (${formatInfo.description})\n` +
+        `👤 Инициатор: @${ctx.from.username}\n\n` +
+        `📋 Правила: ${game.rules}\n` +
+        `⏱ Ожидание противника...`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: keyboard
+        }
+      );
+
+      console.log('✅ Сообщение с кнопками отправлено:', {
+        messageId: message.message_id,
+        hasReplyMarkup: !!message.reply_markup,
+        buttonsCount: message.reply_markup?.inline_keyboard?.length || 0
+      });
+      
+    } catch (keyboardError) {
+      console.error('❌ Ошибка создания клавиатуры:', keyboardError);
+      
+      // Отправляем сообщение без кнопок как fallback
+      const message = await ctx.reply(
+        `${gameType} **ОТКРЫТЫЙ ВЫЗОВ НА ДУЭЛЬ** ${gameType}\n\n` +
+        `🎮 Игра: ${game.name}\n` +
+        `💰 Ставка: ${amount} USDT каждый\n` +
+        `🏆 Формат: ${formatInfo.name} (${formatInfo.description})\n` +
+        `👤 Инициатор: @${ctx.from.username}\n\n` +
+        `📋 Правила: ${game.rules}\n` +
+        `⏱ Ожидание противника...\n\n` +
+        `❌ Кнопки недоступны. Используйте команды.`,
+        { parse_mode: 'Markdown' }
+      );
+    }
 
     // Сохраняем ID сообщения (заглушка, так как метод updateDuelMessage не реализован)
     // TODO: Реализовать метод updateDuelMessage если нужно
@@ -198,25 +228,49 @@ async function createPersonalDuel(ctx) {
     const formatInfo = FORMATS[format];
 
     console.log('📤 Отправляем персональное сообщение с кнопками...');
-    const message = await ctx.reply(
-      `${gameType} **ПЕРСОНАЛЬНЫЙ ВЫЗОВ** ${gameType}\n\n` +
-      `🎯 @${ctx.from.username} вызывает @${targetUsername}\n` +
-      `🎮 Игра: ${game.name}\n` +
-      `💰 Ставка: ${amount} USDT каждый\n` +
-      `🏆 Формат: ${formatInfo.name} (${formatInfo.description})\n\n` +
-      `📋 Правила: ${game.rules}\n` +
-      `⏱ Ожидание ответа...`,
-      {
-        parse_mode: 'Markdown',
-        reply_markup: Markup.inlineKeyboard([
-          [
-            Markup.button.callback('✅ Принять', `accept_personal_duel_${sessionId}`),
-            Markup.button.callback('❌ Отклонить', `decline_personal_duel_${sessionId}`)
-          ],
-          [Markup.button.callback('📊 Правила игры', `duel_rules_${gameType}`)]
-        ])
-      }
-    );
+    
+    // Создаем безопасный sessionId для callback
+    const safeSessionId = sessionId.replace(/[^a-zA-Z0-9_]/g, '').substring(0, 32);
+    
+    try {
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback('✅ Принять', `accept_personal_duel_${safeSessionId}`),
+          Markup.button.callback('❌ Отклонить', `decline_personal_duel_${safeSessionId}`)
+        ],
+        [Markup.button.callback('📊 Правила игры', `duel_rules_${gameType}`)]
+      ]);
+
+      const message = await ctx.reply(
+        `${gameType} **ПЕРСОНАЛЬНЫЙ ВЫЗОВ** ${gameType}\n\n` +
+        `🎯 @${ctx.from.username} вызывает @${targetUsername}\n` +
+        `🎮 Игра: ${game.name}\n` +
+        `💰 Ставка: ${amount} USDT каждый\n` +
+        `🏆 Формат: ${formatInfo.name} (${formatInfo.description})\n\n` +
+        `📋 Правила: ${game.rules}\n` +
+        `⏱ Ожидание ответа...`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: keyboard
+        }
+      );
+      
+    } catch (keyboardError) {
+      console.error('❌ Ошибка создания клавиатуры для персональной дуэли:', keyboardError);
+      
+      // Отправляем сообщение без кнопок
+      const message = await ctx.reply(
+        `${gameType} **ПЕРСОНАЛЬНЫЙ ВЫЗОВ** ${gameType}\n\n` +
+        `🎯 @${ctx.from.username} вызывает @${targetUsername}\n` +
+        `🎮 Игра: ${game.name}\n` +
+        `💰 Ставка: ${amount} USDT каждый\n` +
+        `🏆 Формат: ${formatInfo.name} (${formatInfo.description})\n\n` +
+        `📋 Правила: ${game.rules}\n` +
+        `⏱ Ожидание ответа...\n\n` +
+        `❌ Кнопки недоступны. Используйте команды.`,
+        { parse_mode: 'Markdown' }
+      );
+    }
 
     // TODO: Сохранить ID сообщения если нужно
 

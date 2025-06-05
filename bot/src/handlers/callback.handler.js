@@ -303,6 +303,7 @@ function registerCallbackHandlers(bot) {
         // Challenger username уже извлечен из callback data выше
         
         // Создаем дуэль через API
+        const chatId = ctx.chat?.id?.toString() || ctx.callbackQuery?.message?.chat?.id?.toString() || 'inline_private';
         const duelData = await apiService.createDuel({
           challengerId,
           challengerUsername,
@@ -311,7 +312,7 @@ function registerCallbackHandlers(bot) {
           gameType,
           format,
           amount,
-          chatId: ctx.chat.id.toString(),
+          chatId,
           chatType: 'private'
         }, ctx.from);
         

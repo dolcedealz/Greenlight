@@ -44,15 +44,14 @@ function registerInlineHandlers(bot) {
           type: 'article',
           id: `duel_${Date.now()}`,
           title: `${gameType} Дуэль с @${targetUsername}`,
-          description: `${amount} USDT, ${format.toUpperCase()} (до ${winsRequired} побед)`,
-          thumb_url: 'https://cdn-icons-png.flaticon.com/128/1055/1055815.png',
+          description: `${amount} USDT, ${format.toUpperCase()}`,
           input_message_content: {
             message_text: `${gameType} **ПРИГЛАШЕНИЕ НА ДУЭЛЬ** ${gameType}\n\n` +
               `@${username} приглашает вас на дуэль!\n` +
               `💰 Ставка: ${amount} USDT\n` +
               `🎮 Игра: ${getGameName(gameType)}\n` +
               `🏆 Формат: ${format.toUpperCase()}\n\n` +
-              `📱 Проверьте личные сообщения от @${bot.botInfo?.username || 'Greenlightgames_bot'}`,
+              `📱 Проверьте личные сообщения от бота`,
             parse_mode: 'Markdown'
           }
         });
@@ -83,16 +82,25 @@ function registerInlineHandlers(bot) {
           type: 'article',
           id: 'help',
           title: '💡 Как создать дуэль',
-          description: 'Формат: duel @username сумма эмодзи формат',
+          description: 'Формат: duel @username сумма',
           input_message_content: {
-            message_text: `📖 **Как создать дуэль в личных сообщениях:**\n\n` +
-              `Введите в поиске inline:\n` +
-              `• \`duel @username 50\` - быстрая игра в кости\n` +
-              `• \`duel @username 100 🎯\` - дартс\n` +
-              `• \`duel @username 50 🎲 bo3\` - кости до 2 побед\n\n` +
-              `Доступные игры: 🎲 🎯 ⚽ 🏀 🎰 🎳\n` +
-              `Форматы: bo1, bo3, bo5, bo7, bo9`,
+            message_text: `📖 **Как создать дуэль:**\n\n` +
+              `Введите: \`duel @username 50\`\n` +
+              `Доступные игры: 🎲 🎯 ⚽ 🏀 🎰 🎳`,
             parse_mode: 'Markdown'
+          }
+        });
+      }
+      
+      // Добавляем тестовый результат для отладки
+      if (query.includes('test')) {
+        results.unshift({
+          type: 'article',
+          id: 'test_result',
+          title: '🧪 Тестовый результат',
+          description: 'Проверка inline mode',
+          input_message_content: {
+            message_text: 'Тестовое сообщение от inline бота'
           }
         });
       }
@@ -103,8 +111,10 @@ function registerInlineHandlers(bot) {
       });
       
       await ctx.answerInlineQuery(results, {
-        cache_time: 0,
-        is_personal: true
+        cache_time: 1,
+        is_personal: false,
+        switch_pm_text: "Создать дуэль",
+        switch_pm_parameter: "duel"
       });
       
     } catch (error) {

@@ -128,6 +128,13 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('⏳ Принимаем дуэль...');
       
       // Принимаем дуэль через API (backend проверит что это не инициатор)
+      console.log('🔄 Отправляем запрос на принятие дуэли:', {
+        sessionId, 
+        userId, 
+        username: ctx.from.username,
+        headers: apiService.createTelegramAuthHeaders(ctx.from)
+      });
+      
       const result = await apiService.acceptDuel(sessionId, userId, ctx.from);
       
       if (result.success) {
@@ -217,11 +224,21 @@ function registerCallbackHandlers(bot) {
           }
         );
         
+        // Создаем кнопки для игры с использованием Telegraf Markup
+        const gameMarkup = Markup.inlineKeyboard([
+          [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
+          [Markup.button.callback('📊 Статус дуэли', `duel_status_${sessionId}`)]
+        ]);
+        
         await ctx.reply(
           `🎯 **Дуэль началась!**\n\n` +
-          `🎮 Используйте команды для игры\n` +
-          `📋 ID сессии: \`${sessionId}\``,
-          { parse_mode: 'Markdown' }
+          `🎮 Нажмите кнопку для игры\n` +
+          `📋 ID сессии: \`${sessionId}\`\n\n` +
+          `⚡ Игроки делают ходы по очереди`,
+          { 
+            parse_mode: 'Markdown',
+            ...gameMarkup
+          }
         );
       } else {
         await ctx.answerCbQuery(`❌ ${result.error}`);
@@ -324,23 +341,48 @@ function registerCallbackHandlers(bot) {
       const saveResult = await apiService.saveDuelRound(sessionId, roundData);
       
       if (saveResult.success) {
-        // Создаем кнопки для продолжения
-        const continueMarkup = Markup.inlineKeyboard([
-          [Markup.button.callback('📊 Показать результаты', `show_results_${sessionId}`)],
-          [Markup.button.callback('🔄 Следующий раунд', `next_round_${sessionId}`)]
-        ]);
-        
+        // Отправляем результат текущему игроку
         await ctx.reply(
-          `🎲 **Результат броска**\n\n` +
-          `👤 Игрок: @${username}\n` +
+          `🎲 **Ваш результат броска**\n\n` +
           `🎯 Результат: **${diceResult}**\n` +
           `📋 Сессия: \`${sessionId}\`\n\n` +
           `⏳ Ожидание хода противника...`,
-          { 
-            parse_mode: 'Markdown',
-            ...continueMarkup
-          }
+          { parse_mode: 'Markdown' }
         );
+        
+        // Получаем данные дуэли для определения противника
+        const duelData = await apiService.getDuelData(sessionId, userId);
+        
+        if (duelData.success) {
+          const duel = duelData.data;
+          const opponentId = duel.challengerId === userId ? duel.opponentId : duel.challengerId;
+          const opponentUsername = duel.challengerId === userId ? duel.opponentUsername : duel.challengerUsername;
+          
+          // Уведомляем противника о ходе
+          if (opponentId) {
+            try {
+              const gameMarkup = Markup.inlineKeyboard([
+                [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
+                [Markup.button.callback('📊 Показать результаты', `show_results_${sessionId}`)]
+              ]);
+              
+              await ctx.telegram.sendMessage(
+                opponentId,
+                `🎲 **Ход противника!**\n\n` +
+                `👤 @${username} бросил кость: **${diceResult}**\n` +
+                `📋 Сессия: \`${sessionId}\`\n\n` +
+                `🎯 Теперь ваш ход!`,
+                { 
+                  parse_mode: 'Markdown',
+                  ...gameMarkup
+                }
+              );
+              console.log(`✅ Уведомление о ходе отправлено противнику ${opponentId}`);
+            } catch (notifyError) {
+              console.error('❌ Не удалось уведомить противника:', notifyError.message);
+            }
+          }
+        }
       } else {
         await ctx.reply(`❌ Ошибка сохранения результата: ${saveResult.error}`);
       }
@@ -500,6 +542,8 @@ function registerCallbackHandlers(bot) {
         }, ctx.from);
         
         if (duelData.success) {
+          const sessionId = duelData.data.sessionId;
+          
           await ctx.editMessageText(
             `${gameType} **ДУЭЛЬ ПРИНЯТА!** ${gameType}\n\n` +
             `🎮 Игра: ${getGameName(gameType)}\n` +
@@ -507,26 +551,57 @@ function registerCallbackHandlers(bot) {
             `🏆 Формат: ${format.toUpperCase()}\n` +
             `👥 Игроки: @${challengerUsername} vs @${acceptorUsername}\n\n` +
             `✅ **Дуэль началась!**\n` +
-            `📋 ID: \`${duelData.data.sessionId}\``,
+            `📋 ID: \`${sessionId}\``,
             {
               parse_mode: 'Markdown',
               reply_markup: undefined
             }
           );
           
-          // Уведомляем инициатора (если возможно)
+          // Создаем игровые кнопки для inline дуэли
+          const gameMarkup = Markup.inlineKeyboard([
+            [Markup.button.callback('🎲 Бросить кость', `play_game_${sessionId}`)],
+            [Markup.button.callback('📊 Статус дуэли', `duel_status_${sessionId}`)]
+          ]);
+          
+          // Отправляем игровое сообщение принявшему игроку В ЛИЧКУ
+          try {
+            await ctx.telegram.sendMessage(
+              acceptorId,
+              `🎯 **Дуэль началась!**\n\n` +
+              `👤 Противник: @${challengerUsername}\n` +
+              `🎮 Игра: ${getGameName(gameType)}\n` +
+              `💰 Ставка: ${amount} USDT\n` +
+              `📋 ID: \`${sessionId}\`\n\n` +
+              `🎲 Ваш ход! Нажмите кнопку для игры:`,
+              { 
+                parse_mode: 'Markdown',
+                ...gameMarkup
+              }
+            );
+            console.log(`✅ Игровое сообщение отправлено принявшему игроку ${acceptorId}`);
+          } catch (sendError) {
+            console.error('❌ Не удалось отправить игровое сообщение принявшему:', sendError.message);
+          }
+          
+          // Отправляем игровое сообщение инициатору В ЛИЧКУ
           try {
             await ctx.telegram.sendMessage(
               challengerId,
               `🎯 **Ваша дуэль принята!**\n\n` +
-              `👤 Оппонент: @${acceptorUsername}\n` +
+              `👤 Противник: @${acceptorUsername}\n` +
               `🎮 Игра: ${getGameName(gameType)}\n` +
               `💰 Ставка: ${amount} USDT\n` +
-              `📋 ID: \`${duelData.data.sessionId}\``,
-              { parse_mode: 'Markdown' }
+              `📋 ID: \`${sessionId}\`\n\n` +
+              `🎲 Ваш ход! Нажмите кнопку для игры:`,
+              { 
+                parse_mode: 'Markdown',
+                ...gameMarkup
+              }
             );
-          } catch (notifyError) {
-            console.log('Не удалось уведомить инициатора:', notifyError.message);
+            console.log(`✅ Игровое сообщение отправлено инициатору ${challengerId}`);
+          } catch (sendError) {
+            console.error('❌ Не удалось отправить игровое сообщение инициатору:', sendError.message);
           }
           
         } else {

@@ -195,23 +195,60 @@ async function duelAuthMiddleware(req, res, next) {
       return telegramAuthMiddleware(req, res, next);
     }
     
-    // Если нет telegram-data, проверяем данные из body (для бота)
-    const { challengerId, challengerUsername } = req.body;
+    // Если нет telegram-data, проверяем данные из body или URL (для бота)
+    const { challengerId, challengerUsername, userId, username } = req.body;
+    const userIdFromBody = userId || challengerId;
+    const usernameFromBody = username || challengerUsername;
     
-    if (challengerId && challengerUsername) {
-      console.log(`DUEL AUTH: Используем данные из запроса: ${challengerId}`);
+    // Проверяем заголовки от бота
+    const botToken = req.headers['authorization'];
+    if (botToken && botToken.startsWith('Bot ')) {
+      const token = botToken.substring(4);
+      const expectedToken = process.env.BOT_TOKEN;
+      
+      if (token === expectedToken && userIdFromBody) {
+        console.log(`DUEL AUTH: Аутентификация через bot token для пользователя ${userIdFromBody}`);
+        
+        // Ищем пользователя по ID
+        let user = await User.findOne({ telegramId: parseInt(userIdFromBody) });
+        
+        if (!user) {
+          console.log(`DUEL AUTH: Создаем временного пользователя для ${userIdFromBody}`);
+          // Создаем временного пользователя для дуэли
+          const { userService } = require('../services');
+          user = await userService.createOrUpdateUser({
+            id: parseInt(userIdFromBody),
+            username: usernameFromBody,
+            first_name: usernameFromBody
+          });
+        }
+        
+        // Устанавливаем req.user
+        req.user = {
+          ...user.toObject(),
+          id: user._id.toString(),
+          username: usernameFromBody || user.username
+        };
+        
+        console.log(`DUEL AUTH: Bot аутентификация успешна для ${user._id}`);
+        return next();
+      }
+    }
+    
+    if (userIdFromBody && usernameFromBody) {
+      console.log(`DUEL AUTH: Используем данные из запроса: ${userIdFromBody}`);
       
       // Ищем пользователя по ID
-      let user = await User.findOne({ telegramId: challengerId });
+      let user = await User.findOne({ telegramId: parseInt(userIdFromBody) });
       
       if (!user) {
-        console.log(`DUEL AUTH: Создаем временного пользователя для ${challengerId}`);
+        console.log(`DUEL AUTH: Создаем временного пользователя для ${userIdFromBody}`);
         // Создаем временного пользователя для дуэли
         const { userService } = require('../services');
         user = await userService.createOrUpdateUser({
-          id: parseInt(challengerId),
-          username: challengerUsername,
-          first_name: challengerUsername
+          id: parseInt(userIdFromBody),
+          username: usernameFromBody,
+          first_name: usernameFromBody
         });
       }
       
@@ -219,7 +256,7 @@ async function duelAuthMiddleware(req, res, next) {
       req.user = {
         ...user.toObject(),
         id: user._id.toString(),
-        username: challengerUsername
+        username: usernameFromBody
       };
       
       console.log(`DUEL AUTH: Временная аутентификация для дуэли успешна`);

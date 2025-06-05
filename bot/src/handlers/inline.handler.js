@@ -39,7 +39,7 @@ function registerInlineHandlers(bot) {
         const format = duelMatch[4] || 'bo1';
         
         // Определяем количество побед
-        const winsRequired = getWinsRequired(format);
+        const winsRequired = duelService.getWinsRequired(format);
         
         // Создаем URL для Deep Link
         const deepLinkData = `duel_${challengerId}_${targetUsername}_${amount}_${gameType}_${format}`;

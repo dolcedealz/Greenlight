@@ -87,11 +87,20 @@ async function createOpenDuel(ctx) {
       throw new Error(duelData.error || 'Не удалось создать дуэль');
     }
 
+    console.log('✅ Дуэль создана, отправляем сообщение с кнопками');
     const sessionId = duelData.data.sessionId;
     const game = GAMES[gameType];
     const formatInfo = FORMATS[format];
 
+    console.log('📋 Данные для сообщения:', {
+      sessionId,
+      gameType,
+      amount,
+      format: formatInfo.name
+    });
+
     // Отправляем сообщение с дуэлью
+    console.log('📤 Отправляем сообщение с кнопками...');
     const message = await ctx.reply(
       `${gameType} **ОТКРЫТЫЙ ВЫЗОВ НА ДУЭЛЬ** ${gameType}\n\n` +
       `🎮 Игра: ${game.name}\n` +
@@ -109,6 +118,12 @@ async function createOpenDuel(ctx) {
         ])
       }
     );
+
+    console.log('✅ Сообщение с кнопками отправлено:', {
+      messageId: message.message_id,
+      hasReplyMarkup: !!message.reply_markup,
+      buttonsCount: message.reply_markup?.inline_keyboard?.length || 0
+    });
 
     // Сохраняем ID сообщения (заглушка, так как метод updateDuelMessage не реализован)
     // TODO: Реализовать метод updateDuelMessage если нужно
@@ -177,10 +192,12 @@ async function createPersonalDuel(ctx) {
       throw new Error(duelData.error || 'Не удалось создать дуэль');
     }
 
+    console.log('✅ Персональная дуэль создана, отправляем сообщение с кнопками');
     const sessionId = duelData.data.sessionId;
     const game = GAMES[gameType];
     const formatInfo = FORMATS[format];
 
+    console.log('📤 Отправляем персональное сообщение с кнопками...');
     const message = await ctx.reply(
       `${gameType} **ПЕРСОНАЛЬНЫЙ ВЫЗОВ** ${gameType}\n\n` +
       `🎯 @${ctx.from.username} вызывает @${targetUsername}\n` +

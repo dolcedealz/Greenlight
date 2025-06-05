@@ -22,6 +22,19 @@ function getGameName(gameType) {
  */
 function registerCallbackHandlers(bot) {
   
+  console.log('🔧 Регистрируем callback handlers...');
+  
+  // Универсальный обработчик для отладки всех callback
+  bot.on('callback_query', async (ctx, next) => {
+    console.log('🔘 Callback query получен:', {
+      data: ctx.callbackQuery.data,
+      from: ctx.from.username,
+      userId: ctx.from.id,
+      messageId: ctx.callbackQuery.message?.message_id
+    });
+    await next();
+  });
+  
   // Обработка действий пополнения баланса
   bot.action(/^deposit:(\d+|custom)$/, async (ctx) => {
     try {
@@ -268,14 +281,14 @@ function registerCallbackHandlers(bot) {
   // ============ ОБРАБОТЧИКИ INLINE ДУЭЛЕЙ ============
   
   // Принятие inline дуэли
-  bot.action(/^inline_accept_(\d+)_(\w+)_(\w+)_(\d+)_(.+)_(.+)$/, async (ctx) => {
+  bot.action(/^duel_accept_(\d+)_(\w+)_(\d+)_(.+)_(.+)$/, async (ctx) => {
     try {
       const challengerId = ctx.match[1];
-      const challengerUsername = ctx.match[2];
-      const targetUsername = ctx.match[3];
-      const amount = parseInt(ctx.match[4]);
-      const gameType = ctx.match[5];
-      const format = ctx.match[6];
+      const targetUsername = ctx.match[2];
+      const amount = parseInt(ctx.match[3]);
+      const gameType = ctx.match[4];
+      const format = ctx.match[5];
+      const challengerUsername = 'challenger'; // fallback
       const acceptorId = ctx.from.id.toString();
       const acceptorUsername = ctx.from.username;
       
@@ -348,7 +361,7 @@ function registerCallbackHandlers(bot) {
   });
 
   // Отклонение inline дуэли
-  bot.action(/^inline_decline_(\d+)$/, async (ctx) => {
+  bot.action(/^duel_decline_(\d+)$/, async (ctx) => {
     try {
       const challengerId = ctx.match[1];
       const acceptorUsername = ctx.from.username;

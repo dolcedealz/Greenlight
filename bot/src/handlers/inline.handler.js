@@ -66,11 +66,11 @@ function registerInlineHandlers(bot) {
             inline_keyboard: [[
               {
                 text: `✅ Принять дуэль ${gameType}`,
-                callback_data: `inline_accept_${challengerId}_${username}_${targetUsername}_${amount}_${gameType}_${format}`
+                callback_data: `duel_accept_${challengerId}_${targetUsername}_${amount}_${gameType}_${format}`.substring(0, 64)
               },
               {
                 text: '❌ Отклонить',
-                callback_data: `inline_decline_${challengerId}`
+                callback_data: `duel_decline_${challengerId}`.substring(0, 64)
               }
             ]]
           }

@@ -41,9 +41,9 @@ commands.registerCommands(bot);
 const { registerCallbackHandlers } = require('./handlers/callback.handler');
 registerCallbackHandlers(bot);
 
-// 4. Затем регистрируем inline handlers (ВРЕМЕННО ОТКЛЮЧЕНО)
-// const { registerInlineHandlers } = require('./handlers/inline.handler');
-// registerInlineHandlers(bot);
+// 4. Затем регистрируем inline handlers
+const { registerInlineHandlers } = require('./handlers/inline.handler');
+registerInlineHandlers(bot);
 
 // 5. Регистрируем новые обработчики дуэлей (заменяет emoji-duel.handler)
 const { registerDuelHandlers } = require('./handlers/duel.handler');
@@ -97,6 +97,24 @@ if (WEBHOOK_DOMAIN) {
       // Устанавливаем webhook
       await bot.telegram.setWebhook(webhookUrl);
       console.log(`✅ Webhook успешно установлен: ${webhookUrl}`);
+      
+      // Проверяем информацию о боте
+      try {
+        const botInfo = await bot.telegram.getMe();
+        console.log(`🤖 Информация о боте:`, {
+          username: botInfo.username,
+          name: botInfo.first_name,
+          canJoinGroups: botInfo.can_join_groups,
+          canReadAllGroupMessages: botInfo.can_read_all_group_messages,
+          supportsInlineQueries: botInfo.supports_inline_queries
+        });
+        
+        if (!botInfo.supports_inline_queries) {
+          console.warn('⚠️  ВНИМАНИЕ: Inline mode не включен! Включите его через @BotFather -> /setinline');
+        }
+      } catch (infoError) {
+        console.error('Ошибка получения информации о боте:', infoError);
+      }
       
       // Проверка webhook
       const webhookInfo = await bot.telegram.getWebhookInfo();

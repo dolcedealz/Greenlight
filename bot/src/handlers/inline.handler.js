@@ -6,7 +6,9 @@ const duelService = require('../services/duel.service');
 function registerInlineHandlers(bot) {
   console.log('🔧 Регистрируем inline handlers...');
   
+  // Добавляем тестовый обработчик для отладки
   bot.on('inline_query', async (ctx) => {
+    console.log('🔥 INLINE QUERY ПОЛУЧЕН! Полные данные:', JSON.stringify(ctx.inlineQuery, null, 2));
     try {
       const query = ctx.inlineQuery.query.toLowerCase().trim();
       const userId = ctx.from.id.toString();
@@ -42,6 +44,7 @@ function registerInlineHandlers(bot) {
         const winsRequired = duelService.getWinsRequired(format);
         
         // Создаем URL для Deep Link
+        const challengerId = ctx.from.id;
         const deepLinkData = `duel_${challengerId}_${targetUsername}_${amount}_${gameType}_${format}`;
         const botUsername = bot.botInfo?.username || 'Greenlightgames_bot';
         
@@ -82,8 +85,19 @@ function registerInlineHandlers(bot) {
         });
       }
       
+      // ВСЕГДА добавляем базовые результаты для тестирования
+      results.push({
+        type: 'article',
+        id: 'always_test',
+        title: '🧪 Тест inline mode',
+        description: `Запрос: "${ctx.inlineQuery.query || 'пустой'}"`,
+        input_message_content: {
+          message_text: `✅ Inline mode работает!\n\nВаш запрос: "${ctx.inlineQuery.query}"\nВремя: ${new Date().toLocaleString()}`
+        }
+      });
+      
       // Если ничего не найдено, показываем подсказку
-      if (results.length === 0) {
+      if (results.length === 1) { // 1 потому что test уже добавлен
         results.push({
           type: 'article',
           id: 'help',
@@ -289,6 +303,21 @@ async function sendDuelInvitations(bot, data) {
       console.error('❌ Не удалось отправить сообщение об ошибке:', sendError);
     }
   }
+}
+
+/**
+ * Получаем название игры по эмодзи
+ */
+function getGameName(gameType) {
+  const gameNames = {
+    '🎲': 'Кости',
+    '🎯': 'Дартс', 
+    '⚽': 'Футбол',
+    '🏀': 'Баскетбол',
+    '🎰': 'Слоты',
+    '🎳': 'Боулинг'
+  };
+  return gameNames[gameType] || 'Неизвестная игра';
 }
 
 /**

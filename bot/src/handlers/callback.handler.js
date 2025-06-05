@@ -464,16 +464,6 @@ function registerCallbackHandlers(bot) {
               // Уведомляем противника о завершении
               if (opponentId) {
                 try {
-                  await ctx.telegram.sendMessage(
-                    opponentId,
-                    `🏆 **ДУЭЛЬ ЗАВЕРШЕНА!** 🏆\n\n` +
-                    `${updatedDuel.winnerId === opponentId ? '🎉 **ПОЗДРАВЛЯЕМ!**' : '😢 **К СОЖАЛЕНИЮ...**'}\n\n` +
-                    `${gameConfig.emoji} Игра: ${getGameName(gameType)}\n` +
-                    `📊 Окончательный счёт: ${updatedDuel.challengerScore}:${updatedDuel.opponentScore}\n` +
-                    `👑 Победитель: @${winnerUsername}\n` +
-                    `💰 Выигрыш: ${updatedDuel.winAmount} USDT\n\n` +
-                    `📍 Результаты раундов:\n`;
-                  
                   // Добавляем результаты всех раундов
                   let roundsText = '';
                   if (updatedDuel.rounds && updatedDuel.rounds.length > 0) {
@@ -484,7 +474,7 @@ function registerCallbackHandlers(bot) {
                       }
                     });
                   }
-                  
+
                   await ctx.telegram.sendMessage(
                     opponentId,
                     `🏆 **ДУЭЛЬ ЗАВЕРШЕНА!** 🏆\n\n` +
@@ -493,7 +483,7 @@ function registerCallbackHandlers(bot) {
                     `📊 Окончательный счёт: ${updatedDuel.challengerScore}:${updatedDuel.opponentScore}\n` +
                     `👑 Победитель: @${winnerUsername}\n` +
                     `💰 Выигрыш: ${updatedDuel.winAmount} USDT\n\n` +
-                    `📍 Результаты раундов:\n${roundsText}\n` +
+                    `📍 Результаты раундов:\n` + roundsText + `\n` +
                     `📋 ID дуэли: \`${sessionId}\``,
                     { parse_mode: 'Markdown' }
                   );

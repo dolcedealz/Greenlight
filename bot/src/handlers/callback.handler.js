@@ -172,6 +172,74 @@ function registerCallbackHandlers(bot) {
     }
   });
 
+  // Принятие персональной дуэли
+  bot.action(/^accept_personal_duel_(.+)$/, async (ctx) => {
+    try {
+      const sessionId = ctx.match[1];
+      const userId = ctx.from.id.toString();
+      const username = ctx.from.username;
+      
+      await ctx.answerCbQuery('⏳ Принимаем дуэль...');
+      
+      // Принимаем дуэль через API
+      const result = await apiService.acceptDuel(sessionId, userId);
+      
+      if (result.success) {
+        // Обновляем сообщение
+        await ctx.editMessageText(
+          ctx.callbackQuery.message.text + `\n\n✅ **ДУЭЛЬ ПРИНЯТА!**\nОппонент: @${username}`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: undefined
+          }
+        );
+        
+        await ctx.reply(
+          `🎯 **Дуэль началась!**\n\n` +
+          `🎮 Используйте команды для игры\n` +
+          `📋 ID сессии: \`${sessionId}\``,
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        await ctx.answerCbQuery(`❌ ${result.error}`);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка принятия персональной дуэли:', error);
+      await ctx.answerCbQuery('❌ Ошибка принятия дуэли');
+    }
+  });
+
+  // Отклонение персональной дуэли
+  bot.action(/^decline_personal_duel_(.+)$/, async (ctx) => {
+    try {
+      const sessionId = ctx.match[1];
+      const userId = ctx.from.id.toString();
+      const username = ctx.from.username;
+      
+      await ctx.answerCbQuery('❌ Дуэль отклонена');
+      
+      // Отклоняем дуэль через API
+      const result = await apiService.cancelDuel(sessionId, userId);
+      
+      if (result.success) {
+        await ctx.editMessageText(
+          ctx.callbackQuery.message.text + `\n\n❌ **ДУЭЛЬ ОТКЛОНЕНА**\n@${username} отклонил(а) приглашение`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: undefined
+          }
+        );
+      } else {
+        await ctx.answerCbQuery(`❌ ${result.error}`);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка отклонения персональной дуэли:', error);
+      await ctx.answerCbQuery('❌ Ошибка отклонения дуэли');
+    }
+  });
+
   // Показ правил игры
   bot.action(/^duel_rules_(.+)$/, async (ctx) => {
     try {
@@ -218,10 +286,14 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('⏳ Создаем дуэль...');
       
       try {
+        // Получаем challenger username из профиля пользователя
+        const challengerData = await apiService.getUserProfile({ id: challengerId });
+        const challengerUsername = challengerData?.username || 'unknown';
+        
         // Создаем дуэль через API
         const duelData = await apiService.createDuel({
           challengerId,
-          challengerUsername: ctx.callbackQuery.message.text.match(/@(\w+)/)?.[1] || 'unknown',
+          challengerUsername,
           opponentId: acceptorId,
           opponentUsername: acceptorUsername,
           gameType,
@@ -237,7 +309,7 @@ function registerCallbackHandlers(bot) {
             `🎮 Игра: ${getGameName(gameType)}\n` +
             `💰 Ставка: ${amount} USDT каждый\n` +
             `🏆 Формат: ${format.toUpperCase()}\n` +
-            `👥 Игроки: @${ctx.callbackQuery.message.text.match(/@(\w+)/)?.[1]} vs @${acceptorUsername}\n\n` +
+            `👥 Игроки: @${challengerUsername} vs @${acceptorUsername}\n\n` +
             `✅ **Дуэль началась!**\n` +
             `📋 ID: \`${duelData.data.sessionId}\``,
             {

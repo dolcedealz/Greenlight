@@ -23,14 +23,21 @@ class ApiService {
    * @returns {Object} - Заголовки для запроса
    */
   createTelegramAuthHeaders(telegramUser) {
-    // Создаем простую имитацию Telegram WebApp initData
-    const initData = `user=${encodeURIComponent(JSON.stringify({
+    // Создаем более полную имитацию Telegram WebApp initData
+    const userData = {
       id: telegramUser.id,
-      first_name: telegramUser.first_name,
-      last_name: telegramUser.last_name,
-      username: telegramUser.username,
+      first_name: telegramUser.first_name || telegramUser.username || 'User',
+      username: telegramUser.username || '',
       language_code: telegramUser.language_code || 'ru'
-    }))}`;
+    };
+    
+    if (telegramUser.last_name) {
+      userData.last_name = telegramUser.last_name;
+    }
+    
+    const currentTime = Math.floor(Date.now() / 1000);
+    
+    const initData = `user=${encodeURIComponent(JSON.stringify(userData))}&auth_date=${currentTime}`;
     
     return {
       'telegram-data': initData

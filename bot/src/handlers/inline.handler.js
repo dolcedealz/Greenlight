@@ -26,7 +26,7 @@ function registerInlineHandlers(bot) {
       
       // Парсим команду дуэли для личных сообщений
       // Формат: duel @username 50 🎲 bo3 (более гибкий парсинг)
-      const duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)(?:\s*(🎲|🎯|⚽|🏀|🎰|🎳))?(?:\s*(bo\d+))?/i);
+      const duelMatch = query.match(/^duel\s+@?(\w+)(?:\s+(\d+))?(?:\s*(🎲|🎯|⚽|🏀|🎰|🎳))?(?:\s*(bo\d+))?/i);
       
       console.log('🔍 Проверка duel match:', {
         query: query,
@@ -36,7 +36,7 @@ function registerInlineHandlers(bot) {
       
       if (duelMatch) {
         const targetUsername = duelMatch[1].replace('@', '');
-        const amount = parseInt(duelMatch[2]);
+        const amount = duelMatch[2] ? parseInt(duelMatch[2]) : 10; // Default 10 USDT
         const gameType = duelMatch[3] || '🎲';
         const format = duelMatch[4] || 'bo1';
         
@@ -52,14 +52,14 @@ function registerInlineHandlers(bot) {
           type: 'article',
           id: `duel_${Date.now()}`,
           title: `${gameType} Дуэль с @${targetUsername}`,
-          description: `${amount} USDT, ${format.toUpperCase()}`,
+          description: `${amount} USDT, ${format.toUpperCase()} - ${getGameName(gameType)}`,
           input_message_content: {
             message_text: `${gameType} **ПРИГЛАШЕНИЕ НА ДУЭЛЬ** ${gameType}\n\n` +
               `@${username} приглашает @${targetUsername} на дуэль!\n` +
               `💰 Ставка: ${amount} USDT каждый\n` +
               `🎮 Игра: ${getGameName(gameType)}\n` +
               `🏆 Формат: ${format.toUpperCase()}\n\n` +
-              `⏱️ Приглашение будет отправлено автоматически`,
+              `⏱️ Нажмите кнопку ниже для ответа`,
             parse_mode: 'Markdown'
           },
           reply_markup: {

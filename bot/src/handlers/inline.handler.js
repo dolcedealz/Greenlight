@@ -181,58 +181,27 @@ async function sendDuelInvitations(bot, data) {
       }
     );
     
-    // Пытаемся найти пользователя через API
-    try {
-      const response = await apiService.findUserByUsername(targetUsername);
-      
-      if (response && response.telegramId) {
-        // Отправляем приглашение напрямую
-        await bot.telegram.sendMessage(
-          response.telegramId,
-          `${gameType} **ПРИГЛАШЕНИЕ НА ДУЭЛЬ** ${gameType}\n\n` +
-          `@${challengerUsername} приглашает вас на дуэль!\n` +
-          `💰 Ставка: ${amount} USDT\n` +
-          `🎮 Игра: ${getGameName(gameType)}\n` +
-          `🏆 Формат: ${format.toUpperCase()}\n\n` +
-          `Принять дуэль?`,
-          {
-            parse_mode: 'Markdown',
-            reply_markup: {
-              inline_keyboard: [[
-                { text: '✅ Принять', callback_data: `accept_pvp_duel_${challengerId}_${amount}_${gameType}_${format}` },
-                { text: '❌ Отклонить', callback_data: `decline_pvp_duel_${challengerId}` }
-              ]]
-            }
-          }
-        );
-        
-        console.log(`✅ Приглашение отправлено пользователю ${targetUsername} (${response.telegramId})`);
-      } else {
-        console.log(`⚠️ Пользователь @${targetUsername} не найден в базе данных`);
-      }
-    } catch (apiError) {
-      console.log(`⚠️ Ошибка поиска пользователя @${targetUsername}:`, apiError.message);
-      
-      // Сохраняем приглашение для отправки при следующем /start
-      global.pendingDuelInvites = global.pendingDuelInvites || {};
-      const inviteId = `invite_${Date.now()}`;
-      global.pendingDuelInvites[inviteId] = {
-        challengerId,
-        challengerUsername,
-        targetUsername,
-        amount,
-        gameType,
-        format,
-        winsRequired: getWinsRequired(format),
-        timestamp: Date.now(),
-        inlineMessageId
-      };
-      
-      // Удаляем через 10 минут
-      setTimeout(() => {
-        delete global.pendingDuelInvites[inviteId];
-      }, 10 * 60 * 1000);
-    }
+    // Сохраняем приглашение для обработки эмодзи дуэли
+    global.pendingDuelInvites = global.pendingDuelInvites || {};
+    const inviteId = `invite_${Date.now()}`;
+    global.pendingDuelInvites[inviteId] = {
+      challengerId,
+      challengerUsername,
+      targetUsername,
+      amount,
+      gameType,
+      format,
+      winsRequired: getWinsRequired(format),
+      timestamp: Date.now(),
+      inlineMessageId
+    };
+    
+    console.log(`📋 Приглашение сохранено: ${inviteId} для @${targetUsername}`);
+    
+    // Удаляем через 10 минут
+    setTimeout(() => {
+      delete global.pendingDuelInvites[inviteId];
+    }, 10 * 60 * 1000);
     
   } catch (error) {
     console.error('❌ Ошибка отправки приглашений:', error);

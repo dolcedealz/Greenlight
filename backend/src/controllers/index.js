@@ -8,7 +8,6 @@ const financeController = require('./finance.controller');
 const referralController = require('./referral.controller');
 const crashController = require('./crash.controller');
 const authController = require('./auth.controller');
-const pvpController = require('./pvp.controller');
 const eventController = require('./event.controller'); // Добавляем события
 
 module.exports = {
@@ -21,6 +20,5 @@ module.exports = {
   referralController,
   crashController,
   authController,
-  pvpController,
   eventController // Добавляем события
 };

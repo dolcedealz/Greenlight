@@ -29,4 +29,9 @@ router.get('/transactions',
   userController.getUserTransactions
 );
 
+// Поиск пользователя по username
+router.get('/search', 
+  userController.searchUserByUsername
+);
+
 module.exports = router;

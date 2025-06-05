@@ -148,6 +148,49 @@ class UserController {
       });
     }
   }
+
+  /**
+   * Поиск пользователя по username
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
+   */
+  async searchUserByUsername(req, res) {
+    try {
+      const { username } = req.query;
+      
+      if (!username) {
+        return res.status(400).json({
+          success: false,
+          message: 'Не указан username для поиска'
+        });
+      }
+      
+      // Ищем пользователя по username
+      const user = await userService.findUserByUsername(username);
+      
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Пользователь не найден'
+        });
+      }
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          telegramId: user.telegramId,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
 module.exports = new UserController();

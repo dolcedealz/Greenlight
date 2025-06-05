@@ -179,6 +179,17 @@ class UserService {
       totalPages: Math.ceil(total / limit)
     };
   }
+
+  /**
+   * Найти пользователя по username
+   * @param {string} username - Username пользователя
+   * @returns {Object|null} - Найденный пользователь или null
+   */
+  async findUserByUsername(username) {
+    return await User.findOne({ 
+      username: { $regex: new RegExp(`^${username}$`, 'i') } 
+    }).select('telegramId username firstName lastName');
+  }
 }
 
 module.exports = new UserService();

@@ -284,6 +284,20 @@ async function checkPendingInvites(bot, username, userId) {
   // Ищем приглашения для этого пользователя
   for (const [inviteId, invite] of Object.entries(global.pendingDuelInvites)) {
     if (invite.targetUsername === username) {
+      // Создаем inline кнопки для принятия дуэли (используем emoji callback pattern)
+      const keyboard = {
+        inline_keyboard: [[
+          { 
+            text: `✅ Принять ${invite.gameType}`, 
+            callback_data: `emoji_accept_${invite.challengerId}_${invite.amount}_${invite.gameType}_${invite.format}` 
+          },
+          { 
+            text: '❌ Отклонить', 
+            callback_data: `emoji_decline_${invite.challengerId}` 
+          }
+        ]]
+      };
+      
       // Отправляем приглашение
       await bot.telegram.sendMessage(
         userId,
@@ -292,15 +306,10 @@ async function checkPendingInvites(bot, username, userId) {
         `💰 Ставка: ${invite.amount} USDT\n` +
         `🎮 Игра: ${getGameName(invite.gameType)}\n` +
         `🏆 Формат: ${invite.format.toUpperCase()} (до ${invite.winsRequired} побед)\n\n` +
-        `⏱ Приглашение действительно еще ${Math.ceil((invite.timestamp + 5 * 60 * 1000 - Date.now()) / 60000)} минут`,
+        `Принять дуэль?`,
         {
           parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [[
-              { text: '✅ Принять', callback_data: `accept_private_duel_${inviteId}` },
-              { text: '❌ Отклонить', callback_data: `decline_private_duel_${inviteId}` }
-            ]]
-          }
+          reply_markup: keyboard
         }
       );
       

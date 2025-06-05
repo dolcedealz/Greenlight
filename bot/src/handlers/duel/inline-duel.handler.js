@@ -45,8 +45,8 @@ class InlineDuelHandler {
         
         const results = [];
         
-        // Проверяем на duel команду
-        const duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)\s+([🎲🎯⚽🏀🎳🎰])\s+(bo[1357])$/i);
+        // Проверяем на duel команду (гибкий regex как в старой версии)
+        const duelMatch = query.match(/^duel\s+@?(\w+)(?:\s+(\d+))?(?:\s*([🎲🎯⚽🏀🎳🎰]))?(?:\s*(bo[1357]))?$/i);
         
         if (duelMatch) {
           console.log(`🔍 Проверка duel match: {
@@ -55,7 +55,10 @@ class InlineDuelHandler {
   matchGroups: ${JSON.stringify(duelMatch, null, 2)}
 }`);
           
-          const [, targetUsername, amount, gameType, format] = duelMatch;
+          const targetUsername = duelMatch[1];
+          const amount = duelMatch[2] ? parseInt(duelMatch[2]) : 10; // Default 10 USDT
+          const gameType = duelMatch[3] || '🎲'; // Default кости
+          const format = duelMatch[4] || 'bo1'; // Default bo1
           
           // Валидация параметров
           const validation = validateDuelParams(targetUsername, amount, gameType, format);

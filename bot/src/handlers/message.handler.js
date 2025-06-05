@@ -193,6 +193,11 @@ function registerMessageHandlers(bot) {
   // === ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ ===
   
   bot.on('text', async (ctx) => {
+    // Пропускаем команды - они обрабатываются отдельными обработчиками
+    if (ctx.message.text.startsWith('/')) {
+      return;
+    }
+    
     // Убеждаемся, что сессия инициализирована
     ctx.session = ctx.session || {};
     

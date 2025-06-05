@@ -1,6 +1,7 @@
 // payment.service.js
 const axios = require('axios');
 const config = require('../config');
+const { getWebAppUrl } = require('../utils/webapp-utils');
 
 /**
  * Сервис для работы с платежами
@@ -25,6 +26,10 @@ class PaymentService {
         throw new Error('CRYPTO_PAY_API_URL не настроен');
       }
       
+      // Получаем WebApp URL с проверкой
+      const webAppData = getWebAppUrl();
+      const fallbackUrl = 'https://t.me/Greenlightgames_bot';
+      
       // Формируем данные для запроса
       const data = {
         asset: 'USDT',
@@ -32,7 +37,7 @@ class PaymentService {
         description: `Пополнение баланса в Greenlight Casino`,
         hidden_message: `Пополнение для пользователя #${userId}`,
         paid_btn_name: 'callback', // Изменено с 'return' на 'callback'
-        paid_btn_url: config.webAppUrl || 'https://t.me/Greenlightgames_bot',
+        paid_btn_url: webAppData.isValid ? webAppData.url : fallbackUrl,
         allow_comments: false,
         allow_anonymous: true,
         expires_in: 3600 // 1 час на оплату

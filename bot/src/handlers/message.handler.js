@@ -2,6 +2,7 @@
 const { Markup } = require('telegraf');
 const config = require('../config');
 const apiService = require('../services/api.service');
+const { getWebAppUrl } = require('../utils/webapp-utils');
 
 /**
  * Обработчик текстовых сообщений
@@ -85,8 +86,23 @@ function registerMessageHandlers(bot) {
   
   bot.hears('👥 Рефералы', async (ctx) => {
     try {
+      console.log('🔍 Debug webAppUrl:', config.webAppUrl);
+      console.log('🔍 Debug botInfo:', ctx.botInfo);
+      
       const referralCode = await apiService.getUserReferralCode(ctx.from);
+      console.log('🔍 Debug referralCode:', referralCode);
+      
       const referralLink = `https://t.me/${ctx.botInfo.username}?start=${referralCode}`;
+      console.log('🔍 Debug referralLink:', referralLink);
+      
+      // Получаем URL для реферальной страницы
+      const webAppData = getWebAppUrl('?screen=referrals');
+      console.log('🔍 Debug webAppData:', webAppData);
+      
+      if (!webAppData.isValid) {
+        await ctx.reply(webAppData.error);
+        return;
+      }
       
       await ctx.reply(
         `👥 Реферальная программа\n\n` +
@@ -97,7 +113,7 @@ function registerMessageHandlers(bot) {
         `📊 Используйте кнопки ниже для подробной статистики:`,
         Markup.inlineKeyboard([
           [
-            Markup.button.webApp('👥 Подробная статистика', `${config.webAppUrl}?screen=referrals`)
+            Markup.button.webApp('👥 Подробная статистика', webAppData.url)
           ],
           [
             Markup.button.url('📤 Поделиться ссылкой', `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('🎰 Играй в Greenlight Casino и зарабатывай!')}`)
@@ -114,22 +130,34 @@ function registerMessageHandlers(bot) {
   });
   
   bot.hears('📊 История', async (ctx) => {
-    await ctx.reply(
-      '📊 Ваша история операций\n\n' +
-      '🎮 Игры, ставки и выигрыши\n' +
-      '💳 Депозиты и выводы\n' +
-      '📈 Статистика и аналитика\n\n' +
-      'Нажмите кнопку ниже для просмотра:',
-      Markup.inlineKeyboard([
-        [
-          Markup.button.webApp('📊 Открыть историю', `${config.webAppUrl}?screen=history`)
-        ],
-        [
-          Markup.button.callback('🎮 Последние игры', 'recent_games'),
-          Markup.button.callback('💳 Последние депозиты', 'recent_deposits')
-        ]
-      ])
-    );
+    const webAppData = getWebAppUrl('?screen=history');
+    
+    if (webAppData.isValid) {
+      await ctx.reply(
+        '📊 Ваша история операций\n\n' +
+        '🎮 Игры, ставки и выигрыши\n' +
+        '💳 Депозиты и выводы\n' +
+        '📈 Статистика и аналитика\n\n' +
+        'Нажмите кнопку ниже для просмотра:',
+        Markup.inlineKeyboard([
+          [
+            Markup.button.webApp('📊 Открыть историю', webAppData.url)
+          ],
+          [
+            Markup.button.callback('🎮 Последние игры', 'recent_games'),
+            Markup.button.callback('💳 Последние депозиты', 'recent_deposits')
+          ]
+        ])
+      );
+    } else {
+      await ctx.reply(
+        '📊 История операций\n\n' +
+        webAppData.error + '\n\n' +
+        'Используйте команды для получения информации:\n' +
+        '/balance - проверить баланс\n' +
+        '/profile - информация о профиле'
+      );
+    }
   });
   
   // === ДОПОЛНИТЕЛЬНЫЕ CALLBACK ОБРАБОТЧИКИ ===
@@ -139,14 +167,20 @@ function registerMessageHandlers(bot) {
     try {
       await ctx.answerCbQuery('⏳ Загружаем последние игры...');
       
-      await ctx.reply(
-        '🎮 Последние игры:\n\n' +
-        '(Для просмотра полной истории используйте WebApp)\n\n' +
-        '📱 Нажмите кнопку ниже:',
-        Markup.inlineKeyboard([
-          Markup.button.webApp('📊 Полная история', `${config.webAppUrl}?screen=history`)
-        ])
-      );
+      const webAppData = getWebAppUrl('?screen=history');
+      
+      if (webAppData.isValid) {
+        await ctx.reply(
+          '🎮 Последние игры:\n\n' +
+          '(Для просмотра полной истории используйте WebApp)\n\n' +
+          '📱 Нажмите кнопку ниже:',
+          Markup.inlineKeyboard([
+            Markup.button.webApp('📊 Полная история', webAppData.url)
+          ])
+        );
+      } else {
+        await ctx.reply(webAppData.error);
+      }
     } catch (error) {
       console.error('Ошибка получения истории игр:', error);
       await ctx.answerCbQuery('❌ Ошибка загрузки');
@@ -158,14 +192,20 @@ function registerMessageHandlers(bot) {
     try {
       await ctx.answerCbQuery('⏳ Загружаем последние депозиты...');
       
-      await ctx.reply(
-        '💳 Последние депозиты:\n\n' +
-        '(Для просмотра полной истории используйте WebApp)\n\n' +
-        '📱 Нажмите кнопку ниже:',
-        Markup.inlineKeyboard([
-          Markup.button.webApp('📊 Полная история', `${config.webAppUrl}?screen=history`)
-        ])
-      );
+      const webAppData = getWebAppUrl('?screen=history');
+      
+      if (webAppData.isValid) {
+        await ctx.reply(
+          '💳 Последние депозиты:\n\n' +
+          '(Для просмотра полной истории используйте WebApp)\n\n' +
+          '📱 Нажмите кнопку ниже:',
+          Markup.inlineKeyboard([
+            Markup.button.webApp('📊 Полная история', webAppData.url)
+          ])
+        );
+      } else {
+        await ctx.reply(webAppData.error);
+      }
     } catch (error) {
       console.error('Ошибка получения истории депозитов:', error);
       await ctx.answerCbQuery('❌ Ошибка загрузки');
@@ -354,21 +394,32 @@ function registerMessageHandlers(bot) {
         const challengerId = parts[2];
         const amount = parseFloat(parts[3]);
         
-        await ctx.reply(
-          `🎯 **Управление дуэлью** 🪙\n\n` +
-          `👤 Инициатор: ${challengerId}\n` +
-          `💰 Ставка: ${amount} USDT каждый\n` +
-          `🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT\n\n` +
-          `🎮 Выберите действие:`,
-          {
-            parse_mode: 'Markdown',
-            reply_markup: Markup.inlineKeyboard([
-              [Markup.button.webApp('🚪 Войти в комнату', `${config.webAppUrl}?pvp=create&challengerId=${challengerId}&amount=${amount}`)],
-              [Markup.button.callback('📊 Статус дуэли', `pvp_check_status_${challengerId}_${amount}`)],
-              [Markup.button.callback('❌ Отменить дуэль', `pvp_cancel_${challengerId}_${amount}`)]
-            ])
-          }
-        );
+        const webAppData = getWebAppUrl(`?pvp=create&challengerId=${challengerId}&amount=${amount}`);
+        
+        if (webAppData.isValid) {
+          await ctx.reply(
+            `🎯 **Управление дуэлью** 🪙\n\n` +
+            `👤 Инициатор: ${challengerId}\n` +
+            `💰 Ставка: ${amount} USDT каждый\n` +
+            `🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT\n\n` +
+            `🎮 Выберите действие:`,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: Markup.inlineKeyboard([
+                [Markup.button.webApp('🚪 Войти в комнату', webAppData.url)],
+                [Markup.button.callback('📊 Статус дуэли', `pvp_check_status_${challengerId}_${amount}`)],
+                [Markup.button.callback('❌ Отменить дуэль', `pvp_cancel_${challengerId}_${amount}`)]
+              ])
+            }
+          );
+        } else {
+          await ctx.reply(
+            `🎯 **Дуэль недоступна** 🪙\n\n` +
+            `${webAppData.error}\n\n` +
+            `👤 Инициатор: ${challengerId}\n` +
+            `💰 Ставка: ${amount} USDT каждый`
+          );
+        }
         return;
       }
     }
@@ -377,14 +428,23 @@ function registerMessageHandlers(bot) {
     const messageText = ctx.message.text.toLowerCase();
     
     if (messageText.includes('играть') || messageText.includes('игр') || messageText.includes('казино')) {
-      await ctx.reply(
-        '🎮 Для игры используйте:\n\n' +
-        '1️⃣ Кнопку "Играть" в меню бота\n' +
-        '2️⃣ Или кнопку ниже:',
-        Markup.inlineKeyboard([
-          Markup.button.webApp('🎮 Открыть казино', config.webAppUrl)
-        ])
-      );
+      const webAppData = getWebAppUrl();
+      
+      if (webAppData.isValid) {
+        await ctx.reply(
+          '🎮 Для игры используйте:\n\n' +
+          '1️⃣ Кнопку "Играть" в меню бота\n' +
+          '2️⃣ Или кнопку ниже:',
+          Markup.inlineKeyboard([
+            Markup.button.webApp('🎮 Открыть казино', webAppData.url)
+          ])
+        );
+      } else {
+        await ctx.reply(
+          '🎮 Для игры используйте команду /play\n\n' +
+          '❌ Веб-приложение временно недоступно.'
+        );
+      }
       return;
     }
     

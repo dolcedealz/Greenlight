@@ -2,6 +2,7 @@
 const { Markup } = require('telegraf');
 const config = require('../config');
 const { checkChatType } = require('../utils/chat-utils');
+const { getWebAppUrl } = require('../utils/webapp-utils');
 
 /**
  * Обработчик команды /start
@@ -16,7 +17,6 @@ async function startCommand(ctx) {
       return;
     }
     
-    const { webAppUrl } = config;
     const apiService = require('../services/api.service');
     
     // Получаем данные пользователя
@@ -70,12 +70,20 @@ async function startCommand(ctx) {
     await ctx.reply(config.messages.welcome, keyboard);
     
     // Отправляем сообщение с inline кнопкой для запуска игр
-    await ctx.reply(
-      '🎮 Для игры используйте кнопку "Играть" в меню бота или нажмите на кнопку ниже:',
-      Markup.inlineKeyboard([
-        Markup.button.webApp('🎮 Открыть казино', `${webAppUrl}`)
-      ])
-    );
+    const webAppData = getWebAppUrl();
+    if (webAppData.isValid) {
+      await ctx.reply(
+        '🎮 Для игры используйте кнопку "Играть" в меню бота или нажмите на кнопку ниже:',
+        Markup.inlineKeyboard([
+          Markup.button.webApp('🎮 Открыть казино', webAppData.url)
+        ])
+      );
+    } else {
+      await ctx.reply(
+        '🎮 Для игры используйте кнопку "Играть" в меню бота.\n\n' +
+        '❌ Веб-приложение временно недоступно.'
+      );
+    }
     
     // Проверка ожидающих приглашений убрана - теперь обрабатывается новой системой дуэлей
   } catch (error) {

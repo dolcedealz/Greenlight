@@ -2,6 +2,7 @@
 const { Markup } = require('telegraf');
 const config = require('../config');
 const { checkChatType } = require('../utils/chat-utils');
+const { createWebAppKeyboard } = require('../utils/webapp-utils');
 
 /**
  * Обработчик команды /play
@@ -16,25 +17,26 @@ async function playCommand(ctx) {
       return;
     }
     
-    const { webAppUrl } = config;
+    // Создаем клавиатуру с играми
+    const keyboardData = createWebAppKeyboard([
+      [
+        { text: '🎰 Слоты', query: '?game=slots' },
+        { text: '💣 Мины', query: '?game=mines' }
+      ],
+      [
+        { text: '📈 Краш', query: '?game=crash' },
+        { text: '🪙 Монетка', query: '?game=coin' }
+      ],
+      [
+        { text: '🔮 События', query: '?screen=events' }
+      ]
+    ]);
     
-    // Отправляем сообщение с кнопками для выбора игры
-    await ctx.reply(
-      '🎮 Выберите игру:',
-      Markup.inlineKeyboard([
-        [
-          Markup.button.webApp('🎰 Слоты', `${webAppUrl}?game=slots`),
-          Markup.button.webApp('💣 Мины', `${webAppUrl}?game=mines`)
-        ],
-        [
-          Markup.button.webApp('📈 Краш', `${webAppUrl}?game=crash`),
-          Markup.button.webApp('🪙 Монетка', `${webAppUrl}?game=coin`)
-        ],
-        [
-          Markup.button.webApp('🔮 События', `${webAppUrl}?screen=events`),
-        ]
-      ])
-    );
+    if (keyboardData.isValid) {
+      await ctx.reply('🎮 Выберите игру:', keyboardData.keyboard);
+    } else {
+      await ctx.reply(keyboardData.error);
+    }
   } catch (error) {
     console.error('Ошибка при обработке команды /play:', error);
     await ctx.reply('Произошла ошибка. Пожалуйста, попробуйте еще раз.');

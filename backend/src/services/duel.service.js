@@ -54,6 +54,12 @@ class DuelService {
       await this.lockUserFunds(invitation.challengerId, invitation.amount, session);
       await this.lockUserFunds(acceptorId, invitation.amount, session);
       
+      // Вычисляем дополнительные поля
+      const winsRequired = this.getWinsRequired(invitation.format);
+      const commission = Math.round(invitation.amount * 0.05 * 100) / 100; // 5% комиссия
+      const totalAmount = invitation.amount * 2;
+      const winAmount = totalAmount - commission;
+      
       // Создаем дуэль
       const duel = await Duel.create([{
         challengerId: invitation.challengerId,
@@ -63,6 +69,10 @@ class DuelService {
         gameType: invitation.gameType,
         format: invitation.format,
         amount: invitation.amount,
+        winsRequired,
+        commission,
+        totalAmount,
+        winAmount,
         status: 'accepted',
         chatId: '0', // Будет обновлено при старте
         chatType: 'private'
@@ -116,6 +126,12 @@ class DuelService {
         await this.lockUserFunds(opponentId, amount, session);
       }
       
+      // Вычисляем дополнительные поля
+      const winsRequired = this.getWinsRequired(format);
+      const commission = Math.round(amount * 0.05 * 100) / 100; // 5% комиссия
+      const totalAmount = amount * 2;
+      const winAmount = totalAmount - commission;
+      
       // Создаем дуэль
       const duel = await Duel.create([{
         challengerId,
@@ -125,6 +141,10 @@ class DuelService {
         gameType,
         format,
         amount,
+        winsRequired,
+        commission,
+        totalAmount,
+        winAmount,
         chatId,
         chatType,
         messageId,
@@ -715,6 +735,17 @@ class DuelService {
       expiredInvitations,
       expiredDuels: expiredDuels.length
     };
+  }
+  
+  // Получить количество требуемых побед для формата
+  getWinsRequired(format) {
+    const formatMap = {
+      'bo1': 1,
+      'bo3': 2,
+      'bo5': 3,
+      'bo7': 4
+    };
+    return formatMap[format] || 1;
   }
 }
 

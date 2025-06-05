@@ -83,6 +83,10 @@ async function createOpenDuel(ctx) {
       messageId: ctx.message.message_id
     });
 
+    if (!duelData.success) {
+      throw new Error(duelData.error || 'Не удалось создать дуэль');
+    }
+
     const sessionId = duelData.data.sessionId;
     const game = GAMES[gameType];
     const formatInfo = FORMATS[format];
@@ -168,6 +172,10 @@ async function createPersonalDuel(ctx) {
       chatType: ctx.chat.type,
       messageId: ctx.message.message_id
     });
+
+    if (!duelData.success) {
+      throw new Error(duelData.error || 'Не удалось создать дуэль');
+    }
 
     const sessionId = duelData.data.sessionId;
     const game = GAMES[gameType];

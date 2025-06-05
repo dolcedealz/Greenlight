@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { Duel, DuelInvitation, User, Transaction } = require('../models');
+const referralService = require('./referral.service');
 
 class DuelService {
   
@@ -445,6 +446,29 @@ class DuelService {
       balanceBefore: loser.balance + duel.amount,
       balanceAfter: loser.balance
     }], { session });
+    
+    // Обрабатываем реферальные начисления с комиссии казино
+    try {
+      const referralResults = await referralService.processCommission({
+        winnerId: duel.winnerId,
+        loserId: loserId,
+        commission: duel.commission,
+        gameType: 'duel',
+        gameId: duel.sessionId
+      });
+      
+      if (referralResults.length > 0) {
+        console.log(`✅ Обработано ${referralResults.length} реферальное начисление для дуэли ${duel.sessionId} (с проигравшего)`);
+        referralResults.forEach(result => {
+          console.log(`   💰 ${result.earnedAmount} USDT → @${result.partnerUsername} (${result.commissionPercent}% от ${duel.commission} USDT комиссии)`);
+        });
+      } else {
+        console.log(`ℹ️ Реферальных начислений нет для дуэли ${duel.sessionId} (у проигравшего нет реферера)`);
+      }
+    } catch (referralError) {
+      console.error(`❌ Ошибка обработки реферальных начислений для дуэли ${duel.sessionId}:`, referralError);
+      // Не прерываем выполнение - дуэль должна завершиться даже если реферальные не обработались
+    }
     
     // Комиссия казино уже учтена в winAmount
   }

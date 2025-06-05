@@ -774,6 +774,134 @@ class ReferralService {
       throw error;
     }
   }
+
+  /**
+   * Обрабатывает реферальные начисления с комиссии казино (для дуэлей)
+   * Начисляет комиссию только рефереру проигравшего игрока
+   * @param {Object} commissionData - Данные о комиссии
+   * @returns {Array} - Массив начислений или пустой массив
+   */
+  async processCommission(commissionData) {
+    try {
+      const { winnerId, loserId, commission, gameType, gameId } = commissionData;
+      const results = [];
+      
+      console.log(`REFERRAL: Обработка комиссии ${commission} USDT для дуэли ${gameId} (только проигравший)`);
+      
+      // Обрабатываем реферальную комиссию только для проигравшего игрока
+      const playerIds = [loserId].filter(Boolean);
+      
+      for (const playerId of playerIds) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        
+        try {
+          // Находим пользователя
+          const user = await User.findOne({ telegramId: playerId }).session(session);
+          if (!user || !user.referrer) {
+            console.log(`REFERRAL: Пользователь ${playerId} не имеет реферера`);
+            await session.abortTransaction();
+            continue;
+          }
+          
+          // Находим партнера (реферера)
+          const partner = await User.findById(user.referrer).session(session);
+          if (!partner) {
+            console.log(`REFERRAL: Реферер пользователя ${playerId} не найден`);
+            await session.abortTransaction();
+            continue;
+          }
+          
+          // БЕЗОПАСНОСТЬ: Проверки
+          if (partner.isBlocked) {
+            console.warn(`REFERRAL: Партнер ${partner._id} заблокирован`);
+            await session.abortTransaction();
+            continue;
+          }
+          
+          if (user._id.equals(partner._id)) {
+            console.warn(`REFERRAL: Попытка самореферала пользователем ${user._id}`);
+            await session.abortTransaction();
+            continue;
+          }
+          
+          // Определяем уровень партнера и комиссию
+          const partnerLevel = this.getPartnerLevel(partner.level);
+          const commissionPercent = partnerLevel.commissionPercent;
+          
+          // Вычисляем реферальное начисление с комиссии казино
+          const referralAmount = Math.round(commission * (commissionPercent / 100) * 100) / 100;
+          
+          if (referralAmount < 0.01) {
+            console.log(`REFERRAL: Сумма ${referralAmount} слишком мала для начисления`);
+            await session.abortTransaction();
+            continue;
+          }
+          
+          // Создаем запись о начислении
+          const earning = await ReferralEarning.create([{
+            partner: partner._id,
+            user: user._id,
+            game: gameId,
+            gameType,
+            type: 'commission', // Новый тип для дуэлей
+            calculation: {
+              commissionAmount: commission,
+              commissionPercent,
+              earnedAmount: referralAmount,
+              level: partnerLevel.name
+            },
+            status: 'credited'
+          }], { session });
+          
+          // Начисляем баланс партнеру
+          partner.balance = Math.round((partner.balance + referralAmount) * 100) / 100;
+          partner.totalEarnings = Math.round((partner.totalEarnings + referralAmount) * 100) / 100;
+          await partner.save({ session });
+          
+          // Создаем транзакцию
+          await Transaction.create([{
+            user: partner._id,
+            type: 'referral_commission',
+            amount: referralAmount,
+            description: `Реферальная комиссия с дуэли ${gameId}`,
+            balanceBefore: partner.balance - referralAmount,
+            balanceAfter: partner.balance,
+            relatedUser: user._id
+          }], { session });
+          
+          // Обновляем уровень партнера
+          await this.updatePartnerLevel(partner._id, session);
+          
+          await session.commitTransaction();
+          
+          results.push({
+            partnerId: partner._id,
+            partnerUsername: partner.username,
+            userId: user._id,
+            userUsername: user.username,
+            earnedAmount: referralAmount,
+            commissionPercent,
+            level: partnerLevel.name
+          });
+          
+          console.log(`REFERRAL: Начислено ${referralAmount} USDT партнеру ${partner.username} (${commissionPercent}% с ${commission} USDT)`);
+          
+        } catch (error) {
+          await session.abortTransaction();
+          console.error(`REFERRAL: Ошибка обработки реферальной комиссии для пользователя ${playerId}:`, error);
+        } finally {
+          session.endSession();
+        }
+      }
+      
+      return results;
+      
+    } catch (error) {
+      console.error('REFERRAL: Ошибка обработки комиссии:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new ReferralService();

@@ -24,10 +24,31 @@ bot.telegram.getMe()
   })
   .catch(error => console.error('Ошибка получения информации о боте:', error));
 
-// Устанавливаем команды бота
-bot.telegram.setMyCommands(config.commands)
-  .then(() => console.log('Команды бота успешно установлены'))
-  .catch(error => console.error('Ошибка при установке команд бота:', error));
+// Устанавливаем команды бота для разных типов чатов
+const privateCommands = [
+  { command: 'start', description: 'Запустить бота' },
+  { command: 'help', description: 'Показать справку' },
+  { command: 'play', description: 'Играть в казино' },
+  { command: 'profile', description: 'Мой профиль' },
+  { command: 'balance', description: 'Проверить баланс' },
+  { command: 'deposit', description: 'Пополнить баланс' },
+  { command: 'withdraw', description: 'Вывести средства' }
+];
+
+const groupCommands = [
+  { command: 'help', description: 'Показать справку' },
+  { command: 'duel', description: 'Создать дуэль' }
+];
+
+// Команды для личных чатов
+bot.telegram.setMyCommands(privateCommands, { scope: { type: 'all_private_chats' } })
+  .then(() => console.log('Команды для личных чатов установлены'))
+  .catch(error => console.error('Ошибка установки команд для ЛС:', error));
+
+// Команды для групп
+bot.telegram.setMyCommands(groupCommands, { scope: { type: 'all_group_chats' } })
+  .then(() => console.log('Команды для групп установлены'))
+  .catch(error => console.error('Ошибка установки команд для групп:', error));
 
 // ВАЖНО: Порядок применения middleware и обработчиков критичен!
 
@@ -37,19 +58,8 @@ middleware.applyMiddleware(bot);
 // 2. Затем регистрируем команды
 commands.registerCommands(bot);
 
-// 3. Затем регистрируем callback handlers
-const { registerCallbackHandlers } = require('./handlers/callback.handler');
-registerCallbackHandlers(bot);
-
-// 4. Затем регистрируем inline handlers
-const { registerInlineHandlers } = require('./handlers/inline.handler');
-registerInlineHandlers(bot);
-
-// 5. Обработчики дуэлей теперь регистрируются в handlers/index.js
-
-// 6. И в самом конце - обработчики текстовых сообщений
-const { registerMessageHandlers } = require('./handlers/message.handler');
-registerMessageHandlers(bot);
+// 3. Регистрируем все обработчики (включая новые дуэли)
+handlers.registerHandlers(bot);
 
 // Обработка ошибок
 bot.catch((error, ctx) => {

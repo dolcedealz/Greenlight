@@ -1,76 +1,71 @@
 // bot/src/handlers/inline.handler.js
-
-const config = require('../config'); // Добавить импорт config
-const { Markup } = require('telegraf'); // Добавить импорт Markup
+const config = require('../config');
+const { Markup } = require('telegraf');
 
 function registerInlineHandlers(bot) {
   bot.on('inline_query', async (ctx) => {
     try {
-      const { webAppUrl } = config;
       const query = ctx.inlineQuery.query.toLowerCase().trim();
-      const userId = ctx.inlineQuery.from.id.toString();
-      const username = ctx.inlineQuery.from.username;
-      
       const results = [];
       
-      // Обработка дуэли
-      const duelMatch = query.match(/^дуэль\s*(@?\w+)?\s*(\d+(?:\.\d+)?)?$/);
+      // Простой тест - любой запрос
+      results.push({
+        type: 'article',
+        id: 'test_casino_' + Date.now(),
+        title: '🎰 Открыть казино',
+        description: 'Нажмите чтобы отправить кнопку казино',
+        thumb_url: 'https://cdn-icons-png.flaticon.com/512/3163/3163238.png',
+        input_message_content: {
+          message_text: '🎰 **Greenlight Casino** 🎰\n\n🎮 Играйте и выигрывайте!',
+          parse_mode: 'Markdown'
+        },
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: '🎮 Открыть казино',
+              web_app: { url: config.webAppUrl }
+            }
+          ]]
+        }
+      });
       
-      if (duelMatch) {
-        const targetUsername = duelMatch[1]?.replace('@', '');
-        const amount = parseFloat(duelMatch[2]) || 50; // По умолчанию 50
-        
-        results.push({
-          type: 'article',
-          id: `pvp_duel_${Date.now()}`,
-          title: `🪙 Дуэль на ${amount} USDT`,
-          description: targetUsername 
-            ? `Вызвать @${targetUsername} на дуэль` 
-            : `Открытый вызов на ${amount} USDT`,
-          thumb_url: 'https://i.imgur.com/coin.png',
-          input_message_content: {
-            message_text: `🪙 **ВЫЗОВ НА ДУЭЛЬ** 🪙\n\n` +
-              `👤 @${username} ${targetUsername ? `вызывает @${targetUsername}` : 'бросает открытый вызов'}!\n` +
-              `💰 Ставка: ${amount} USDT каждый\n` +
-              `🏆 Банк: ${(amount * 2 * 0.95).toFixed(2)} USDT (5% комиссия)\n` +
-              `⚔️ Игра: Монетка\n\n` +
-              `⏱ Вызов действителен 5 минут`,
-            parse_mode: 'Markdown'
-          },
-          reply_markup: {
-            inline_keyboard: [[
-              {
-                text: '⚔️ Принять вызов',
-                callback_data: `accept_duel_${userId}_${amount}`
-              },
-              {
-                text: '❌ Отклонить',
-                callback_data: `decline_duel_${userId}`
-              }
-            ]]
-          }
-        });
-      }
+      // Тест с обычной callback кнопкой
+      results.push({
+        type: 'article',
+        id: 'test_callback_' + Date.now(),
+        title: '🔘 Тест callback кнопки',
+        description: 'Проверка работы callback',
+        input_message_content: {
+          message_text: '🧪 Тест callback кнопки'
+        },
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: '👋 Нажми меня',
+              callback_data: 'test_button'
+            }
+          ]]
+        }
+      });
       
-      // Если ничего не нашли, показываем подсказку
-      if (results.length === 0) {
-        results.push({
-          type: 'article',
-          id: 'help',
-          title: '💡 Как создать дуэль',
-          description: 'Напишите: дуэль @username сумма',
-          input_message_content: {
-            message_text: `📖 **Как создать дуэль:**\n\n` +
-              `• \`дуэль @username 50\` - вызвать конкретного игрока\n` +
-              `• \`дуэль 100\` - открытый вызов\n\n` +
-              `Примеры:\n` +
-              `• @${ctx.botInfo.username} дуэль @alice 25\n` +
-              `• @${ctx.botInfo.username} дуэль 100\n\n` +
-              `💰 Лимиты: 1-1000 USDT`,
-            parse_mode: 'Markdown'
-          }
-        });
-      }
+      // Тест с URL кнопкой
+      results.push({
+        type: 'article',
+        id: 'test_url_' + Date.now(),
+        title: '🔗 Тест URL кнопки',
+        description: 'Проверка работы URL',
+        input_message_content: {
+          message_text: '🔗 Тест URL кнопки'
+        },
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: '🌐 Google',
+              url: 'https://google.com'
+            }
+          ]]
+        }
+      });
       
       await ctx.answerInlineQuery(results, {
         cache_time: 0,
@@ -79,12 +74,19 @@ function registerInlineHandlers(bot) {
       
     } catch (error) {
       console.error('Ошибка inline query:', error);
-      await ctx.answerInlineQuery([]);
+      await ctx.answerInlineQuery([{
+        type: 'article',
+        id: 'error',
+        title: '❌ Ошибка',
+        description: error.message,
+        input_message_content: {
+          message_text: '❌ Произошла ошибка: ' + error.message
+        }
+      }]);
     }
   });
 }
 
-// ВАЖНО: Добавить экспорт!
 module.exports = {
   registerInlineHandlers
 };

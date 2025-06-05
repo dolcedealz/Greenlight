@@ -541,6 +541,12 @@ function registerCallbackHandlers(bot) {
     }
   });
 
+  // Тестовый обработчик
+  bot.action('test_button', async (ctx) => {
+    await ctx.answerCbQuery('✅ Кнопка работает!');
+    await ctx.reply('🎉 Callback работает! Вы нажали кнопку.');
+  });
+
   // Обработка входа в PvP комнату (новая упрощенная логика)
   bot.action(/^pvp_join_(\d+)_(\d+(?:\.\d+)?)_(.*)$/, async (ctx) => {
     try {

@@ -749,19 +749,28 @@ class ApiService {
       
       const response = await this.api.get(`/duels/${sessionId}?userId=${userId}`, { headers });
       
+      console.log('🔎 RAW API RESPONSE:', JSON.stringify(response.data, null, 2));
+      
       // ИСПРАВЛЕНИЕ: Правильно извлекаем duel из ответа
       let duelData;
       
-      // Проверяем структуру ответа
+      // Проверяем структуру ответа - сначала самый вложенный случай
       if (response.data.data && response.data.data.duel) {
         // Случай: { success: true, data: { duel: {...} } }
         duelData = response.data.data.duel;
-        console.log('🔧 API: Извлечены данные из data.duel');
-      } else if (response.data.data) {
-        // Случай: { success: true, data: {...} }
+        console.log('🔧 API: Извлечены данные из data.data.duel');
+      } else if (response.data.data && typeof response.data.data === 'object' && !Array.isArray(response.data.data)) {
+        // Случай: { success: true, data: {...} } где data - это сама дуэль
         duelData = response.data.data;
-        console.log('🔧 API: Использованы данные из data');
+        console.log('🔧 API: Использованы данные из data.data напрямую');
+      } else if (response.data && response.data.duel) {
+        // Случай: { success: true, duel: {...} }
+        duelData = response.data.duel;
+        console.log('🔧 API: Извлечены данные из data.duel');
       } else {
+        console.error('❌ API: Неожиданная структура ответа:', response.data);
+        console.error('❌ API: response.data.data:', response.data.data);
+        console.error('❌ API: typeof response.data.data:', typeof response.data.data);
         throw new Error('Неожиданная структура ответа API');
       }
       
@@ -769,7 +778,9 @@ class ApiService {
         gameType: duelData.gameType,
         format: duelData.format,
         sessionId: duelData.sessionId,
-        status: duelData.status
+        status: duelData.status,
+        hasGameType: !!duelData.gameType,
+        hasFormat: !!duelData.format
       });
       
       console.log('API: Данные дуэли получены');

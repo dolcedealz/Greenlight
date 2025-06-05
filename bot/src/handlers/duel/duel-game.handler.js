@@ -37,10 +37,13 @@ class DuelGameHandler {
       
       const gameConfig = getGameConfig(duel.gameType);
       
+      console.log(`🎲 DEBUG DICE: Используем gameType="${duel.gameType}" -> emoji="${gameConfig.emoji}" (${gameConfig.name})`);
+      
       await ctx.answerCbQuery(`${gameConfig.emoji} ${gameConfig.processText}`);
       
       // Отправляем соответствующий Telegram dice
       const diceMessage = await ctx.replyWithDice(gameConfig.emoji);
+      console.log(`🎲 DEBUG DICE: Отправлен ${gameConfig.emoji}, получен результат ${diceMessage.dice.value}`);
       let gameResult = diceMessage.dice.value;
       
       // Корректируем результат для игр с ограниченным диапазоном

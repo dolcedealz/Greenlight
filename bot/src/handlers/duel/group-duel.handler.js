@@ -357,6 +357,18 @@ class GroupDuelHandler {
           duelKeys: Object.keys(duel)
         });
         
+        // Проверяем статус дуэли - завершенные дуэли нельзя продолжать
+        if (duel.status === 'completed') {
+          await ctx.answerCbQuery('🏆 Дуэль уже завершена!');
+          return;
+        }
+        
+        // Дополнительная проверка - является ли пользователь участником дуэли
+        if (duel.challengerId !== userId && duel.opponentId !== userId) {
+          await ctx.answerCbQuery('❌ Вы не участвуете в этой дуэли!');
+          return;
+        }
+        
         // Проверяем может ли игрок сделать ход
         if (!duelGameHandler.canPlayerMove(duel, userId)) {
           await ctx.answerCbQuery('❌ Сейчас не ваш ход!');

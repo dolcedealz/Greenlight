@@ -404,6 +404,28 @@ class InlineDuelHandler {
         const userId = ctx.from.id.toString();
         const username = ctx.from.username;
         
+        // Получаем данные дуэли для проверки участия
+        const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
+        
+        if (!duelData.success) {
+          await ctx.answerCbQuery('❌ Ошибка получения данных дуэли');
+          return;
+        }
+        
+        const duel = duelData.data;
+        
+        // Проверяем статус дуэли - завершенные дуэли нельзя продолжать
+        if (duel.status === 'completed') {
+          await ctx.answerCbQuery('🏆 Дуэль уже завершена!');
+          return;
+        }
+        
+        // Проверяем является ли пользователь участником дуэли
+        if (duel.challengerId !== userId && duel.opponentId !== userId) {
+          await ctx.answerCbQuery('❌ Вы не участвуете в этой дуэли!');
+          return;
+        }
+        
         // Выполняем ход через общий игровой обработчик
         const moveResult = await duelGameHandler.makeMove(ctx, sessionId, userId, username);
         
@@ -450,6 +472,13 @@ class InlineDuelHandler {
         
         if (duelData.success) {
           const duel = duelData.data;
+          
+          // Проверяем является ли пользователь участником дуэли
+          if (duel.challengerId !== userId && duel.opponentId !== userId) {
+            await ctx.answerCbQuery('❌ Вы не участвуете в этой дуэли!');
+            return;
+          }
+          
           const gameConfig = getGameConfig(duel.gameType);
           
           const statusMessage = formatDuelMessage(duel, true) + 

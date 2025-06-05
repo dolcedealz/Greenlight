@@ -3,7 +3,7 @@ const router = express.Router();
 
 const duelController = require('../controllers/duel.controller');
 const { duelAuthMiddleware } = require('../middleware/auth.middleware');
-const rateLimitingMiddleware = require('../middleware/rateLimiting.middleware');
+const { createRateLimit } = require('../middleware/rateLimiting.middleware');
 
 // Применяем специальную аутентификацию для дуэлей
 router.use(duelAuthMiddleware);
@@ -166,21 +166,21 @@ function validateUserId(req, res, next) {
 
 // Создание приглашения на дуэль (для inline режима)
 router.post('/invitation', 
-  rateLimitingMiddleware({ windowMs: 60000, max: 10 }), // 10 приглашений в минуту
+  createRateLimit('general'), // используем общий лимит
   validateCreateInvitation,
   duelController.createInvitation
 );
 
 // Принятие приглашения
 router.post('/invitation/:inviteId/accept',
-  rateLimitingMiddleware({ windowMs: 60000, max: 20 }),
+  createRateLimit('general'),
   validateInviteId,
   duelController.acceptInvitation
 );
 
 // Отклонение приглашения
 router.post('/invitation/:inviteId/decline',
-  rateLimitingMiddleware({ windowMs: 60000, max: 20 }),
+  createRateLimit('general'),
   validateInviteId,
   duelController.declineInvitation
 );
@@ -189,13 +189,13 @@ router.post('/invitation/:inviteId/decline',
 
 // Создание дуэли напрямую (для групповых чатов)
 router.post('/',
-  rateLimitingMiddleware({ windowMs: 60000, max: 15 }),
+  createRateLimit('general'),
   validateCreateDuel,
   duelController.createDuel
 );
 
 router.post('/create',
-  rateLimitingMiddleware({ windowMs: 60000, max: 15 }),
+  createRateLimit('general'),
   validateCreateDuel,
   duelController.createDuel
 );
@@ -245,7 +245,7 @@ router.post('/:sessionId/rounds',
 
 // Завершение дуэли
 router.post('/:sessionId/finish',
-  rateLimitingMiddleware({ windowMs: 60000, max: 20 }),
+  createRateLimit('general'),
   validateSessionId,
   duelController.finishDuel
 );
@@ -258,7 +258,7 @@ router.get('/:sessionId',
 
 // Отмена дуэли
 router.post('/:sessionId/cancel',
-  rateLimitingMiddleware({ windowMs: 60000, max: 20 }),
+  createRateLimit('general'),
   validateSessionId,
   duelController.cancelDuel
 );

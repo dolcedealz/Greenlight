@@ -9,31 +9,31 @@ class ReferralService {
       bronze: {
         name: 'Бронза',
         requiredActiveReferrals: 0,
-        commissionPercent: 2, // Понижено с 5% до 2%
+        commissionPercent: 5, // Восстановлено до заявленного 5%
         color: '🥉'
       },
       silver: {
         name: 'Серебро',
         requiredActiveReferrals: 6,
-        commissionPercent: 3, // Понижено с 7% до 3%
+        commissionPercent: 7, // Восстановлено до заявленного 7%
         color: '🥈'
       },
       gold: {
         name: 'Золото',
         requiredActiveReferrals: 21,
-        commissionPercent: 4, // Понижено с 10% до 4%
+        commissionPercent: 10, // Восстановлено до заявленного 10%
         color: '🥇'
       },
       platinum: {
         name: 'Платина',
         requiredActiveReferrals: 51,
-        commissionPercent: 5, // Понижено с 12% до 5%
+        commissionPercent: 12, // Восстановлено до заявленного 12%
         color: '💎'
       },
       vip: {
         name: 'VIP',
         requiredActiveReferrals: 101,
-        commissionPercent: 6, // Понижено с 15% до 6%
+        commissionPercent: 15, // Восстановлено до заявленного 15%
         color: '🌟'
       }
     };
@@ -284,7 +284,7 @@ class ReferralService {
       
       // Определяем новый уровень
       let newLevel = 'bronze';
-      let newCommissionPercent = 2;
+      let newCommissionPercent = 5;
       
       for (const [level, config] of Object.entries(this.levels).reverse()) {
         if (activeReferralsCount >= config.requiredActiveReferrals) {

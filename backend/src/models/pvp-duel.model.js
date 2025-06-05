@@ -22,7 +22,61 @@ const pvpDuelSchema = new mongoose.Schema({
     required: true
   },
   
-  // Финансовые данные
+  // Тип игры (эмодзи)
+  gameType: {
+    type: String,
+    enum: ['🎲', '🎯', '⚽', '🏀', '🎰', '🎳'],
+    default: '🎲'
+  },
+  
+  // Формат серии
+  format: {
+    type: String,
+    enum: ['bo1', 'bo3', 'bo5', 'bo7', 'bo9', 'custom'],
+    default: 'bo1'
+  },
+  winsRequired: {
+    type: Number,
+    default: 1 // bo1=1, bo3=2, bo5=3, etc.
+  },
+  
+  // Счет
+  score: {
+    challenger: {
+      type: Number,
+      default: 0
+    },
+    opponent: {
+      type: Number,
+      default: 0
+    }
+  },
+  
+  // История раундов
+  rounds: [{
+    number: {
+      type: Number,
+      required: true
+    },
+    challengerResult: {
+      type: Number,
+      required: true
+    },
+    opponentResult: {
+      type: Number,
+      required: true
+    },
+    winnerId: {
+      type: String,
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  
+  // Финансовые данные (за всю серию)
   amount: {
     type: Number,
     required: true,

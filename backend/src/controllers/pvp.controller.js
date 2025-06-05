@@ -11,6 +11,9 @@ const createChallenge = async (req, res) => {
       opponentId,
       opponentUsername,
       amount,
+      gameType,
+      format,
+      winsRequired,
       chatId,
       chatType,
       messageId
@@ -38,6 +41,9 @@ const createChallenge = async (req, res) => {
       opponentId,
       opponentUsername,
       amount,
+      gameType: gameType || '🎲',
+      format: format || 'bo1',
+      winsRequired: winsRequired || 1,
       chatId,
       chatType: chatType || 'private',
       messageId
@@ -380,6 +386,53 @@ const getLeaderboard = async (req, res) => {
   }
 };
 
+/**
+ * Сохранить результат раунда
+ */
+const saveRound = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const roundData = req.body;
+    
+    const result = await pvpService.saveRound(sessionId, roundData);
+    res.json(result);
+    
+  } catch (error) {
+    console.error('Ошибка сохранения раунда:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Ошибка сохранения раунда'
+    });
+  }
+};
+
+/**
+ * Завершить дуэль
+ */
+const finishDuel = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { winnerId } = req.body;
+    
+    if (!winnerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Не указан победитель'
+      });
+    }
+    
+    const result = await pvpService.finishDuel(sessionId, winnerId);
+    res.json(result);
+    
+  } catch (error) {
+    console.error('Ошибка завершения дуэли:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Ошибка завершения дуэли'
+    });
+  }
+};
+
 module.exports = {
   createChallenge,
   respondToChallenge,
@@ -387,6 +440,8 @@ module.exports = {
   joinSession,
   setReady,
   startGame,
+  saveRound,
+  finishDuel,
   getActiveDuels,
   getHistory,
   getStats,

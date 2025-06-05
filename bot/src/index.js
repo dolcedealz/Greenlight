@@ -37,7 +37,11 @@ registerCallbackHandlers(bot);
 const { registerInlineHandlers } = require('./handlers/inline.handler');
 registerInlineHandlers(bot);
 
-// 5. И в самом конце - обработчики текстовых сообщений
+// 5. Регистрируем обработчики эмодзи дуэлей
+const { registerEmojiDuelHandlers } = require('./handlers/emoji-duel.handler');
+registerEmojiDuelHandlers(bot);
+
+// 6. И в самом конце - обработчики текстовых сообщений
 const { registerMessageHandlers } = require('./handlers/message.handler');
 registerMessageHandlers(bot);
 

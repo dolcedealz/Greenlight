@@ -644,6 +644,46 @@ class ApiService {
   }
 
   /**
+   * Сохраняет результат раунда эмодзи дуэли
+   * @param {string} sessionId - ID сессии
+   * @param {Object} roundData - Данные раунда
+   * @returns {Object} - Результат сохранения
+   */
+  async saveDuelRound(sessionId, roundData) {
+    try {
+      console.log(`API: Сохранение раунда дуэли ${sessionId}:`, roundData);
+      
+      const response = await this.api.post(`/pvp/round/${sessionId}`, roundData);
+      
+      console.log('API: Раунд сохранен:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('API: Ошибка сохранения раунда:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Ошибка сохранения раунда');
+    }
+  }
+
+  /**
+   * Завершает PvP дуэль
+   * @param {string} sessionId - ID сессии
+   * @param {string} winnerId - ID победителя
+   * @returns {Object} - Результат завершения
+   */
+  async finishPvPDuel(sessionId, winnerId) {
+    try {
+      console.log(`API: Завершение дуэли ${sessionId}, победитель: ${winnerId}`);
+      
+      const response = await this.api.post(`/pvp/finish/${sessionId}`, { winnerId });
+      
+      console.log('API: Дуэль завершена:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('API: Ошибка завершения дуэли:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Ошибка завершения дуэли');
+    }
+  }
+
+  /**
    * Запускает PvP игру
    * @param {string} sessionId - ID сессии
    * @param {string} userId - ID пользователя

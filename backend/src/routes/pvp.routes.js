@@ -70,6 +70,31 @@ router.post('/ready/:sessionId', pvpController.setReady);
 router.post('/start/:sessionId', pvpController.startGame);
 
 /**
+ * @route POST /api/pvp/round/:sessionId
+ * @desc Сохранить результат раунда эмодзи дуэли
+ * @access Private
+ * @params sessionId: string
+ * @body {
+ *   round: number,
+ *   challengerResult: number,
+ *   opponentResult: number,
+ *   winnerId: string
+ * }
+ */
+router.post('/round/:sessionId', pvpController.saveRound);
+
+/**
+ * @route POST /api/pvp/finish/:sessionId
+ * @desc Завершить дуэль с победителем
+ * @access Private
+ * @params sessionId: string
+ * @body {
+ *   winnerId: string
+ * }
+ */
+router.post('/finish/:sessionId', pvpController.finishDuel);
+
+/**
  * @route GET /api/pvp/active
  * @desc Получить активные дуэли пользователя
  * @access Private

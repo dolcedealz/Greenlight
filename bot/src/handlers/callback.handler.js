@@ -744,8 +744,417 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery('❌ Произошла ошибка', true);
     }
   });
+
+  // ===== PRIVATE DUEL HANDLERS =====
+
+  // Обработка принятия приглашения на дуэль из личных сообщений
+  bot.action(/^accept_private_duel_(.+)$/, async (ctx) => {
+    try {
+      const inviteId = ctx.match[1];
+      const userId = ctx.from.id;
+      const username = ctx.from.username;
+
+      await ctx.answerCbQuery('⏳ Принимаем приглашение...');
+
+      // Проверяем, существует ли приглашение
+      if (!global.pendingDuelInvites || !global.pendingDuelInvites[inviteId]) {
+        await ctx.editMessageText('❌ Приглашение устарело или уже недействительно');
+        return;
+      }
+
+      const invite = global.pendingDuelInvites[inviteId];
+
+      // Проверяем, что приглашение для этого пользователя
+      if (invite.targetUsername !== username) {
+        await ctx.answerCbQuery('❌ Это приглашение адресовано другому пользователю', true);
+        return;
+      }
+
+      // Создаем группу с участниками и ботом для дуэли
+      try {
+        const groupTitle = `🎮 Дуэль: @${invite.challengerUsername} vs @${invite.targetUsername}`;
+        
+        // Создаем группу
+        const group = await bot.telegram.createGroup(
+          groupTitle,
+          [invite.challengerId, userId]
+        );
+
+        console.log('Группа создана:', group);
+
+        // Отправляем сообщение о создании дуэли в группу
+        await bot.telegram.sendMessage(
+          group.id,
+          `${invite.gameType} **ДУЭЛЬ НАЧИНАЕТСЯ!** ${invite.gameType}\n\n` +
+          `⚔️ @${invite.challengerUsername} VS @${invite.targetUsername}\n` +
+          `💰 Ставка: ${invite.amount} USDT (за всю серию)\n` +
+          `🎮 Игра: ${getGameName(invite.gameType)}\n` +
+          `🏆 Формат: ${invite.format.toUpperCase()} (до ${invite.winsRequired} побед)\n\n` +
+          `🎯 Начинаем через 3 секунды...`,
+          { parse_mode: 'Markdown' }
+        );
+
+        // Создаем дуэль через API
+        const duelData = await apiService.createPvPChallenge({
+          challengerId: invite.challengerId,
+          challengerUsername: invite.challengerUsername,
+          opponentId: userId.toString(),
+          opponentUsername: username,
+          amount: invite.amount,
+          gameType: invite.gameType,
+          format: invite.format,
+          winsRequired: invite.winsRequired,
+          chatId: group.id.toString(),
+          chatType: 'group',
+          messageId: 0
+        });
+
+        // Принимаем дуэль автоматически
+        await apiService.respondToPvPChallenge(
+          duelData.data.duelId,
+          userId.toString(),
+          'accept'
+        );
+
+        // Обновляем сообщение в личке
+        await ctx.editMessageText(
+          `✅ **ПРИГЛАШЕНИЕ ПРИНЯТО!**\n\n` +
+          `🎮 Дуэль началась в группе: "${groupTitle}"\n` +
+          `⚔️ Удачи в бою!`,
+          { parse_mode: 'Markdown' }
+        );
+
+        // Уведомляем инициатора
+        await bot.telegram.sendMessage(
+          invite.challengerId,
+          `✅ **@${username} ПРИНЯЛ ДУЭЛЬ!**\n\n` +
+          `🎮 Игра началась в группе: "${groupTitle}"\n` +
+          `🎯 Приготовьтесь к бою!`,
+          { parse_mode: 'Markdown' }
+        );
+
+        // Запускаем эмодзи дуэль в группе через 3 секунды
+        setTimeout(async () => {
+          await startEmojiDuelInGroup(bot, group.id, duelData.data, invite.gameType);
+        }, 3000);
+
+        // Удаляем приглашение
+        delete global.pendingDuelInvites[inviteId];
+
+      } catch (groupError) {
+        console.error('Ошибка создания группы:', groupError);
+        
+        // Если не удалось создать группу, уведомляем участников
+        await ctx.editMessageText(
+          `❌ **Не удалось создать группу для дуэли**\n\n` +
+          `Возможные причины:\n` +
+          `• Бот не может создавать группы с этими пользователями\n` +
+          `• Один из игроков заблокировал бота\n\n` +
+          `💡 Попробуйте создать дуэль в существующей группе`
+        );
+
+        await bot.telegram.sendMessage(
+          invite.challengerId,
+          `❌ Не удалось создать группу для дуэли с @${username}\n\n` +
+          `Попробуйте пригласить ${username} в существующую группу и создать дуэль там.`
+        );
+      }
+
+    } catch (error) {
+      console.error('Ошибка принятия приватного приглашения:', error);
+      await ctx.answerCbQuery('❌ Произошла ошибка', true);
+      await ctx.editMessageText('❌ Произошла ошибка при принятии приглашения');
+    }
+  });
+
+  // Обработка отклонения приглашения на дуэль из личных сообщений
+  bot.action(/^decline_private_duel_(.+)$/, async (ctx) => {
+    try {
+      const inviteId = ctx.match[1];
+      const username = ctx.from.username;
+
+      await ctx.answerCbQuery('❌ Приглашение отклонено');
+
+      // Проверяем, существует ли приглашение
+      if (!global.pendingDuelInvites || !global.pendingDuelInvites[inviteId]) {
+        await ctx.editMessageText('❌ Приглашение уже недействительно');
+        return;
+      }
+
+      const invite = global.pendingDuelInvites[inviteId];
+
+      // Обновляем сообщение
+      await ctx.editMessageText(
+        `❌ **ПРИГЛАШЕНИЕ ОТКЛОНЕНО**\n\n` +
+        `Вы отклонили приглашение на дуэль от @${invite.challengerUsername}`,
+        { parse_mode: 'Markdown' }
+      );
+
+      // Уведомляем инициатора
+      await bot.telegram.sendMessage(
+        invite.challengerId,
+        `❌ **@${username} ОТКЛОНИЛ ДУЭЛЬ**\n\n` +
+        `${invite.gameType} Ваше приглашение на дуэль было отклонено\n` +
+        `💡 Попробуйте пригласить другого игрока`,
+        { parse_mode: 'Markdown' }
+      );
+
+      // Удаляем приглашение
+      delete global.pendingDuelInvites[inviteId];
+
+    } catch (error) {
+      console.error('Ошибка отклонения приватного приглашения:', error);
+      await ctx.answerCbQuery('❌ Произошла ошибка', true);
+    }
+  });
+
+  // Обработка отмены приглашения инициатором
+  bot.action(/^cancel_invite_(.+)$/, async (ctx) => {
+    try {
+      const inviteId = ctx.match[1];
+      const userId = ctx.from.id;
+
+      await ctx.answerCbQuery('❌ Приглашение отменено');
+
+      // Проверяем, существует ли приглашение
+      if (!global.pendingDuelInvites || !global.pendingDuelInvites[inviteId]) {
+        await ctx.editMessageText('❌ Приглашение уже недействительно');
+        return;
+      }
+
+      const invite = global.pendingDuelInvites[inviteId];
+
+      // Проверяем, что отменяет инициатор
+      if (invite.challengerId !== userId) {
+        await ctx.answerCbQuery('❌ Только инициатор может отменить приглашение', true);
+        return;
+      }
+
+      // Обновляем сообщение
+      await ctx.editMessageText(
+        `❌ **ПРИГЛАШЕНИЕ ОТМЕНЕНО**\n\n` +
+        `Вы отменили приглашение на дуэль с @${invite.targetUsername}`,
+        { parse_mode: 'Markdown' }
+      );
+
+      // Удаляем приглашение
+      delete global.pendingDuelInvites[inviteId];
+
+    } catch (error) {
+      console.error('Ошибка отмены приглашения:', error);
+      await ctx.answerCbQuery('❌ Произошла ошибка', true);
+    }
+  });
   
   return bot;
+}
+
+/**
+ * Вспомогательные функции
+ */
+function getGameName(gameType) {
+  const games = {
+    '🎲': 'Кости',
+    '🎯': 'Дартс',
+    '⚽': 'Футбол',
+    '🏀': 'Баскетбол',
+    '🎰': 'Слоты',
+    '🎳': 'Боулинг'
+  };
+  return games[gameType] || 'Игра';
+}
+
+/**
+ * Запуск эмодзи дуэли в группе
+ */
+async function startEmojiDuelInGroup(bot, chatId, duelData, gameType) {
+  try {
+    const sessionId = duelData.sessionId;
+    let currentRound = 0;
+    let score = { challenger: 0, opponent: 0 };
+    
+    // Функция для игры одного раунда
+    async function playRound() {
+      currentRound++;
+      
+      await bot.telegram.sendMessage(
+        chatId,
+        `${gameType} **РАУНД ${currentRound}** ${gameType}\n` +
+        `📊 Счет: ${score.challenger}-${score.opponent}`,
+        { parse_mode: 'Markdown' }
+      );
+      
+      // Отправляем эмодзи для первого игрока
+      await bot.telegram.sendMessage(chatId, `@${duelData.challengerUsername} бросает...`);
+      const result1 = await bot.telegram.sendDice(chatId, { emoji: gameType });
+      const value1 = result1.dice.value;
+      
+      // Пауза между бросками
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Отправляем эмодзи для второго игрока
+      await bot.telegram.sendMessage(chatId, `@${duelData.opponentUsername} бросает...`);
+      const result2 = await bot.telegram.sendDice(chatId, { emoji: gameType });
+      const value2 = result2.dice.value;
+      
+      // Пауза для анимации
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      
+      // Определяем победителя раунда в зависимости от типа игры
+      let roundWinner;
+      const roundResult = determineRoundWinner(gameType, value1, value2);
+      
+      if (roundResult === 'player1') {
+        roundWinner = 'challenger';
+        score.challenger++;
+        await bot.telegram.sendMessage(chatId, `✅ Раунд выиграл @${duelData.challengerUsername}! ${getResultText(gameType, value1, value2)}`);
+      } else if (roundResult === 'player2') {
+        roundWinner = 'opponent';
+        score.opponent++;
+        await bot.telegram.sendMessage(chatId, `✅ Раунд выиграл @${duelData.opponentUsername}! ${getResultText(gameType, value1, value2)}`);
+      } else {
+        await bot.telegram.sendMessage(chatId, `🤝 Ничья! ${getResultText(gameType, value1, value2)} Переигрываем...`);
+        setTimeout(() => playRound(), 2000);
+        return;
+      }
+      
+      // Сохраняем результат раунда через API
+      await apiService.saveDuelRound(sessionId, {
+        round: currentRound,
+        challengerResult: value1,
+        opponentResult: value2,
+        winnerId: roundWinner === 'challenger' ? duelData.challengerId : duelData.opponentId
+      });
+      
+      // Проверяем, есть ли победитель серии
+      if (score.challenger >= duelData.winsRequired) {
+        await finishDuelInGroup(bot, chatId, duelData, 'challenger', score);
+      } else if (score.opponent >= duelData.winsRequired) {
+        await finishDuelInGroup(bot, chatId, duelData, 'opponent', score);
+      } else {
+        // Играем следующий раунд
+        setTimeout(() => playRound(), 3000);
+      }
+    }
+    
+    // Начинаем первый раунд
+    await playRound();
+    
+  } catch (error) {
+    console.error('Ошибка в эмодзи дуэли:', error);
+    await bot.telegram.sendMessage(chatId, '❌ Произошла ошибка во время игры');
+  }
+}
+
+/**
+ * Завершение дуэли в группе
+ */
+async function finishDuelInGroup(bot, chatId, duelData, winner, score) {
+  try {
+    const winnerId = winner === 'challenger' ? duelData.challengerId : duelData.opponentId;
+    const winnerUsername = winner === 'challenger' ? duelData.challengerUsername : duelData.opponentUsername;
+    const loserId = winner === 'challenger' ? duelData.opponentId : duelData.challengerId;
+    const loserUsername = winner === 'challenger' ? duelData.opponentUsername : duelData.challengerUsername;
+    
+    // Завершаем дуэль через API
+    const result = await apiService.finishPvPDuel(duelData.sessionId, winnerId);
+    
+    // Отправляем финальное сообщение
+    await bot.telegram.sendMessage(
+      chatId,
+      `🏆 **ПОБЕДИТЕЛЬ ДУЭЛИ** 🏆\n\n` +
+      `👑 @${winnerUsername} побеждает со счетом ${score.challenger}-${score.opponent}!\n` +
+      `💰 Выигрыш: ${result.data.winAmount} USDT\n` +
+      `😔 @${loserUsername} проигрывает ${duelData.amount} USDT\n\n` +
+      `🎮 GG WP!`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Реванш', `emoji_rematch_${duelData.sessionId}`)]
+        ])
+      }
+    );
+    
+  } catch (error) {
+    console.error('Ошибка завершения дуэли:', error);
+  }
+}
+
+/**
+ * Определяет победителя раунда в зависимости от типа игры
+ */
+function determineRoundWinner(gameType, value1, value2) {
+  switch (gameType) {
+    case '🎲': // Кости - больше значение побеждает
+    case '🎳': // Боулинг - больше кеглей побеждает
+      if (value1 > value2) return 'player1';
+      if (value2 > value1) return 'player2';
+      return 'draw';
+      
+    case '🎯': // Дартс - попадание в центр (6) побеждает
+      if (value1 === 6 && value2 !== 6) return 'player1';
+      if (value2 === 6 && value1 !== 6) return 'player2';
+      if (value1 > value2) return 'player1';
+      if (value2 > value1) return 'player2';
+      return 'draw';
+      
+    case '⚽': // Футбол - гол (4,5) побеждает
+    case '🏀': // Баскетбол - попадание (4,5) побеждает
+      const isGoal1 = value1 >= 4;
+      const isGoal2 = value2 >= 4;
+      if (isGoal1 && !isGoal2) return 'player1';
+      if (isGoal2 && !isGoal1) return 'player2';
+      if (isGoal1 && isGoal2) return 'draw';
+      if (!isGoal1 && !isGoal2) return 'draw';
+      break;
+      
+    case '🎰': // Слоты - выигрышные комбинации
+      const isWin1 = value1 >= 1 && value1 <= 64; // Есть выигрыш
+      const isWin2 = value2 >= 1 && value2 <= 64;
+      if (isWin1 && !isWin2) return 'player1';
+      if (isWin2 && !isWin1) return 'player2';
+      if (value1 > value2) return 'player1';
+      if (value2 > value1) return 'player2';
+      return 'draw';
+  }
+  
+  return 'draw';
+}
+
+/**
+ * Получает текст результата для разных типов игр
+ */
+function getResultText(gameType, value1, value2) {
+  switch (gameType) {
+    case '🎲':
+      return `(${value1} vs ${value2})`;
+      
+    case '🎯':
+      const dartResult1 = value1 === 6 ? 'Центр!' : `${value1} очков`;
+      const dartResult2 = value2 === 6 ? 'Центр!' : `${value2} очков`;
+      return `(${dartResult1} vs ${dartResult2})`;
+      
+    case '⚽':
+      const goal1 = value1 >= 4 ? 'ГОЛ!' : 'Мимо';
+      const goal2 = value2 >= 4 ? 'ГОЛ!' : 'Мимо';
+      return `(${goal1} vs ${goal2})`;
+      
+    case '🏀':
+      const basket1 = value1 >= 4 ? 'Попал!' : 'Мимо';
+      const basket2 = value2 >= 4 ? 'Попал!' : 'Мимо';
+      return `(${basket1} vs ${basket2})`;
+      
+    case '🎰':
+      const slot1 = value1 >= 1 && value1 <= 64 ? 'Выигрыш!' : 'Проигрыш';
+      const slot2 = value2 >= 1 && value2 <= 64 ? 'Выигрыш!' : 'Проигрыш';
+      return `(${slot1} vs ${slot2})`;
+      
+    case '🎳':
+      return `(${value1} кеглей vs ${value2} кеглей)`;
+      
+    default:
+      return `(${value1} vs ${value2})`;
+  }
 }
 
 module.exports = {

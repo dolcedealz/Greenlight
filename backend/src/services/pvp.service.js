@@ -17,6 +17,9 @@ class PvPService {
    * @param {string} challengeData.opponentId - ID оппонента
    * @param {string} challengeData.opponentUsername - Username оппонента
    * @param {number} challengeData.amount - Размер ставки
+   * @param {string} challengeData.gameType - Тип игры (эмодзи)
+   * @param {string} challengeData.format - Формат серии (bo1, bo3, etc)
+   * @param {number} challengeData.winsRequired - Побед для выигрыша
    * @param {string} challengeData.chatId - ID чата
    * @param {string} challengeData.chatType - Тип чата
    * @param {number} challengeData.messageId - ID сообщения
@@ -29,6 +32,9 @@ class PvPService {
       opponentId,
       opponentUsername,
       amount,
+      gameType = '🎲',
+      format = 'bo1',
+      winsRequired = 1,
       chatId,
       chatType,
       messageId
@@ -52,6 +58,9 @@ class PvPService {
       opponentId,
       opponentUsername,
       amount,
+      gameType,
+      format,
+      winsRequired,
       chatId,
       chatType: chatType || 'private',
       messageId,
@@ -285,6 +294,89 @@ class PvPService {
   }
 
   /**
+   * Сохранить результат раунда
+   * @param {string} sessionId
+   * @param {Object} roundData
+   * @returns {Promise<Object>}
+   */
+  async saveRound(sessionId, roundData) {
+    const duel = await PvPDuel.findBySession(sessionId);
+    
+    if (!duel) {
+      throw new Error('Сессия не найдена');
+    }
+    
+    if (duel.status !== 'active') {
+      throw new Error('Дуэль не активна');
+    }
+    
+    // Добавляем раунд
+    duel.rounds.push({
+      number: roundData.round,
+      challengerResult: roundData.challengerResult,
+      opponentResult: roundData.opponentResult,
+      winnerId: roundData.winnerId
+    });
+    
+    // Обновляем счет
+    if (roundData.winnerId === duel.challengerId) {
+      duel.score.challenger++;
+    } else {
+      duel.score.opponent++;
+    }
+    
+    await duel.save();
+    
+    return {
+      success: true,
+      data: {
+        score: duel.score,
+        rounds: duel.rounds.length,
+        winsRequired: duel.winsRequired
+      }
+    };
+  }
+
+  /**
+   * Завершить дуэль с победителем
+   * @param {string} sessionId
+   * @param {string} winnerId
+   * @returns {Promise<Object>}
+   */
+  async finishDuel(sessionId, winnerId) {
+    const duel = await PvPDuel.findBySession(sessionId);
+    
+    if (!duel) {
+      throw new Error('Сессия не найдена');
+    }
+    
+    // Устанавливаем победителя
+    duel.winnerId = winnerId;
+    duel.winnerUsername = winnerId === duel.challengerId ? duel.challengerUsername : duel.opponentUsername;
+    duel.loserId = winnerId === duel.challengerId ? duel.opponentId : duel.challengerId;
+    duel.loserUsername = winnerId === duel.challengerId ? duel.opponentUsername : duel.challengerUsername;
+    duel.status = 'completed';
+    duel.completedAt = new Date();
+    
+    await duel.save();
+    
+    // Обрабатываем выплаты
+    await this.processPayouts(duel);
+    
+    return {
+      success: true,
+      data: {
+        winnerId: duel.winnerId,
+        winnerUsername: duel.winnerUsername,
+        loserId: duel.loserId,
+        loserUsername: duel.loserUsername,
+        winAmount: duel.winAmount,
+        finalScore: duel.score
+      }
+    };
+  }
+
+  /**
    * Запустить игру
    * @param {string} sessionId
    * @param {string} userId
@@ -479,67 +571,51 @@ class PvPService {
   }
 
   /**
-   * Обработать реферальные выплаты
+   * Обработать реферальные выплаты (процент с комиссии казино)
    * @param {Object} duel
    * @param {Object} session
    */
   async processReferralPayouts(duel, session) {
-    const commission = duel.commission;
-    let distributedAmount = 0;
-
-    // 20% от комиссии рефереру победителя
-    if (duel.winnerId === duel.challengerId && duel.challengerReferrerId) {
-      const winnerReferralAmount = commission * 0.2;
-      await this.payReferral(duel.challengerReferrerId, winnerReferralAmount, duel, 'winner_referral', session);
-      distributedAmount += winnerReferralAmount;
-      
-      duel.referralPayouts.push({
-        userId: duel.challengerReferrerId,
-        amount: winnerReferralAmount,
-        type: 'winner_referral'
-      });
-    } else if (duel.winnerId === duel.opponentId && duel.opponentReferrerId) {
-      const winnerReferralAmount = commission * 0.2;
-      await this.payReferral(duel.opponentReferrerId, winnerReferralAmount, duel, 'winner_referral', session);
-      distributedAmount += winnerReferralAmount;
-      
-      duel.referralPayouts.push({
-        userId: duel.opponentReferrerId,
-        amount: winnerReferralAmount,
-        type: 'winner_referral'
-      });
+    // В PvP реферальная выплата берется из комиссии казино
+    // Используем заявленные проценты реферальной системы
+    
+    const loserId = duel.loserId;
+    const loserReferrerId = loserId === duel.challengerId ? duel.challengerReferrerId : duel.opponentReferrerId;
+    
+    if (!loserReferrerId) {
+      console.log('PvP: У проигравшего игрока нет реферера');
+      return;
     }
 
-    // 10% от комиссии рефереру проигравшего
-    if (duel.loserId === duel.challengerId && duel.challengerReferrerId) {
-      const loserReferralAmount = commission * 0.1;
-      await this.payReferral(duel.challengerReferrerId, loserReferralAmount, duel, 'loser_referral', session);
-      distributedAmount += loserReferralAmount;
-      
-      duel.referralPayouts.push({
-        userId: duel.challengerReferrerId,
-        amount: loserReferralAmount,
-        type: 'loser_referral'
-      });
-    } else if (duel.loserId === duel.opponentId && duel.opponentReferrerId) {
-      const loserReferralAmount = commission * 0.1;
-      await this.payReferral(duel.opponentReferrerId, loserReferralAmount, duel, 'loser_referral', session);
-      distributedAmount += loserReferralAmount;
-      
-      duel.referralPayouts.push({
-        userId: duel.opponentReferrerId,
-        amount: loserReferralAmount,
-        type: 'loser_referral'
-      });
+    // Получаем реферера проигравшего
+    const referrer = await User.findOne({ telegramId: loserReferrerId }).session(session);
+    if (!referrer) {
+      console.log('PvP: Реферер проигравшего не найден');
+      return;
     }
 
-    // Оставшиеся 70% идут казино (автоматически)
-    const casinoAmount = commission - distributedAmount;
-    console.log(`PvP комиссия: ${commission}, Реферальные: ${distributedAmount}, Казино: ${casinoAmount}`);
+    // Используем заявленный процент реферера (5-15% в зависимости от уровня)
+    const commission = duel.commission; // 5% от общего банка
+    const commissionPercent = referrer.referralStats?.commissionPercent || 5; // По умолчанию 5% (бронза)
+    const referralAmount = commission * (commissionPercent / 100);
+
+    // Начисляем реферальную комиссию
+    await this.payReferral(loserReferrerId, referralAmount, duel, 'pvp_loss', session);
+    
+    duel.referralPayouts.push({
+      userId: loserReferrerId,
+      amount: referralAmount,
+      type: 'loser_referral',
+      commissionPercent: commissionPercent,
+      baseAmount: commission,
+      source: 'casino_commission' // Указываем, что выплата из комиссии
+    });
+
+    console.log(`PvP реферальная комиссия: ${referralAmount.toFixed(4)} USDT (${commissionPercent}% с комиссии ${commission} USDT) для реферера ${loserReferrerId}`);
   }
 
   /**
-   * Выплатить реферальную комиссию
+   * Выплатить реферальную комиссию через основную реферальную систему
    * @param {string} referrerId
    * @param {number} amount
    * @param {Object} duel
@@ -547,42 +623,54 @@ class PvPService {
    * @param {Object} session
    */
   async payReferral(referrerId, amount, duel, type, session) {
-    // Начисляем реферальную комиссию
-    await User.findOneAndUpdate(
-      { telegramId: referrerId },
-      { $inc: { balance: amount } },
-      { session }
-    );
-
-    // Создаем запись о реферальном доходе
-    await ReferralEarning.create([{
-      referrerId,
-      amount,
-      source: 'pvp',
-      sourceId: duel._id.toString(),
-      metadata: {
-        duelId: duel._id,
-        sessionId: duel.sessionId,
-        type: type,
-        winnerId: duel.winnerId,
-        loserId: duel.loserId
+    try {
+      // Находим реферера по telegramId
+      const referrer = await User.findOne({ telegramId: referrerId }).session(session);
+      if (!referrer) {
+        console.log(`PvP: Реферер ${referrerId} не найден`);
+        return;
       }
-    }], { session });
 
-    // Создаем транзакцию
-    const referrer = await User.findOne({ telegramId: referrerId }).session(session);
-    await Transaction.create([{
-      userId: referrerId,
-      type: 'referral_earning',
-      amount,
-      description: `Реферальная комиссия с PvP дуэли (${type})`,
-      balanceAfter: referrer.balance,
-      metadata: {
-        source: 'pvp',
-        duelId: duel._id,
-        sessionId: duel.sessionId
-      }
-    }], { session });
+      // Начисляем на реферальный баланс (как в основной системе)
+      referrer.referralStats.referralBalance += amount;
+      referrer.referralStats.totalEarned += amount;
+      await referrer.save({ session });
+
+      // Создаем запись о реферальном доходе через основную модель
+      await ReferralEarning.create([{
+        partner: referrer._id,
+        referral: duel.loserId === duel.challengerId ? 
+          await User.findOne({ telegramId: duel.challengerId }).select('_id').session(session) :
+          await User.findOne({ telegramId: duel.opponentId }).select('_id').session(session),
+        game: null, // PvP не имеет game ID
+        type: 'pvp_commission',
+        calculation: {
+          baseAmount: duel.commission, // База расчета - комиссия казино
+          partnerLevel: referrer.referralStats.level,
+          commissionPercent: referrer.referralStats.commissionPercent,
+          earnedAmount: amount
+        },
+        status: 'credited',
+        balanceBefore: referrer.referralStats.referralBalance - amount,
+        balanceAfter: referrer.referralStats.referralBalance,
+        metadata: {
+          source: 'pvp',
+          duelId: duel._id.toString(),
+          sessionId: duel.sessionId,
+          gameType: duel.gameType || 'coin',
+          format: duel.format || 'bo1',
+          lossAmount: duel.amount, // Также указываем сумму проигрыша для справки
+          payout_source: 'casino_commission' // Источник - комиссия казино
+        },
+        creditedAt: new Date()
+      }], { session });
+
+      console.log(`PvP: Начислено ${amount.toFixed(4)} USDT на реферальный баланс партнера ${referrer._id}`);
+
+    } catch (error) {
+      console.error('PvP: Ошибка начисления реферальной комиссии:', error);
+      // Не прерываем транзакцию из-за ошибки реферальных выплат
+    }
   }
 
   /**

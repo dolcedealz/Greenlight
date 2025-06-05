@@ -208,7 +208,9 @@ async function duelAuthMiddleware(req, res, next) {
     const botToken = req.headers['authorization'];
     if (botToken && botToken.startsWith('Bot ')) {
       const token = botToken.substring(4);
-      const expectedToken = process.env.BOT_TOKEN;
+      const expectedToken = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+      
+      console.log(`DUEL AUTH: Проверка Bot токена - получен: ${token ? 'ЕСТЬ' : 'НЕТ'}, ожидаемый: ${expectedToken ? 'ЕСТЬ' : 'НЕТ'}, userIdFromBody: ${userIdFromBody}`);
       
       if (token === expectedToken && userIdFromBody) {
         console.log(`DUEL AUTH: Аутентификация через bot token для пользователя ${userIdFromBody}`);

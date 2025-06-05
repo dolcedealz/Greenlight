@@ -719,6 +719,13 @@ class ApiService {
         'Content-Type': 'application/json'
       };
       
+      console.log('API: Отправляем заголовки для GET duel:', {
+        'Authorization': `Bot ${config.BOT_TOKEN ? 'ТОКЕН_ЕСТЬ' : 'ТОКЕН_НЕ_НАЙДЕН'}`,
+        'X-Telegram-User-Id': userId,
+        userId,
+        sessionId
+      });
+      
       // Если есть полные данные пользователя, используем их
       if (telegramUser) {
         Object.assign(headers, this.createTelegramAuthHeaders(telegramUser));

@@ -3,7 +3,8 @@ require('dotenv').config();
 
 const config = {
   // Основные настройки
-  botToken: process.env.BOT_TOKEN,
+  botToken: process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN,
+  BOT_TOKEN: process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN, // Для совместимости с api.service.js
   webAppUrl: process.env.WEBAPP_URL,
   apiUrl: process.env.API_URL || 'http://localhost:3001/api',
   

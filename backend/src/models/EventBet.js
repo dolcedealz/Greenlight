@@ -319,7 +319,87 @@ eventBetSchema.statics.settleBetsWithFinalOdds = async function(eventId, winning
   
   console.log(`EventBet: Расчет завершен. Результаты:`, results);
   
+  // Создаем записи в истории игр для всех ставок
+  await this.createGameHistoryRecords(eventId, bets);
+  
   return results;
+};
+
+// Статический метод для создания записей в истории игр
+eventBetSchema.statics.createGameHistoryRecords = async function(eventId, bets) {
+  try {
+    const { Game, Event } = require('./index');
+    
+    console.log(`EventBet: Создаем игровые записи для ${bets.length} ставок события ${eventId}`);
+    
+    // Получаем информацию о событии
+    const event = await Event.findById(eventId);
+    if (!event) {
+      console.error('EventBet: Событие не найдено для создания игровых записей');
+      return;
+    }
+
+    const gameRecords = [];
+
+    // Создаем игровую запись для каждой ставки
+    for (const bet of bets) {
+      if (!bet.user || !bet.user._id) {
+        console.warn(`EventBet: Пропускаем ставку ${bet._id} - пользователь не найден`);
+        continue;
+      }
+
+      // Определяем результат
+      const isWin = bet.status === 'won';
+      const multiplier = isWin ? (bet.actualWin / bet.betAmount) : 0;
+
+      const gameRecord = {
+        user: bet.user._id,
+        gameType: 'events',
+        bet: bet.betAmount,
+        multiplier: multiplier,
+        result: {
+          eventId: event._id,
+          eventTitle: event.title,
+          eventCategory: event.category,
+          outcomeId: bet.outcomeId,
+          outcomeName: bet.outcomeName,
+          oddsAtBet: bet.oddsAtBet,
+          finalOdds: bet.finalOdds || bet.oddsAtBet,
+          winningOutcome: event.winningOutcome,
+          betStatus: bet.status,
+          estimatedWin: bet.estimatedWin,
+          actualWin: bet.actualWin,
+          placedAt: bet.placedAt,
+          settledAt: bet.settledAt
+        },
+        win: isWin,
+        profit: bet.profit,
+        balanceBefore: bet.balanceBefore,
+        balanceAfter: bet.user.balance, // Текущий баланс после всех операций
+        clientSeed: `event_${eventId}_${bet._id}`,
+        serverSeed: `event_server_${eventId}`,
+        nonce: 1,
+        metadata: {
+          eventBet: true,
+          eventId: event._id,
+          betId: bet._id,
+          eventCategory: event.category,
+          oddsChange: bet.finalOdds ? (bet.finalOdds - bet.oddsAtBet).toFixed(3) : '0.000'
+        }
+      };
+
+      gameRecords.push(gameRecord);
+    }
+
+    if (gameRecords.length > 0) {
+      await Game.create(gameRecords);
+      console.log(`EventBet: Создано ${gameRecords.length} игровых записей для события ${eventId}`);
+    }
+
+  } catch (error) {
+    console.error('EventBet: Ошибка создания игровых записей:', error);
+    // Не прерываем основную логику
+  }
 };
 
 // Оптимизированные индексы для производительности

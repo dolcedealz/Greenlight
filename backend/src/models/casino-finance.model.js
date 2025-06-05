@@ -125,6 +125,14 @@ const casinoFinanceSchema = new Schema({
       profit: { type: Number, default: 0 },
       totalCommissions: { type: Number, default: 0 },
       totalReferralPayouts: { type: Number, default: 0 }
+    },
+    events: {
+      totalBets: { type: Number, default: 0 },
+      totalWins: { type: Number, default: 0 },
+      totalGames: { type: Number, default: 0 },
+      profit: { type: Number, default: 0 },
+      totalEventBets: { type: Number, default: 0 },
+      totalPayouts: { type: Number, default: 0 }
     }
   },
   

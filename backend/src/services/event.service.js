@@ -713,6 +713,9 @@ class EventService {
         
         console.log('EVENT SERVICE: Расчет ставок завершен:', settlementResults);
         
+        // 5. Обновляем финансовую статистику казино
+        await this.updateCasinoFinancesForEvent(event, settlementResults);
+        
         return {
           event: event,
           settlement: settlementResults
@@ -724,6 +727,46 @@ class EventService {
       throw error;
     } finally {
       session.endSession();
+    }
+  }
+
+  /**
+   * Обновляет финансовую статистику казино после завершения события
+   * @param {Object} event - Объект события
+   * @param {Object} settlementResults - Результаты расчета ставок
+   */
+  async updateCasinoFinancesForEvent(event, settlementResults) {
+    try {
+      const casinoFinanceService = require('./casino-finance.service');
+      
+      const totalBets = settlementResults.winningBets + settlementResults.losingBets;
+      const totalBetAmount = settlementResults.totalPayout + Math.abs(settlementResults.totalProfit);
+      
+      // Для событий прибыль казино = проигранные ставки - выигранные выплаты
+      const casinoProfit = -settlementResults.totalProfit; // Инвертируем, так как totalProfit считается с точки зрения игроков
+      
+      // Обновляем через casino finance service
+      await casinoFinanceService.updateAfterGame({
+        gameType: 'events',
+        bet: totalBetAmount,
+        profit: casinoProfit,
+        win: casinoProfit > 0, // Казино выиграло, если прибыль положительная
+        metadata: {
+          eventId: event._id,
+          eventTitle: event.title,
+          eventCategory: event.category,
+          totalBets: totalBets,
+          winningBets: settlementResults.winningBets,
+          losingBets: settlementResults.losingBets,
+          totalPayout: settlementResults.totalPayout
+        }
+      });
+      
+      console.log(`EVENT SERVICE: Обновлена финансовая статистика - событие: ${event.title}, ставок: ${totalBets}, сумма: ${totalBetAmount}, прибыль казино: ${casinoProfit}`);
+      
+    } catch (error) {
+      console.error('EVENT SERVICE: Ошибка обновления финансовой статистики:', error);
+      // Не прерываем основную логику
     }
   }
 }

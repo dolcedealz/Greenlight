@@ -1,5 +1,5 @@
 // index.js
-import api, { userApi, gameApi, paymentApi, eventsApi, referralApi } from './api';
+import api, { userApi, gameApi, paymentApi, eventsApi, referralApi, duelApi } from './api';
 import socket from './socket';
 
 export {
@@ -9,5 +9,6 @@ export {
   paymentApi,
   eventsApi,
   referralApi,
+  duelApi,
   socket
 };

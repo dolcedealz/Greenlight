@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { MainScreen, GameScreen, ProfileScreen, HistoryScreen } from './screens';
 import EventsScreen from './screens/EventsScreen'; // Добавляем импорт
 import { Navigation } from './components/layout';
-import { PvPGame } from './components/pvp';
 import { initTelegram } from './utils/telegram';
 import { userApi } from './services';
 import './styles/global.css';
@@ -11,7 +10,6 @@ import './styles/global.css';
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState('main');
   const [gameType, setGameType] = useState(null);
-  const [pvpSessionId, setPvpSessionId] = useState(null);
   const [userData, setUserData] = useState(null);
   const [telegramWebApp, setTelegramWebApp] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -66,25 +64,7 @@ const App = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const screenParam = urlParams.get('screen');
         const gameParam = urlParams.get('game');
-        const pvpParam = urlParams.get('pvp');
-        
-        if (pvpParam) {
-          // PvP режим - приоритет над обычными играми
-          if (pvpParam === 'create') {
-            const challengerId = urlParams.get('challengerId');
-            const amount = urlParams.get('amount');
-            const target = urlParams.get('target');
-            
-            console.log('PvP: Создание дуэли через WebApp', { challengerId, amount, target });
-            
-            const sessionId = `create_${challengerId}_${amount}_${target}_${Date.now()}`;
-            setPvpSessionId(sessionId);
-            setCurrentScreen('pvp');
-          } else {
-            setPvpSessionId(pvpParam);
-            setCurrentScreen('pvp');
-          }
-        } else if (gameParam) {
+        if (gameParam) {
           setGameType(gameParam);
           setCurrentScreen('game');
         } else if (screenParam) {
@@ -140,12 +120,6 @@ const App = () => {
     setCurrentScreen('main');
   };
 
-  // Обработчик закрытия PvP
-  const handleClosePvP = () => {
-    updateBalanceFromServer();
-    setPvpSessionId(null);
-    setCurrentScreen('main');
-  };
 
   // Отображение экрана загрузки
   if (loading) {
@@ -219,21 +193,11 @@ const App = () => {
         />
       )}
 
-      {currentScreen === 'pvp' && pvpSessionId && (
-        <PvPGame
-          sessionId={pvpSessionId}
-          userData={userData}
-          onClose={handleClosePvP}
-        />
-      )}
-      
-      {/* Навигация - скрывается в PvP режиме */}
-      {currentScreen !== 'pvp' && (
-        <Navigation 
-          currentScreen={currentScreen} 
-          onScreenChange={handleScreenChange} 
-        />
-      )}
+      {/* Навигация */}
+      <Navigation 
+        currentScreen={currentScreen} 
+        onScreenChange={handleScreenChange} 
+      />
     </div>
   );
 };

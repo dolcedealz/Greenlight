@@ -107,15 +107,17 @@ async function createOpenDuel(ctx) {
     console.log('🔧 SessionId для кнопок:', { original: sessionId, safe: safeSessionId });
     
     try {
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('⚔️ Принять вызов', `accept_open_duel_${safeSessionId}`)],
-        [Markup.button.callback('📊 Правила игры', `duel_rules_${gameType}`)],
-        [Markup.button.callback('❌ Отменить', `cancel_duel_${safeSessionId}`)]
+      // Используем Telegraf Markup для создания клавиатуры
+      const markup = Markup.inlineKeyboard([
+        [Markup.button.callback('Принять вызов', `accept_open_duel_${safeSessionId}`)],
+        [Markup.button.callback('Правила игры', `duel_rules_${gameType.replace(/[^\w]/g, '')}`)],
+        [Markup.button.callback('Отменить', `cancel_duel_${safeSessionId}`)]
       ]);
       
-      console.log('🎹 Клавиатура создана:', {
-        hasKeyboard: !!keyboard,
-        keyboardType: keyboard.constructor.name
+      console.log('🎹 Клавиатура создана (Telegraf Markup):', {
+        hasMarkup: !!markup,
+        markupType: typeof markup,
+        reply_markup: markup.reply_markup
       });
 
       const message = await ctx.reply(
@@ -128,14 +130,15 @@ async function createOpenDuel(ctx) {
         `⏱ Ожидание противника...`,
         {
           parse_mode: 'Markdown',
-          reply_markup: keyboard
+          ...markup
         }
       );
 
       console.log('✅ Сообщение с кнопками отправлено:', {
         messageId: message.message_id,
         hasReplyMarkup: !!message.reply_markup,
-        buttonsCount: message.reply_markup?.inline_keyboard?.length || 0
+        buttonsCount: message.reply_markup?.inline_keyboard?.length || 0,
+        fullReplyMarkup: JSON.stringify(message.reply_markup, null, 2)
       });
       
     } catch (keyboardError) {
@@ -233,12 +236,13 @@ async function createPersonalDuel(ctx) {
     const safeSessionId = sessionId.replace(/[^a-zA-Z0-9_]/g, '').substring(0, 32);
     
     try {
-      const keyboard = Markup.inlineKeyboard([
+      // Используем Telegraf Markup для создания клавиатуры
+      const markup = Markup.inlineKeyboard([
         [
-          Markup.button.callback('✅ Принять', `accept_personal_duel_${safeSessionId}`),
-          Markup.button.callback('❌ Отклонить', `decline_personal_duel_${safeSessionId}`)
+          Markup.button.callback('Принять', `accept_personal_duel_${safeSessionId}`),
+          Markup.button.callback('Отклонить', `decline_personal_duel_${safeSessionId}`)
         ],
-        [Markup.button.callback('📊 Правила игры', `duel_rules_${gameType}`)]
+        [Markup.button.callback('Правила игры', `duel_rules_${gameType.replace(/[^\w]/g, '')}`)]
       ]);
 
       const message = await ctx.reply(
@@ -251,7 +255,7 @@ async function createPersonalDuel(ctx) {
         `⏱ Ожидание ответа...`,
         {
           parse_mode: 'Markdown',
-          reply_markup: keyboard
+          ...markup
         }
       );
       

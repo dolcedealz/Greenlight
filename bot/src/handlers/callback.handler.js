@@ -256,7 +256,15 @@ function registerCallbackHandlers(bot) {
   // Показ правил игры
   bot.action(/^duel_rules_(.+)$/, async (ctx) => {
     try {
-      const gameType = ctx.match[1];
+      const gameTypeCode = ctx.match[1];
+      
+      // Маппинг очищенных кодов обратно к эмодзи
+      const gameTypeMap = {
+        '': '🎲', // fallback
+        'undefined': '🎲', // fallback
+      };
+      
+      const gameType = gameTypeMap[gameTypeCode] || '🎲';
       
       const gameRules = {
         '🎲': 'Кости: Бросьте кость, у кого больше - тот выиграл раунд',

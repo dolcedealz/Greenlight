@@ -16,6 +16,14 @@ app.use(express.json());
 // Инициализация бота
 const bot = new Telegraf(config.botToken);
 
+// Получаем информацию о боте
+bot.telegram.getMe()
+  .then((botInfo) => {
+    bot.botInfo = botInfo;
+    console.log(`Бот инициализирован: @${botInfo.username}`);
+  })
+  .catch(error => console.error('Ошибка получения информации о боте:', error));
+
 // Устанавливаем команды бота
 bot.telegram.setMyCommands(config.commands)
   .then(() => console.log('Команды бота успешно установлены'))

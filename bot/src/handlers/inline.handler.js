@@ -3,19 +3,33 @@ const config = require('../config');
 const apiService = require('../services/api.service');
 
 function registerInlineHandlers(bot) {
+  console.log('🔧 Регистрируем inline handlers...');
+  
   bot.on('inline_query', async (ctx) => {
     try {
       const query = ctx.inlineQuery.query.toLowerCase().trim();
       const userId = ctx.from.id.toString();
       const username = ctx.from.username;
       
-      console.log('📥 Inline query:', query, 'от:', username);
+      console.log('📥 Inline query получен:', {
+        query: query,
+        user: username,
+        userId: userId,
+        rawQuery: ctx.inlineQuery.query,
+        queryId: ctx.inlineQuery.id
+      });
       
       const results = [];
       
       // Парсим команду дуэли для личных сообщений
-      // Формат: duel @username 50 🎲 bo3
-      const duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)\s*(🎲|🎯|⚽|🏀|🎰|🎳)?\s*(bo\d+)?$/i);
+      // Формат: duel @username 50 🎲 bo3 (более гибкий парсинг)
+      const duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)(?:\s*(🎲|🎯|⚽|🏀|🎰|🎳))?(?:\s*(bo\d+))?/i);
+      
+      console.log('🔍 Проверка duel match:', {
+        query: query,
+        matched: !!duelMatch,
+        matchGroups: duelMatch
+      });
       
       if (duelMatch) {
         const targetUsername = duelMatch[1].replace('@', '');
@@ -38,7 +52,26 @@ function registerInlineHandlers(bot) {
               `💰 Ставка: ${amount} USDT\n` +
               `🎮 Игра: ${getGameName(gameType)}\n` +
               `🏆 Формат: ${format.toUpperCase()}\n\n` +
-              `📱 Проверьте личные сообщения от @${bot.botInfo.username}`,
+              `📱 Проверьте личные сообщения от @${bot.botInfo?.username || 'Greenlightgames_bot'}`,
+            parse_mode: 'Markdown'
+          }
+        });
+      }
+      
+      // Проверяем простые команды
+      if (query.startsWith('duel') && results.length === 0) {
+        results.push({
+          type: 'article',
+          id: 'duel_help',
+          title: '⚠️ Неправильный формат дуэли',
+          description: 'Используйте: duel @username сумма',
+          input_message_content: {
+            message_text: `❌ **Неправильный формат команды**\n\n` +
+              `Правильный формат:\n` +
+              `• \`duel @username 50\` - быстрая дуэль\n` +
+              `• \`duel @username 100 🎯\` - дартс\n` +
+              `• \`duel @username 50 🎲 bo3\` - кости до 2 побед\n\n` +
+              `Ваш запрос: \`${ctx.inlineQuery.query}\``,
             parse_mode: 'Markdown'
           }
         });
@@ -64,6 +97,11 @@ function registerInlineHandlers(bot) {
         });
       }
       
+      console.log('📤 Отправляем inline результаты:', {
+        resultsCount: results.length,
+        results: results.map(r => ({ id: r.id, title: r.title }))
+      });
+      
       await ctx.answerInlineQuery(results, {
         cache_time: 0,
         is_personal: true
@@ -85,7 +123,7 @@ function registerInlineHandlers(bot) {
       
       // Если это дуэль, отправляем приглашения в личку
       if (resultId.startsWith('duel_')) {
-        const duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)\s*(🎲|🎯|⚽|🏀|🎰|🎳)?\s*(bo\d+)?$/i);
+        const duelMatch = query.match(/^duel\s+@?(\w+)\s+(\d+)(?:\s*(🎲|🎯|⚽|🏀|🎰|🎳))?(?:\s*(bo\d+))?/i);
         
         if (duelMatch) {
           const challengerId = ctx.from.id;

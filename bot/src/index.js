@@ -45,9 +45,7 @@ registerCallbackHandlers(bot);
 const { registerInlineHandlers } = require('./handlers/inline.handler');
 registerInlineHandlers(bot);
 
-// 5. Регистрируем новые обработчики дуэлей (заменяет emoji-duel.handler)
-const { registerDuelHandlers } = require('./handlers/duel.handler');
-registerDuelHandlers(bot);
+// 5. Обработчики дуэлей теперь регистрируются в handlers/index.js
 
 // 6. И в самом конце - обработчики текстовых сообщений
 const { registerMessageHandlers } = require('./handlers/message.handler');

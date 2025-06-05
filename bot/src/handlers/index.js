@@ -7,12 +7,12 @@ const { initializeDuelHandlers } = require('./duel');
 function registerHandlers(bot) {
   console.log('🤖 Регистрация обработчиков...');
   
-  // Регистрируем остальные обработчики сначала
-  registerCallbackHandlers(bot);
-  registerMessageHandlers(bot);
-  
-  // Регистрируем новые обработчики дуэлей (включая inline)
+  // ВАЖНО: Сначала регистрируем специфические обработчики (дуэли)
   initializeDuelHandlers(bot);
+  
+  // Затем общие обработчики
+  registerMessageHandlers(bot);
+  registerCallbackHandlers(bot);
   
   console.log('✅ Все обработчики зарегистрированы');
   

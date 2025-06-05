@@ -89,8 +89,25 @@ function registerMessageHandlers(bot) {
       console.log('🔍 Debug webAppUrl:', config.webAppUrl);
       console.log('🔍 Debug botInfo:', ctx.botInfo);
       
+      // Сначала убеждаемся что пользователь создан в системе
+      try {
+        await apiService.createOrUpdateUser(ctx.from);
+        console.log('✅ Пользователь создан/обновлен перед получением реферального кода');
+      } catch (createError) {
+        console.error('⚠️ Ошибка создания пользователя:', createError);
+      }
+      
       const referralCode = await apiService.getUserReferralCode(ctx.from);
       console.log('🔍 Debug referralCode:', referralCode);
+      
+      // Проверяем что реферальный код валидный
+      if (referralCode === 'ERROR' || !referralCode) {
+        await ctx.reply(
+          '❌ Не удалось загрузить реферальную информацию.\n' +
+          'Попробуйте выполнить команду /start и повторите попытку.'
+        );
+        return;
+      }
       
       const referralLink = `https://t.me/${ctx.botInfo.username}?start=${referralCode}`;
       console.log('🔍 Debug referralLink:', referralLink);
@@ -233,8 +250,13 @@ function registerMessageHandlers(bot) {
   // === ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ ===
   
   bot.on('text', async (ctx) => {
-    // Пропускаем команды - они обрабатываются отдельными обработчиками
+    // Логируем все команды для отладки
     if (ctx.message.text.startsWith('/')) {
+      console.log(`🔍 Команда получена в message handler: "${ctx.message.text}"`);
+      console.log(`👤 От: ${ctx.from.username} (${ctx.from.id})`);
+      console.log(`💬 В чате: ${ctx.chat.id} (${ctx.chat.title || 'private'})`);
+      console.log(`📋 Тип чата: ${ctx.chat.type}`);
+      console.log(`⚠️ Пропускаем команду - должна обрабатываться специальным обработчиком`);
       return;
     }
     

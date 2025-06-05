@@ -12,20 +12,19 @@ function registerCallbackHandlers(bot) {
   // Здесь можно добавить другие callback обработчики, не связанные с дуэлями
   // Например: профиль, баланс, настройки, другие игры и т.д.
   
-  // Обработчик неизвестных callback
+  // Универсальный обработчик для необработанных callback (должен быть в конце)
   bot.on('callback_query', async (ctx) => {
     try {
       const data = ctx.callbackQuery.data;
+      console.log(`🔘 Необработанный callback: ${data} от ${ctx.from.username} (${ctx.from.id})`);
       
-      // Если это не дуэльные callback, обрабатываем их здесь
-      if (!data.includes('duel') && !data.includes('play_game') && !data.includes('inline_')) {
-        console.log(`🔘 Неизвестный callback: ${data}`);
+      // Отвечаем только если callback не был обработан ранее
+      if (!ctx.answerCbQuery.called) {
         await ctx.answerCbQuery('🤖 Функция в разработке');
       }
       
     } catch (error) {
-      console.error('Ошибка обработки callback:', error);
-      await ctx.answerCbQuery('❌ Ошибка обработки');
+      console.error('Ошибка обработки необработанного callback:', error);
     }
   });
   

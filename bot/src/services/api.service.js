@@ -29,13 +29,24 @@ class ApiService {
       return str.replace(/[^\x20-\x7E]/g, ''); // Удаляем все не-ASCII символы
     };
 
-    return {
-      'Authorization': `Bot ${process.env.BOT_TOKEN}`,
+    const headers = {
+      'Authorization': `Bot ${config.BOT_TOKEN || process.env.BOT_TOKEN}`,
       'X-Telegram-User-Id': telegramUser.id.toString(),
       'X-Telegram-Username': cleanString(telegramUser.username) || '',
       'X-Telegram-First-Name': cleanString(telegramUser.first_name) || '',
       'Content-Type': 'application/json'
     };
+
+    console.log('🔍 Debug создание заголовков:', {
+      userId: telegramUser.id,
+      username: telegramUser.username,
+      firstName: telegramUser.first_name,
+      cleanUsername: headers['X-Telegram-Username'],
+      cleanFirstName: headers['X-Telegram-First-Name'],
+      hasToken: !!headers.Authorization
+    });
+
+    return headers;
   }
   
   /**
@@ -255,14 +266,17 @@ class ApiService {
       
       // Добавляем заголовки аутентификации
       const headers = this.createTelegramAuthHeaders(telegramUser);
+      console.log('API: Заголовки запроса:', JSON.stringify(headers, null, 2));
       
       const response = await this.api.get('/users/profile', { headers });
       
-      console.log('API: Профиль пользователя получен');
+      console.log('API: Профиль пользователя получен:', response.data);
       
       return response.data.data;
     } catch (error) {
       console.error('API: Ошибка при получении профиля:', error.response?.data || error.message);
+      console.error('API: Статус ошибки:', error.response?.status);
+      console.error('API: URL запроса:', error.config?.url);
       throw error;
     }
   }

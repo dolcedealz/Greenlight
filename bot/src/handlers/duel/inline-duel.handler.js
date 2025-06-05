@@ -191,9 +191,13 @@ class InlineDuelHandler {
   handleInlineCallbacks(bot) {
     // Логирование всех callback queries для отладки
     bot.on('callback_query', async (ctx, next) => {
+      console.log(`🔘 Любой callback получен: ${ctx.callbackQuery.data}`);
+      console.log(`👤 От пользователя: ${ctx.from.username} (${ctx.from.id})`);
+      
       if (ctx.callbackQuery.data && ctx.callbackQuery.data.startsWith('inline_')) {
-        console.log(`🔘 Inline callback получен: ${ctx.callbackQuery.data}`);
-        console.log(`👤 От пользователя: ${ctx.from.username} (${ctx.from.id})`);
+        console.log(`✅ Это inline callback: ${ctx.callbackQuery.data}`);
+      } else {
+        console.log(`ℹ️ Не inline callback: ${ctx.callbackQuery.data}`);
       }
       await next();
     });

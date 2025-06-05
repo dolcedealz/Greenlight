@@ -16,6 +16,17 @@ class GroupDuelHandler {
   handleDuelCommands(bot) {
     console.log('🔧 Регистрация команды /duel в группах...');
     
+    // Универсальное логирование всех команд для отладки
+    bot.on('text', async (ctx, next) => {
+      if (ctx.message.text && ctx.message.text.startsWith('/duel')) {
+        console.log(`🔍 Команда /duel получена: "${ctx.message.text}"`);
+        console.log(`👤 От: ${ctx.from.username} (${ctx.from.id})`);
+        console.log(`💬 В чате: ${ctx.chat.id} (${ctx.chat.title || 'private'})`);
+        console.log(`📋 Тип чата: ${ctx.chat.type}`);
+      }
+      await next();
+    });
+    
     // Команда /duel
     bot.command('duel', async (ctx) => {
       console.log('🎯 НОВЫЙ обработчик /duel сработал!');

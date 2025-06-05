@@ -138,7 +138,12 @@ function registerInlineHandlers(bot) {
       
       console.log('📤 Отправляем inline результаты:', {
         resultsCount: results.length,
-        results: results.map(r => ({ id: r.id, title: r.title }))
+        results: results.map(r => ({ 
+          id: r.id, 
+          title: r.title,
+          hasButtons: !!r.reply_markup?.inline_keyboard,
+          buttonCount: r.reply_markup?.inline_keyboard?.[0]?.length || 0
+        }))
       });
       
       await ctx.answerInlineQuery(results, {

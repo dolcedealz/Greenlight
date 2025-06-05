@@ -49,6 +49,10 @@ registerInlineHandlers(bot);
 const { registerEmojiDuelHandlers } = require('./handlers/emoji-duel.handler');
 registerEmojiDuelHandlers(bot);
 
+// 5.1. Регистрируем обработчики личных дуэлей
+const { registerPrivateDuelHandlers } = require('./handlers/private-duel.handler');
+registerPrivateDuelHandlers(bot);
+
 // 6. И в самом конце - обработчики текстовых сообщений
 const { registerMessageHandlers } = require('./handlers/message.handler');
 registerMessageHandlers(bot);

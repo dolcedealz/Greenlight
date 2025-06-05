@@ -1,6 +1,7 @@
 // bot/src/handlers/inline.handler.js
 const config = require('../config');
 const apiService = require('../services/api.service');
+const duelService = require('../services/duel.service');
 
 function registerInlineHandlers(bot) {
   console.log('🔧 Регистрируем inline handlers...');
@@ -40,18 +41,23 @@ function registerInlineHandlers(bot) {
         // Определяем количество побед
         const winsRequired = getWinsRequired(format);
         
+        // Создаем URL для Deep Link
+        const deepLinkData = `duel_${challengerId}_${targetUsername}_${amount}_${gameType}_${format}`;
+        const botUsername = bot.botInfo?.username || 'Greenlightgames_bot';
+        
         results.push({
           type: 'article',
           id: `duel_${Date.now()}`,
           title: `${gameType} Дуэль с @${targetUsername}`,
           description: `${amount} USDT, ${format.toUpperCase()}`,
+          url: `https://t.me/${botUsername}?start=${deepLinkData}`,
           input_message_content: {
             message_text: `${gameType} **ПРИГЛАШЕНИЕ НА ДУЭЛЬ** ${gameType}\n\n` +
               `@${username} приглашает вас на дуэль!\n` +
               `💰 Ставка: ${amount} USDT\n` +
               `🎮 Игра: ${getGameName(gameType)}\n` +
               `🏆 Формат: ${format.toUpperCase()}\n\n` +
-              `📱 Проверьте личные сообщения от бота`,
+              `📱 Для участия нажмите: https://t.me/${botUsername}?start=${deepLinkData}`,
             parse_mode: 'Markdown'
           }
         });
@@ -111,10 +117,8 @@ function registerInlineHandlers(bot) {
       });
       
       await ctx.answerInlineQuery(results, {
-        cache_time: 1,
-        is_personal: false,
-        switch_pm_text: "Создать дуэль",
-        switch_pm_parameter: "duel"
+        cache_time: 0,
+        is_personal: true
       });
       
     } catch (error) {
@@ -130,7 +134,9 @@ function registerInlineHandlers(bot) {
         resultId: ctx.chosenInlineResult.result_id,
         query: ctx.chosenInlineResult.query,
         from: ctx.from.username,
-        userId: ctx.from.id
+        userId: ctx.from.id,
+        inlineMessageId: ctx.chosenInlineResult.inline_message_id,
+        fullEvent: ctx.chosenInlineResult
       });
       
       const resultId = ctx.chosenInlineResult.result_id;
@@ -172,38 +178,49 @@ function registerInlineHandlers(bot) {
  */
 async function sendDuelInvitations(bot, data) {
   try {
-    const { challengerId, challengerUsername, targetUsername, amount, gameType, format, inlineMessageId } = data;
+    const { challengerId, challengerUsername, targetUsername, amount, gameType, format } = data;
     
-    console.log('🎯 Отправка приглашения на дуэль:', data);
+    console.log('🎯 Создание безопасной дуэли:', data);
+    
+    // Создаем дуэль через безопасный сервис
+    const duel = duelService.createDuel(
+      challengerId.toString(),
+      challengerUsername,
+      targetUsername,
+      amount,
+      gameType,
+      format,
+      'private'
+    );
     
     // Пытаемся найти пользователя для прямой отправки
     try {
       const response = await apiService.findUserByUsername(targetUsername);
       
       if (response && response.telegramId) {
-        // Создаем inline кнопки для принятия дуэли (как в эмодзи дуэлях)
+        // Создаем безопасные callback кнопки
         const keyboard = {
           inline_keyboard: [[
             { 
               text: `✅ Принять ${gameType}`, 
-              callback_data: `emoji_accept_${challengerId}_${amount}_${gameType}_${format}` 
+              callback_data: `private_accept_${duel.id}` 
             },
             { 
               text: '❌ Отклонить', 
-              callback_data: `emoji_decline_${challengerId}` 
+              callback_data: `private_decline_${duel.id}` 
             }
           ]]
         };
         
         // Отправляем приглашение оппоненту
-        await bot.telegram.sendMessage(
+        const opponentMessage = await bot.telegram.sendMessage(
           response.telegramId,
           `${gameType} **ПРИГЛАШЕНИЕ НА ДУЭЛЬ** ${gameType}\n\n` +
           `👤 @${challengerUsername} приглашает вас на дуэль!\n` +
           `💰 Ставка: ${amount} USDT\n` +
-          `🎮 Игра: ${getGameName(gameType)}\n` +
-          `🏆 Формат: ${format.toUpperCase()}\n\n` +
-          `Принять дуэль?`,
+          `🎮 Игра: ${duelService.getGameName(gameType)}\n` +
+          `🏆 Формат: ${format.toUpperCase()} (до ${duelService.getWinsRequired(format)} побед)\n\n` +
+          `⏱ Время на ответ: 5 минут`,
           {
             parse_mode: 'Markdown',
             reply_markup: keyboard
@@ -211,67 +228,66 @@ async function sendDuelInvitations(bot, data) {
         );
         
         // Отправляем подтверждение инициатору
-        await bot.telegram.sendMessage(
+        const challengerMessage = await bot.telegram.sendMessage(
           challengerId,
           `✅ **Приглашение отправлено!**\n\n` +
-          `🎮 Игра: ${getGameName(gameType)}\n` +
+          `🎮 Игра: ${duelService.getGameName(gameType)}\n` +
           `💰 Ставка: ${amount} USDT\n` +
           `🏆 Формат: ${format.toUpperCase()}\n` +
           `👤 Оппонент: @${targetUsername}\n\n` +
-          `⏱ Ожидаем ответ от @${targetUsername}...`,
+          `⏱ Ожидаем ответ...`,
           {
             parse_mode: 'Markdown'
           }
         );
         
-        console.log(`✅ Приглашение отправлено пользователю ${targetUsername} (${response.telegramId})`);
+        // Сохраняем ссылки на сообщения в дуэли
+        duel.messages.challenger = {
+          chatId: challengerId,
+          messageId: challengerMessage.message_id
+        };
+        duel.messages.opponent = {
+          chatId: response.telegramId,
+          messageId: opponentMessage.message_id
+        };
+        
+        console.log(`✅ Дуэль ${duel.id} создана и отправлена пользователю ${targetUsername}`);
         
       } else {
         throw new Error('Пользователь не найден в базе данных');
       }
       
     } catch (apiError) {
-      console.log(`⚠️ Не удалось найти @${targetUsername}, сохраняем приглашение`);
+      console.log(`⚠️ Не удалось найти @${targetUsername}, удаляем дуэль`);
       
-      // Сохраняем приглашение для отправки при следующем /start
-      global.pendingDuelInvites = global.pendingDuelInvites || {};
-      const inviteId = `invite_${Date.now()}`;
-      global.pendingDuelInvites[inviteId] = {
-        challengerId,
-        challengerUsername,
-        targetUsername,
-        amount,
-        gameType,
-        format,
-        winsRequired: getWinsRequired(format),
-        timestamp: Date.now(),
-        inlineMessageId
-      };
+      // Удаляем созданную дуэль
+      duelService.removeDuel(duel.id);
       
-      // Отправляем инициатору
+      // Отправляем инициатору сообщение об ошибке
       await bot.telegram.sendMessage(
         challengerId,
-        `✅ **Приглашение создано!**\n\n` +
-        `🎮 Игра: ${getGameName(gameType)}\n` +
-        `💰 Ставка: ${amount} USDT\n` +
-        `🏆 Формат: ${format.toUpperCase()}\n` +
-        `👤 Оппонент: @${targetUsername}\n\n` +
-        `⏱ Попросите @${targetUsername} написать боту /start`,
+        `❌ **Не удалось создать дуэль**\n\n` +
+        `Пользователь @${targetUsername} не найден в системе.\n` +
+        `Попросите их сначала написать боту /start`,
         {
           parse_mode: 'Markdown'
         }
       );
-      
-      console.log(`📋 Приглашение сохранено: ${inviteId} для @${targetUsername}`);
-      
-      // Удаляем через 10 минут
-      setTimeout(() => {
-        delete global.pendingDuelInvites[inviteId];
-      }, 10 * 60 * 1000);
     }
     
   } catch (error) {
-    console.error('❌ Ошибка отправки приглашений:', error);
+    console.error('❌ Ошибка создания дуэли:', error.message);
+    
+    // Отправляем сообщение об ошибке инициатору
+    try {
+      await bot.telegram.sendMessage(
+        challengerId,
+        `❌ **Ошибка создания дуэли**\n\n${error.message}`,
+        { parse_mode: 'Markdown' }
+      );
+    } catch (sendError) {
+      console.error('❌ Не удалось отправить сообщение об ошибке:', sendError);
+    }
   }
 }
 
@@ -319,31 +335,6 @@ async function checkPendingInvites(bot, username, userId) {
   }
 }
 
-/**
- * Вспомогательные функции
- */
-function getWinsRequired(format) {
-  const formats = {
-    'bo1': 1,
-    'bo3': 2,
-    'bo5': 3,
-    'bo7': 4,
-    'bo9': 5
-  };
-  return formats[format] || 1;
-}
-
-function getGameName(gameType) {
-  const games = {
-    '🎲': 'Кости',
-    '🎯': 'Дартс',
-    '⚽': 'Футбол',
-    '🏀': 'Баскетбол',
-    '🎰': 'Слоты',
-    '🎳': 'Боулинг'
-  };
-  return games[gameType] || 'Игра';
-}
 
 module.exports = {
   registerInlineHandlers,

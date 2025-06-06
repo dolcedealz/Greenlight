@@ -6,6 +6,7 @@ const profileCommand = require('./profile.command');
 const depositCommand = require('./deposit.command');
 const balanceCommand = require('./balance.command');
 const withdrawCommand = require('./withdraw.command');
+const promocodeCommand = require('./promocode.command');
 // Регистрация команд бота (без дуэлей - они в handlers/duel/)
 function registerCommands(bot) {
   console.log('🔧 Регистрируем команды бота (без дуэлей)...');
@@ -18,6 +19,7 @@ function registerCommands(bot) {
   bot.command('deposit', depositCommand);
   bot.command('balance', balanceCommand);
   bot.command('withdraw', withdrawCommand);
+  bot.command('promocode', promocodeCommand);
   
   // Команды дуэлей теперь обрабатываются в handlers/duel/group-duel.handler.js
   

@@ -913,6 +913,44 @@ class ApiService {
     console.log('API: Завершение PvP дуэли (совместимость)');
     return this.finishDuel(sessionId, winnerId);
   }
+
+  /**
+   * Активирует промокод
+   * @param {number} userId - ID пользователя Telegram
+   * @param {string} promoCode - Промокод для активации
+   * @returns {Object} - Результат активации
+   */
+  async activatePromoCode(userId, promoCode) {
+    try {
+      console.log(`API: Активируем промокод ${promoCode} для пользователя ${userId}`);
+      
+      const headers = {
+        'Authorization': `Bot ${config.BOT_TOKEN || process.env.BOT_TOKEN}`,
+        'X-Telegram-User-Id': userId.toString(),
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await this.api.post('/promocodes/activate', { 
+        code: promoCode 
+      }, { headers });
+      
+      console.log('API: Промокод активирован:', response.data);
+      
+      return response.data;
+    } catch (error) {
+      console.error('API: Ошибка активации промокода:', error.response?.data || error.message);
+      
+      if (error.response) {
+        // Возвращаем структурированную ошибку
+        return {
+          success: false,
+          message: error.response.data?.message || 'Ошибка активации промокода'
+        };
+      }
+      
+      throw error;
+    }
+  }
 }
 
 // Экспортируем singleton instance

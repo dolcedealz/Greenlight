@@ -218,6 +218,13 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
         {/* Компонент выводов */}
         <Withdrawals balance={balance} onBalanceUpdate={onBalanceUpdate} />
         
+        {/* Компоненты промокодов */}
+        <div className="promocodes-section">
+          <h3>🎁 Промокоды</h3>
+          <PromoCodeInput onBalanceUpdate={onBalanceUpdate} />
+          <UserPromoCodes />
+        </div>
+        
         <div className="profile-stats">
           <h3>Статистика</h3>
           <div className="stats-grid">

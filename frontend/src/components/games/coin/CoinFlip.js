@@ -1,81 +1,99 @@
-// frontend/src/components/games/coin/CoinFlip.js - УЛУЧШЕННАЯ ВЕРСИЯ
-import React, { useState, useRef, useEffect } from 'react';
+// frontend/src/components/games/coin/CoinFlip.js - СТАБИЛЬНАЯ ВЕРСИЯ
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import '../../../styles/CoinFlip.css';
 
-const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
+const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
   const coinRef = useRef(null);
-  const [showResult, setShowResult] = useState(false);
-  const [animationPhase, setAnimationPhase] = useState('idle');
-  const [finalResult, setFinalResult] = useState(null);
+  const [currentSide, setCurrentSide] = useState('heads'); // Текущая сторона монеты
+  const [animationState, setAnimationState] = useState('idle'); // idle, flipping, showing, completed
+  const [localResult, setLocalResult] = useState(null);
   
+  // Стабильный обработчик завершения анимации
+  const handleAnimationEnd = useCallback(() => {
+    console.log('🪙 АНИМАЦИЯ: Завершена полностью');
+    setAnimationState('completed');
+    
+    // Уведомляем родителя с небольшой задержкой для плавности
+    setTimeout(() => {
+      if (onAnimationComplete) {
+        onAnimationComplete(true); // true = показать результат игры
+      }
+    }, 200);
+  }, [onAnimationComplete]);
+  
+  // Основная логика анимации
   useEffect(() => {
     if (flipping && result !== null) {
       const coin = coinRef.current;
       if (!coin) return;
       
-      console.log('🪙 АНИМАЦИЯ: Начинаем улучшенную анимацию, результат:', result);
+      console.log('🪙 АНИМАЦИЯ: Начинаем с текущей стороны:', currentSide, 'результат:', result);
       
-      setAnimationPhase('preparing');
-      setShowResult(false);
-      setFinalResult(result);
+      // Устанавливаем начальное состояние
+      setAnimationState('flipping');
+      setLocalResult(result);
       
-      // Полностью сбрасываем все классы
+      // Сбрасываем классы и устанавливаем начальную позицию
       coin.className = 'coin';
+      coin.classList.add('start-position', currentSide);
       
-      // НОВОЕ: Небольшая задержка для подготовки анимации (улучшает плавность)
+      // Небольшая задержка для подготовки, затем запуск анимации
       setTimeout(() => {
-        setAnimationPhase('flipping');
-        // Начинаем анимацию вращения
+        coin.classList.remove('start-position');
         coin.classList.add('flipping');
-        console.log('🪙 АНИМАЦИЯ: Запущена анимация вращения');
+        console.log('🪙 АНИМАЦИЯ: Запущена CSS анимация');
       }, 100);
       
-      // Фаза приземления (через 2.5 секунды - когда заканчивается CSS анимация)
+      // Завершение CSS анимации и установка финальной позиции
       setTimeout(() => {
-        setAnimationPhase('landing');
-        
-        // Убираем анимацию вращения
         coin.classList.remove('flipping');
-        
-        // Устанавливаем финальную позицию в зависимости от результата
         coin.classList.add('final-result', result);
         
-        console.log('🪙 АНИМАЦИЯ: Приземление на', result);
-      }, 2600); // Немного больше времени CSS анимации для плавности
-      
-      // Показываем локальный результат анимации (через 3.2 секунды)
-      setTimeout(() => {
-        setAnimationPhase('showing');
-        setShowResult(true);
-        console.log('🪙 АНИМАЦИЯ: Показываем локальный результат');
-      }, 3200);
-      
-      // Завершаем анимацию и сообщаем родителю (через 4.2 секунды)
-      setTimeout(() => {
-        setAnimationPhase('completed');
-        console.log('🪙 АНИМАЦИЯ: Завершена, готовимся уведомить GameScreen');
+        // Обновляем текущую сторону для следующего раза
+        setCurrentSide(result);
         
-        // Дополнительная небольшая задержка перед уведомлением родителя
-        setTimeout(() => {
-          setAnimationPhase('idle');
-          if (onAnimationEnd) {
-            onAnimationEnd();
-          }
-          console.log('🪙 АНИМАЦИЯ: Полностью завершена, уведомляем GameScreen');
-        }, 300);
-      }, 4200); // Оптимизированное время
+        console.log('🪙 АНИМАЦИЯ: Установлена финальная позиция:', result);
+        setAnimationState('showing');
+      }, 2600); // Время CSS анимации + небольшой буфер
       
-    } else if (!flipping) {
-      // Сбрасываем состояние, если не в режиме флипа
+      // Показ локального результата
+      setTimeout(() => {
+        console.log('🪙 АНИМАЦИЯ: Показываем локальный результат');
+      }, 3000);
+      
+      // Полное завершение
+      setTimeout(() => {
+        handleAnimationEnd();
+      }, 4000); // Общее время анимации
+      
+    } else if (!flipping && animationState !== 'idle') {
+      // Сброс состояния
       const coin = coinRef.current;
       if (coin) {
         coin.className = 'coin';
-        setShowResult(false);
-        setAnimationPhase('idle');
-        setFinalResult(null);
+        coin.classList.add('final-result', currentSide);
       }
+      setAnimationState('idle');
+      setLocalResult(null);
     }
-  }, [flipping, result, onAnimationEnd]);
+  }, [flipping, result, currentSide, animationState, handleAnimationEnd]);
+  
+  // CSS анимация завершена - слушаем событие
+  useEffect(() => {
+    const coin = coinRef.current;
+    if (!coin) return;
+    
+    const handleCSSAnimationEnd = (event) => {
+      if (event.animationName === 'coinFlipAnimation') {
+        console.log('🪙 АНИМАЦИЯ: CSS анимация завершена');
+      }
+    };
+    
+    coin.addEventListener('animationend', handleCSSAnimationEnd);
+    return () => {
+      coin.removeEventListener('animationend', handleCSSAnimationEnd);
+    };
+  }, []);
 
   return (
     <div className="coin-flip-container">
@@ -88,7 +106,7 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       </div>
       
       {/* Тень монеты */}
-      <div className={`coin-shadow ${animationPhase}`}></div>
+      <div className={`coin-shadow ${animationState}`}></div>
       
       {/* Основная монета */}
       <div className="coin-wrapper">
@@ -129,12 +147,10 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         </div>
       </div>
       
-      {/* Статус анимации - УЛУЧШЕННЫЕ СОСТОЯНИЯ */}
-      {(animationPhase === 'preparing' || animationPhase === 'flipping') && (
+      {/* Статус анимации */}
+      {animationState === 'flipping' && (
         <div className="flip-status">
-          <div className="flip-text">
-            {animationPhase === 'preparing' ? 'Подготовка...' : 'Подбрасываем монету...'}
-          </div>
+          <div className="flip-text">Подбрасываем монету...</div>
           <div className="flip-dots">
             <span></span>
             <span></span>
@@ -143,14 +159,14 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         </div>
       )}
       
-      {/* Локальный результат анимации - показываем только после landing */}
-      {showResult && finalResult && animationPhase === 'showing' && (
-        <div className={`coin-result ${finalResult}`}>
+      {/* Локальный результат анимации */}
+      {animationState === 'showing' && localResult && (
+        <div className={`coin-result ${localResult}`}>
           <div className="result-icon">
-            {finalResult === 'heads' ? '₿' : '💎'}
+            {localResult === 'heads' ? '₿' : '💎'}
           </div>
           <div className="result-text">
-            {finalResult === 'heads' ? 'ОРЁЛ!' : 'РЕШКА!'}
+            {localResult === 'heads' ? 'ОРЁЛ!' : 'РЕШКА!'}
           </div>
           <div className="result-celebration">
             <div className="celebration-particle"></div>

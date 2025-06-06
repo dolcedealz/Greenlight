@@ -3,11 +3,13 @@ const axios = require('axios');
 
 class AdminService {
   constructor() {
-    this.apiUrl = process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api';
+    // Принудительно устанавливаем правильный URL для продакшена
+    this.apiUrl = 'https://greenlight-api-ghqh.onrender.com/api';
+    console.log('🔧 ADMIN SERVICE: Принудительно установлен API URL:', this.apiUrl);
     this.adminToken = process.env.ADMIN_API_TOKEN;
     
     if (!this.adminToken) {
-      console.warn('� ADMIN_API_TOKEN =5 CAB0=>2;5=. 5:>B>@K5 DC=:F88 <>3CB =5 @01>B0BL.');
+      console.warn('� ADMIN_API_TOKEN =5 CAB0=>2;5=. 5:>B>@K5 DC=:F88 <>3CB =5 @01>B0BL.');
     }
     
     // 0AB@>9:0 axios :;85=B0

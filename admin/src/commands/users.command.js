@@ -3,8 +3,12 @@ const { Markup } = require('telegraf');
 const axios = require('axios');
 
 // Получаем API URL и токен из переменных окружения
-const apiUrl = process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api';
+// Принудительно устанавливаем правильный URL для продакшена
+const apiUrl = 'https://greenlight-api-ghqh.onrender.com/api';
 const adminToken = process.env.ADMIN_API_TOKEN;
+
+// Логируем URL для отладки
+console.log('USERS COMMAND: API URL:', apiUrl);
 
 // Создаем axios instance с предустановленными заголовками
 const apiClient = axios.create({
@@ -65,7 +69,11 @@ async function showUsersList(ctx, page = 1) {
       const statusEmoji = user.isBlocked ? '🚫' : '✅';
       const username = user.username ? `@${user.username}` : 'Нет username';
       
-      message += `${userNum}. ${statusEmoji} *${user.firstName} ${user.lastName || ''}*\n`;
+      // Экранируем специальные символы в именах для Markdown
+      const firstName = (user.firstName || '').replace(/[_*\[\]()~`>#+-=|{}.!]/g, '\\$&');
+      const lastName = (user.lastName || '').replace(/[_*\[\]()~`>#+-=|{}.!]/g, '\\$&');
+      
+      message += `${userNum}\\. ${statusEmoji} *${firstName} ${lastName}*\n`;
       message += `   ${username}\n`;
       message += `   💰 Баланс: ${user.balance.toFixed(2)} USDT\n`;
       message += `   📊 Прибыль: ${((user.totalWon || 0) - (user.totalWagered || 0)).toFixed(2)} USDT\n`;

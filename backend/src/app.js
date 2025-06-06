@@ -48,14 +48,51 @@ app.use(helmet({
   }
 }));
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://greenlight-frontend.onrender.com'] 
-    : true,
+// CORS configuration with enhanced logging
+const corsOptions = {
+  origin: function (origin, callback) {
+    logger.info(`CORS request from origin: ${origin}`);
+    
+    // Разрешенные домены для продакшена
+    const allowedOrigins = [
+      'https://greenlight-frontend.onrender.com',
+      'https://www.greenlight-casino.eu',
+      'https://greenlight-casino.eu',
+      'https://greenlight-casino.eu/',
+      'https://www.greenlight-casino.eu/'
+    ];
+    
+    if (process.env.NODE_ENV !== 'production') {
+      // В development режиме разрешаем все
+      logger.info('Development mode: allowing all origins');
+      callback(null, true);
+      return;
+    }
+    
+    // Разрешаем запросы без origin (например, мобильные приложения)
+    if (!origin) {
+      logger.info('No origin provided, allowing request');
+      callback(null, true);
+      return;
+    }
+    
+    // Проверяем, разрешен ли домен
+    if (allowedOrigins.includes(origin)) {
+      logger.info(`Origin ${origin} is allowed`);
+      callback(null, true);
+    } else {
+      logger.warn(`Origin ${origin} is not allowed by CORS policy`);
+      logger.warn(`Allowed origins: ${allowedOrigins.join(', ')}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  optionsSuccessStatus: 200
-}));
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

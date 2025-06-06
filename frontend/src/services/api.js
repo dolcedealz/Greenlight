@@ -520,7 +520,7 @@ const duelApi = {
 };
 
 // API для промокодов
-export const promocodeApi = {
+const promocodeApi = {
   // Активировать промокод
   activatePromoCode: async (code) => {
     console.log('Активация промокода:', code);

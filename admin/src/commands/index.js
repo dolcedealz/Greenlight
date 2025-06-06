@@ -126,6 +126,10 @@ function registerCommands(bot) {
     await promoCommands.showPromoMenu(ctx);
   });
 
+  // Команда /stats - статистика с новой финансовой информацией
+  const statsCommand = require('./stats.command');
+  bot.command('stats', statsCommand);
+
   // Команда /security - безопасность и аудит
   bot.command('security', async (ctx) => {
     console.log('ADMIN: Команда /security вызвана');
@@ -1789,15 +1793,65 @@ function registerCommands(bot) {
 
   // === ИМПОРТ ФУНКЦИЙ ИЗ МОДУЛЕЙ ===
   
-  // Импортируем функции управления пользователями
-  const usersCommands = require('./users.command');
-  const transactionsCommands = require('./transactions.command');
-  const coefficientsCommands = require('./coefficients.command');
-  const promoCommands = require('./promo.command');
-  const securityCommands = require('./security.command');
-  const monitoringCommands = require('./monitoring.command');
-  const backupCommands = require('./backup.command');
-  const notificationsCommands = require('./notifications.command');
+  // Импортируем функции управления пользователями (только существующие модули)
+  let usersCommands, transactionsCommands, coefficientsCommands, promoCommands;
+  let securityCommands, monitoringCommands, backupCommands, notificationsCommands;
+  
+  try {
+    usersCommands = require('./users.command');
+  } catch (e) {
+    console.warn('users.command module not found');
+    usersCommands = { showUsersList: () => {}, startUserSearch: () => {}, handleUserSearch: () => {}, showUsersStats: () => {} };
+  }
+  
+  try {
+    transactionsCommands = require('./transactions.command');
+  } catch (e) {
+    console.warn('transactions.command module not found');
+    transactionsCommands = { showPendingWithdrawals: () => {}, showTransactionsHistory: () => {}, showTransactionsStats: () => {}, showDepositsInfo: () => {} };
+  }
+  
+  try {
+    coefficientsCommands = require('./coefficients.command');
+  } catch (e) {
+    console.warn('coefficients.command module not found');
+    coefficientsCommands = { showGlobalCoefficients: () => {}, showUserCoefficients: () => {}, handleCoefficientSetting: () => {}, showCoefficientsStats: () => {} };
+  }
+  
+  try {
+    promoCommands = require('./promo.command');
+  } catch (e) {
+    console.warn('promo.command module not found');
+    promoCommands = { showPromoMenu: () => {} };
+  }
+  
+  try {
+    securityCommands = require('./security.command');
+  } catch (e) {
+    console.warn('security.command module not found');
+    securityCommands = { showSecurityMenu: () => {} };
+  }
+  
+  try {
+    monitoringCommands = require('./monitoring.command');
+  } catch (e) {
+    console.warn('monitoring.command module not found');
+    monitoringCommands = { showMonitoringMenu: () => {} };
+  }
+  
+  try {
+    backupCommands = require('./backup.command');
+  } catch (e) {
+    console.warn('backup.command module not found');
+    backupCommands = { showBackupMenu: () => {} };
+  }
+  
+  try {
+    notificationsCommands = require('./notifications.command');
+  } catch (e) {
+    console.warn('notifications.command module not found');
+    notificationsCommands = { showNotificationsMenu: () => {} };
+  }
 
   // === ДЕЛЕГИРОВАНИЕ К МОДУЛЯМ ===
   

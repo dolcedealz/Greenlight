@@ -3,6 +3,7 @@ const User = require('../models/user.model');
 const Transaction = require('../models/transaction.model');
 const CasinoFinance = require('../models/casino-finance.model');
 const { validationResult } = require('express-validator');
+const casinoFinanceService = require('../services/casino-finance.service');
 
 /**
  * Активировать промокод
@@ -310,8 +311,13 @@ async function executePromocodeActivation(promocode, user, userIp) {
       user.balance += balanceAmount;
       await user.save();
 
-      // Обновляем финансовую статистику казино
-      await updateCasinoFinance('promocode_expense', balanceAmount);
+      // Обновляем финансовую статистику казино через новый сервис
+      await casinoFinanceService.updateAfterPromocode({
+        type: 'balance',
+        value: balanceAmount,
+        _id: promocode._id,
+        activatedBy: user._id
+      });
 
       reward = {
         type: 'balance',

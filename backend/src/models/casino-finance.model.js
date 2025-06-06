@@ -62,6 +62,30 @@ const casinoFinanceSchema = new Schema({
     description: 'Общая сумма комиссий'
   },
   
+  // Детализация комиссий
+  commissionBreakdown: {
+    duels: {
+      type: Number,
+      default: 0,
+      min: 0,
+      description: 'Комиссии с PvP дуэлей'
+    },
+    events: {
+      type: Number,
+      default: 0,
+      min: 0,
+      description: 'Прибыль с маржи событий'
+    }
+  },
+  
+  // Расходы на промокоды
+  totalPromocodeExpenses: {
+    type: Number,
+    default: 0,
+    min: 0,
+    description: 'Общая сумма расходов на промокоды'
+  },
+  
   // Статистика по платежам
   totalDeposits: {
     type: Number,

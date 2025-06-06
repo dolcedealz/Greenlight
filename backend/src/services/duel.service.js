@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { Duel, DuelInvitation, User, Transaction } = require('../models');
 const referralService = require('./referral.service');
+const casinoFinanceService = require('./casino-finance.service');
 
 class DuelService {
   
@@ -480,7 +481,14 @@ class DuelService {
       // Не прерываем выполнение - дуэль должна завершиться даже если реферальные не обработались
     }
     
-    // Комиссия казино уже учтена в winAmount
+    // Обновляем финансы казино (добавляем комиссию в оперативный баланс)
+    await casinoFinanceService.updateAfterDuel({
+      sessionId: duel.sessionId,
+      commission: duel.commission,
+      amount: duel.amount
+    });
+    
+    console.log(`💰 Комиссия ${duel.commission} USDT добавлена в оперативный баланс казино`);
   }
   
   // Получение информации о дуэли

@@ -64,19 +64,40 @@ class CasinoFinanceService {
         }
       });
       
-      // 4. Рассчитываем комиссии (5% от споров в монетку и других комиссионных операций)
-      // TODO: Добавить расчет комиссий когда будет реализован функционал споров
-      finance.totalCommissions = 0; // Пока комиссий нет, так как споры не реализованы
+      // 4. Рассчитываем комиссии
+      // Комиссии с дуэлей (PvP)
+      const duelCommissions = await mongoose.model('Duel').aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$commission' } } }
+      ]);
       
-      // 5. ИСПРАВЛЕНО: Рассчитываем оперативный баланс
-      // Оперативный баланс = ТОЛЬКО прибыль казино (ставки - выигрыши + комиссии)
+      finance.commissionBreakdown.duels = duelCommissions[0]?.total || 0;
+      
+      // Для событий маржа включена в коэффициенты, поэтому комиссия = прибыль от событий
+      finance.commissionBreakdown.events = finance.gameStats.events?.profit || 0;
+      
+      finance.totalCommissions = finance.commissionBreakdown.duels + finance.commissionBreakdown.events;
+      
+      // 5. Рассчитываем расходы на промокоды
+      const promocodeExpenses = await Transaction.aggregate([
+        { $match: { type: 'promocode_balance', status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]);
+      
+      finance.totalPromocodeExpenses = promocodeExpenses[0]?.total || 0;
+      
+      // 6. ИСПРАВЛЕНО: Рассчитываем оперативный баланс
+      // Оперативный баланс = ТОЛЬКО прибыль казино (ставки - выигрыши + комиссии - промокоды)
       // НЕ включаем депозиты и выводы пользователей!
-      finance.operationalBalance = (finance.totalBets - finance.totalWins) + finance.totalCommissions;
+      finance.operationalBalance = (finance.totalBets - finance.totalWins) + finance.totalCommissions - finance.totalPromocodeExpenses;
       
       console.log('FINANCE: Расчет оперативного баланса:');
       console.log(`- Всего ставок: ${finance.totalBets.toFixed(2)} USDT`);
       console.log(`- Всего выигрышей: ${finance.totalWins.toFixed(2)} USDT`);
       console.log(`- Комиссии: ${finance.totalCommissions.toFixed(2)} USDT`);
+      console.log(`  • Дуэли: ${finance.commissionBreakdown.duels.toFixed(2)} USDT`);
+      console.log(`  • События: ${finance.commissionBreakdown.events.toFixed(2)} USDT`);
+      console.log(`- Расходы на промокоды: ${finance.totalPromocodeExpenses.toFixed(2)} USDT`);
       console.log(`- Оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
       
       // 6. Рассчитываем резерв и доступную сумму
@@ -461,6 +482,89 @@ class CasinoFinanceService {
     console.log(`FINANCE: Процент резервирования изменен на ${percentage}%`);
     
     return finance;
+  }
+
+  /**
+   * Обновляет финансы после завершения дуэли
+   * @param {Object} duelData - Данные дуэли
+   */
+  async updateAfterDuel(duelData) {
+    try {
+      const finance = await CasinoFinance.getInstance();
+      
+      const { commission, amount } = duelData;
+      
+      // Увеличиваем общую сумму комиссий
+      finance.totalCommissions += commission;
+      finance.commissionBreakdown.duels += commission;
+      
+      // Увеличиваем оперативный баланс на сумму комиссии
+      finance.operationalBalance += commission;
+      
+      console.log(`FINANCE: Обработка комиссии с дуэли ${commission} USDT`);
+      console.log(`- Новый оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
+      console.log(`- Всего комиссий с дуэлей: ${finance.commissionBreakdown.duels.toFixed(2)} USDT`);
+      
+      // Пересчитываем резерв
+      finance.calculateReserve();
+      finance.checkWarnings();
+      
+      finance.addToHistory('duel_commission', {
+        commission,
+        totalAmount: amount * 2,
+        duelId: duelData.sessionId
+      });
+      
+      await finance.save();
+      
+    } catch (error) {
+      console.error('FINANCE: Ошибка обновления после дуэли:', error);
+    }
+  }
+
+  /**
+   * Обновляет финансы после промокода
+   * @param {Object} promocodeData - Данные промокода
+   */
+  async updateAfterPromocode(promocodeData) {
+    try {
+      const finance = await CasinoFinance.getInstance();
+      
+      const { type, value } = promocodeData;
+      
+      // Только промокоды типа 'balance' влияют на финансы казино
+      if (type === 'balance') {
+        // Увеличиваем расходы на промокоды
+        finance.totalPromocodeExpenses += value;
+        
+        // Уменьшаем оперативный баланс (расход казино)
+        finance.operationalBalance -= value;
+        
+        // Увеличиваем баланс пользователей
+        finance.totalUserBalance += value;
+        
+        console.log(`FINANCE: Активация промокода на ${value} USDT`);
+        console.log(`- Новый оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
+        console.log(`- Новый баланс пользователей: ${finance.totalUserBalance.toFixed(2)} USDT`);
+        console.log(`- Всего расходов на промокоды: ${finance.totalPromocodeExpenses.toFixed(2)} USDT`);
+        
+        // Пересчитываем резерв
+        finance.calculateReserve();
+        finance.checkWarnings();
+        
+        finance.addToHistory('promocode_expense', {
+          type,
+          value,
+          promocodeId: promocodeData._id,
+          userId: promocodeData.activatedBy
+        });
+        
+        await finance.save();
+      }
+      
+    } catch (error) {
+      console.error('FINANCE: Ошибка обновления после промокода:', error);
+    }
   }
 }
 

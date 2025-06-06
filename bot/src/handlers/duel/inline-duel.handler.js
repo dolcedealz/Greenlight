@@ -55,7 +55,7 @@ class InlineDuelHandler {
         let duelMatch = null;
         
         // Основной regex - ищем минимум username (смягчен до 1+ символов)
-        const basicMatch = query.match(/^duel\s+@?(\w+)(?:\s+(\d+))?(?:\s+(🎲|🎯|⚽|🏀|🎳|🎰|dice|darts|football|basketball|bowling|slots?))?(?:\s*(bo[1357]))?$/i);
+        const basicMatch = query.match(/^duel\s+@?(\w+)(?:\s+(\d+))?(?:\s+(🎲|🎯|⚽|⚽️|🏀|🎳|🎰|dice|darts|football|basketball|bowling|slots?))?(?:\s*(bo[1357]))?$/i);
         
         if (basicMatch) {
           duelMatch = basicMatch;

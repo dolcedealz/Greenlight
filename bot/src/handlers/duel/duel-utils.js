@@ -89,15 +89,23 @@ function convertGameNameToEmoji(gameName) {
   const gameMap = {
     'dice': '🎲',
     'darts': '🎯', 
-    'football': '⚽',
+    'football': '⚽️',
     'basketball': '🏀',
     'bowling': '🎳',
     'slots': '🎰',
-    'slot': '🎰'
+    'slot': '🎰',
+    // Поддержка прямых эмодзи
+    '🎲': '🎲',
+    '🎯': '🎯',
+    '⚽': '⚽️',
+    '⚽️': '⚽️',
+    '🏀': '🏀',
+    '🎳': '🎳',
+    '🎰': '🎰'
   };
   
   const normalizedName = gameName.toLowerCase();
-  return gameMap[normalizedName] || gameName; // Если эмодзи, возвращаем как есть
+  return gameMap[normalizedName] || gameMap[gameName] || gameName;
 }
 
 /**

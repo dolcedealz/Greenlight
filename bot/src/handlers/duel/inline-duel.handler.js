@@ -1,7 +1,7 @@
 // bot/src/handlers/duel/inline-duel.handler.js
 
 const { Markup } = require('telegraf');
-const { validateDuelParams, generateShortId, getGameConfig, formatDuelMessage, convertGameNameToEmoji } = require('./duel-utils');
+const { validateDuelParams, generateShortId, getGameConfig, getFormatConfig, formatDuelMessage, convertGameNameToEmoji } = require('./duel-utils');
 const duelGameHandler = require('./duel-game.handler');
 const apiService = require('../../services/api.service');
 
@@ -290,7 +290,7 @@ class InlineDuelHandler {
               `💰 Ставка: ${createdDuel.amount} USDT каждый\n` +
               `🏆 Формат: ${createdDuel.format.toUpperCase()}\n\n` +
               `📱 Игра начинается в личных сообщениях бота!\n\n` +
-              `🎮 Перейти в бот: @Greenlightgames_bot`,
+              `🎮 Перейти в бот: \\@Greenlightgames_bot`,
               { parse_mode: 'Markdown' }
             );
           } catch (editError) {
@@ -400,7 +400,7 @@ class InlineDuelHandler {
                          `💰 Банк: ${duel.totalAmount} USDT\n` +
                          `📊 Счёт: ${duel.challengerScore}:${duel.opponentScore}\n\n` +
                          `🎯 **Ход: @${currentPlayerUsername}**\n\n` +
-                         `🤖 @Greenlightgames_bot`;
+                         `🤖 \\@Greenlightgames_bot`;
       
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback(`${gameConfig.emoji} ${gameConfig.actionText}`, `play_game_${sessionId}`)],

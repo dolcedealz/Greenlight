@@ -307,7 +307,7 @@ class GroupDuelHandler {
                          `💰 Банк: ${duel.totalAmount} USDT\n` +
                          `📊 Счёт: ${duel.challengerScore}:${duel.opponentScore}\n\n` +
                          `🎯 **Ход: @${currentPlayer.currentPlayerUsername}**\n\n` +
-                         `🤖 @Greenlightgames_bot`;
+                         `🤖 \\@Greenlightgames_bot`;
       
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback(`${gameConfig.emoji} Ход @${currentPlayer.currentPlayerUsername}`, `group_move_${sessionId}`)],
@@ -462,7 +462,7 @@ class GroupDuelHandler {
                            `🎯 Последний ход: @${lastPlayerUsername} [${lastResult}]\n\n` +
                            (roundsText ? roundsText + '\n' : '') +
                            `🎯 **Ход: @${currentPlayer.currentPlayerUsername}**\n\n` +
-                           `🤖 @Greenlightgames_bot`;
+                           `🤖 \\@Greenlightgames_bot`;
         
         const keyboard = Markup.inlineKeyboard([
           [Markup.button.callback(`${gameConfig.emoji} Ход @${currentPlayer.currentPlayerUsername}`, `group_move_${sessionId}`)],

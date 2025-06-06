@@ -366,6 +366,143 @@ function registerCallbackHandlers(bot) {
     );
   });
 
+  // ========== ФИНАНСОВЫЕ ОБРАБОТЧИКИ ==========
+
+  // Обработчик для кнопки "Финансы"
+  bot.action('finances_menu', async (ctx) => {
+    try {
+      await ctx.editMessageText(
+        '💰 *Управление финансами*',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '📊 Текущее состояние', callback_data: 'finance_current_state' },
+                { text: '📈 Финансовый отчет', callback_data: 'finance_report' }
+              ],
+              [
+                { text: '🔄 Пересчитать финансы', callback_data: 'finance_recalculate' },
+                { text: '⚙️ Настроить резерв', callback_data: 'finance_set_reserve' }
+              ],
+              [
+                { text: '💸 Вывод прибыли', callback_data: 'finance_withdraw_profit' },
+                { text: '📝 История балансов', callback_data: 'finance_balance_history' }
+              ],
+              [
+                { text: '🎮 Статистика игр', callback_data: 'finance_game_stats' }
+              ],
+              [
+                { text: '🔙 Назад', callback_data: 'main_menu' }
+              ]
+            ]
+          }
+        }
+      );
+    } catch (error) {
+      console.error('ADMIN: Ошибка в finances_menu:', error);
+      await ctx.reply('❌ Ошибка при загрузке меню финансов');
+    }
+  });
+
+  // Обработчик для вывода прибыли владельца
+  bot.action('finance_withdraw_profit', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      
+      // Сначала получаем текущее состояние финансов
+      const response = await apiService.get('/admin/finance/current-state');
+      
+      if (!response.success) {
+        await ctx.reply('❌ Ошибка при получении данных о финансах');
+        return;
+      }
+      
+      const finance = response.data;
+      const available = finance.balances.availableForWithdrawal;
+      
+      if (available <= 0) {
+        await ctx.editMessageText(
+          '💸 *Вывод прибыли владельца*\n\n' +
+          '❌ Нет доступной прибыли для вывода.\n\n' +
+          `💰 Доступно: *${available.toFixed(2)} USDT*`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🔙 Назад к финансам', callback_data: 'finances_menu' }]
+              ]
+            }
+          }
+        );
+        return;
+      }
+      
+      await ctx.editMessageText(
+        '💸 *Вывод прибыли владельца*\n\n' +
+        `💰 Доступно для вывода: *${available.toFixed(2)} USDT*\n\n` +
+        '📝 Введите сумму для вывода:',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: `💯 Вывести всё (${available.toFixed(2)})`, callback_data: `withdraw_profit_amount_${available}` }
+              ],
+              [
+                { text: '🔙 Отмена', callback_data: 'finances_menu' }
+              ]
+            ]
+          }
+        }
+      );
+      
+      // Устанавливаем состояние сессии
+      ctx.session.withdrawingProfit = {
+        step: 'amount',
+        availableAmount: available
+      };
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка в finance_withdraw_profit:', error);
+      await ctx.reply('❌ Ошибка при загрузке данных о выводе прибыли');
+    }
+  });
+
+  // Обработчик для быстрого вывода всей суммы
+  bot.action(/^withdraw_profit_amount_(.+)$/, async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      
+      const amount = parseFloat(ctx.match[1]);
+      
+      if (!ctx.session.withdrawingProfit) {
+        ctx.session.withdrawingProfit = {};
+      }
+      
+      ctx.session.withdrawingProfit.amount = amount;
+      ctx.session.withdrawingProfit.step = 'recipient';
+      
+      await ctx.editMessageText(
+        '💸 *Вывод прибыли владельца*\n\n' +
+        `💰 Сумма: *${amount.toFixed(2)} USDT*\n\n` +
+        '📧 Введите адрес получателя (кошелек):',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🔙 Отмена', callback_data: 'finances_menu' }]
+            ]
+          }
+        }
+      );
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка в withdraw_profit_amount:', error);
+      await ctx.reply('❌ Ошибка при обработке суммы');
+    }
+  });
+
   console.log('✅ Callback handlers зарегистрированы');
 }
 

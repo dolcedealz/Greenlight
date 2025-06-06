@@ -2,29 +2,37 @@
 const authService = require('../services/auth.service');
 
 /**
- * >=B@>;;5@ 0CB5=B8D8:0F88 4;O Telegram Mini App
+ * Контроллер аутентификации для Telegram Mini App
  */
 class AuthController {
   /**
-   * CB5=B8D8:0F8O ?>;L7>20B5;O G5@57 Telegram WebApp
-   * @param {Object} req - 0?@>A Express
-   * @param {Object} res - B25B Express
+   * Аутентификация пользователя через Telegram WebApp
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
    */
   async authenticateWithTelegram(req, res) {
     try {
-      const { initData, referralCode } = req.body;
+      const { user, initData, referralCode } = req.body;
 
-      if (!initData) {
+      // Поддерживаем оба формата - новый (user) и старый (initData)
+      if (!user && !initData) {
         return res.status(400).json({
           success: false,
-          message: 'BACBAB2CNB 40==K5 8=8F80;870F88 Telegram'
+          message: 'Отсутствуют данные инициализации Telegram'
         });
       }
 
-      console.log('= AUTH CONTROLLER: >;CG5= 70?@>A =0 0CB5=B8D8:0F8N');
+      console.log('AUTH CONTROLLER: Получен запрос на аутентификацию');
 
-      // CB5=B8D8F8@C5< ?>;L7>20B5;O
-      const result = await authService.authenticateUser(initData, referralCode);
+      let result;
+      
+      if (user) {
+        // Новый формат - прямой объект пользователя
+        result = await authService.authenticateUserDirect(user, referralCode);
+      } else {
+        // Старый формат - initData
+        result = await authService.authenticateUser(initData, referralCode);
+      }
 
       if (!result.success) {
         return res.status(401).json({
@@ -33,30 +41,30 @@ class AuthController {
         });
       }
 
-      // >72@0I05< CA?5H=K9 @57C;LB0B
+      // Возвращаем успешный результат
       res.status(200).json({
         success: true,
         data: {
           user: result.user,
           token: result.token
         },
-        message: 'CB5=B8D8:0F8O CA?5H=0'
+        message: 'Аутентификация успешна'
       });
 
     } catch (error) {
-      console.error('L AUTH CONTROLLER: H81:0 0CB5=B8D8:0F88:', error);
+      console.error('AUTH CONTROLLER: Ошибка аутентификации:', error);
       
       res.status(500).json({
         success: false,
-        message: '=CB@5==OO >H81:0 A5@25@0'
+        message: 'Внутренняя ошибка сервера'
       });
     }
   }
 
   /**
-   * 1=>2;5=85 B>:5=0 ?>;L7>20B5;O
-   * @param {Object} req - 0?@>A Express
-   * @param {Object} res - B25B Express
+   * Обновление токена пользователя
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
    */
   async refreshToken(req, res) {
     try {
@@ -65,7 +73,7 @@ class AuthController {
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
           success: false,
-          message: 'BACBAB2C5B B>:5= 02B>@870F88'
+          message: 'Отсутствует токен авторизации'
         });
       }
 
@@ -75,26 +83,26 @@ class AuthController {
       if (!decoded) {
         return res.status(401).json({
           success: false,
-          message: '520;84=K9 B>:5='
+          message: 'Невалидный токен'
         });
       }
 
-      // 0E>48< ?>;L7>20B5;O
+      // Находим пользователя
       const { User } = require('../models');
       const user = await User.findById(decoded.userId);
 
       if (!user || user.isBlocked) {
         return res.status(401).json({
           success: false,
-          message: '>;L7>20B5;L =5 =0945= 8;8 701;>:8@>20='
+          message: 'Пользователь не найден или заблокирован'
         });
       }
 
-      // 1=>2;O5< 2@5<O ?>A;54=59 0:B82=>AB8
+      // Обновляем время последней активности
       user.lastActivity = new Date();
       await user.save();
 
-      // !>7405< =>2K9 B>:5=
+      // Создаем новый токен
       const newToken = authService.generateJWT(user);
 
       res.status(200).json({
@@ -115,37 +123,37 @@ class AuthController {
             lastActivity: user.lastActivity
           }
         },
-        message: '">:5= >1=>2;5='
+        message: 'Токен обновлен'
       });
 
     } catch (error) {
-      console.error('L AUTH CONTROLLER: H81:0 >1=>2;5=8O B>:5=0:', error);
+      console.error('AUTH CONTROLLER: Ошибка обновления токена:', error);
       
       res.status(500).json({
         success: false,
-        message: '=CB@5==OO >H81:0 A5@25@0'
+        message: 'Внутренняя ошибка сервера'
       });
     }
   }
 
   /**
-   * >;CG5=85 8=D>@<0F88 > B5:CI5< ?>;L7>20B5;5
-   * @param {Object} req - 0?@>A Express
-   * @param {Object} res - B25B Express
+   * Получение информации о текущем пользователе
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
    */
   async getCurrentUser(req, res) {
     try {
-      // >;L7>20B5;L C65 CAB0=>2;5= 2 middleware
+      // Пользователь уже установлен в middleware
       const user = req.user;
 
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: '>;L7>20B5;L =5 02B>@87>20='
+          message: 'Пользователь не авторизован'
         });
       }
 
-      // 1=>2;O5< 2@5<O ?>A;54=59 0:B82=>AB8
+      // Обновляем время последней активности
       user.lastActivity = new Date();
       await user.save();
 
@@ -171,19 +179,19 @@ class AuthController {
       });
 
     } catch (error) {
-      console.error('L AUTH CONTROLLER: H81:0 ?>;CG5=8O ?>;L7>20B5;O:', error);
+      console.error('AUTH CONTROLLER: Ошибка получения пользователя:', error);
       
       res.status(500).json({
         success: false,
-        message: '=CB@5==OO >H81:0 A5@25@0'
+        message: 'Внутренняя ошибка сервера'
       });
     }
   }
 
   /**
-   * 0;840F8O Telegram WebApp 40==KE (4;O >B;04:8)
-   * @param {Object} req - 0?@>A Express
-   * @param {Object} res - B25B Express
+   * Валидация Telegram WebApp данных (для отладки)
+   * @param {Object} req - Запрос Express
+   * @param {Object} res - Ответ Express
    */
   async validateTelegramData(req, res) {
     try {
@@ -192,7 +200,7 @@ class AuthController {
       if (!initData) {
         return res.status(400).json({
           success: false,
-          message: 'BACBAB2CNB 40==K5 4;O 20;840F88'
+          message: 'Отсутствуют данные для валидации'
         });
       }
 
@@ -204,7 +212,7 @@ class AuthController {
       if (!telegramData) {
         return res.status(400).json({
           success: false,
-          message: '520;84=K5 40==K5 Telegram'
+          message: 'Невалидные данные Telegram'
         });
       }
 
@@ -214,15 +222,15 @@ class AuthController {
           valid: true,
           userData: telegramData
         },
-        message: '0==K5 Telegram 20;84=K'
+        message: 'Данные Telegram валидны'
       });
 
     } catch (error) {
-      console.error('L AUTH CONTROLLER: H81:0 20;840F88 40==KE:', error);
+      console.error('AUTH CONTROLLER: Ошибка валидации данных:', error);
       
       res.status(500).json({
         success: false,
-        message: '=CB@5==OO >H81:0 A5@25@0'
+        message: 'Внутренняя ошибка сервера'
       });
     }
   }

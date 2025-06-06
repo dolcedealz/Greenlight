@@ -4,37 +4,37 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
 /**
- * !5@28A 0CB5=B8D8:0F88 4;O Telegram Mini App
+ * Сервис аутентификации для Telegram Mini App
  */
 class AuthService {
   /**
-   * 0;840F8O 40==KE Telegram WebApp
-   * @param {string} initData - 0==K5 8=8F80;870F88 >B Telegram
-   * @param {string} botToken - ">:5= 1>B0
-   * @returns {Object|null} - 0==K5 ?>;L7>20B5;O 8;8 null 5A;8 =520;84=>
+   * Валидация данных Telegram WebApp
+   * @param {string} initData - Данные инициализации от Telegram
+   * @param {string} botToken - Токен бота
+   * @returns {Object|null} - Данные пользователя или null если невалидно
    */
   validateTelegramWebAppData(initData, botToken) {
     try {
-      console.log('= AUTH SERVICE: 0;840F8O Telegram WebApp 40==KE');
+      console.log('AUTH SERVICE: Валидация Telegram WebApp данных');
       
       if (!initData || !botToken) {
-        console.error('L AUTH SERVICE: BACBAB2CNB initData 8;8 botToken');
+        console.error('AUTH SERVICE: Отсутствуют initData или botToken');
         return null;
       }
 
-      // 0@A8< 40==K5 87 initData
+      // Парсим данные из initData
       const urlParams = new URLSearchParams(initData);
       const hash = urlParams.get('hash');
       
       if (!hash) {
-        console.error('L AUTH SERVICE: BACBAB2C5B hash 2 initData');
+        console.error('AUTH SERVICE: Отсутствует hash в initData');
         return null;
       }
 
-      // #18@05< hash 87 ?0@0<5B@>2 4;O 20;840F88
+      // Убираем hash из параметров для валидации
       urlParams.delete('hash');
       
-      // !>@B8@C5< ?0@0<5B@K 8 A>7405< AB@>:C 4;O 20;840F88
+      // Сортируем параметры и создаем строку для валидации
       const dataCheckArray = [];
       for (const [key, value] of urlParams.entries()) {
         dataCheckArray.push(`${key}=${value}`);
@@ -42,44 +42,44 @@ class AuthService {
       dataCheckArray.sort();
       const dataCheckString = dataCheckArray.join('\n');
 
-      // !>7405< A5:@5B=K9 :;NG 87 B>:5=0 1>B0
+      // Создаем секретный ключ из токена бота
       const secretKey = crypto
         .createHmac('sha256', 'WebAppData')
         .update(botToken)
         .digest();
 
-      // KG8A;O5< >68405<K9 hash
+      // Вычисляем ожидаемый hash
       const expectedHash = crypto
         .createHmac('sha256', secretKey)
         .update(dataCheckString)
         .digest('hex');
 
-      // @>25@O5< hash
+      // Проверяем hash
       if (hash !== expectedHash) {
-        console.error('L AUTH SERVICE: 520;84=K9 hash');
+        console.error('AUTH SERVICE: Невалидный hash');
         return null;
       }
 
-      // 0@A8< 40==K5 ?>;L7>20B5;O
+      // Парсим данные пользователя
       const userDataString = urlParams.get('user');
       if (!userDataString) {
-        console.error('L AUTH SERVICE: BACBAB2CNB 40==K5 ?>;L7>20B5;O');
+        console.error('AUTH SERVICE: Отсутствуют данные пользователя');
         return null;
       }
 
       const userData = JSON.parse(userDataString);
       
-      // @>25@O5< auth_date (40==K5 =5 4>;6=K 1KBL AB0@H5 24 G0A>2)
+      // Проверяем auth_date (данные не должны быть старше 24 часов)
       const authDate = parseInt(urlParams.get('auth_date'));
       const currentTime = Math.floor(Date.now() / 1000);
-      const maxAge = 24 * 60 * 60; // 24 G0A0 2 A5:C=40E
+      const maxAge = 24 * 60 * 60; // 24 часа в секундах
 
       if (currentTime - authDate > maxAge) {
-        console.error('L AUTH SERVICE: 0==K5 02B>@870F88 CAB0@5;8');
+        console.error('AUTH SERVICE: Данные авторизации устарели');
         return null;
       }
 
-      console.log(' AUTH SERVICE: Telegram 40==K5 20;84=K');
+      console.log('AUTH SERVICE: Telegram данные валидны');
       return {
         telegramId: userData.id,
         username: userData.username,
@@ -93,25 +93,25 @@ class AuthService {
       };
 
     } catch (error) {
-      console.error('L AUTH SERVICE: H81:0 20;840F88 Telegram 40==KE:', error);
+      console.error('AUTH SERVICE: Ошибка валидации Telegram данных:', error);
       return null;
     }
   }
 
   /**
-   * >;CG8BL 8;8 A>740BL ?>;L7>20B5;O ?> Telegram 40==K<
-   * @param {Object} telegramData - 0;848@>20==K5 40==K5 Telegram
-   * @param {string} referralCode -  5D5@0;L=K9 :>4 (>?F8>=0;L=>)
-   * @returns {Promise<Object>} - >;L7>20B5;L
+   * Получить или создать пользователя по Telegram данным
+   * @param {Object} telegramData - Валидированные данные Telegram
+   * @param {string} referralCode - Реферальный код (опционально)
+   * @returns {Promise<Object>} - Пользователь
    */
   async getOrCreateUser(telegramData, referralCode = null) {
     try {
-      console.log(`= AUTH SERVICE: >8A: ?>;L7>20B5;O A Telegram ID: ${telegramData.telegramId}`);
+      console.log(`AUTH SERVICE: Поиск пользователя с Telegram ID: ${telegramData.telegramId}`);
       
       let user = await User.findOne({ telegramId: telegramData.telegramId });
       
       if (user) {
-        // 1=>2;O5< 40==K5 ACI5AB2CNI53> ?>;L7>20B5;O
+        // Обновляем данные существующего пользователя
         user.username = telegramData.username || user.username;
         user.firstName = telegramData.firstName || user.firstName;
         user.lastName = telegramData.lastName || user.lastName;
@@ -119,13 +119,13 @@ class AuthService {
         user.lastActivity = new Date();
         
         await user.save();
-        console.log(` AUTH SERVICE: >;L7>20B5;L >1=>2;5=: ${user.username || user.telegramId}`);
+        console.log(`AUTH SERVICE: Пользователь обновлен: ${user.username || user.telegramId}`);
         
         return user;
       }
 
-      // !>7405< =>2>3> ?>;L7>20B5;O
-      console.log(`=d AUTH SERVICE: !>740=85 =>2>3> ?>;L7>20B5;O`);
+      // Создаем нового пользователя
+      console.log(`AUTH SERVICE: Создание нового пользователя`);
       
       const newUserData = {
         telegramId: telegramData.telegramId,
@@ -139,7 +139,7 @@ class AuthService {
         isBlocked: false,
         registeredAt: new Date(),
         lastActivity: new Date(),
-        // 0AB@>9:8 ?> C<>;G0=8N
+        // Настройки по умолчанию
         settings: {
           soundEnabled: true,
           vibrationEnabled: true,
@@ -147,7 +147,7 @@ class AuthService {
         }
       };
 
-      // 1@010BK205< @5D5@0;L=K9 :>4
+      // Обрабатываем реферальный код
       if (referralCode) {
         try {
           const referrer = await User.findOne({ 
@@ -157,30 +157,30 @@ class AuthService {
           
           if (referrer && referrer.telegramId !== telegramData.telegramId) {
             newUserData.referredBy = referrer._id;
-            console.log(`=e AUTH SERVICE: >;L7>20B5;L ?@83;0H5= ?> @5D5@0;L=><C :>4C: ${referralCode}`);
+            console.log(`AUTH SERVICE: Пользователь приглашен по реферальному коду: ${referralCode}`);
           }
         } catch (refError) {
-          console.error('� AUTH SERVICE: H81:0 >1@01>B:8 @5D5@0;L=>3> :>40:', refError);
-          // 5 ?@5@K205< A>740=85 ?>;L7>20B5;O 87-70 >H81:8 2 @5D5@0;L=>9 A8AB5<5
+          console.error('AUTH SERVICE: Ошибка обработки реферального кода:', refError);
+          // Не прерываем создание пользователя из-за ошибки в реферальной системе
         }
       }
 
       user = new User(newUserData);
       await user.save();
 
-      console.log(` AUTH SERVICE: >2K9 ?>;L7>20B5;L A>740=: ${user.username || user.telegramId}`);
+      console.log(`AUTH SERVICE: Новый пользователь создан: ${user.username || user.telegramId}`);
       return user;
 
     } catch (error) {
-      console.error('L AUTH SERVICE: H81:0 A>740=8O/?>;CG5=8O ?>;L7>20B5;O:', error);
-      throw new Error('H81:0 0CB5=B8D8:0F88 ?>;L7>20B5;O');
+      console.error('AUTH SERVICE: Ошибка создания/получения пользователя:', error);
+      throw new Error('Ошибка аутентификации пользователя');
     }
   }
 
   /**
-   * !>740BL JWT B>:5= 4;O ?>;L7>20B5;O
-   * @param {Object} user - >;L7>20B5;L
-   * @returns {string} - JWT B>:5=
+   * Создать JWT токен для пользователя
+   * @param {Object} user - Пользователь
+   * @returns {string} - JWT токен
    */
   generateJWT(user) {
     try {
@@ -201,19 +201,19 @@ class AuthService {
         }
       );
 
-      console.log(`= AUTH SERVICE: JWT B>:5= A>740= 4;O ?>;L7>20B5;O: ${user.username || user.telegramId}`);
+      console.log(`AUTH SERVICE: JWT токен создан для пользователя: ${user.username || user.telegramId}`);
       return token;
 
     } catch (error) {
-      console.error('L AUTH SERVICE: H81:0 A>740=8O JWT B>:5=0:', error);
-      throw new Error('H81:0 A>740=8O B>:5=0');
+      console.error('AUTH SERVICE: Ошибка создания JWT токена:', error);
+      throw new Error('Ошибка создания токена');
     }
   }
 
   /**
-   * 0;848@>20BL JWT B>:5=
-   * @param {string} token - JWT B>:5=
-   * @returns {Object|null} - 5:>48@>20==K5 40==K5 8;8 null
+   * Валидировать JWT токен
+   * @param {string} token - JWT токен
+   * @returns {Object|null} - Декодированные данные или null
    */
   validateJWT(token) {
     try {
@@ -234,63 +234,66 @@ class AuthService {
 
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
-        console.warn('� AUTH SERVICE: JWT B>:5= 8AB5:');
+        console.warn('AUTH SERVICE: JWT токен истек');
       } else if (error.name === 'JsonWebTokenError') {
-        console.warn('� AUTH SERVICE: 520;84=K9 JWT B>:5=');
+        console.warn('AUTH SERVICE: Невалидный JWT токен');
       } else {
-        console.error('L AUTH SERVICE: H81:0 20;840F88 JWT:', error);
+        console.error('AUTH SERVICE: Ошибка валидации JWT:', error);
       }
       return null;
     }
   }
 
   /**
-   * @>25@8BL ?@020 04<8=8AB@0B>@0
-   * @param {Object} user - >;L7>20B5;L
-   * @returns {boolean} - /2;O5BAO ;8 04<8=8AB@0B>@><
+   * Проверить права администратора
+   * @param {Object} user - Пользователь
+   * @returns {boolean} - Является ли администратором
    */
   isAdmin(user) {
     if (!user || !user.telegramId) {
       return false;
     }
 
-    // !?8A>: 04<8=>2 87 ?5@5<5==KE >:@C65=8O
+    // Список админов из переменных окружения
     const adminIds = (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim());
     return adminIds.includes(user.telegramId.toString());
   }
 
   /**
-   * >;=0O 0CB5=B8D8:0F8O ?>;L7>20B5;O 4;O Telegram Mini App
-   * @param {string} initData - 0==K5 8=8F80;870F88 >B Telegram
-   * @param {string} referralCode -  5D5@0;L=K9 :>4 (>?F8>=0;L=>)
-   * @returns {Promise<Object>} -  57C;LB0B 0CB5=B8D8:0F88
+   * Аутентификация пользователя через прямой объект (без валидации initData)
+   * @param {Object} telegramUser - Объект пользователя Telegram
+   * @param {string} referralCode - Реферальный код (опционально)
+   * @returns {Promise<Object>} - Результат аутентификации
    */
-  async authenticateUser(initData, referralCode = null) {
+  async authenticateUserDirect(telegramUser, referralCode = null) {
     try {
-      console.log('=� AUTH SERVICE: 0G0;> 0CB5=B8D8:0F88 ?>;L7>20B5;O');
+      console.log('AUTH SERVICE: Прямая аутентификация пользователя');
 
-      // 0;848@C5< Telegram 40==K5
-      const telegramData = this.validateTelegramWebAppData(
-        initData,
-        process.env.TELEGRAM_BOT_TOKEN
-      );
-
-      if (!telegramData) {
-        throw new Error('520;84=K5 40==K5 Telegram');
+      if (!telegramUser || !telegramUser.id) {
+        throw new Error('Невалидные данные пользователя Telegram');
       }
 
-      // >;CG05< 8;8 A>7405< ?>;L7>20B5;O
+      // Преобразуем данные в формат telegramData
+      const telegramData = {
+        telegramId: telegramUser.id,
+        username: telegramUser.username,
+        firstName: telegramUser.first_name,
+        lastName: telegramUser.last_name,
+        languageCode: telegramUser.language_code
+      };
+
+      // Получаем или создаем пользователя
       const user = await this.getOrCreateUser(telegramData, referralCode);
 
-      // @>25@O5<, =5 701;>:8@>20= ;8 ?>;L7>20B5;L
+      // Проверяем, не заблокирован ли пользователь
       if (user.isBlocked) {
-        throw new Error('>;L7>20B5;L 701;>:8@>20=');
+        throw new Error('Пользователь заблокирован');
       }
 
-      // !>7405< JWT B>:5=
+      // Создаем JWT токен
       const token = this.generateJWT(user);
 
-      console.log(' AUTH SERVICE: CB5=B8D8:0F8O CA?5H=0');
+      console.log('AUTH SERVICE: Прямая аутентификация успешна');
 
       return {
         success: true,
@@ -312,7 +315,68 @@ class AuthService {
       };
 
     } catch (error) {
-      console.error('L AUTH SERVICE: H81:0 0CB5=B8D8:0F88:', error);
+      console.error('AUTH SERVICE: Ошибка прямой аутентификации:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Полная аутентификация пользователя для Telegram Mini App
+   * @param {string} initData - Данные инициализации от Telegram
+   * @param {string} referralCode - Реферальный код (опционально)
+   * @returns {Promise<Object>} - Результат аутентификации
+   */
+  async authenticateUser(initData, referralCode = null) {
+    try {
+      console.log('AUTH SERVICE: Начало аутентификации пользователя');
+
+      // Валидируем Telegram данные
+      const telegramData = this.validateTelegramWebAppData(
+        initData,
+        process.env.TELEGRAM_BOT_TOKEN
+      );
+
+      if (!telegramData) {
+        throw new Error('Невалидные данные Telegram');
+      }
+
+      // Получаем или создаем пользователя
+      const user = await this.getOrCreateUser(telegramData, referralCode);
+
+      // Проверяем, не заблокирован ли пользователь
+      if (user.isBlocked) {
+        throw new Error('Пользователь заблокирован');
+      }
+
+      // Создаем JWT токен
+      const token = this.generateJWT(user);
+
+      console.log('AUTH SERVICE: Аутентификация успешна');
+
+      return {
+        success: true,
+        user: {
+          id: user._id,
+          telegramId: user.telegramId,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          balance: user.balance,
+          totalWagered: user.totalWagered,
+          totalWon: user.totalWon,
+          referralCode: user.referralCode,
+          isAdmin: this.isAdmin(user),
+          registeredAt: user.registeredAt,
+          lastActivity: user.lastActivity
+        },
+        token
+      };
+
+    } catch (error) {
+      console.error('AUTH SERVICE: Ошибка аутентификации:', error);
       return {
         success: false,
         error: error.message

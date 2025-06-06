@@ -75,18 +75,21 @@ const MinesControls = ({
 
   // Расчет максимального возможного выигрыша
   const maxPossibleWin = useMemo(() => {
-    const maxMultiplier = getMaxMultiplier(minesCount);
+    const safeMinesCount = minesCount || 5;
+    const maxMultiplier = getMaxMultiplier(safeMinesCount);
     return betAmount * maxMultiplier;
   }, [betAmount, minesCount]);
 
   // Получаем максимальный множитель для отображения
   const maxMultiplier = useMemo(() => {
-    return getMaxMultiplier(minesCount);
+    const safeMinesCount = minesCount || 5;
+    return getMaxMultiplier(safeMinesCount);
   }, [minesCount]);
 
   // Получаем количество безопасных ячеек, которые нужно открыть для максимального выигрыша
   const maxSafeCells = useMemo(() => {
-    const table = payoutTables[minesCount];
+    const safeMinesCount = minesCount || 5;
+    const table = payoutTables[safeMinesCount];
     if (!table) return 0;
     return Math.max(...Object.keys(table).map(Number));
   }, [minesCount]);
@@ -130,7 +133,7 @@ const MinesControls = ({
   };
   
   // Для отображения в интерфейсе
-  const safeTotal = 25 - minesCount;
+  const safeTotal = 25 - (minesCount || 5);
   
   return (
     <div className="mines-controls">
@@ -184,7 +187,7 @@ const MinesControls = ({
       
       <div className="mines-count-section">
         <div className="mines-count-control">
-          <label>Количество мин: <span className="selected-mines-count">{minesCount}</span></label>
+          <label>Количество мин: <span className="selected-mines-count">{minesCount || 5}</span></label>
         </div>
         
         {/* Отображение максимального возможного выигрыша с коэффициентами -5% */}

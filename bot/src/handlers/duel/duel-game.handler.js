@@ -39,13 +39,52 @@ class DuelGameHandler {
       const telegramEmoji = getTelegramDiceEmoji(duel.gameType);
       
       console.log(`🎲 DEBUG DICE: Используем gameType="${duel.gameType}" -> display="${gameConfig.emoji}" -> telegram="${telegramEmoji}" (${gameConfig.name})`);
+      console.log(`🔍 DEBUG DETAILED: gameType bytes=[${Array.from(duel.gameType).map(c => c.charCodeAt(0)).join(',')}], telegramEmoji bytes=[${Array.from(telegramEmoji).map(c => c.charCodeAt(0)).join(',')}]`);
       
       await ctx.answerCbQuery(`${gameConfig.emoji} ${gameConfig.processText}`);
       
       // Отправляем соответствующий Telegram dice
       // ВАЖНО: replyWithDice принимает базовый emoji без variation selector
-      const diceMessage = await ctx.replyWithDice(telegramEmoji);
+      
+      // Дополнительная проверка для футбола
+      if (telegramEmoji === '⚽') {
+        console.log(`🔍 FOOTBALL CHECK: Отправляем именно футбольный dice ⚽`);
+        console.log(`🔍 gameType was: "${duel.gameType}", converted to: "${telegramEmoji}"`);
+      }
+      
+      // Попробуем разные способы отправки dice
+      console.log(`🚀 TRYING: ctx.replyWithDice("${telegramEmoji}")`);
+      let diceMessage;
+      
+      try {
+        // Способ 1: Через replyWithDice с emoji в опциях
+        diceMessage = await ctx.replyWithDice({ emoji: telegramEmoji });
+        console.log(`✅ SUCCESS: replyWithDice с emoji в опциях`);
+      } catch (error) {
+        console.log(`❌ FAILED: replyWithDice с emoji в опциях:`, error.message);
+        
+        try {
+          // Способ 2: Через прямой вызов sendDice API
+          diceMessage = await ctx.telegram.sendDice(ctx.chat.id, telegramEmoji);
+          console.log(`✅ SUCCESS: sendDice с emoji как второй параметр`);
+        } catch (error2) {
+          console.log(`❌ FAILED: sendDice как второй параметр:`, error2.message);
+          
+          try {
+            // Способ 3: Через sendDice с объектом
+            diceMessage = await ctx.telegram.sendDice(ctx.chat.id, { emoji: telegramEmoji });
+            console.log(`✅ SUCCESS: sendDice с emoji объектом`);
+          } catch (error3) {
+            console.log(`❌ FAILED: sendDice с emoji объектом:`, error3.message);
+            
+            // Способ 4: Fallback на базовый replyWithDice (всегда кости)
+            diceMessage = await ctx.replyWithDice();
+            console.log(`⚠️ FALLBACK: базовый replyWithDice без параметров - всегда кости!`);
+          }
+        }
+      }
       console.log(`🎲 DEBUG DICE: Отправлен ${telegramEmoji}, получен результат ${diceMessage.dice.value}`);
+      console.log(`🔍 DICE OBJECT:`, JSON.stringify(diceMessage.dice, null, 2));
       let gameResult = diceMessage.dice.value;
       
       // Корректируем результат для игр с ограниченным диапазоном

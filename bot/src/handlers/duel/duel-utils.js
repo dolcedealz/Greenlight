@@ -94,7 +94,15 @@ function getTelegramDiceEmoji(gameType) {
     '🎰': '🎰'
   };
   
-  return telegramEmojiMap[gameType] || '🎲';
+  const result = telegramEmojiMap[gameType];
+  if (!result) {
+    console.log(`⚠️ FALLBACK: gameType="${gameType}" не найден в telegramEmojiMap, используем 🎲`);
+    console.log(`🔍 Доступные ключи:`, Object.keys(telegramEmojiMap));
+    return '🎲';
+  }
+  
+  console.log(`✅ MAPPING: gameType="${gameType}" -> telegram="${result}"`);
+  return result;
 }
 
 /**

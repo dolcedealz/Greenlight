@@ -429,4 +429,151 @@ async function testNotificationSystem() {
   }
 }
 
+// === БЕЗОПАСНОСТЬ ===
+
+/**
+ * GET /api/admin/security/alerts
+ * Получение системных алертов безопасности
+ */
+router.get('/security/alerts', async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      data: {
+        alerts: [
+          {
+            id: 1,
+            type: 'warning',
+            message: 'Высокая нагрузка на систему',
+            timestamp: new Date(),
+            resolved: false
+          }
+        ],
+        total: 1
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения алертов'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/security/audit
+ * Получение журнала аудита
+ */
+router.get('/security/audit', async (req, res) => {
+  try {
+    const { page = 1, limit = 15 } = req.query;
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        logs: [
+          {
+            id: 1,
+            action: 'login',
+            user: 'admin',
+            timestamp: new Date(),
+            ip: req.ip,
+            details: 'Успешный вход в систему'
+          }
+        ],
+        total: 1,
+        currentPage: parseInt(page),
+        totalPages: 1
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения журнала аудита'
+    });
+  }
+});
+
+// === УВЕДОМЛЕНИЯ ===
+
+/**
+ * POST /api/admin/notifications/audience-stats
+ * Получение статистики аудитории для уведомлений
+ */
+router.post('/notifications/audience-stats', async (req, res) => {
+  try {
+    const { audienceType } = req.body;
+    
+    // Заглушка для статистики аудитории
+    let stats = {
+      total: 100,
+      active: 80,
+      inactive: 20
+    };
+    
+    switch (audienceType) {
+      case 'all':
+        stats = { total: 100, description: 'Все пользователи' };
+        break;
+      case 'active':
+        stats = { total: 80, description: 'Активные пользователи' };
+        break;
+      case 'vip':
+        stats = { total: 10, description: 'VIP пользователи' };
+        break;
+      default:
+        stats = { total: 0, description: 'Неизвестная аудитория' };
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        audienceStats: stats,
+        estimatedReach: stats.total,
+        audienceType
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения статистики аудитории'
+    });
+  }
+});
+
+// === СТАТИСТИКА КОЭФФИЦИЕНТОВ ===
+
+/**
+ * GET /api/admin/odds/statistics
+ * Получение статистики модификаторов коэффициентов
+ */
+router.get('/odds/statistics', async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      data: {
+        globalModifiers: {
+          coin: { active: false, value: 0 },
+          crash: { active: true, value: -10 },
+          mines: { active: false, value: 0 },
+          slots: { active: false, value: 0 }
+        },
+        userModifiers: {
+          total: 0,
+          active: 0
+        },
+        impact: {
+          totalGamesAffected: 1234,
+          totalProfitImpact: 156.78
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения статистики коэффициентов'
+    });
+  }
+});
+
 module.exports = router;

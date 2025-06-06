@@ -1,4 +1,4 @@
-// frontend/src/screens/GameScreen.js
+// frontend/src/screens/GameScreen.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import CoinGame from '../components/games/coin/CoinGame';
 import MinesGame from '../components/games/mines/MinesGame';
@@ -24,6 +24,8 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
   
   // Shared between games
   const [gameResult, setGameResult] = useState(null);
+  // НОВОЕ: Состояние для контроля показа результата
+  const [showGameResult, setShowGameResult] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [gameStats, setGameStats] = useState(null);
@@ -36,7 +38,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
 
   // Обработчик изменения результата игры с вибрацией
   useEffect(() => {
-    if (gameResult && gameResult.win !== null) {
+    if (showGameResult && gameResult && gameResult.win !== null) {
       if (gameResult.win) {
         // Вибрация при выигрыше
         gameWinFeedback();
@@ -45,7 +47,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         gameLoseFeedback();
       }
     }
-  }, [gameResult, gameWinFeedback, gameLoseFeedback]);
+  }, [showGameResult, gameResult, gameWinFeedback, gameLoseFeedback]);
   
   // Fetch game history and stats on mount
   useEffect(() => {
@@ -93,6 +95,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     try {
       setIsFlipping(true);
       setGameResult(null);
+      setShowGameResult(false); // ВАЖНО: скрываем результат
       setError(null);
       
       const response = await gameApi.playCoinFlip(
@@ -103,14 +106,17 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       const gameData = response.data.data;
       console.log('🎮 GAME SCREEN: Результат монетки с сервера:', gameData);
       
+      // Устанавливаем результат для анимации
       setResult(gameData.result);
       setLastResults(prev => [gameData.result, ...prev].slice(0, 10));
       
-      setGameResult({
+      // Готовим данные результата, но НЕ показываем его сразу
+      const newGameResult = {
         win: gameData.win,
         amount: Math.abs(gameData.profit),
         newBalance: gameData.balanceAfter
-      });
+      };
+      setGameResult(newGameResult);
       
       if (gameData.balanceAfter !== undefined) {
         setBalance(gameData.balanceAfter);
@@ -138,9 +144,24 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     }
   };
   
+  // НОВЫЙ: Обработчик завершения анимации
   const handleAnimationEnd = () => {
+    console.log('🎮 GAME SCREEN: Анимация завершена, показываем результат');
     setIsFlipping(false);
     setError(null);
+    
+    // ВАЖНО: показываем результат только после завершения анимации
+    if (gameResult) {
+      // Небольшая задержка для плавности
+      setTimeout(() => {
+        setShowGameResult(true);
+        
+        // Автоматически скрываем результат через 3 секунды
+        setTimeout(() => {
+          setShowGameResult(false);
+        }, 3000);
+      }, 200);
+    }
   };
   
   // Render appropriate game based on type
@@ -155,7 +176,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
               gameStats={gameStats}
               setGameResult={setGameResult}
               setError={setError}
-              onFlip={handleFlip} // ИСПРАВЛЕНО: правильная передача обработчика
+              onFlip={handleFlip}
               isFlipping={isFlipping}
               result={result}
               lastResults={lastResults}
@@ -281,7 +302,8 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </h1>
       </div>
       
-      {gameResult && (gameType !== 'crash' || gameResult.win !== null) && (
+      {/* ИЗМЕНЕНО: Показываем результат только когда showGameResult === true */}
+      {showGameResult && gameResult && (gameType !== 'crash' || gameResult.win !== null) && (
         <div className={`game-result ${gameResult.win ? 'win' : 'lose'}`}>
           <div className="result-text">
             {gameResult.win ? 

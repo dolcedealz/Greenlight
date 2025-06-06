@@ -34,31 +34,21 @@ const HistoryScreen = () => {
       const profileResponse = await userApi.getUserProfile();
       setCurrentUserId(profileResponse.data.data.telegramId?.toString());
       
-      // Загрузка истории игр
+      // Загрузка истории игр (включает дуэли)
       const gameParams = { limit: 20 };
-      if (gameType && gameType !== 'all' && gameType !== 'duels') {
+      if (gameType && gameType !== 'all') {
         gameParams.gameType = gameType;
       }
       
-      if (gameType !== 'duels') {
-        const gamesResponse = await gameApi.getGameHistory(gameParams);
-        setGames(gamesResponse.data.data.games || []);
-      } else {
-        setGames([]);
-      }
+      const gamesResponse = await gameApi.getGameHistory(gameParams);
+      const allGames = gamesResponse.data.data.games || [];
       
-      // Загрузка истории дуэлей
-      if (gameType === 'all' || gameType === 'duels') {
-        try {
-          const duelsResponse = await duelApi.getDuelHistory({ limit: 20 });
-          setDuels(duelsResponse.data.data.duels || []);
-        } catch (duelError) {
-          console.warn('Дуэли недоступны:', duelError);
-          setDuels([]);
-        }
-      } else {
-        setDuels([]);
-      }
+      // Разделяем обычные игры и дуэли
+      const regularGames = allGames.filter(game => game.gameType !== 'duel');
+      const duelGames = allGames.filter(game => game.gameType === 'duel');
+      
+      setGames(regularGames);
+      setDuels(duelGames);
       
       // Загрузка истории транзакций
       const transactionParams = { limit: 20 };
@@ -95,6 +85,7 @@ const HistoryScreen = () => {
       case 'mines': return '💣';
       case 'crash': return '📈';
       case 'slots': return '🎰';
+      case 'duel': return '⚔️';
       case 'duels': return '⚔️';
       default: return '🎮';
     }
@@ -107,6 +98,7 @@ const HistoryScreen = () => {
       case 'mines': return 'Мины';
       case 'crash': return 'Краш';
       case 'slots': return 'Слоты';
+      case 'duel': return 'Дуэль';
       case 'duels': return 'Дуэли';
       default: return gameType;
     }
@@ -185,8 +177,8 @@ const HistoryScreen = () => {
           Слоты
         </button>
         <button 
-          className={`filter-button ${filterType === 'duels' ? 'active' : ''}`}
-          onClick={() => handleFilterChange('duels')}
+          className={`filter-button ${filterType === 'duel' ? 'active' : ''}`}
+          onClick={() => handleFilterChange('duel')}
         >
           Дуэли ⚔️
         </button>
@@ -245,19 +237,19 @@ const HistoryScreen = () => {
         sortDate: new Date(game.createdAt)
       }));
       
-      // Добавляем дуэли
+      // Добавляем дуэли (теперь они в формате игр)
       const duelItems = duels.map(duel => ({
         ...duel,
         type: 'duel',
-        sortDate: new Date(duel.completedAt || duel.createdAt)
+        sortDate: new Date(duel.createdAt)
       }));
       
       allItems = [...gameItems, ...duelItems].sort((a, b) => b.sortDate - a.sortDate);
-    } else if (filterType === 'duels') {
+    } else if (filterType === 'duel') {
       allItems = duels.map(duel => ({
         ...duel,
         type: 'duel',
-        sortDate: new Date(duel.completedAt || duel.createdAt)
+        sortDate: new Date(duel.createdAt)
       }));
     } else {
       allItems = games.map(game => ({
@@ -270,7 +262,7 @@ const HistoryScreen = () => {
     if (allItems.length === 0) {
       return (
         <div className="no-history">
-          <p>У вас пока нет истории {filterType === 'duels' ? 'дуэлей' : 'игр'}</p>
+          <p>У вас пока нет истории {filterType === 'duel' ? 'дуэлей' : 'игр'}</p>
         </div>
       );
     }
@@ -279,12 +271,50 @@ const HistoryScreen = () => {
       <div className="history-list">
         {allItems.map((item) => {
           if (item.type === 'duel') {
+            // Рендер дуэли в формате игры
+            const duel = item;
             return (
-              <DuelHistoryItem 
-                key={item._id || item.sessionId}
-                duel={item}
-                currentUserId={currentUserId}
-              />
+              <div key={duel._id} className={`history-item ${duel.win ? 'win' : 'lose'}`}>
+                <div className="history-icon">
+                  ⚔️
+                </div>
+                <div className="history-details">
+                  <div className="history-header">
+                    <span className="history-title">Дуэль {duel.result.duelType}</span>
+                    <span className={`history-amount ${duel.win ? 'positive' : 'negative'}`}>
+                      {duel.win ? '+' : '-'}{Math.abs(duel.profit).toFixed(2)} USDT
+                    </span>
+                  </div>
+                  <div className="history-info">
+                    <span className="history-date">{formatDate(duel.createdAt)}</span>
+                    <span className="history-result">{duel.win ? 'Победа' : 'Поражение'}</span>
+                  </div>
+                  <div className="history-details-row">
+                    <div className="detail-item">
+                      <span className="detail-label">Ставка:</span>
+                      <span className="detail-value">{duel.bet.toFixed(2)} USDT</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Противник:</span>
+                      <span className="detail-value">@{duel.result.opponent}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Счёт:</span>
+                      <span className="detail-value">{duel.result.playerScore}:{duel.result.opponentScore}</span>
+                    </div>
+                  </div>
+                  <div className="game-specific-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Формат:</span>
+                      <span className="detail-value">{duel.result.format.toUpperCase()}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">ID сессии:</span>
+                      <span className="detail-value">{duel.result.sessionId}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             );
           }
           

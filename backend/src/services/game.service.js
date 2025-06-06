@@ -1175,26 +1175,126 @@ async playSlots(userData, gameData) {
       throw new Error('Пользователь не найден');
     }
     
-    // Строим условия поиска
-    const query = { user: user._id };
-    if (gameType) {
-      query.gameType = gameType;
+    // Если запрашивается конкретный тип игры и это не дуэли
+    if (gameType && gameType !== 'duel') {
+      const query = { user: user._id, gameType };
+      
+      const games = await Game.find(query)
+        .sort(sort)
+        .skip(Number(skip))
+        .limit(Number(limit));
+      
+      const total = await Game.countDocuments(query);
+      
+      return {
+        games,
+        total,
+        currentPage: Math.floor(skip / limit) + 1,
+        totalPages: Math.ceil(total / limit)
+      };
     }
     
-    // Получаем игры
-    const games = await Game.find(query)
-      .sort(sort)
-      .skip(Number(skip))
-      .limit(Number(limit));
+    // Если запрашиваются только дуэли
+    if (gameType === 'duel') {
+      const { Duel } = require('../models');
+      
+      const duelQuery = {
+        $or: [
+          { challengerId: user.telegramId.toString() },
+          { opponentId: user.telegramId.toString() }
+        ],
+        status: 'completed'
+      };
+      
+      const duels = await Duel.find(duelQuery)
+        .sort(sort)
+        .skip(Number(skip))
+        .limit(Number(limit));
+      
+      const total = await Duel.countDocuments(duelQuery);
+      
+      // Преобразуем дуэли в формат игр
+      const duelGames = duels.map(duel => this.transformDuelToGame(duel, user.telegramId.toString()));
+      
+      return {
+        games: duelGames,
+        total,
+        currentPage: Math.floor(skip / limit) + 1,
+        totalPages: Math.ceil(total / limit)
+      };
+    }
     
-    // Получаем общее количество игр
-    const total = await Game.countDocuments(query);
+    // Получаем все игры (обычные + дуэли)
+    const { Duel } = require('../models');
+    
+    // Получаем обычные игры
+    const gamesQuery = { user: user._id };
+    const games = await Game.find(gamesQuery);
+    
+    // Получаем дуэли
+    const duelQuery = {
+      $or: [
+        { challengerId: user.telegramId.toString() },
+        { opponentId: user.telegramId.toString() }
+      ],
+      status: 'completed'
+    };
+    const duels = await Duel.find(duelQuery);
+    
+    // Преобразуем дуэли в формат игр
+    const duelGames = duels.map(duel => this.transformDuelToGame(duel, user.telegramId.toString()));
+    
+    // Объединяем и сортируем
+    const allGames = [...games, ...duelGames];
+    allGames.sort((a, b) => {
+      if (sort === '-createdAt') {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+    
+    // Применяем пагинацию
+    const paginatedGames = allGames.slice(Number(skip), Number(skip) + Number(limit));
     
     return {
-      games,
-      total,
+      games: paginatedGames,
+      total: allGames.length,
       currentPage: Math.floor(skip / limit) + 1,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(allGames.length / limit)
+    };
+  }
+  
+  /**
+   * Преобразование дуэли в формат игры для истории
+   * @param {Object} duel - Объект дуэли
+   * @param {string} userTelegramId - Telegram ID пользователя
+   * @returns {Object} - Преобразованная игра
+   */
+  transformDuelToGame(duel, userTelegramId) {
+    const isWinner = duel.winnerId === userTelegramId;
+    const isChallenger = duel.challengerId === userTelegramId;
+    const opponentUsername = isChallenger ? duel.opponentUsername : duel.challengerUsername;
+    
+    return {
+      _id: duel._id,
+      gameType: 'duel',
+      bet: duel.amount,
+      multiplier: isWinner ? (duel.winAmount / duel.amount) : 0,
+      result: {
+        duelType: duel.gameType,
+        format: duel.format,
+        opponent: opponentUsername,
+        playerScore: isChallenger ? duel.challengerScore : duel.opponentScore,
+        opponentScore: isChallenger ? duel.opponentScore : duel.challengerScore,
+        sessionId: duel.sessionId
+      },
+      win: isWinner,
+      profit: isWinner ? (duel.winAmount - duel.amount) : -duel.amount,
+      balanceBefore: 0, // Не храним в дуэлях
+      balanceAfter: 0,  // Не храним в дуэлях
+      status: 'completed',
+      createdAt: duel.createdAt,
+      updatedAt: duel.updatedAt
     };
   }
   

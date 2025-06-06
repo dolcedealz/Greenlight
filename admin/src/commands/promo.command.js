@@ -284,7 +284,7 @@ async function createPromoCode(ctx, promoData) {
     
     console.log('ADMIN: Отправляем данные для создания промокода:', JSON.stringify(createData, null, 2));
     
-    const response = await apiClient.post('/admin/promo/create', createData);
+    const response = await apiClient.post('/admin/promocodes', createData);
     
     if (response.data.success) {
       const promo = response.data.data.promo;
@@ -331,7 +331,7 @@ async function showPromoList(ctx, page = 1) {
   console.log('ADMIN: Запрос списка промокодов, страница:', page);
   
   try {
-    const response = await apiClient.get('/admin/promo/list', {
+    const response = await apiClient.get('/admin/promocodes', {
       params: { 
         page: page,
         limit: 10
@@ -441,7 +441,7 @@ async function showPromoStats(ctx) {
   console.log('ADMIN: Запрос статистики промокодов');
   
   try {
-    const response = await apiClient.get('/admin/promo/stats');
+    const response = await apiClient.get('/admin/promocodes/stats');
     
     if (!response.data.success) {
       throw new Error(response.data.message || 'Ошибка получения статистики');

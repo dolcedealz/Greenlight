@@ -1,44 +1,90 @@
-// app.js - ИСПРАВЛЕННАЯ ВЕРСИЯ С ДОПОЛНИТЕЛЬНЫМ ЛОГИРОВАНИЕМ
+// backend/src/app.js - PRODUCTION OPTIMIZED VERSION
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const routes = require('./routes');
 const webhookRoutes = require('./routes/webhook.routes');
-const { errorMiddleware } = require('./middleware');
+const { errorMiddleware, notFoundMiddleware } = require('./middleware');
+const { createLogger } = require('./utils/logger');
 
+const logger = createLogger('APP');
 const app = express();
 
-// Настройка middleware
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Production optimizations
+if (process.env.NODE_ENV === 'production') {
+  // Enable gzip compression
+  app.use(compression({
+    level: 6, // Compression level (1-9)
+    threshold: 1024, // Only compress files bigger than 1KB
+    filter: (req, res) => {
+      // Don't compress if client doesn't support it
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      // Use compression for all requests
+      return compression.filter(req, res);
+    }
+  }));
+  
+  // Trust proxy for production environments
+  app.set('trust proxy', 1);
+}
 
-// Расширенное логирование запросов
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://greenlight-frontend.onrender.com'] 
+    : true,
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging middleware
 app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`${timestamp} - ${req.method} ${req.path}`);
+  const start = Date.now();
   
-  // Логируем только важные заголовки
-  const importantHeaders = {
-    'content-type': req.headers['content-type'],
-    'authorization': req.headers['authorization'] ? 'Bearer ***' : undefined,
-    'telegram-data': req.headers['telegram-data'] ? '***TELEGRAM_DATA***' : undefined,
-    'user-agent': req.headers['user-agent']
-  };
-  console.log('Important Headers:', JSON.stringify(importantHeaders, null, 2));
-  
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log('Body:', JSON.stringify(req.body, null, 2));
+  // Log request start (only in development or for errors)
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`${req.method} ${req.originalUrl}`, {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      contentType: req.get('Content-Type')
+    });
   }
   
-  if (req.params && Object.keys(req.params).length > 0) {
-    console.log('Params:', JSON.stringify(req.params, null, 2));
-  }
-  
-  if (req.query && Object.keys(req.query).length > 0) {
-    console.log('Query:', JSON.stringify(req.query, null, 2));
-  }
+  // Capture response details
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    
+    // Always log errors and slow requests
+    if (res.statusCode >= 400 || duration > 5000) {
+      logger.request(req, res, duration);
+    } else if (process.env.NODE_ENV !== 'production') {
+      logger.request(req, res, duration);
+    }
+  });
   
   next();
 });
@@ -70,15 +116,10 @@ app.get('/', (req, res) => {
   });
 });
 
-// Обработка несуществующих маршрутов
-app.use((req, res, next) => {
-  const error = new Error(`Маршрут не найден: ${req.method} ${req.path}`);
-  error.statusCode = 404;
-  console.error('404 - Маршрут не найден:', req.method, req.path);
-  next(error);
-});
+// 404 handler
+app.use(notFoundMiddleware);
 
-// Middleware для обработки ошибок
+// Global error handler
 app.use(errorMiddleware);
 
 module.exports = app;

@@ -671,9 +671,22 @@ async playSlots(userData, gameData) {
       const realClientSeed = clientSeed || 'default';
       const nonce = randomService.generateNonce();
       
-      // ИНТЕГРАЦИЯ МОДИФИКАТОРА: Получаем модифицированное количество мин
-      const actualMinesCount = await oddsService.getModifiedMinesCount(user, minesCount);
-      console.log(`МИНЫ: Базовое количество мин: ${minesCount}, с модификатором: ${actualMinesCount}`);
+      // Проверяем, что запрошенное количество мин допустимо для выплат
+      const allowedMinesForPayout = [3, 5, 7, 9, 12, 15, 18, 21, 23];
+      if (!allowedMinesForPayout.includes(minesCount)) {
+        throw new Error(`Недопустимое количество мин: ${minesCount}. Разрешены: ${allowedMinesForPayout.join(', ')}`);
+      }
+      
+      // ИНТЕГРАЦИЯ МОДИФИКАТОРА: Получаем модифицированное количество мин для поля
+      const modifiedMinesCount = await oddsService.getModifiedMinesCount(user, minesCount);
+      
+      // ЛОГИКА: 
+      // - На поле размещается модифицированное количество мин (влияет на сложность)
+      // - Выплаты всегда по выбранному игроком количеству (справедливость)
+      const actualMinesOnField = Math.max(1, Math.min(24, modifiedMinesCount)); // Ограничиваем 1-24
+      const payoutMinesCount = minesCount; // Выплаты по выбранному количеству
+      
+      console.log(`МИНЫ: Игрок выбрал: ${minesCount} мин, на поле: ${actualMinesOnField}, выплаты за: ${payoutMinesCount}`);
       
       // Создаем игровое поле 5x5
       const grid = Array(5).fill().map(() => Array(5).fill('gem'));
@@ -700,8 +713,8 @@ async playSlots(userData, gameData) {
         [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]];
       }
       
-      // Выбираем первые N позиций для мин (используем МОДИФИЦИРОВАННОЕ количество)
-      for (let i = 0; i < actualMinesCount; i++) {
+      // Размещаем выбранное игроком количество мин на поле
+      for (let i = 0; i < actualMinesOnField; i++) {
         const [row, col] = allPositions[i];
         grid[row][col] = 'mine';
         minePositions.push([row, col]);
@@ -717,8 +730,13 @@ async playSlots(userData, gameData) {
       user.lastActivity = new Date();
       await user.save({ session });
       
-      // Получаем начальный множитель из таблицы (используем РЕАЛЬНОЕ количество мин)
-      const initialMultiplier = payoutTables[actualMinesCount][1] || 0.95;
+      // Получаем начальный множитель из таблицы (используем количество для выплат)
+      const initialMultiplier = payoutTables[payoutMinesCount][1] || 0.95;
+      
+      if (!payoutTables[payoutMinesCount]) {
+        console.error(`ОШИБКА: Нет таблицы выплат для ${payoutMinesCount} мин. Доступные: ${Object.keys(payoutTables).join(', ')}`);
+        throw new Error(`Неподдерживаемое количество мин для выплат: ${payoutMinesCount}`);
+      }
       
       // Создаем запись об игре
       const game = new Game({
@@ -728,7 +746,8 @@ async playSlots(userData, gameData) {
         multiplier: initialMultiplier, // Используем значение из таблицы
         result: {
           grid,
-          minesCount: actualMinesCount, // Сохраняем РЕАЛЬНОЕ количество мин
+          minesCount: actualMinesOnField, // Реальное количество мин на поле
+          payoutMinesCount: payoutMinesCount, // Количество для расчета выплат
           minePositions,
           clickedCells: [],
           win: null,  // null = игра в процессе
@@ -744,9 +763,10 @@ async playSlots(userData, gameData) {
         nonce,
         status: 'active',
         gameData: {
-          minesCount: actualMinesCount, // Сохраняем РЕАЛЬНОЕ количество мин
+          minesCount: actualMinesOnField, // Реальное количество мин на поле
+          payoutMinesCount: payoutMinesCount, // Количество для расчета выплат
           requestedMinesCount: minesCount, // Сохраняем запрошенное количество для отладки
-          safeTotal: 25 - actualMinesCount
+          safeTotal: 25 - payoutMinesCount // Для расчета выплат используем payoutMinesCount
         }
       });
       
@@ -826,8 +846,9 @@ async playSlots(userData, gameData) {
                   `minesCount=${game.result.minesCount}`);
       
       // Важные константы для расчетов
-      const minesCount = game.result.minesCount;
-      const safeTotal = 25 - minesCount;
+      const actualMinesOnField = game.result.minesCount; // Реальное количество мин на поле
+      const payoutMinesCount = game.result.payoutMinesCount || game.gameData?.requestedMinesCount || actualMinesOnField; // Для расчета выплат
+      const safeTotal = 25 - payoutMinesCount;
       
       // НОВЫЙ ПОДХОД: гарантируем, что clickedCells всегда массив
       // и преобразуем его к стандартному формату
@@ -855,7 +876,7 @@ async playSlots(userData, gameData) {
         }
         
         // Получаем множитель из предрассчитанной таблицы
-        const multiplier = payoutTables[minesCount][revealedCount];
+        const multiplier = payoutTables[payoutMinesCount][revealedCount];
         
         if (!multiplier) {
           throw new Error('Ошибка расчета множителя');
@@ -924,8 +945,8 @@ async playSlots(userData, gameData) {
         });
         
         // ИСПРАВЛЕНИЕ: Создаем фейковую сетку для cashout
-        const requestedMinesCount = game.gameData.requestedMinesCount || game.result.minesCount;
-        const displayGrid = this.generateDisplayGrid(game.result.grid, game.result.minesCount, requestedMinesCount, clickedCells);
+        const requestedMinesCount = game.gameData.requestedMinesCount || payoutMinesCount;
+        const displayGrid = this.generateDisplayGrid(game.result.grid, actualMinesOnField, requestedMinesCount, clickedCells);
         
         // Возвращаем данные для клиента
         return {
@@ -1006,8 +1027,8 @@ async playSlots(userData, gameData) {
           clickedCells.push([row, col]);
           
           // ИСПРАВЛЕНИЕ: Создаем фейковую сетку с запрошенным количеством мин
-          const requestedMinesCount = game.gameData.requestedMinesCount || game.result.minesCount;
-          const displayGrid = this.generateDisplayGrid(grid, game.result.minesCount, requestedMinesCount, clickedCells);
+          const requestedMinesCount = game.gameData.requestedMinesCount || payoutMinesCount;
+          const displayGrid = this.generateDisplayGrid(grid, actualMinesOnField, requestedMinesCount, clickedCells);
           
           // Возвращаем данные для клиента с фейковой сеткой
           return {
@@ -1030,7 +1051,7 @@ async playSlots(userData, gameData) {
           if (allSafeCellsRevealed) {
             // Максимальный выигрыш - все безопасные ячейки открыты
             // Получаем максимальный множитель из таблицы
-            const maxMultiplier = payoutTables[minesCount][safeTotal - 1];
+            const maxMultiplier = payoutTables[payoutMinesCount][safeTotal - 1];
             
             if (!maxMultiplier) {
               throw new Error('Ошибка расчета максимального множителя');
@@ -1097,8 +1118,8 @@ async playSlots(userData, gameData) {
             });
             
             // ИСПРАВЛЕНИЕ: Создаем фейковую сетку для максимального выигрыша
-            const requestedMinesCount = game.gameData.requestedMinesCount || game.result.minesCount;
-            const displayGrid = this.generateDisplayGrid(game.result.grid, game.result.minesCount, requestedMinesCount, clickedCells);
+            const requestedMinesCount = game.gameData.requestedMinesCount || payoutMinesCount;
+            const displayGrid = this.generateDisplayGrid(game.result.grid, actualMinesOnField, requestedMinesCount, clickedCells);
             
             // Возвращаем данные для клиента
             return {
@@ -1117,7 +1138,7 @@ async playSlots(userData, gameData) {
             // Игра продолжается
             
             // Получаем множитель из таблицы для текущего количества открытых ячеек
-            const multiplier = payoutTables[minesCount][revealedCount];
+            const multiplier = payoutTables[payoutMinesCount][revealedCount];
             
             if (!multiplier) {
               throw new Error('Ошибка расчета множителя');

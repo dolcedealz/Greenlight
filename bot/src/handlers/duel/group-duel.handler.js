@@ -300,14 +300,14 @@ class GroupDuelHandler {
       // Определяем кто должен ходить первым
       const currentPlayer = duelGameHandler.getCurrentPlayer(duel);
       
-      const messageText = `${gameConfig.emoji} **ДУЭЛЬ НАЧИНАЕТСЯ** ${gameConfig.emoji}\n\n` +
+      const messageText = `${gameConfig.emoji} ДУЭЛЬ НАЧИНАЕТСЯ ${gameConfig.emoji}\n\n` +
                          `⚔️ @${duel.challengerUsername} VS @${duel.opponentUsername}\n\n` +
                          `🎮 Игра: ${gameConfig.name}\n` +
                          `🏆 Формат: ${formatConfig.name} (${formatConfig.description})\n` +
                          `💰 Банк: ${duel.totalAmount} USDT\n` +
                          `📊 Счёт: ${duel.challengerScore}:${duel.opponentScore}\n\n` +
-                         `🎯 **Ход: @${currentPlayer.currentPlayerUsername}**\n\n` +
-                         `🤖 \\@Greenlightgames_bot`;
+                         `🎯 Ход: @${currentPlayer.currentPlayerUsername}\n\n` +
+                         `🤖 @Greenlightgames_bot`;
       
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback(`${gameConfig.emoji} Ход @${currentPlayer.currentPlayerUsername}`, `group_move_${sessionId}`)],
@@ -315,7 +315,6 @@ class GroupDuelHandler {
       ]);
       
       await ctx.editMessageText(messageText, {
-        parse_mode: 'Markdown',
         ...keyboard
       });
       
@@ -454,15 +453,15 @@ class GroupDuelHandler {
         const currentPlayer = duelGameHandler.getCurrentPlayer(duel);
         const roundsText = formatRoundResults(duel.rounds, duel.challengerUsername, duel.opponentUsername, duel);
         
-        const messageText = `${gameConfig.emoji} **ДУЭЛЬ В ПРОЦЕССЕ** ${gameConfig.emoji}\n\n` +
+        const messageText = `${gameConfig.emoji} ДУЭЛЬ В ПРОЦЕССЕ ${gameConfig.emoji}\n\n` +
                            `⚔️ @${duel.challengerUsername} VS @${duel.opponentUsername}\n\n` +
                            `🎮 Игра: ${gameConfig.name}\n` +
                            `🏆 Формат: ${formatConfig.name} (${formatConfig.description})\n` +
                            `📊 Счёт: ${duel.challengerScore}:${duel.opponentScore}\n` +
                            `🎯 Последний ход: @${lastPlayerUsername} [${lastResult}]\n\n` +
                            (roundsText ? roundsText + '\n' : '') +
-                           `🎯 **Ход: @${currentPlayer.currentPlayerUsername}**\n\n` +
-                           `🤖 \\@Greenlightgames_bot`;
+                           `🎯 Ход: @${currentPlayer.currentPlayerUsername}\n\n` +
+                           `🤖 @Greenlightgames_bot`;
         
         const keyboard = Markup.inlineKeyboard([
           [Markup.button.callback(`${gameConfig.emoji} Ход @${currentPlayer.currentPlayerUsername}`, `group_move_${sessionId}`)],
@@ -470,7 +469,6 @@ class GroupDuelHandler {
         ]);
         
         await ctx.editMessageText(messageText, {
-          parse_mode: 'Markdown',
           ...keyboard
         });
       }

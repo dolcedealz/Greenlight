@@ -284,14 +284,13 @@ class InlineDuelHandler {
           try {
             const gameConfig = getGameConfig(createdDuel.gameType);
             await ctx.editMessageText(
-              `✅ **ДУЭЛЬ ПРИНЯТА!**\n\n` +
+              `✅ ДУЭЛЬ ПРИНЯТА!\n\n` +
               `⚔️ @${createdDuel.challengerUsername} VS @${createdDuel.opponentUsername}\n\n` +
               `${gameConfig.emoji} Игра: ${gameConfig.name}\n` +
               `💰 Ставка: ${createdDuel.amount} USDT каждый\n` +
               `🏆 Формат: ${createdDuel.format.toUpperCase()}\n\n` +
               `📱 Игра начинается в личных сообщениях бота!\n\n` +
-              `🎮 Перейти в бот: \\@Greenlightgames_bot`,
-              { parse_mode: 'Markdown' }
+              `🎮 Перейти в бот: @Greenlightgames_bot`
             );
           } catch (editError) {
             console.error('Ошибка редактирования сообщения:', editError);
@@ -393,14 +392,14 @@ class InlineDuelHandler {
       // Определяем кто должен ходить первым (challenger всегда первый)
       const currentPlayerUsername = duel.challengerUsername;
       
-      const messageText = `${gameConfig.emoji} **ДУЭЛЬ НАЧИНАЕТСЯ** ${gameConfig.emoji}\n\n` +
+      const messageText = `${gameConfig.emoji} ДУЭЛЬ НАЧИНАЕТСЯ ${gameConfig.emoji}\n\n` +
                          `⚔️ @${duel.challengerUsername} VS @${duel.opponentUsername}\n\n` +
                          `🎮 Игра: ${gameConfig.name}\n` +
                          `🏆 Формат: ${formatConfig.name} (${formatConfig.description})\n` +
                          `💰 Банк: ${duel.totalAmount} USDT\n` +
                          `📊 Счёт: ${duel.challengerScore}:${duel.opponentScore}\n\n` +
-                         `🎯 **Ход: @${currentPlayerUsername}**\n\n` +
-                         `🤖 \\@Greenlightgames_bot`;
+                         `🎯 Ход: @${currentPlayerUsername}\n\n` +
+                         `🤖 @Greenlightgames_bot`;
       
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback(`${gameConfig.emoji} ${gameConfig.actionText}`, `play_game_${sessionId}`)],
@@ -412,7 +411,6 @@ class InlineDuelHandler {
         duel.opponentId,
         messageText,
         { 
-          parse_mode: 'Markdown',
           ...keyboard
         }
       );
@@ -424,7 +422,6 @@ class InlineDuelHandler {
         duel.challengerId,
         messageText,
         { 
-          parse_mode: 'Markdown',
           ...keyboard
         }
       );

@@ -32,6 +32,15 @@ function getGameConfig(gameType) {
       maxValue: 5,
       rules: 'Гол при значении 4-5'
     },
+    '⚽️': {
+      emoji: '⚽',
+      name: 'Футбол',
+      actionText: 'Удар по мячу',
+      processText: 'Бьем по мячу...',
+      resultText: 'Результат удара',
+      maxValue: 5,
+      rules: 'Гол при значении 4-5'
+    },
     '🏀': {
       emoji: '🏀',
       name: 'Баскетбол',
@@ -123,7 +132,7 @@ function validateDuelParams(targetUsername, amount, gameType, format) {
   }
   
   // Проверка типа игры
-  const validGameTypes = ['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'];
+  const validGameTypes = ['🎲', '🎯', '⚽', '⚽️', '🏀', '🎳', '🎰'];
   if (!validGameTypes.includes(gameType)) {
     errors.push('Неподдерживаемый тип игры');
   }

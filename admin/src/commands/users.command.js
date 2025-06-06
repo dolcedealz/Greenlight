@@ -517,7 +517,50 @@ async function handleBalanceAdjustment(ctx) {
   }
 }
 
+/**
+ * Показать меню пользователей
+ */
+async function showUsersMenu(ctx) {
+  console.log('ADMIN: Показ меню пользователей');
+  
+  const message = '👥 *Управление пользователями*\n\nВыберите действие:';
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('📋 Список пользователей', 'users_list'),
+      Markup.button.callback('🔍 Поиск пользователя', 'users_search')
+    ],
+    [
+      Markup.button.callback('📊 Статистика', 'users_stats'),
+      Markup.button.callback('🚫 Заблокированные', 'users_blocked')
+    ],
+    [
+      Markup.button.callback('🔙 Назад', 'main_menu')
+    ]
+  ]);
+  
+  try {
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    } else {
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка показа меню пользователей:', error);
+    await ctx.reply(message, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+  }
+}
+
 module.exports = {
+  showUsersMenu,
   showUsersList,
   startUserSearch,
   handleUserSearch,

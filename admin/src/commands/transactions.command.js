@@ -499,7 +499,50 @@ async function showDepositsInfo(ctx) {
   }
 }
 
+/**
+ * Показать меню транзакций
+ */
+async function showTransactionsMenu(ctx) {
+  console.log('ADMIN: Показ меню транзакций');
+  
+  const message = '🏦 *Управление транзакциями*\n\nВыберите раздел:';
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('⏳ Ожидающие одобрения', 'transactions_pending'),
+      Markup.button.callback('📋 История транзакций', 'transactions_history')
+    ],
+    [
+      Markup.button.callback('💰 Статистика выводов', 'transactions_stats'),
+      Markup.button.callback('🏦 Депозиты', 'transactions_deposits')
+    ],
+    [
+      Markup.button.callback('🔙 Назад', 'main_menu')
+    ]
+  ]);
+  
+  try {
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    } else {
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка показа меню транзакций:', error);
+    await ctx.reply(message, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+  }
+}
+
 module.exports = {
+  showTransactionsMenu,
   showPendingWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,

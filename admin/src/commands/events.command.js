@@ -42,22 +42,36 @@ const eventsCommands = {
    * Показать главное меню событий
    */
   async showEventsMenu(ctx) {
+    console.log('ADMIN: Показ меню событий');
+    
+    const message = '🔮 *Управление событиями*\n\nВыберите действие:';
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback('📋 Список событий', 'events_list')],
       [Markup.button.callback('➕ Создать событие', 'events_create')],
       [Markup.button.callback('✅ Завершить событие', 'events_finish')],
       [Markup.button.callback('📊 Статистика событий', 'events_stats')],
-      [Markup.button.callback('◀️ Назад', 'admin_menu')]
+      [Markup.button.callback('🔙 Назад', 'main_menu')]
     ]);
 
-    await ctx.editMessageText(
-      '🔮 *Управление событиями*\n\n' +
-      'Выберите действие:',
-      {
+    try {
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа меню событий:', error);
+      await ctx.reply(message, {
         parse_mode: 'Markdown',
         ...keyboard
-      }
-    );
+      });
+    }
   },
 
   /**

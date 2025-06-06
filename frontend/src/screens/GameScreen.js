@@ -1,4 +1,4 @@
-// frontend/src/screens/GameScreen.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// frontend/src/screens/GameScreen.js - СТАБИЛЬНАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import CoinGame from '../components/games/coin/CoinGame';
 import MinesGame from '../components/games/mines/MinesGame';
@@ -17,37 +17,37 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     gameLoseFeedback 
   } = useTactileFeedback();
 
-  // For Coin game
-  const [isFlipping, setIsFlipping] = useState(false);
-  const [result, setResult] = useState(null);
+  // For Coin game - УПРОЩЕННЫЕ СОСТОЯНИЯ
+  const [coinGameData, setCoinGameData] = useState({
+    isPlaying: false,
+    result: null,
+    gameResult: null,
+    showResult: false
+  });
   const [lastResults, setLastResults] = useState([]);
   
   // Shared between games
   const [gameResult, setGameResult] = useState(null);
-  // НОВОЕ: Состояние для контроля показа результата
-  const [showGameResult, setShowGameResult] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [gameStats, setGameStats] = useState(null);
 
   // Обработчик кнопки назад с вибрацией
   const handleBackClick = () => {
-    navigationFeedback(); // Вибрация при навигации назад
+    navigationFeedback();
     onBack();
   };
 
-  // Обработчик изменения результата игры с вибрацией
+  // Обработчик изменения результата игры с вибрацией - ТОЛЬКО ДЛЯ НЕ-МОНЕТКИ
   useEffect(() => {
-    if (showGameResult && gameResult && gameResult.win !== null) {
+    if (gameType !== 'coin' && gameResult && gameResult.win !== null) {
       if (gameResult.win) {
-        // Вибрация при выигрыше
         gameWinFeedback();
       } else {
-        // Вибрация при проигрыше
         gameLoseFeedback();
       }
     }
-  }, [showGameResult, gameResult, gameWinFeedback, gameLoseFeedback]);
+  }, [gameType, gameResult, gameWinFeedback, gameLoseFeedback]);
   
   // Fetch game history and stats on mount
   useEffect(() => {
@@ -88,40 +88,52 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     fetchData();
   }, [gameType]);
   
-  // ИСПРАВЛЕННЫЙ Coin game handler
-  const handleFlip = async (betData) => {
-    console.log('🎮 GAME SCREEN: Получен запрос на подбрасывание монеты:', betData);
+  // НОВЫЙ ПРОСТОЙ обработчик для монетки
+  const handleCoinFlip = async (betData) => {
+    console.log('🎮 GAME SCREEN: Запрос на подбрасывание монеты:', betData);
     
     try {
-      setIsFlipping(true);
-      setGameResult(null);
-      setShowGameResult(false); // ВАЖНО: скрываем результат
+      // Устанавливаем состояние "игра начинается"
+      setCoinGameData(prev => ({
+        ...prev,
+        isPlaying: true,
+        result: null,
+        gameResult: null,
+        showResult: false
+      }));
+      
       setError(null);
       
+      // Вызываем API
       const response = await gameApi.playCoinFlip(
         betData.betAmount,
         betData.selectedSide
       );
       
       const gameData = response.data.data;
-      console.log('🎮 GAME SCREEN: Результат монетки с сервера:', gameData);
+      console.log('🎮 GAME SCREEN: Результат с сервера:', gameData);
       
-      // Устанавливаем результат для анимации
-      setResult(gameData.result);
-      setLastResults(prev => [gameData.result, ...prev].slice(0, 10));
-      
-      // Готовим данные результата, но НЕ показываем его сразу
+      // Подготавливаем данные результата
       const newGameResult = {
         win: gameData.win,
         amount: Math.abs(gameData.profit),
         newBalance: gameData.balanceAfter
       };
-      setGameResult(newGameResult);
       
+      // Обновляем состояние с результатом
+      setCoinGameData(prev => ({
+        ...prev,
+        result: gameData.result,
+        gameResult: newGameResult
+      }));
+      
+      // Обновляем историю и баланс
+      setLastResults(prev => [gameData.result, ...prev].slice(0, 10));
       if (gameData.balanceAfter !== undefined) {
         setBalance(gameData.balanceAfter);
       }
       
+      // Обновляем статистику
       if (gameStats) {
         const updatedStats = { ...gameStats };
         updatedStats.totalGames += 1;
@@ -140,27 +152,47 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     } catch (err) {
       console.error('🎮 GAME SCREEN: Ошибка игры в монетку:', err);
       setError(err.response?.data?.message || 'Произошла ошибка при игре');
-      setIsFlipping(false);
+      
+      // Сбрасываем состояние при ошибке
+      setCoinGameData(prev => ({
+        ...prev,
+        isPlaying: false
+      }));
     }
   };
   
-  // НОВЫЙ: Обработчик завершения анимации
-  const handleAnimationEnd = () => {
-    console.log('🎮 GAME SCREEN: Анимация завершена, показываем результат');
-    setIsFlipping(false);
-    setError(null);
+  // Обработчик завершения анимации монетки
+  const handleCoinAnimationComplete = (showResultNow) => {
+    console.log('🎮 GAME SCREEN: Анимация монетки завершена, показываем результат:', showResultNow);
     
-    // ВАЖНО: показываем результат только после завершения анимации
-    if (gameResult) {
-      // Небольшая задержка для плавности
+    // Показываем результат игры
+    if (showResultNow && coinGameData.gameResult) {
+      setCoinGameData(prev => ({
+        ...prev,
+        showResult: true,
+        isPlaying: false
+      }));
+      
+      // Вибрация
+      if (coinGameData.gameResult.win) {
+        gameWinFeedback();
+      } else {
+        gameLoseFeedback();
+      }
+      
+      // Автоматически скрываем через 3 секунды
       setTimeout(() => {
-        setShowGameResult(true);
-        
-        // Автоматически скрываем результат через 3 секунды
-        setTimeout(() => {
-          setShowGameResult(false);
-        }, 3000);
-      }, 200);
+        setCoinGameData(prev => ({
+          ...prev,
+          showResult: false
+        }));
+      }, 3000);
+    } else {
+      // Если нет результата для показа, просто завершаем игру
+      setCoinGameData(prev => ({
+        ...prev,
+        isPlaying: false
+      }));
     }
   };
   
@@ -176,11 +208,11 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
               gameStats={gameStats}
               setGameResult={setGameResult}
               setError={setError}
-              onFlip={handleFlip}
-              isFlipping={isFlipping}
-              result={result}
+              onFlip={handleCoinFlip}
+              isFlipping={coinGameData.isPlaying}
+              result={coinGameData.result}
               lastResults={lastResults}
-              onAnimationEnd={handleAnimationEnd}
+              onAnimationComplete={handleCoinAnimationComplete}
             />
       
             {error && (
@@ -302,8 +334,20 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </h1>
       </div>
       
-      {/* ИЗМЕНЕНО: Показываем результат только когда showGameResult === true */}
-      {showGameResult && gameResult && (gameType !== 'crash' || gameResult.win !== null) && (
+      {/* Результат ТОЛЬКО для монетки - показываем когда showResult === true */}
+      {gameType === 'coin' && coinGameData.showResult && coinGameData.gameResult && (
+        <div className={`game-result ${coinGameData.gameResult.win ? 'win' : 'lose'}`}>
+          <div className="result-text">
+            {coinGameData.gameResult.win ? 'ВЫИГРЫШ!' : 'ПРОИГРЫШ'}
+          </div>
+          <div className="result-amount">
+            {coinGameData.gameResult.win ? '+' : '-'}{coinGameData.gameResult.amount.toFixed(2)} USDT
+          </div>
+        </div>
+      )}
+      
+      {/* Результат для остальных игр */}
+      {gameType !== 'coin' && gameResult && (gameType !== 'crash' || gameResult.win !== null) && (
         <div className={`game-result ${gameResult.win ? 'win' : 'lose'}`}>
           <div className="result-text">
             {gameResult.win ? 

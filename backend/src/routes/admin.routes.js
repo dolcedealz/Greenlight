@@ -78,6 +78,7 @@ router.post('/game-settings/:gameType/modifier', adminController.setGlobalGameMo
 
 // === ОСНОВНЫЕ МАРШРУТЫ АДМИНИСТРАТОРА ===
 router.get('/stats', adminController.getCasinoStats);
+router.get('/stats/users', adminController.getUserStats);
 router.get('/users', adminController.getUsers);
 router.get('/users/:userId', adminController.getUserDetails);
 router.post('/users/:userId/block', adminController.toggleUserBlock);

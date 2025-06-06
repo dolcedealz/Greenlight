@@ -6,90 +6,15 @@ const { Markup } = require('telegraf');
  * @param {Object} bot - Экземпляр Telegraf
  */
 function registerHandlers(bot) {
-  // Обработка текстовых сообщений
-  bot.hears('📊 Статистика', (ctx) => {
-    // Здесь будет запрос к API для получения статистики
-    const mockStats = {
-      users: 1245,
-      activeToday: 189,
-      totalGames: 8912,
-      totalBets: 250450.25,
-      totalWins: 237927.74,
-      profit: 12522.51
-    };
-    
-    ctx.reply(
-      `📊 *Статистика системы*\n\n` +
-      `👥 Всего пользователей: ${mockStats.users}\n` +
-      `👤 Активных сегодня: ${mockStats.activeToday}\n` +
-      `🎮 Всего игр: ${mockStats.totalGames}\n` +
-      `💰 Общая сумма ставок: ${mockStats.totalBets.toFixed(2)} USDT\n` +
-      `💸 Общая сумма выплат: ${mockStats.totalWins.toFixed(2)} USDT\n` +
-      `📈 Прибыль системы: ${mockStats.profit.toFixed(2)} USDT`,
-      { parse_mode: 'Markdown' }
-    );
-  });
+  // OLD HANDLERS REMOVED - These are now handled in index.js
+  // The following handlers have been moved to src/commands/index.js:
+  // - 📊 Финансы (previously 📊 Статистика)
+  // - 👥 Пользователи 
+  // - 🎮 Игры handler removed (replaced with new menu structure)
   
-  bot.hears('👥 Пользователи', (ctx) => {
-    ctx.reply(
-      '👥 Управление пользователями\n\nВыберите действие:',
-      Markup.inlineKeyboard([
-        [Markup.button.callback('📋 Список пользователей', 'users_list')],
-        [Markup.button.callback('🔍 Найти пользователя', 'user_search')],
-        [Markup.button.callback('🔒 Блокировка/Разблокировка', 'user_block')]
-      ])
-    );
-  });
-  
-  bot.hears('🎮 Игры', (ctx) => {
-    ctx.reply(
-      '🎮 Управление играми\n\nВыберите игру:',
-      Markup.inlineKeyboard([
-        [
-          Markup.button.callback('🎰 Слоты', 'game_slots'),
-          Markup.button.callback('💣 Мины', 'game_mines')
-        ],
-        [
-          Markup.button.callback('📈 Краш', 'game_crash'),
-          Markup.button.callback('🪙 Монетка', 'game_coin')
-        ],
-        [Markup.button.callback('📊 Статистика по играм', 'games_stats')]
-      ])
-    );
-  });
-  
-  // ДОБАВЛЯЕМ ОБРАБОТЧИК ДЛЯ КНОПКИ СОБЫТИЯ
-  bot.hears('🔮 События', async (ctx) => {
-    console.log('ADMIN: Обработка кнопки События');
-    try {
-      await showEventsMenu(ctx);
-    } catch (error) {
-      console.error('ADMIN: Ошибка показа меню событий:', error);
-      await ctx.reply('❌ Ошибка загрузки меню событий. Попробуйте позже.');
-    }
-  });
-  
-  bot.hears('💰 Финансы', (ctx) => {
-    ctx.reply(
-      '💰 Управление финансами\n\nВыберите действие:',
-      Markup.inlineKeyboard([
-        [Markup.button.callback('📋 Транзакции', 'transactions_list')],
-        [Markup.button.callback('📥 Депозиты', 'deposits_list')],
-        [Markup.button.callback('📤 Выводы', 'withdrawals_list')]
-      ])
-    );
-  });
-  
-  bot.hears('⚙️ Настройки', (ctx) => {
-    ctx.reply(
-      '⚙️ Настройки системы\n\nВыберите настройки:',
-      Markup.inlineKeyboard([
-        [Markup.button.callback('🎮 Игры', 'settings_games')],
-        [Markup.button.callback('💰 Комиссии', 'settings_fees')],
-        [Markup.button.callback('👥 Реферальная система', 'settings_referral')]
-      ])
-    );
-  });
+  // NOTE: All button handlers have been moved to src/commands/index.js
+  // This includes: События, Финансы, Пользователи, Транзакции, etc.
+  // The handlers are now centralized in the main command registration system
 
   // Обработка остальных callback запросов
   bot.action(/^game_(.+)$/, (ctx) => {

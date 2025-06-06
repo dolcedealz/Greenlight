@@ -8,13 +8,96 @@ class AdminController {
    */
   async getCasinoStats(req, res) {
     try {
-      const stats = await casinoFinanceService.getCurrentStats();
+      // Используем правильный метод из casino finance service
+      const financeState = await casinoFinanceService.getCurrentFinanceState();
+      
+      // Подсчитываем дополнительную статистику
+      const [totalUsers, totalGames, activeUsers] = await Promise.all([
+        User.countDocuments({ isBlocked: false }),
+        Game.countDocuments(),
+        User.countDocuments({ 
+          lastActivity: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          isBlocked: false 
+        })
+      ]);
+
+      const stats = {
+        totalUsers,
+        activeUsers,
+        totalGames,
+        finance: {
+          totalUserBalance: financeState.totalUserBalance,
+          operationalBalance: financeState.operationalBalance,
+          reserveBalance: financeState.reserveBalance,
+          availableForWithdrawal: financeState.availableForWithdrawal,
+          totalCommissions: financeState.totalCommissions,
+          totalBets: financeState.totalBets,
+          totalWins: financeState.totalWins,
+          gameStats: financeState.gameStats
+        }
+      };
+
       res.json({
         success: true,
         data: stats
       });
     } catch (error) {
       console.error('Ошибка получения статистики:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Получить статистику пользователей
+   */
+  async getUserStats(req, res) {
+    try {
+      // Подсчитываем статистику пользователей
+      const [
+        totalUsers,
+        activeToday,
+        activeWeek,
+        withDeposits,
+        blocked,
+        averageBalanceResult
+      ] = await Promise.all([
+        User.countDocuments(),
+        User.countDocuments({ 
+          lastActivity: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+        }),
+        User.countDocuments({ 
+          lastActivity: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+        }),
+        User.countDocuments({ 
+          'deposits.0': { $exists: true }
+        }),
+        User.countDocuments({ isBlocked: true }),
+        User.aggregate([
+          { $match: { isBlocked: false } },
+          { $group: { _id: null, average: { $avg: '$balance' } } }
+        ])
+      ]);
+
+      const averageBalance = averageBalanceResult[0]?.average || 0;
+
+      const stats = {
+        totalUsers,
+        activeToday,
+        activeWeek,
+        withDeposits,
+        blocked,
+        averageBalance
+      };
+
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      console.error('Ошибка получения статистики пользователей:', error);
       res.status(500).json({
         success: false,
         message: error.message

@@ -224,14 +224,61 @@ function registerCommands(bot) {
     console.log('ADMIN: Callback main_menu');
     await ctx.answerCbQuery();
     
-    await ctx.reply(
-      '🏠 Главное меню администратора',
-      Markup.keyboard([
-        ['📊 Статистика', '👥 Пользователи'],
-        ['🎮 Игры', '🔮 События'],
-        ['💰 Финансы', '⚙️ Настройки']
-      ]).resize()
-    );
+    // Очищаем любые активные сессии
+    if (ctx.session) {
+      delete ctx.session.creatingEvent;
+      delete ctx.session.finishingEvent;
+      delete ctx.session.searchingUser;
+      delete ctx.session.settingCoefficient;
+      delete ctx.session.searchingUserCoeff;
+      delete ctx.session.adjustingBalance;
+      delete ctx.session.rejectingWithdrawal;
+      delete ctx.session.creatingPromo;
+      delete ctx.session.creatingNotification;
+    }
+    
+    const message = '🏠 *Главное меню администратора*\n\nВыберите раздел для управления:';
+    
+    try {
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...Markup.keyboard([
+            ['📊 Финансы', '👥 Пользователи'],
+            ['🏦 Транзакции', '🔮 События'],
+            ['🎯 Коэффициенты', '🎁 Промокоды'],
+            ['🛡️ Безопасность', '📊 Мониторинг'],
+            ['💾 Бэкапы', '📢 Уведомления'],
+            ['⚙️ Настройки']
+          ]).resize()
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...Markup.keyboard([
+            ['📊 Финансы', '👥 Пользователи'],
+            ['🏦 Транзакции', '🔮 События'],
+            ['🎯 Коэффициенты', '🎁 Промокоды'],
+            ['🛡️ Безопасность', '📊 Мониторинг'],
+            ['💾 Бэкапы', '📢 Уведомления'],
+            ['⚙️ Настройки']
+          ]).resize()
+        });
+      }
+    } catch (error) {
+      // Fallback if edit fails
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...Markup.keyboard([
+          ['📊 Финансы', '👥 Пользователи'],
+          ['🏦 Транзакции', '🔮 События'],
+          ['🎯 Коэффициенты', '🎁 Промокоды'],
+          ['🛡️ Безопасность', '📊 Мониторинг'],
+          ['💾 Бэкапы', '📢 Уведомления'],
+          ['⚙️ Настройки']
+        ]).resize()
+      });
+    }
   });
 
   // === ОБРАБОТЧИКИ КЛАВИАТУРЫ ===
@@ -503,6 +550,16 @@ function registerCommands(bot) {
   bot.action('confirm_reset_all', async (ctx) => {
     console.log('ADMIN: Callback confirm_reset_all');
     await coefficientsCommands.confirmResetAllModifiers(ctx);
+  });
+
+  // === CALLBACK ОБРАБОТЧИКИ ДЛЯ СТАТИСТИКИ ===
+
+  // Статистика комиссий из команды /stats
+  bot.action('stats_commission', async (ctx) => {
+    console.log('ADMIN: Callback stats_commission');
+    await ctx.answerCbQuery();
+    const statsCommand = require('./stats.command');
+    await statsCommand.showCommissionStats(ctx);
   });
 
   // === CALLBACK ОБРАБОТЧИКИ ДЛЯ ПРОМОКОДОВ ===
@@ -1449,31 +1506,58 @@ function registerCommands(bot) {
     console.log('ADMIN: Запрос финансовой статистики');
     
     try {
-      const response = await apiClient.get('/admin/finance/state');
+      const response = await apiClient.get('/admin/finance/report');
       
       if (!response.data.success) {
         throw new Error(response.data.message || 'Ошибка получения статистики');
       }
       
-      const stats = response.data.data;
+      const reportData = response.data.data;
+      const current = reportData.current;
       
-      let message = '📊 *Текущее финансовое состояние*\n\n';
-      message += `🏦 *Общий баланс казино:* ${stats.totalBalance?.toFixed(2) || '0.00'} USDT\n`;
-      message += `💰 *Доступные средства:* ${stats.availableBalance?.toFixed(2) || '0.00'} USDT\n`;
-      message += `🔒 *Заблокированные средства:* ${stats.lockedFunds?.toFixed(2) || '0.00'} USDT\n`;
-      message += `📈 *Общая прибыль:* ${stats.totalProfit?.toFixed(2) || '0.00'} USDT\n`;
-      message += `📉 *Общие расходы:* ${stats.totalExpenses?.toFixed(2) || '0.00'} USDT\n\n`;
-      message += `👥 *Пользователи:*\n`;
-      message += `   Всего: ${stats.userStats?.total || 0}\n`;
-      message += `   Активных: ${stats.userStats?.active || 0}\n`;
-      message += `   Заблокированных: ${stats.userStats?.blocked || 0}\n\n`;
-      message += `🎰 *Игры сегодня:*\n`;
-      message += `   Всего игр: ${stats.dailyStats?.totalGames || 0}\n`;
-      message += `   Общие ставки: ${stats.dailyStats?.totalBets?.toFixed(2) || '0.00'} USDT\n`;
-      message += `   Общие выплаты: ${stats.dailyStats?.totalPayouts?.toFixed(2) || '0.00'} USDT`;
+      let message = '📊 *ФИНАНСОВАЯ СТАТИСТИКА*\n\n';
+      
+      // Основные балансы
+      message += '🏦 *Основные балансы:*\n';
+      message += `💰 Баланс пользователей: \`${current.totalUserBalance?.toFixed(2) || '0.00'} USDT\`\n`;
+      message += `💰 Оперативный баланс: \`${current.operationalBalance?.toFixed(2) || '0.00'} USDT\`\n`;
+      message += `💰 Резерв (${current.reservePercentage || 0}%): \`${current.reserveBalance?.toFixed(2) || '0.00'} USDT\`\n`;
+      message += `✅ Доступно для вывода: \`${current.availableForWithdrawal?.toFixed(2) || '0.00'} USDT\`\n\n`;
+      
+      // Предупреждения
+      if (current.warnings && Object.keys(current.warnings).length > 0) {
+        const warningsList = [];
+        if (current.warnings.lowReserve) warningsList.push('⚠️ Низкий резерв');
+        if (current.warnings.highRiskRatio) warningsList.push('🔴 Высокий риск');
+        if (current.warnings.negativeOperational) warningsList.push('⚠️ Отрицательный баланс');
+        
+        if (warningsList.length > 0) {
+          message += '⚠️ *Предупреждения:*\n';
+          warningsList.forEach(warning => {
+            message += `• ${warning}\n`;
+          });
+          message += '\n';
+        }
+      }
+      
+      // Статистика за период
+      if (reportData.period) {
+        message += `📊 *За сегодня:*\n`;
+        message += `   Игр: ${reportData.period.games?.count || 0}\n`;
+        message += `   Ставки: \`${reportData.period.games?.totalBets?.toFixed(2) || '0.00'} USDT\`\n`;
+        message += `   Выплаты: \`${reportData.period.games?.totalWins?.toFixed(2) || '0.00'} USDT\`\n`;
+        message += `   Прибыль: \`${reportData.period.games?.profit?.toFixed(2) || '0.00'} USDT\`\n\n`;
+      }
+      
+      // Формула расчета
+      message += '📊 *Формула оперативного баланса:*\n';
+      message += '_Ставки - Выигрыши + Комиссии - Промокоды_';
       
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🔄 Обновить', 'finances_stats')],
+        [
+          Markup.button.callback('💰 Комиссии', 'stats_commission'),
+          Markup.button.callback('🔄 Обновить', 'finances_stats')
+        ],
         [Markup.button.callback('◀️ Назад', 'finances_menu')]
       ]);
       
@@ -1491,7 +1575,7 @@ function registerCommands(bot) {
       
     } catch (error) {
       console.error('ADMIN: Ошибка получения финансовой статистики:', error);
-      const errorMessage = `❌ Ошибка получения статистики: ${error.message}`;
+      const errorMessage = `❌ Ошибка получения статистики: ${error.response?.data?.message || error.message}`;
       
       if (ctx.callbackQuery) {
         await ctx.answerCbQuery(errorMessage);
@@ -1857,53 +1941,186 @@ function registerCommands(bot) {
   
   // Пользователи
   async function showUsersList(ctx, page) {
-    return usersCommands.showUsersList(ctx, page);
+    try {
+      return await usersCommands.showUsersList(ctx, page);
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа списка пользователей:', error);
+      await ctx.reply('❌ Функция списка пользователей временно недоступна');
+    }
   }
 
   async function startUserSearch(ctx) {
-    return usersCommands.startUserSearch(ctx);
+    try {
+      return await usersCommands.startUserSearch(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка начала поиска пользователей:', error);
+      await ctx.reply('❌ Функция поиска пользователей временно недоступна');
+    }
   }
 
   async function handleUserSearch(ctx) {
-    return usersCommands.handleUserSearch(ctx);
+    try {
+      return await usersCommands.handleUserSearch(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка обработки поиска пользователей:', error);
+      await ctx.reply('❌ Функция поиска пользователей временно недоступна');
+    }
   }
 
   async function showUsersStats(ctx) {
-    return usersCommands.showUsersStats(ctx);
+    console.log('ADMIN: Запрос статистики пользователей');
+    
+    try {
+      const response = await apiClient.get('/admin/stats/users');
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Ошибка получения статистики');
+      }
+      
+      const stats = response.data.data;
+      
+      let message = '👥 *СТАТИСТИКА ПОЛЬЗОВАТЕЛЕЙ*\n\n';
+      
+      message += `👤 Всего пользователей: \`${stats.totalUsers || 0}\`\n`;
+      message += `💚 Активных (за 24ч): \`${stats.activeToday || 0}\`\n`;
+      message += `💚 Активных (за неделю): \`${stats.activeWeek || 0}\`\n`;
+      message += `💰 С депозитами: \`${stats.withDeposits || 0}\`\n`;
+      message += `🚫 Заблокированных: \`${stats.blocked || 0}\`\n\n`;
+      
+      if (stats.averageBalance) {
+        message += `📊 Средний баланс: \`${stats.averageBalance.toFixed(2)} USDT\`\n`;
+      }
+      
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🔄 Обновить', 'users_stats')],
+        [Markup.button.callback('◀️ Назад', 'users_menu')]
+      ]);
+      
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения статистики пользователей:', error);
+      const errorMessage = `❌ Ошибка получения статистики: ${error.response?.data?.message || error.message}`;
+      
+      if (ctx.callbackQuery) {
+        await ctx.answerCbQuery(errorMessage);
+      } else {
+        await ctx.reply(errorMessage);
+      }
+    }
   }
 
   // Транзакции
   async function showPendingWithdrawals(ctx) {
-    return transactionsCommands.showPendingWithdrawals(ctx);
+    try {
+      return await transactionsCommands.showPendingWithdrawals(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа ожидающих выводов:', error);
+      await ctx.reply('❌ Функция управления выводами временно недоступна');
+    }
   }
 
   async function showTransactionsHistory(ctx, page) {
-    return transactionsCommands.showTransactionsHistory(ctx, page);
+    try {
+      return await transactionsCommands.showTransactionsHistory(ctx, page);
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа истории транзакций:', error);
+      await ctx.reply('❌ Функция истории транзакций временно недоступна');
+    }
   }
 
   async function showTransactionsStats(ctx) {
-    return transactionsCommands.showTransactionsStats(ctx);
+    try {
+      return await transactionsCommands.showTransactionsStats(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа статистики транзакций:', error);
+      await ctx.reply('❌ Функция статистики транзакций временно недоступна');
+    }
   }
 
   async function showDepositsInfo(ctx) {
-    return transactionsCommands.showDepositsInfo(ctx);
+    try {
+      return await transactionsCommands.showDepositsInfo(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа информации о депозитах:', error);
+      await ctx.reply('❌ Функция информации о депозитах временно недоступна');
+    }
   }
 
   // Коэффициенты
   async function showGlobalCoefficients(ctx) {
-    return coefficientsCommands.showGlobalCoefficients(ctx);
+    try {
+      return await coefficientsCommands.showGlobalCoefficients(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа глобальных коэффициентов:', error);
+      await ctx.reply('❌ Функция управления коэффициентами временно недоступна');
+    }
   }
 
   async function showUserCoefficients(ctx) {
-    return coefficientsCommands.showUserCoefficients(ctx);
+    try {
+      return await coefficientsCommands.showUserCoefficients(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа пользовательских коэффициентов:', error);
+      await ctx.reply('❌ Функция пользовательских коэффициентов временно недоступна');
+    }
   }
 
   async function handleCoefficientSetting(ctx) {
-    return coefficientsCommands.handleCoefficientSetting(ctx);
+    try {
+      return await coefficientsCommands.handleCoefficientSetting(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка настройки коэффициентов:', error);
+      await ctx.reply('❌ Функция настройки коэффициентов временно недоступна');
+    }
   }
 
   async function showCoefficientsStats(ctx) {
-    return coefficientsCommands.showCoefficientsStats(ctx);
+    try {
+      return await coefficientsCommands.showCoefficientsStats(ctx);
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа статистики коэффициентов:', error);
+      await ctx.reply('❌ Функция статистики коэффициентов временно недоступна');
+    }
+  }
+
+  // === HELPER FUNCTIONS ===
+  
+  /**
+   * Безопасное редактирование сообщения - предотвращает ошибки "message is not modified"
+   */
+  async function safeEditMessage(ctx, text, options = {}) {
+    try {
+      if (ctx.callbackQuery) {
+        // Сравниваем текущий текст с новым
+        const currentText = ctx.callbackQuery.message.text;
+        if (currentText === text) {
+          console.log('ADMIN: Контент идентичен, пропускаем editMessageText');
+          return;
+        }
+        await ctx.editMessageText(text, options);
+      } else {
+        await ctx.reply(text, options);
+      }
+    } catch (error) {
+      if (error.message.includes('message is not modified')) {
+        console.log('ADMIN: Сообщение не изменено, игнорируем ошибку');
+        return;
+      }
+      console.error('ADMIN: Ошибка редактирования сообщения:', error);
+      // Fallback - отправляем новое сообщение
+      await ctx.reply(text, options);
+    }
   }
 
   return bot;

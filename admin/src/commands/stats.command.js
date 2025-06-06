@@ -29,6 +29,7 @@ async function statsCommand(ctx) {
         break;
         
       default:
+        const { Markup } = require('telegraf');
         await ctx.reply(
           '📊 <b>Статистика казино</b>\n\n' +
           'Доступные команды:\n' +
@@ -36,7 +37,20 @@ async function statsCommand(ctx) {
           '• /stats commission - Детали по комиссиям\n' +
           '• /stats users - Статистика пользователей\n' +
           '• /stats games - Статистика игр',
-          { parse_mode: 'HTML' }
+          { 
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+              [
+                Markup.button.callback('📊 Финансы', 'finances_stats'),
+                Markup.button.callback('👥 Пользователи', 'users_stats')
+              ],
+              [
+                Markup.button.callback('🎮 Игры', 'finances_games'),
+                Markup.button.callback('💰 Комиссии', 'stats_commission')
+              ],
+              [Markup.button.callback('🏠 Главное меню', 'main_menu')]
+            ])
+          }
         );
     }
     
@@ -95,7 +109,17 @@ async function showFinanceStats(ctx) {
     
     message += '📊 /stats commission - детали по комиссиям';
     
-    await ctx.reply(message, { parse_mode: 'HTML' });
+    const { Markup } = require('telegraf');
+    await ctx.reply(message, { 
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback('💰 Комиссии', 'stats_commission'),
+          Markup.button.callback('🔄 Обновить', 'finances_stats')
+        ],
+        [Markup.button.callback('🏠 Главное меню', 'main_menu')]
+      ])
+    });
     
   } catch (error) {
     console.error('Ошибка получения финансовой статистики:', error);
@@ -248,3 +272,7 @@ async function showGameStats(ctx) {
 }
 
 module.exports = statsCommand;
+module.exports.showCommissionStats = showCommissionStats;
+module.exports.showFinanceStats = showFinanceStats;
+module.exports.showUserStats = showUserStats;
+module.exports.showGameStats = showGameStats;

@@ -1,4 +1,4 @@
-// frontend/src/components/games/coin/CoinGame.js
+// frontend/src/components/games/coin/CoinGame.js - ОБНОВЛЕННАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import CoinFlip from './CoinFlip';
 import CoinControls from './CoinControls';
@@ -11,15 +11,14 @@ const CoinGame = ({
   gameStats, 
   setGameResult, 
   setError,
-  onFlip, // ИСПРАВЛЕНО: принимаем onFlip из GameScreen
-  isFlipping, // ИСПРАВЛЕНО: принимаем isFlipping из GameScreen
-  result, // ИСПРАВЛЕНО: принимаем result из GameScreen
-  lastResults, // ИСПРАВЛЕНО: принимаем lastResults из GameScreen
-  onAnimationEnd // ИСПРАВЛЕНО: принимаем onAnimationEnd из GameScreen
+  onFlip, // Принимаем onFlip из GameScreen
+  isFlipping, // Принимаем isFlipping из GameScreen
+  result, // Принимаем result из GameScreen
+  lastResults, // Принимаем lastResults из GameScreen
+  onAnimationComplete // НОВЫЙ: принимаем onAnimationComplete из GameScreen
 }) => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [gameResultData, setGameResultData] = useState(null);
   
   useEffect(() => {
     const initializeGame = async () => {
@@ -42,7 +41,7 @@ const CoinGame = ({
     initializeGame();
   }, [setError]);
   
-  // ИСПРАВЛЕННЫЙ обработчик игры - теперь используется переданный onFlip
+  // Обработчик игры - теперь используется переданный onFlip
   const handleFlip = async (betData) => {
     console.log('🪙 COIN GAME: Получен запрос на подбрасывание:', betData);
     
@@ -126,7 +125,7 @@ const CoinGame = ({
         <CoinFlip 
           flipping={isFlipping}
           result={result}
-          onAnimationEnd={onAnimationEnd}
+          onAnimationComplete={onAnimationComplete} // ИСПРАВЛЕНО: используем правильный prop
         />
         
         {/* История результатов */}
@@ -160,12 +159,12 @@ const CoinGame = ({
         </div>
       </div>
       
-      {/* ИСПРАВЛЕНО: Управление игрой - передаем правильный обработчик */}
+      {/* Управление игрой */}
       <CoinControls 
-        onFlip={handleFlip} // ИСПРАВЛЕНО: передаем наш локальный обработчик
-        isFlipping={loading || isFlipping} // ИСПРАВЛЕНО: учитываем и loading и isFlipping
+        onFlip={handleFlip} // Передаем наш локальный обработчик
+        isFlipping={loading || isFlipping} // Учитываем и loading и isFlipping
         balance={balance}
-        lastResults={lastResults || []} // ИСПРАВЛЕНО: передаем lastResults или пустой массив
+        lastResults={lastResults || []} // Передаем lastResults или пустой массив
       />
     </div>
   );

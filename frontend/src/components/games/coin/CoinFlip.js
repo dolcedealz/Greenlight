@@ -1,4 +1,4 @@
-// frontend/src/components/games/coin/CoinFlip.js
+// frontend/src/components/games/coin/CoinFlip.js - УЛУЧШЕННАЯ ВЕРСИЯ
 import React, { useState, useRef, useEffect } from 'react';
 import '../../../styles/CoinFlip.css';
 
@@ -13,22 +13,24 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
       const coin = coinRef.current;
       if (!coin) return;
       
-      console.log('🪙 АНИМАЦИЯ: Начинаем анимацию, результат:', result);
+      console.log('🪙 АНИМАЦИЯ: Начинаем улучшенную анимацию, результат:', result);
       
-      setAnimationPhase('flipping');
+      setAnimationPhase('preparing');
       setShowResult(false);
       setFinalResult(result);
       
       // Полностью сбрасываем все классы
       coin.className = 'coin';
       
-      // Небольшая задержка для сброса состояния
+      // НОВОЕ: Небольшая задержка для подготовки анимации (улучшает плавность)
       setTimeout(() => {
+        setAnimationPhase('flipping');
         // Начинаем анимацию вращения
         coin.classList.add('flipping');
-      }, 50);
+        console.log('🪙 АНИМАЦИЯ: Запущена анимация вращения');
+      }, 100);
       
-      // Фаза приземления (через 2.5 секунды - когда заканчивается анимация)
+      // Фаза приземления (через 2.5 секунды - когда заканчивается CSS анимация)
       setTimeout(() => {
         setAnimationPhase('landing');
         
@@ -39,24 +41,29 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         coin.classList.add('final-result', result);
         
         console.log('🪙 АНИМАЦИЯ: Приземление на', result);
-        console.log('🪙 АНИМАЦИЯ: Классы монеты:', coin.className);
-      }, 2500);
+      }, 2600); // Немного больше времени CSS анимации для плавности
       
-      // Показываем результат (через 3 секунды)
+      // Показываем локальный результат анимации (через 3.2 секунды)
       setTimeout(() => {
         setAnimationPhase('showing');
         setShowResult(true);
-        console.log('🪙 АНИМАЦИЯ: Показываем результат');
-      }, 3000);
+        console.log('🪙 АНИМАЦИЯ: Показываем локальный результат');
+      }, 3200);
       
-      // Завершаем анимацию (через 4 секунды)
+      // Завершаем анимацию и сообщаем родителю (через 4.2 секунды)
       setTimeout(() => {
-        setAnimationPhase('idle');
-        if (onAnimationEnd) {
-          onAnimationEnd();
-        }
-        console.log('🪙 АНИМАЦИЯ: Завершено');
-      }, 4000);
+        setAnimationPhase('completed');
+        console.log('🪙 АНИМАЦИЯ: Завершена, готовимся уведомить GameScreen');
+        
+        // Дополнительная небольшая задержка перед уведомлением родителя
+        setTimeout(() => {
+          setAnimationPhase('idle');
+          if (onAnimationEnd) {
+            onAnimationEnd();
+          }
+          console.log('🪙 АНИМАЦИЯ: Полностью завершена, уведомляем GameScreen');
+        }, 300);
+      }, 4200); // Оптимизированное время
       
     } else if (!flipping) {
       // Сбрасываем состояние, если не в режиме флипа
@@ -122,10 +129,12 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         </div>
       </div>
       
-      {/* Статус анимации */}
-      {animationPhase === 'flipping' && (
+      {/* Статус анимации - УЛУЧШЕННЫЕ СОСТОЯНИЯ */}
+      {(animationPhase === 'preparing' || animationPhase === 'flipping') && (
         <div className="flip-status">
-          <div className="flip-text">Подбрасываем монету...</div>
+          <div className="flip-text">
+            {animationPhase === 'preparing' ? 'Подготовка...' : 'Подбрасываем монету...'}
+          </div>
           <div className="flip-dots">
             <span></span>
             <span></span>
@@ -134,8 +143,8 @@ const CoinFlip = ({ flipping, result, onAnimationEnd }) => {
         </div>
       )}
       
-      {/* Результат - показываем только после завершения анимации */}
-      {showResult && finalResult && (
+      {/* Локальный результат анимации - показываем только после landing */}
+      {showResult && finalResult && animationPhase === 'showing' && (
         <div className={`coin-result ${finalResult}`}>
           <div className="result-icon">
             {finalResult === 'heads' ? '₿' : '💎'}

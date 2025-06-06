@@ -17,28 +17,35 @@
 }
 
 .profile-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
   background-color: var(--secondary-color);
   border-radius: var(--border-radius);
   margin-bottom: 15px;
-  overflow: hidden;
+  padding: 8px;
 }
 
 .tab-button {
-  flex: 1;
-  padding: 12px 0;
+  padding: 12px 8px;
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .tab-button.active {
   color: white;
   background-color: var(--primary-color);
   font-weight: bold;
+}
+
+.tab-button:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .profile-content {
@@ -1196,5 +1203,26 @@ input:checked + .slider:before {
   }
   to {
     opacity: 1;
+  }
+}
+
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 380px) {
+  .profile-tabs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .tab-button {
+    font-size: 12px;
+    padding: 10px 6px;
+  }
+}
+
+/* Для очень узких экранов */
+@media (max-width: 320px) {
+  .tab-button {
+    font-size: 11px;
+    padding: 8px 4px;
   }
 }

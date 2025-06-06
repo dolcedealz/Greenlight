@@ -384,6 +384,16 @@ class DuelService {
       await this.finishDuel(duel, duel.opponentId, duel.opponentUsername, session);
     } else {
       console.log(`🔄 Дуэль продолжается... Нужно ещё раундов`);
+      // Создаем новый раунд для продолжения игры
+      const newRound = {
+        roundNumber: duel.rounds.length + 1,
+        challengerResult: null,
+        opponentResult: null,
+        winnerId: null,
+        timestamp: new Date()
+      };
+      duel.rounds.push(newRound);
+      console.log(`📝 Создан новый раунд #${newRound.roundNumber} для продолжения дуэли`);
     }
   }
   

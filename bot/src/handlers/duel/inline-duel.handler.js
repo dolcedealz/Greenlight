@@ -280,6 +280,22 @@ class InlineDuelHandler {
           
           await ctx.answerCbQuery('✅ Дуэль принята! Начинаем игру...');
           
+          // Редактируем сообщение о принятии дуэли
+          try {
+            const gameConfig = getGameConfig(createdDuel.gameType);
+            await ctx.editMessageText(
+              `✅ **ДУЭЛЬ ПРИНЯТА!**\n\n` +
+              `⚔️ @${createdDuel.challengerUsername} VS @${createdDuel.opponentUsername}\n\n` +
+              `${gameConfig.emoji} Игра: ${gameConfig.name}\n` +
+              `💰 Ставка: ${createdDuel.amount} USDT каждый\n` +
+              `🏆 Формат: ${createdDuel.format.toUpperCase()}\n\n` +
+              `📱 Игра начинается в личных сообщениях бота!`,
+              { parse_mode: 'Markdown' }
+            );
+          } catch (editError) {
+            console.error('Ошибка редактирования сообщения:', editError);
+          }
+          
           // Отправляем игровые сообщения обоим игрокам
           await this.sendGameMessages(ctx, createdDuel, sessionId);
           
@@ -307,6 +323,20 @@ class InlineDuelHandler {
         
         if (duelData) {
           await ctx.answerCbQuery('❌ Вы отклонили приглашение');
+          
+          // Редактируем сообщение об отклонении
+          try {
+            const gameConfig = getGameConfig(duelData.gameType);
+            await ctx.editMessageText(
+              `❌ **ДУЭЛЬ ОТКЛОНЕНА**\n\n` +
+              `@${duelData.targetUsername} отклонил вызов от @${duelData.challengerUsername}\n\n` +
+              `${gameConfig.emoji} Игра: ${gameConfig.name}\n` +
+              `💰 Ставка: ${duelData.amount} USDT`,
+              { parse_mode: 'Markdown' }
+            );
+          } catch (editError) {
+            console.error('Ошибка редактирования сообщения:', editError);
+          }
           
           // Уведомляем инициатора об отклонении
           try {

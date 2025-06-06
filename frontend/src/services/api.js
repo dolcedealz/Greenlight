@@ -519,6 +519,66 @@ const duelApi = {
   }
 };
 
+// API для промокодов
+export const promocodeApi = {
+  // Активировать промокод
+  activatePromoCode: async (code) => {
+    console.log('Активация промокода:', code);
+    try {
+      const response = await api.post('/promocodes/activate', { code });
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка активации промокода:', error);
+      throw error;
+    }
+  },
+
+  // Валидировать промокод (без активации)
+  validatePromoCode: async (code) => {
+    console.log('Валидация промокода:', code);
+    try {
+      const response = await api.get(`/promocodes/${code}/validate`);
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка валидации промокода:', error);
+      throw error;
+    }
+  },
+
+  // Получить промокоды пользователя
+  getUserPromoCodes: async () => {
+    console.log('Получение промокодов пользователя');
+    try {
+      const response = await api.get('/promocodes/user');
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка получения промокодов пользователя:', error);
+      throw error;
+    }
+  },
+
+  // Получить доступные промокоды (публичные)
+  getAvailablePromoCodes: async (type = null) => {
+    console.log('Получение доступных промокодов, тип:', type);
+    try {
+      const params = type ? { type } : {};
+      const response = await api.get('/promocodes/available', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка получения доступных промокодов:', error);
+      throw error;
+    }
+  }
+};
+
+// Экспортируем методы промокодов для удобства
+export const { 
+  activatePromoCode, 
+  validatePromoCode, 
+  getUserPromoCodes, 
+  getAvailablePromoCodes 
+} = promocodeApi;
+
 export {
   api as default,
   userApi,
@@ -526,5 +586,6 @@ export {
   paymentApi,
   eventsApi,
   referralApi,
-  duelApi
+  duelApi,
+  promocodeApi
 };

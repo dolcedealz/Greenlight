@@ -4,6 +4,7 @@ import { Header } from '../components/layout';
 import Deposits from '../components/profile/Deposits';
 import Withdrawals from '../components/profile/Withdrawals';
 import { ReferralsList, EarningsHistory, PayoutModal } from '../components/referral';
+import { PromoCodeInput, UserPromoCodes } from '../components/promocodes';
 import useTactileFeedback from '../hooks/useTactileFeedback';
 import { userApi, gameApi, referralApi } from '../services';
 import { showNotification } from '../utils/telegram';

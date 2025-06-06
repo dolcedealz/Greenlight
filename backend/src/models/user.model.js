@@ -120,6 +120,71 @@ const userSchema = new Schema({
     type: Date,
     default: Date.now
   },
+  // Фриспины от промокодов
+  freespins: {
+    slots: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    coin: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    mines: {
+      type: Number,
+      default: 0,
+      min: 0
+    }
+  },
+  // Активные бонусы к депозитам от промокодов
+  activeDepositBonuses: [{
+    promocodeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Promocode',
+      required: true
+    },
+    percentage: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 500
+    },
+    maxBonus: {
+      type: Number,
+      default: null
+    },
+    transactionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Transaction'
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  // VIP статус
+  isVip: {
+    type: Boolean,
+    default: false
+  },
+  vipExpiresAt: {
+    type: Date,
+    default: null
+  },
+  // Уровень пользователя
+  level: {
+    type: Number,
+    default: 1,
+    min: 1,
+    max: 100
+  },
+  experience: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   // Новое поле для настроек игр и модификаторов шансов
   gameSettings: {
     coin: {

@@ -53,12 +53,18 @@ function registerCommands(bot) {
     console.log(`Админ ${first_name} (${id}) запустил админ-бота`);
     
     ctx.reply(
-      `👋 Привет, ${first_name}!\n\nЭто административный бот для управления Greenlight Casino.\n\nИспользуйте команды для получения статистики и управления системой.`,
-      Markup.keyboard([
-        ['📊 Статистика', '👥 Пользователи'],
-        ['🎮 Игры', '🔮 События'],
-        ['💰 Финансы', '⚙️ Настройки']
-      ]).resize()
+      `👋 Привет, ${first_name}!\n\n🎰 *Административная панель Greenlight Casino*\n\nПолный контроль над вашим казино:\n\n📊 Финансовая аналитика и отчеты\n👥 Управление пользователями\n🏦 Обработка выводов и депозитов\n✅ Одобрение транзакций\n🎯 Настройка коэффициентов\n🔮 Управление событиями\n⚙️ Системные настройки`,
+      {
+        parse_mode: 'Markdown',
+        ...Markup.keyboard([
+          ['📊 Финансы', '👥 Пользователи'],
+          ['🏦 Транзакции', '🔮 События'],
+          ['🎯 Коэффициенты', '🎁 Промокоды'],
+          ['🛡️ Безопасность', '📊 Мониторинг'],
+          ['💾 Бэкапы', '📢 Уведомления'],
+          ['⚙️ Настройки']
+        ]).resize()
+      }
     );
   });
   
@@ -86,6 +92,62 @@ function registerCommands(bot) {
   bot.command('events_list', async (ctx) => {
     console.log('ADMIN: Команда /events_list вызвана');
     await showEventsList(ctx);
+  });
+
+  // === НОВЫЕ КОМАНДЫ ДЛЯ ПОЛНОЦЕННОГО УПРАВЛЕНИЯ ===
+  
+  // Команда /finances - финансовая панель
+  bot.command('finances', async (ctx) => {
+    console.log('ADMIN: Команда /finances вызвана');
+    await showFinancesMenu(ctx);
+  });
+
+  // Команда /users - управление пользователями
+  bot.command('users', async (ctx) => {
+    console.log('ADMIN: Команда /users вызвана');
+    await showUsersMenu(ctx);
+  });
+
+  // Команда /transactions - управление транзакциями
+  bot.command('transactions', async (ctx) => {
+    console.log('ADMIN: Команда /transactions вызвана');
+    await showTransactionsMenu(ctx);
+  });
+
+  // Команда /coefficients - управление коэффициентами
+  bot.command('coefficients', async (ctx) => {
+    console.log('ADMIN: Команда /coefficients вызвана');
+    await showCoefficientsMenu(ctx);
+  });
+
+  // Команда /promo - управление промокодами
+  bot.command('promo', async (ctx) => {
+    console.log('ADMIN: Команда /promo вызвана');
+    await promoCommands.showPromoMenu(ctx);
+  });
+
+  // Команда /security - безопасность и аудит
+  bot.command('security', async (ctx) => {
+    console.log('ADMIN: Команда /security вызвана');
+    await securityCommands.showSecurityMenu(ctx);
+  });
+
+  // Команда /monitoring - мониторинг системы
+  bot.command('monitoring', async (ctx) => {
+    console.log('ADMIN: Команда /monitoring вызвана');
+    await monitoringCommands.showMonitoringMenu(ctx);
+  });
+
+  // Команда /backup - система бэкапов
+  bot.command('backup', async (ctx) => {
+    console.log('ADMIN: Команда /backup вызвана');
+    await backupCommands.showBackupMenu(ctx);
+  });
+
+  // Команда /notifications - массовые уведомления
+  bot.command('notifications', async (ctx) => {
+    console.log('ADMIN: Команда /notifications вызвана');
+    await notificationsCommands.showNotificationsMenu(ctx);
   });
 
   // === CALLBACK ОБРАБОТЧИКИ ДЛЯ СОБЫТИЙ ===
@@ -168,6 +230,562 @@ function registerCommands(bot) {
     );
   });
 
+  // === ОБРАБОТЧИКИ КЛАВИАТУРЫ ===
+  
+  // Обработка кнопок клавиатуры
+  bot.hears('📊 Финансы', async (ctx) => {
+    console.log('ADMIN: Кнопка "Финансы"');
+    await showFinancesMenu(ctx);
+  });
+
+  bot.hears('👥 Пользователи', async (ctx) => {
+    console.log('ADMIN: Кнопка "Пользователи"');
+    await showUsersMenu(ctx);
+  });
+
+  bot.hears('🏦 Транзакции', async (ctx) => {
+    console.log('ADMIN: Кнопка "Транзакции"');
+    await showTransactionsMenu(ctx);
+  });
+
+  bot.hears('🔮 События', async (ctx) => {
+    console.log('ADMIN: Кнопка "События"');
+    await showEventsMenu(ctx);
+  });
+
+  bot.hears('🎯 Коэффициенты', async (ctx) => {
+    console.log('ADMIN: Кнопка "Коэффициенты"');
+    await showCoefficientsMenu(ctx);
+  });
+
+  bot.hears('🎁 Промокоды', async (ctx) => {
+    console.log('ADMIN: Кнопка "Промокоды"');
+    await promoCommands.showPromoMenu(ctx);
+  });
+
+  bot.hears('🛡️ Безопасность', async (ctx) => {
+    console.log('ADMIN: Кнопка "Безопасность"');
+    await securityCommands.showSecurityMenu(ctx);
+  });
+
+  bot.hears('📊 Мониторинг', async (ctx) => {
+    console.log('ADMIN: Кнопка "Мониторинг"');
+    await monitoringCommands.showMonitoringMenu(ctx);
+  });
+
+  bot.hears('💾 Бэкапы', async (ctx) => {
+    console.log('ADMIN: Кнопка "Бэкапы"');
+    await backupCommands.showBackupMenu(ctx);
+  });
+
+  bot.hears('📢 Уведомления', async (ctx) => {
+    console.log('ADMIN: Кнопка "Уведомления"');
+    await notificationsCommands.showNotificationsMenu(ctx);
+  });
+
+  bot.hears('⚙️ Настройки', async (ctx) => {
+    console.log('ADMIN: Кнопка "Настройки"');
+    await showSettingsMenu(ctx);
+  });
+
+  // === CALLBACK ОБРАБОТЧИКИ ДЛЯ НОВЫХ МЕНЮ ===
+
+  // Финансы
+  bot.action('finances_menu', async (ctx) => {
+    console.log('ADMIN: Callback finances_menu');
+    await ctx.answerCbQuery();
+    await showFinancesMenu(ctx);
+  });
+
+  bot.action('finances_stats', async (ctx) => {
+    console.log('ADMIN: Callback finances_stats');
+    await ctx.answerCbQuery();
+    await showFinanceStats(ctx);
+  });
+
+  bot.action('finances_report', async (ctx) => {
+    console.log('ADMIN: Callback finances_report');
+    await ctx.answerCbQuery();
+    await showFinanceReport(ctx);
+  });
+
+  bot.action('finances_games', async (ctx) => {
+    console.log('ADMIN: Callback finances_games');
+    await ctx.answerCbQuery();
+    await showGameFinanceStats(ctx);
+  });
+
+  bot.action('finances_balance', async (ctx) => {
+    console.log('ADMIN: Callback finances_balance');
+    await ctx.answerCbQuery();
+    await showFinanceStats(ctx); // Показываем основную статистику
+  });
+
+  // Пользователи
+  bot.action('users_menu', async (ctx) => {
+    console.log('ADMIN: Callback users_menu');
+    await ctx.answerCbQuery();
+    await showUsersMenu(ctx);
+  });
+
+  bot.action('users_list', async (ctx) => {
+    console.log('ADMIN: Callback users_list');
+    await ctx.answerCbQuery();
+    await showUsersList(ctx);
+  });
+
+  bot.action('users_search', async (ctx) => {
+    console.log('ADMIN: Callback users_search');
+    await ctx.answerCbQuery();
+    await startUserSearch(ctx);
+  });
+
+  bot.action('users_stats', async (ctx) => {
+    console.log('ADMIN: Callback users_stats');
+    await ctx.answerCbQuery();
+    await showUsersStats(ctx);
+  });
+
+  // Транзакции
+  bot.action('transactions_menu', async (ctx) => {
+    console.log('ADMIN: Callback transactions_menu');
+    await ctx.answerCbQuery();
+    await showTransactionsMenu(ctx);
+  });
+
+  bot.action('transactions_pending', async (ctx) => {
+    console.log('ADMIN: Callback transactions_pending');
+    await ctx.answerCbQuery();
+    await showPendingWithdrawals(ctx);
+  });
+
+  bot.action('transactions_history', async (ctx) => {
+    console.log('ADMIN: Callback transactions_history');
+    await ctx.answerCbQuery();
+    await showTransactionsHistory(ctx);
+  });
+
+  // Коэффициенты
+  bot.action('coefficients_menu', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_menu');
+    await ctx.answerCbQuery();
+    await showCoefficientsMenu(ctx);
+  });
+
+  bot.action('coefficients_global', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_global');
+    await ctx.answerCbQuery();
+    await showGlobalCoefficients(ctx);
+  });
+
+  bot.action('coefficients_users', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_users');
+    await ctx.answerCbQuery();
+    await showUserCoefficients(ctx);
+  });
+
+  bot.action('coefficients_stats', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_stats');
+    await ctx.answerCbQuery();
+    await showCoefficientsStats(ctx);
+  });
+
+  bot.action('transactions_stats', async (ctx) => {
+    console.log('ADMIN: Callback transactions_stats');
+    await ctx.answerCbQuery();
+    await showTransactionsStats(ctx);
+  });
+
+  bot.action('transactions_deposits', async (ctx) => {
+    console.log('ADMIN: Callback transactions_deposits');
+    await ctx.answerCbQuery();
+    await showDepositsInfo(ctx);
+  });
+
+  // === ДОПОЛНИТЕЛЬНЫЕ CALLBACK ОБРАБОТЧИКИ ===
+
+  // Навигация по страницам пользователей
+  bot.action(/^users_list_(\d+)$/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log('ADMIN: Callback users_list page:', page);
+    await ctx.answerCbQuery();
+    await showUsersList(ctx, page);
+  });
+
+  // Отмена поиска пользователей
+  bot.action('users_search_cancel', async (ctx) => {
+    console.log('ADMIN: Callback users_search_cancel');
+    await ctx.answerCbQuery('Отменено');
+    if (ctx.session) {
+      delete ctx.session.searchingUser;
+    }
+    await showUsersMenu(ctx);
+  });
+
+  // Детали пользователя
+  bot.action(/^user_details_(.+)$/, async (ctx) => {
+    const userId = ctx.match[1];
+    console.log('ADMIN: Callback user_details:', userId);
+    await ctx.answerCbQuery();
+    await usersCommands.showUserDetails(ctx, userId);
+  });
+
+  // Блокировка/разблокировка пользователя
+  bot.action(/^user_toggle_block_(.+)$/, async (ctx) => {
+    const userId = ctx.match[1];
+    console.log('ADMIN: Callback user_toggle_block:', userId);
+    await usersCommands.toggleUserBlock(ctx, userId);
+  });
+
+  // Изменение баланса пользователя
+  bot.action(/^user_balance_(.+)$/, async (ctx) => {
+    const userId = ctx.match[1];
+    console.log('ADMIN: Callback user_balance:', userId);
+    await ctx.answerCbQuery();
+    await usersCommands.startBalanceAdjustment(ctx, userId);
+  });
+
+  // Одобрение вывода
+  bot.action(/^approve_withdrawal_(.+)$/, async (ctx) => {
+    const withdrawalId = ctx.match[1];
+    console.log('ADMIN: Callback approve_withdrawal:', withdrawalId);
+    await transactionsCommands.approveWithdrawal(ctx, withdrawalId);
+  });
+
+  // Отклонение вывода
+  bot.action(/^reject_withdrawal_(.+)$/, async (ctx) => {
+    const withdrawalId = ctx.match[1];
+    console.log('ADMIN: Callback reject_withdrawal:', withdrawalId);
+    await ctx.answerCbQuery();
+    await transactionsCommands.rejectWithdrawal(ctx, withdrawalId);
+  });
+
+  // Навигация по истории транзакций
+  bot.action(/^transactions_history_(\d+)$/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log('ADMIN: Callback transactions_history page:', page);
+    await ctx.answerCbQuery();
+    await showTransactionsHistory(ctx, page);
+  });
+
+  // Настройка глобальных коэффициентов
+  bot.action(/^coeff_global_(coin|slots|mines|crash)$/, async (ctx) => {
+    const gameType = ctx.match[1];
+    console.log('ADMIN: Callback coeff_global game:', gameType);
+    await ctx.answerCbQuery();
+    await coefficientsCommands.setupGlobalGameCoefficient(ctx, gameType);
+  });
+
+  // Подтверждение настройки коэффициента
+  bot.action(/^coeff_enable_(true|false)$/, async (ctx) => {
+    const enabled = ctx.match[1] === 'true';
+    console.log('ADMIN: Callback coeff_enable:', enabled);
+    await coefficientsCommands.confirmCoefficientSetting(ctx, enabled);
+  });
+
+  // Переключение режима модификаторов
+  bot.action('coeff_toggle_mode', async (ctx) => {
+    console.log('ADMIN: Callback coeff_toggle_mode');
+    await coefficientsCommands.toggleModifierMode(ctx);
+  });
+
+  // Сброс модификаторов
+  bot.action('coefficients_reset', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_reset');
+    await ctx.answerCbQuery();
+    await coefficientsCommands.resetAllModifiers(ctx);
+  });
+
+  bot.action('confirm_reset_all', async (ctx) => {
+    console.log('ADMIN: Callback confirm_reset_all');
+    await coefficientsCommands.confirmResetAllModifiers(ctx);
+  });
+
+  // === CALLBACK ОБРАБОТЧИКИ ДЛЯ ПРОМОКОДОВ ===
+
+  // Главное меню промокодов
+  bot.action('promo_menu', async (ctx) => {
+    console.log('ADMIN: Callback promo_menu');
+    await ctx.answerCbQuery();
+    await promoCommands.showPromoMenu(ctx);
+  });
+
+  // Создание промокода
+  bot.action('promo_create', async (ctx) => {
+    console.log('ADMIN: Callback promo_create');
+    await ctx.answerCbQuery();
+    await promoCommands.startPromoCreation(ctx);
+  });
+
+  // Список промокодов
+  bot.action('promo_list', async (ctx) => {
+    console.log('ADMIN: Callback promo_list');
+    await ctx.answerCbQuery();
+    await promoCommands.showPromoList(ctx);
+  });
+
+  // Статистика промокодов
+  bot.action('promo_stats', async (ctx) => {
+    console.log('ADMIN: Callback promo_stats');
+    await ctx.answerCbQuery();
+    await promoCommands.showPromoStats(ctx);
+  });
+
+  // Отмена создания промокода
+  bot.action('promo_cancel', async (ctx) => {
+    console.log('ADMIN: Callback promo_cancel');
+    await ctx.answerCbQuery('Отменено');
+    if (ctx.session) {
+      delete ctx.session.creatingPromo;
+    }
+    await promoCommands.showPromoMenu(ctx);
+  });
+
+  // Выбор типа промокода
+  bot.action(/^promo_type_(balance|freespins|deposit|vip)$/, async (ctx) => {
+    const type = ctx.match[1];
+    console.log('ADMIN: Callback promo_type:', type);
+    await promoCommands.handlePromoTypeSelection(ctx, type);
+  });
+
+  // Навигация по страницам промокодов
+  bot.action(/^promo_list_(\d+)$/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log('ADMIN: Callback promo_list page:', page);
+    await ctx.answerCbQuery();
+    await promoCommands.showPromoList(ctx, page);
+  });
+
+  // === CALLBACK ОБРАБОТЧИКИ ДЛЯ БЕЗОПАСНОСТИ ===
+
+  // Главное меню безопасности
+  bot.action('security_menu', async (ctx) => {
+    console.log('ADMIN: Callback security_menu');
+    await ctx.answerCbQuery();
+    await securityCommands.showSecurityMenu(ctx);
+  });
+
+  // Системные алерты
+  bot.action('security_alerts', async (ctx) => {
+    console.log('ADMIN: Callback security_alerts');
+    await ctx.answerCbQuery();
+    await securityCommands.showSecurityAlerts(ctx);
+  });
+
+  // Журнал аудита
+  bot.action('security_audit', async (ctx) => {
+    console.log('ADMIN: Callback security_audit');
+    await ctx.answerCbQuery();
+    await securityCommands.showAuditLog(ctx);
+  });
+
+  // Подозрительная активность
+  bot.action('security_suspicious', async (ctx) => {
+    console.log('ADMIN: Callback security_suspicious');
+    await ctx.answerCbQuery();
+    await securityCommands.showSuspiciousActivity(ctx);
+  });
+
+  // Заблокированные IP
+  bot.action('security_blocked_ips', async (ctx) => {
+    console.log('ADMIN: Callback security_blocked_ips');
+    await ctx.answerCbQuery();
+    await securityCommands.showBlockedIPs(ctx);
+  });
+
+  // Настройки безопасности
+  bot.action('security_settings', async (ctx) => {
+    console.log('ADMIN: Callback security_settings');
+    await ctx.answerCbQuery();
+    await securityCommands.showSecuritySettings(ctx);
+  });
+
+  // Навигация по журналу аудита
+  bot.action(/^audit_log_(\d+)$/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log('ADMIN: Callback audit_log page:', page);
+    await ctx.answerCbQuery();
+    await securityCommands.showAuditLog(ctx, page);
+  });
+
+  // === CALLBACK ОБРАБОТЧИКИ ДЛЯ МОНИТОРИНГА ===
+
+  // Главное меню мониторинга
+  bot.action('monitoring_menu', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_menu');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showMonitoringMenu(ctx);
+  });
+
+  // Системные метрики
+  bot.action('monitoring_metrics', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_metrics');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showSystemMetrics(ctx);
+  });
+
+  // Производительность
+  bot.action('monitoring_performance', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_performance');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showPerformanceMetrics(ctx);
+  });
+
+  // Онлайн пользователи
+  bot.action('monitoring_online', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_online');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showOnlineUsers(ctx);
+  });
+
+  // Финансовый мониторинг
+  bot.action('monitoring_financial', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_financial');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showFinancialMonitoring(ctx);
+  });
+
+  // Активные алерты
+  bot.action('monitoring_alerts', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_alerts');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showActiveAlerts(ctx);
+  });
+
+  // === CALLBACK ОБРАБОТЧИКИ ДЛЯ БЭКАПОВ ===
+
+  // Главное меню бэкапов
+  bot.action('backup_menu', async (ctx) => {
+    console.log('ADMIN: Callback backup_menu');
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupMenu(ctx);
+  });
+
+  // Создание бэкапа
+  bot.action('backup_create', async (ctx) => {
+    console.log('ADMIN: Callback backup_create');
+    await ctx.answerCbQuery();
+    await backupCommands.createBackup(ctx);
+  });
+
+  // Создание бэкапа по типу
+  bot.action(/^backup_create_(full|users|financial|games|settings)$/, async (ctx) => {
+    const type = ctx.match[1];
+    console.log('ADMIN: Callback backup_create type:', type);
+    await backupCommands.performBackup(ctx, type);
+  });
+
+  // Список бэкапов
+  bot.action('backup_list', async (ctx) => {
+    console.log('ADMIN: Callback backup_list');
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupList(ctx);
+  });
+
+  // Навигация по списку бэкапов
+  bot.action(/^backup_list_(\\d+)$/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log('ADMIN: Callback backup_list page:', page);
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupList(ctx, page);
+  });
+
+  // Статистика бэкапов
+  bot.action('backup_stats', async (ctx) => {
+    console.log('ADMIN: Callback backup_stats');
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupStats(ctx);
+  });
+
+  // Настройки бэкапов
+  bot.action('backup_settings', async (ctx) => {
+    console.log('ADMIN: Callback backup_settings');
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupSettings(ctx);
+  });
+
+  // Очистка бэкапов
+  bot.action('backup_cleanup', async (ctx) => {
+    console.log('ADMIN: Callback backup_cleanup');
+    await ctx.answerCbQuery();
+    await backupCommands.performBackupCleanup(ctx);
+  });
+
+  // === CALLBACK ОБРАБОТЧИКИ ДЛЯ УВЕДОМЛЕНИЙ ===
+
+  // Главное меню уведомлений
+  bot.action('notifications_menu', async (ctx) => {
+    console.log('ADMIN: Callback notifications_menu');
+    await ctx.answerCbQuery();
+    await notificationsCommands.showNotificationsMenu(ctx);
+  });
+
+  // Создание уведомления
+  bot.action('notifications_create', async (ctx) => {
+    console.log('ADMIN: Callback notifications_create');
+    await ctx.answerCbQuery();
+    await notificationsCommands.startNotificationCreation(ctx);
+  });
+
+  // Выбор типа аудитории
+  bot.action(/^notif_type_(all|active|vip|inactive|segmented|custom)$/, async (ctx) => {
+    const type = ctx.match[1];
+    console.log('ADMIN: Callback notif_type:', type);
+    await notificationsCommands.handleAudienceSelection(ctx, type);
+  });
+
+  // Выбор приоритета
+  bot.action(/^notif_priority_(high|medium|low|normal)$/, async (ctx) => {
+    const priority = ctx.match[1];
+    console.log('ADMIN: Callback notif_priority:', priority);
+    await notificationsCommands.handlePrioritySelection(ctx, priority);
+  });
+
+  // Выбор времени отправки
+  bot.action(/^notif_timing_(now|scheduled|ab_test)$/, async (ctx) => {
+    const timing = ctx.match[1];
+    console.log('ADMIN: Callback notif_timing:', timing);
+    await notificationsCommands.handleTimingSelection(ctx, timing);
+  });
+
+  // Подтверждение отправки
+  bot.action('notif_confirm_send', async (ctx) => {
+    console.log('ADMIN: Callback notif_confirm_send');
+    await notificationsCommands.confirmNotificationSend(ctx);
+  });
+
+  // История уведомлений
+  bot.action('notifications_history', async (ctx) => {
+    console.log('ADMIN: Callback notifications_history');
+    await ctx.answerCbQuery();
+    await notificationsCommands.showNotificationsHistory(ctx);
+  });
+
+  // Навигация по истории уведомлений
+  bot.action(/^notifications_history_(\\d+)$/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log('ADMIN: Callback notifications_history page:', page);
+    await ctx.answerCbQuery();
+    await notificationsCommands.showNotificationsHistory(ctx, page);
+  });
+
+  // Статистика уведомлений
+  bot.action('notifications_stats', async (ctx) => {
+    console.log('ADMIN: Callback notifications_stats');
+    await ctx.answerCbQuery();
+    await notificationsCommands.showNotificationsStats(ctx);
+  });
+
+  // Отмена создания уведомления
+  bot.action('notifications_cancel', async (ctx) => {
+    console.log('ADMIN: Callback notifications_cancel');
+    await ctx.answerCbQuery('Отменено');
+    if (ctx.session) {
+      delete ctx.session.creatingNotification;
+    }
+    await notificationsCommands.showNotificationsMenu(ctx);
+  });
+
   // === ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ ДЛЯ СОБЫТИЙ ===
   
   // Обработка текстовых сообщений
@@ -185,6 +803,55 @@ function registerCommands(bot) {
     if (ctx.session && ctx.session.finishingEvent) {
       console.log('ADMIN: Обрабатываем завершение события');
       await handleEventFinishing(ctx);
+      return;
+    }
+
+    // Проверяем поиск пользователей
+    if (ctx.session && ctx.session.searchingUser) {
+      console.log('ADMIN: Обрабатываем поиск пользователя');
+      await handleUserSearch(ctx);
+      return;
+    }
+
+    // Проверяем настройку коэффициентов
+    if (ctx.session && ctx.session.settingCoefficient) {
+      console.log('ADMIN: Обрабатываем настройку коэффициента');
+      await handleCoefficientSetting(ctx);
+      return;
+    }
+
+    // Проверяем поиск пользователя для коэффициентов
+    if (ctx.session && ctx.session.searchingUserCoeff) {
+      console.log('ADMIN: Обрабатываем поиск пользователя для коэффициентов');
+      await coefficientsCommands.handleUserCoefficientSearch(ctx);
+      return;
+    }
+
+    // Проверяем изменение баланса пользователя
+    if (ctx.session && ctx.session.adjustingBalance) {
+      console.log('ADMIN: Обрабатываем изменение баланса пользователя');
+      await usersCommands.handleBalanceAdjustment(ctx);
+      return;
+    }
+
+    // Проверяем отклонение вывода
+    if (ctx.session && ctx.session.rejectingWithdrawal) {
+      console.log('ADMIN: Обрабатываем отклонение вывода');
+      await transactionsCommands.handleWithdrawalRejection(ctx);
+      return;
+    }
+
+    // Проверяем создание промокода
+    if (ctx.session && ctx.session.creatingPromo) {
+      console.log('ADMIN: Обрабатываем создание промокода');
+      await promoCommands.handlePromoCreation(ctx);
+      return;
+    }
+
+    // Проверяем создание уведомления
+    if (ctx.session && ctx.session.creatingNotification) {
+      console.log('ADMIN: Обрабатываем создание уведомления');
+      await notificationsCommands.handleNotificationCreation(ctx);
       return;
     }
     
@@ -730,6 +1397,459 @@ function registerCommands(bot) {
       console.error('ADMIN: Ошибка завершения события:', error);
       await ctx.answerCbQuery(`❌ Ошибка: ${error.response?.data?.message || error.message}`);
     }
+  }
+
+  // === НОВЫЕ ФУНКЦИИ ДЛЯ ПОЛНОЦЕННОГО УПРАВЛЕНИЯ ===
+
+  /**
+   * Показать меню финансов
+   */
+  async function showFinancesMenu(ctx) {
+    console.log('ADMIN: Показ меню финансов');
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('📊 Текущее состояние', 'finances_stats')],
+      [Markup.button.callback('📈 Отчет за период', 'finances_report')],
+      [Markup.button.callback('🎮 Статистика по играм', 'finances_games')],
+      [Markup.button.callback('💰 Баланс казино', 'finances_balance')],
+      [Markup.button.callback('◀️ Главное меню', 'main_menu')]
+    ]);
+
+    const message = '💰 *Финансовое управление*\n\nВыберите раздел для просмотра:';
+    
+    try {
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа меню финансов:', error);
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+  }
+
+  /**
+   * Показать финансовую статистику
+   */
+  async function showFinanceStats(ctx) {
+    console.log('ADMIN: Запрос финансовой статистики');
+    
+    try {
+      const response = await apiClient.get('/admin/finance/state');
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Ошибка получения статистики');
+      }
+      
+      const stats = response.data.data;
+      
+      let message = '📊 *Текущее финансовое состояние*\n\n';
+      message += `🏦 *Общий баланс казино:* ${stats.totalBalance?.toFixed(2) || '0.00'} USDT\n`;
+      message += `💰 *Доступные средства:* ${stats.availableBalance?.toFixed(2) || '0.00'} USDT\n`;
+      message += `🔒 *Заблокированные средства:* ${stats.lockedFunds?.toFixed(2) || '0.00'} USDT\n`;
+      message += `📈 *Общая прибыль:* ${stats.totalProfit?.toFixed(2) || '0.00'} USDT\n`;
+      message += `📉 *Общие расходы:* ${stats.totalExpenses?.toFixed(2) || '0.00'} USDT\n\n`;
+      message += `👥 *Пользователи:*\n`;
+      message += `   Всего: ${stats.userStats?.total || 0}\n`;
+      message += `   Активных: ${stats.userStats?.active || 0}\n`;
+      message += `   Заблокированных: ${stats.userStats?.blocked || 0}\n\n`;
+      message += `🎰 *Игры сегодня:*\n`;
+      message += `   Всего игр: ${stats.dailyStats?.totalGames || 0}\n`;
+      message += `   Общие ставки: ${stats.dailyStats?.totalBets?.toFixed(2) || '0.00'} USDT\n`;
+      message += `   Общие выплаты: ${stats.dailyStats?.totalPayouts?.toFixed(2) || '0.00'} USDT`;
+      
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🔄 Обновить', 'finances_stats')],
+        [Markup.button.callback('◀️ Назад', 'finances_menu')]
+      ]);
+      
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения финансовой статистики:', error);
+      const errorMessage = `❌ Ошибка получения статистики: ${error.message}`;
+      
+      if (ctx.callbackQuery) {
+        await ctx.answerCbQuery(errorMessage);
+      } else {
+        await ctx.reply(errorMessage);
+      }
+    }
+  }
+
+  /**
+   * Показать финансовый отчет
+   */
+  async function showFinanceReport(ctx) {
+    console.log('ADMIN: Запрос финансового отчета');
+    
+    try {
+      const response = await apiClient.get('/admin/finance/report', {
+        params: { period: 'week' }
+      });
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Ошибка получения отчета');
+      }
+      
+      const report = response.data.data;
+      
+      let message = '📈 *Финансовый отчет за неделю*\n\n';
+      message += `💵 *Доходы:* ${report.income?.toFixed(2) || '0.00'} USDT\n`;
+      message += `💸 *Расходы:* ${report.expenses?.toFixed(2) || '0.00'} USDT\n`;
+      message += `📊 *Чистая прибыль:* ${report.netProfit?.toFixed(2) || '0.00'} USDT\n`;
+      message += `📈 *ROI:* ${report.roi?.toFixed(1) || '0.0'}%\n\n`;
+      message += `🎰 *Игры:*\n`;
+      message += `   Общий объем ставок: ${report.totalBets?.toFixed(2) || '0.00'} USDT\n`;
+      message += `   Общие выплаты: ${report.totalPayouts?.toFixed(2) || '0.00'} USDT\n`;
+      message += `   House Edge: ${report.houseEdge?.toFixed(1) || '0.0'}%\n\n`;
+      message += `🏦 *Транзакции:*\n`;
+      message += `   Депозиты: ${report.deposits?.toFixed(2) || '0.00'} USDT\n`;
+      message += `   Выводы: ${report.withdrawals?.toFixed(2) || '0.00'} USDT\n`;
+      message += `   Комиссии: ${report.fees?.toFixed(2) || '0.00'} USDT`;
+      
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback('📅 День', 'report_day'),
+          Markup.button.callback('📅 Месяц', 'report_month')
+        ],
+        [Markup.button.callback('🔄 Обновить', 'finances_report')],
+        [Markup.button.callback('◀️ Назад', 'finances_menu')]
+      ]);
+      
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения отчета:', error);
+      const errorMessage = `❌ Ошибка получения отчета: ${error.message}`;
+      
+      if (ctx.callbackQuery) {
+        await ctx.answerCbQuery(errorMessage);
+      } else {
+        await ctx.reply(errorMessage);
+      }
+    }
+  }
+
+  /**
+   * Показать статистику по играм
+   */
+  async function showGameFinanceStats(ctx) {
+    console.log('ADMIN: Запрос статистики по играм');
+    
+    try {
+      const response = await apiClient.get('/admin/finance/game-stats');
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Ошибка получения статистики');
+      }
+      
+      const stats = response.data.data;
+      
+      let message = '🎮 *Статистика по играм*\n\n';
+      
+      if (stats.coin) {
+        message += `🪙 *Coin Flip:*\n`;
+        message += `   Игр: ${stats.coin.gamesCount || 0}\n`;
+        message += `   Ставки: ${stats.coin.totalBets?.toFixed(2) || '0.00'} USDT\n`;
+        message += `   Выплаты: ${stats.coin.totalPayouts?.toFixed(2) || '0.00'} USDT\n`;
+        message += `   Прибыль: ${stats.coin.profit?.toFixed(2) || '0.00'} USDT\n\n`;
+      }
+      
+      if (stats.crash) {
+        message += `🚀 *Crash:*\n`;
+        message += `   Раундов: ${stats.crash.roundsCount || 0}\n`;
+        message += `   Ставки: ${stats.crash.totalBets?.toFixed(2) || '0.00'} USDT\n`;
+        message += `   Выплаты: ${stats.crash.totalPayouts?.toFixed(2) || '0.00'} USDT\n`;
+        message += `   Прибыль: ${stats.crash.profit?.toFixed(2) || '0.00'} USDT\n\n`;
+      }
+      
+      if (stats.slots) {
+        message += `🎰 *Slots:*\n`;
+        message += `   Игр: ${stats.slots.gamesCount || 0}\n`;
+        message += `   Ставки: ${stats.slots.totalBets?.toFixed(2) || '0.00'} USDT\n`;
+        message += `   Выплаты: ${stats.slots.totalPayouts?.toFixed(2) || '0.00'} USDT\n`;
+        message += `   Прибыль: ${stats.slots.profit?.toFixed(2) || '0.00'} USDT\n\n`;
+      }
+      
+      if (stats.mines) {
+        message += `💣 *Mines:*\n`;
+        message += `   Игр: ${stats.mines.gamesCount || 0}\n`;
+        message += `   Ставки: ${stats.mines.totalBets?.toFixed(2) || '0.00'} USDT\n`;
+        message += `   Выплаты: ${stats.mines.totalPayouts?.toFixed(2) || '0.00'} USDT\n`;
+        message += `   Прибыль: ${stats.mines.profit?.toFixed(2) || '0.00'} USDT`;
+      }
+      
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🔄 Обновить', 'finances_games')],
+        [Markup.button.callback('◀️ Назад', 'finances_menu')]
+      ]);
+      
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения статистики игр:', error);
+      const errorMessage = `❌ Ошибка получения статистики: ${error.message}`;
+      
+      if (ctx.callbackQuery) {
+        await ctx.answerCbQuery(errorMessage);
+      } else {
+        await ctx.reply(errorMessage);
+      }
+    }
+  }
+
+  /**
+   * Показать меню пользователей
+   */
+  async function showUsersMenu(ctx) {
+    console.log('ADMIN: Показ меню пользователей');
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('👥 Список пользователей', 'users_list')],
+      [Markup.button.callback('🔍 Поиск пользователя', 'users_search')],
+      [Markup.button.callback('📊 Статистика пользователей', 'users_stats')],
+      [Markup.button.callback('🚫 Заблокированные', 'users_blocked')],
+      [Markup.button.callback('◀️ Главное меню', 'main_menu')]
+    ]);
+
+    const message = '👥 *Управление пользователями*\n\nВыберите действие:';
+    
+    try {
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа меню пользователей:', error);
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+  }
+
+  /**
+   * Показать меню транзакций
+   */
+  async function showTransactionsMenu(ctx) {
+    console.log('ADMIN: Показ меню транзакций');
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('⏳ Ожидающие одобрения', 'transactions_pending')],
+      [Markup.button.callback('📋 История транзакций', 'transactions_history')],
+      [Markup.button.callback('💰 Статистика выводов', 'transactions_stats')],
+      [Markup.button.callback('🏦 Депозиты', 'transactions_deposits')],
+      [Markup.button.callback('◀️ Главное меню', 'main_menu')]
+    ]);
+
+    const message = '🏦 *Управление транзакциями*\n\nВыберите раздел:';
+    
+    try {
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа меню транзакций:', error);
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+  }
+
+  /**
+   * Показать меню коэффициентов
+   */
+  async function showCoefficientsMenu(ctx) {
+    console.log('ADMIN: Показ меню коэффициентов');
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🌍 Глобальные настройки', 'coefficients_global')],
+      [Markup.button.callback('👤 Пользовательские', 'coefficients_users')],
+      [Markup.button.callback('📊 Статистика модификаторов', 'coefficients_stats')],
+      [Markup.button.callback('🔄 Сбросить все', 'coefficients_reset')],
+      [Markup.button.callback('◀️ Главное меню', 'main_menu')]
+    ]);
+
+    const message = '🎯 *Управление коэффициентами*\n\nВыберите тип настроек:';
+    
+    try {
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа меню коэффициентов:', error);
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+  }
+
+  /**
+   * Показать меню настроек
+   */
+  async function showSettingsMenu(ctx) {
+    console.log('ADMIN: Показ меню настроек');
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🎮 Настройки игр', 'settings_games')],
+      [Markup.button.callback('💰 Финансовые настройки', 'settings_finance')],
+      [Markup.button.callback('🔔 Уведомления', 'settings_notifications')],
+      [Markup.button.callback('🛡️ Безопасность', 'settings_security')],
+      [Markup.button.callback('◀️ Главное меню', 'main_menu')]
+    ]);
+
+    const message = '⚙️ *Системные настройки*\n\nВыберите категорию:';
+    
+    try {
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+    } catch (error) {
+      console.error('ADMIN: Ошибка показа меню настроек:', error);
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+  }
+
+  // === ИМПОРТ ФУНКЦИЙ ИЗ МОДУЛЕЙ ===
+  
+  // Импортируем функции управления пользователями
+  const usersCommands = require('./users.command');
+  const transactionsCommands = require('./transactions.command');
+  const coefficientsCommands = require('./coefficients.command');
+  const promoCommands = require('./promo.command');
+  const securityCommands = require('./security.command');
+  const monitoringCommands = require('./monitoring.command');
+  const backupCommands = require('./backup.command');
+  const notificationsCommands = require('./notifications.command');
+
+  // === ДЕЛЕГИРОВАНИЕ К МОДУЛЯМ ===
+  
+  // Пользователи
+  async function showUsersList(ctx, page) {
+    return usersCommands.showUsersList(ctx, page);
+  }
+
+  async function startUserSearch(ctx) {
+    return usersCommands.startUserSearch(ctx);
+  }
+
+  async function handleUserSearch(ctx) {
+    return usersCommands.handleUserSearch(ctx);
+  }
+
+  async function showUsersStats(ctx) {
+    return usersCommands.showUsersStats(ctx);
+  }
+
+  // Транзакции
+  async function showPendingWithdrawals(ctx) {
+    return transactionsCommands.showPendingWithdrawals(ctx);
+  }
+
+  async function showTransactionsHistory(ctx, page) {
+    return transactionsCommands.showTransactionsHistory(ctx, page);
+  }
+
+  async function showTransactionsStats(ctx) {
+    return transactionsCommands.showTransactionsStats(ctx);
+  }
+
+  async function showDepositsInfo(ctx) {
+    return transactionsCommands.showDepositsInfo(ctx);
+  }
+
+  // Коэффициенты
+  async function showGlobalCoefficients(ctx) {
+    return coefficientsCommands.showGlobalCoefficients(ctx);
+  }
+
+  async function showUserCoefficients(ctx) {
+    return coefficientsCommands.showUserCoefficients(ctx);
+  }
+
+  async function handleCoefficientSetting(ctx) {
+    return coefficientsCommands.handleCoefficientSetting(ctx);
+  }
+
+  async function showCoefficientsStats(ctx) {
+    return coefficientsCommands.showCoefficientsStats(ctx);
   }
 
   return bot;

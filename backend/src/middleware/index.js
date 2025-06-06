@@ -1,8 +1,7 @@
 // backend/src/middleware/index.js
 const { telegramAuthMiddleware, universalAuthMiddleware, adminAuthMiddleware } = require('./auth.middleware');
 const { validateCoinFlip, validateTelegramAuth, validateMinesPlay, validateMinesComplete } = require('./validation.middleware');
-const errorMiddleware = require('./error.middleware');
-const notFoundMiddleware = require('./notFound.middleware');
+const { errorMiddleware, notFoundMiddleware } = require('./error.middleware');
 const { bettingLimit, generalLimit, adminLimit, authLimit, createRateLimit } = require('./rateLimiting.middleware');
 const { validatePlaceBet, validateCreateEvent, validateFinishEvent, validateObjectId, sanitizeStrings } = require('./eventValidation.middleware');
 

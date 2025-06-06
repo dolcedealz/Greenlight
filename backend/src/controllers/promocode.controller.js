@@ -515,9 +515,4 @@ async function updateCasinoFinance(type, amount) {
   }
 }
 
-module.exports = {
-  activatePromocode,
-  validatePromocode,
-  getUserPromocodes,
-  getAvailablePromocodes
-};
+// Экспорт уже выполнен через exports.functionName выше

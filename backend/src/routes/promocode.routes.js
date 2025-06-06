@@ -1,8 +1,10 @@
 const express = require('express');
 const { body, param, query } = require('express-validator');
-const promocodeController = require('../controllers/promocode.controller');
 const { authenticateToken } = require('../middleware/auth.middleware');
 const router = express.Router();
+
+// Импортируем контроллер
+const promocodeController = require('../controllers/promocode.controller');
 
 // Валидация для активации промокода
 const validatePromocodeActivation = [
@@ -40,7 +42,10 @@ const validatePromocodeType = [
 router.post('/activate', 
   authenticateToken,
   validatePromocodeActivation,
-  promocodeController.activatePromocode
+  (req, res, next) => {
+    console.log('Промокод роут - активация:', req.body);
+    promocodeController.activatePromocode(req, res, next);
+  }
 );
 
 /**
@@ -50,7 +55,10 @@ router.post('/activate',
  */
 router.get('/user',
   authenticateToken,
-  promocodeController.getUserPromocodes
+  (req, res, next) => {
+    console.log('Промокод роут - получение пользовательских промокодов');
+    promocodeController.getUserPromocodes(req, res, next);
+  }
 );
 
 /**
@@ -61,7 +69,10 @@ router.get('/user',
 router.get('/:code/validate',
   authenticateToken,
   validatePromocodeCode,
-  promocodeController.validatePromocode
+  (req, res, next) => {
+    console.log('Промокод роут - валидация:', req.params.code);
+    promocodeController.validatePromocode(req, res, next);
+  }
 );
 
 /**
@@ -71,7 +82,10 @@ router.get('/:code/validate',
  */
 router.get('/available',
   validatePromocodeType,
-  promocodeController.getAvailablePromocodes
+  (req, res, next) => {
+    console.log('Промокод роут - доступные промокоды:', req.query);
+    promocodeController.getAvailablePromocodes(req, res, next);
+  }
 );
 
 module.exports = router;

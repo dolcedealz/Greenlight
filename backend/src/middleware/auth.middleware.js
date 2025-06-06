@@ -363,5 +363,8 @@ module.exports = {
   telegramAuthMiddleware,
   universalAuthMiddleware,
   adminAuthMiddleware,
-  duelAuthMiddleware
+  duelAuthMiddleware,
+  // Алиасы для обратной совместимости
+  authenticateToken: telegramAuthMiddleware,
+  authMiddleware: telegramAuthMiddleware
 };

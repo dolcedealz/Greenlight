@@ -96,12 +96,10 @@ function getTelegramDiceEmoji(gameType) {
   
   const result = telegramEmojiMap[gameType];
   if (!result) {
-    console.log(`⚠️ FALLBACK: gameType="${gameType}" не найден в telegramEmojiMap, используем 🎲`);
-    console.log(`🔍 Доступные ключи:`, Object.keys(telegramEmojiMap));
+    console.error(`Неподдерживаемый gameType: ${gameType}, используем fallback 🎲`);
     return '🎲';
   }
   
-  console.log(`✅ MAPPING: gameType="${gameType}" -> telegram="${result}"`);
   return result;
 }
 
@@ -153,48 +151,59 @@ function getFormatConfig(format) {
 function validateDuelParams(targetUsername, amount, gameType, format) {
   const errors = [];
   
-  // Проверка пользователя
-  if (!targetUsername || targetUsername.length < 3) {
-    errors.push('Некорректный username');
+  // Строгая проверка username (только буквы, цифры, подчеркивания)
+  if (!targetUsername || !/^[a-zA-Z0-9_]{3,32}$/.test(targetUsername)) {
+    errors.push('Username должен содержать 3-32 символа (буквы, цифры, _)');
   }
   
-  // Проверка суммы
-  const numAmount = parseInt(amount);
-  if (isNaN(numAmount) || numAmount < 1 || numAmount > 1000) {
-    errors.push('Сумма должна быть от 1 до 1000 USDT');
+  // Строгая проверка суммы - только целые числа
+  const numAmount = Number(amount);
+  if (!Number.isInteger(numAmount) || numAmount < 1 || numAmount > 1000) {
+    errors.push('Сумма должна быть целым числом от 1 до 1000 USDT');
   }
   
-  // Проверка типа игры
+  // Whitelist проверка типа игры
   const validGameTypes = ['🎲', '🎯', '⚽', '⚽️', '🏀', '🎳', '🎰'];
   if (!validGameTypes.includes(gameType)) {
-    errors.push('Неподдерживаемый тип игры');
+    errors.push('Недопустимый тип игры');
   }
   
-  // Проверка формата
+  // Whitelist проверка формата
   const validFormats = ['bo1', 'bo3', 'bo5', 'bo7'];
-  if (!validFormats.includes(format.toLowerCase())) {
-    errors.push('Неподдерживаемый формат');
+  const normalizedFormat = String(format).toLowerCase();
+  if (!validFormats.includes(normalizedFormat)) {
+    errors.push('Недопустимый формат');
   }
   
   return {
     isValid: errors.length === 0,
     errors,
     params: {
-      targetUsername: targetUsername.replace('@', ''),
+      targetUsername: String(targetUsername).replace('@', '').toLowerCase(),
       amount: numAmount,
       gameType,
-      format: format.toLowerCase()
+      format: normalizedFormat
     }
   };
 }
 
 /**
- * Генерация короткого ID для inline данных
+ * Генерация безопасного ID для inline данных
  */
 function generateShortId(challengerId, targetUsername) {
-  const timestamp = Date.now().toString().slice(-6);
-  const random = Math.random().toString(36).substring(2, 5);
-  return `${challengerId}_${timestamp}_${random}`;
+  const crypto = require('crypto');
+  
+  // Генерируем криптографически стойкий случайный ID
+  const randomBytes = crypto.randomBytes(8);
+  const timestamp = Date.now();
+  
+  // Создаем хеш для дополнительной безопасности
+  const hash = crypto.createHash('sha256')
+    .update(`${challengerId}_${targetUsername}_${timestamp}_${randomBytes.toString('hex')}`)
+    .digest('hex')
+    .substring(0, 12);
+  
+  return `${challengerId}_${hash}`;
 }
 
 /**

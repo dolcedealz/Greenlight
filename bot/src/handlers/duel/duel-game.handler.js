@@ -8,10 +8,25 @@ const apiService = require('../../services/api.service');
  */
 class DuelGameHandler {
   
+  constructor() {
+    // Защита от race conditions - отслеживаем активные ходы
+    this.activeMoves = new Set();
+  }
+  
   /**
    * Выполнение хода в дуэли
    */
   async makeMove(ctx, sessionId, userId, username) {
+    // Защита от race conditions
+    const moveKey = `${sessionId}_${userId}`;
+    
+    if (this.activeMoves.has(moveKey)) {
+      await ctx.answerCbQuery('⏳ Ход уже выполняется, подождите...');
+      return null;
+    }
+    
+    this.activeMoves.add(moveKey);
+    
     try {
       // Получаем данные дуэли
       const duelData = await apiService.getDuelData(sessionId, userId, ctx.from);
@@ -23,77 +38,28 @@ class DuelGameHandler {
       
       const duel = duelData.data;
       
-      // DEBUG: Логируем полученные данные дуэли
-      console.log('🔍 DEBUG: Полученные данные дуэли:', {
-        sessionId: duel.sessionId,
-        gameType: duel.gameType,
-        format: duel.format,
-        status: duel.status,
-        challengerId: duel.challengerId,
-        opponentId: duel.opponentId,
-        duelKeys: Object.keys(duel),
-        fullDuel: JSON.stringify(duel, null, 2)
-      });
-      
       const gameConfig = getGameConfig(duel.gameType);
       const telegramEmoji = getTelegramDiceEmoji(duel.gameType);
       
-      console.log(`🎲 DEBUG DICE: Используем gameType="${duel.gameType}" -> display="${gameConfig.emoji}" -> telegram="${telegramEmoji}" (${gameConfig.name})`);
-      console.log(`🔍 DEBUG DETAILED: gameType bytes=[${Array.from(duel.gameType).map(c => c.charCodeAt(0)).join(',')}], telegramEmoji bytes=[${Array.from(telegramEmoji).map(c => c.charCodeAt(0)).join(',')}]`);
-      
       await ctx.answerCbQuery(`${gameConfig.emoji} ${gameConfig.processText}`);
       
-      // Отправляем соответствующий Telegram dice
-      // ВАЖНО: replyWithDice принимает базовый emoji без variation selector
-      
-      // Дополнительная проверка для футбола
-      if (telegramEmoji === '⚽') {
-        console.log(`🔍 FOOTBALL CHECK: Отправляем именно футбольный dice ⚽`);
-        console.log(`🔍 gameType was: "${duel.gameType}", converted to: "${telegramEmoji}"`);
-      }
-      
-      // Попробуем разные способы отправки dice
-      console.log(`🚀 TRYING: ctx.replyWithDice("${telegramEmoji}")`);
+      // Отправляем соответствующий Telegram dice с правильным эмодзи
       let diceMessage;
       
       try {
-        // Способ 1: Через replyWithDice с emoji в опциях
+        // Основной способ: replyWithDice с emoji в опциях
         diceMessage = await ctx.replyWithDice({ emoji: telegramEmoji });
-        console.log(`✅ SUCCESS: replyWithDice с emoji в опциях`);
       } catch (error) {
-        console.log(`❌ FAILED: replyWithDice с emoji в опциях:`, error.message);
-        
-        try {
-          // Способ 2: Через прямой вызов sendDice API
-          diceMessage = await ctx.telegram.sendDice(ctx.chat.id, telegramEmoji);
-          console.log(`✅ SUCCESS: sendDice с emoji как второй параметр`);
-        } catch (error2) {
-          console.log(`❌ FAILED: sendDice как второй параметр:`, error2.message);
-          
-          try {
-            // Способ 3: Через sendDice с объектом
-            diceMessage = await ctx.telegram.sendDice(ctx.chat.id, { emoji: telegramEmoji });
-            console.log(`✅ SUCCESS: sendDice с emoji объектом`);
-          } catch (error3) {
-            console.log(`❌ FAILED: sendDice с emoji объектом:`, error3.message);
-            
-            // Способ 4: Fallback на базовый replyWithDice (всегда кости)
-            diceMessage = await ctx.replyWithDice();
-            console.log(`⚠️ FALLBACK: базовый replyWithDice без параметров - всегда кости!`);
-          }
-        }
+        console.error('Ошибка отправки dice с emoji:', error);
+        // Fallback на базовые кости если эмодзи не поддерживается
+        diceMessage = await ctx.replyWithDice();
       }
-      console.log(`🎲 DEBUG DICE: Отправлен ${telegramEmoji}, получен результат ${diceMessage.dice.value}`);
-      console.log(`🔍 DICE OBJECT:`, JSON.stringify(diceMessage.dice, null, 2));
       let gameResult = diceMessage.dice.value;
       
       // Корректируем результат для игр с ограниченным диапазоном
       if (gameResult > gameConfig.maxValue) {
         gameResult = gameConfig.maxValue;
-        console.log(`🔧 Результат ${diceMessage.dice.value} обрезан до ${gameResult} для игры ${duel.gameType}`);
       }
-      
-      console.log(`🎮 Игрок ${username} (${userId}) сыграл ${duel.gameType}: ${gameResult} в дуэли ${sessionId}`);
       
       // Сохраняем результат в API
       const roundData = {
@@ -125,9 +91,12 @@ class DuelGameHandler {
       return null;
       
     } catch (error) {
-      console.error('Ошибка выполнения хода:', error);
+      console.error('Ошибка выполнения хода в дуэли:', sessionId, error.message);
       await ctx.answerCbQuery('❌ Ошибка выполнения хода');
       return null;
+    } finally {
+      // Обязательно освобождаем блокировку
+      this.activeMoves.delete(moveKey);
     }
   }
   

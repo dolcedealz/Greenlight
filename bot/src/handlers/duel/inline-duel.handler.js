@@ -35,13 +35,7 @@ class InlineDuelHandler {
         const userId = ctx.from.id;
         const username = ctx.from.username;
         
-        console.log(`📥 Inline query получен: {
-  query: '${query}',
-  user: '${username}',
-  userId: '${userId}',
-  rawQuery: '${query}',
-  queryId: '${ctx.inlineQuery.id}'
-}`);
+        // Логирование inline запросов убрано для продакшн
         
         const results = [];
         
@@ -86,11 +80,7 @@ class InlineDuelHandler {
         }
         
         if (duelMatch) {
-          console.log(`🔍 Проверка duel match: {
-  query: '${query}',
-  matched: true,
-  matchGroups: ${JSON.stringify(duelMatch, null, 2)}
-}`);
+          // Детальное логирование убрано для продакшн
           
           const targetUsername = duelMatch[1];
           const amount = duelMatch[2] ? parseInt(duelMatch[2]) : 10; // Default 10 USDT
@@ -240,9 +230,16 @@ class InlineDuelHandler {
           return;
         }
         
-        // Проверяем что принимающий - это целевой игрок
+        // Строгая проверка авторизации - используем и username и userId для безопасности
         if (duelData.targetUsername !== acceptorUsername) {
+          console.warn(`Попытка принять чужую дуэль: userId=${acceptorId}, targetUsername=${duelData.targetUsername}, acceptorUsername=${acceptorUsername}`);
           await ctx.answerCbQuery('❌ Это приглашение не для вас');
+          return;
+        }
+        
+        // Дополнительная защита от самоакцепта
+        if (duelData.challengerId === acceptorId) {
+          await ctx.answerCbQuery('❌ Нельзя принять собственную дуэль');
           return;
         }
         

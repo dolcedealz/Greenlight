@@ -37,14 +37,7 @@ class ApiService {
       'Content-Type': 'application/json'
     };
 
-    console.log('🔍 Debug создание заголовков:', {
-      userId: telegramUser.id,
-      username: telegramUser.username,
-      firstName: telegramUser.first_name,
-      cleanUsername: headers['X-Telegram-Username'],
-      cleanFirstName: headers['X-Telegram-First-Name'],
-      hasToken: !!headers.Authorization
-    });
+    // Логирование отключено в продакшн для безопасности
 
     return headers;
   }
@@ -749,7 +742,7 @@ class ApiService {
       
       const response = await this.api.get(`/duels/${sessionId}?userId=${userId}`, { headers });
       
-      console.log('🔎 RAW API RESPONSE:', JSON.stringify(response.data, null, 2));
+      // Детальное логирование отключено для безопасности
       
       // ИСПРАВЛЕНИЕ: Правильно извлекаем duel из ответа
       let duelData;

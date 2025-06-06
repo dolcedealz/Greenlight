@@ -10,6 +10,45 @@ const apiService = require('../../services/api.service');
  */
 class GroupDuelHandler {
   
+  constructor() {
+    // Rate limiting для защиты от спама
+    this.rateLimitMap = new Map();
+    
+    // Очистка старых записей каждые 5 минут
+    setInterval(() => {
+      const now = Date.now();
+      for (const [key, data] of this.rateLimitMap) {
+        if (now > data.resetTime) {
+          this.rateLimitMap.delete(key);
+        }
+      }
+    }, 5 * 60 * 1000);
+  }
+  
+  /**
+   * Middleware для rate limiting
+   */
+  checkRateLimit(userId) {
+    const now = Date.now();
+    const userLimit = this.rateLimitMap.get(userId) || { 
+      count: 0, 
+      resetTime: now + 60 * 1000 // 1 минута
+    };
+    
+    if (now > userLimit.resetTime) {
+      userLimit.count = 0;
+      userLimit.resetTime = now + 60 * 1000;
+    }
+    
+    if (userLimit.count >= 3) { // 3 дуэли в минуту
+      return false;
+    }
+    
+    userLimit.count++;
+    this.rateLimitMap.set(userId, userLimit);
+    return true;
+  }
+  
   /**
    * Обработка команд дуэлей в группах
    */
@@ -48,12 +87,11 @@ class GroupDuelHandler {
         const chatId = ctx.chat.id.toString();
         const messageId = ctx.message.message_id;
         
-        console.log(`📝 Команда дуэли в группе: {
-  args: [${args.join(', ')}],
-  userId: '${userId}',
-  username: '${username}',
-  chatId: '${chatId}'
-}`);
+        // Проверяем rate limit
+        if (!this.checkRateLimit(userId)) {
+          await ctx.reply('⏳ Слишком много команд дуэлей. Подождите минуту.');
+          return;
+        }
         
         if (args.length === 0) {
           await this.showDuelHelp(ctx);

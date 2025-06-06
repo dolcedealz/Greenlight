@@ -554,16 +554,55 @@ async playSlots(userData, gameData) {
 }
 
   /**
-   * Генерирует фейковую сетку с правильным количеством мин для отображения
-   * @param {Array} realGrid - Реальная сетка
-   * @param {Number} realMinesCount - Реальное количество мин
-   * @param {Number} requestedMinesCount - Запрошенное количество мин
+   * Генерирует отображаемую сетку с учетом модификаторов и игрового состояния
+   * @param {Array} realGrid - Реальная игровая сетка
+   * @param {Number} realMinesCount - Реальное количество мин на поле
+   * @param {Number} requestedMinesCount - Запрошенное пользователем количество мин
    * @param {Array} clickedCells - Открытые ячейки
-   * @returns {Array} - Модифицированная сетка
+   * @param {Boolean} isGameOver - Завершена ли игра (для показа всех мин)
+   * @returns {Array} - Модифицированная сетка для отображения
    */
-  generateDisplayGrid(realGrid, realMinesCount, requestedMinesCount, clickedCells = []) {
+  generateDisplayGrid(realGrid, realMinesCount, requestedMinesCount, clickedCells = [], isGameOver = false) {
+    console.log(`ОТЛАДКА СЕТКИ: real=${realMinesCount}, requested=${requestedMinesCount}, gameOver=${isGameOver}`);
+    
     const displayGrid = JSON.parse(JSON.stringify(realGrid)); // Клонируем реальную сетку
     
+    // Если игра завершена, создаем сетку с запрошенным количеством мин
+    if (isGameOver) {
+      // Сначала очищаем все мины
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          if (displayGrid[i][j] === 'mine') {
+            displayGrid[i][j] = 'gem';
+          }
+        }
+      }
+      
+      // Находим клетки, которые НЕ были открыты игроком
+      const availableForMines = [];
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          const isClicked = clickedCells.some(cell => cell[0] === i && cell[1] === j);
+          if (!isClicked) {
+            availableForMines.push([i, j]);
+          }
+        }
+      }
+      
+      // Случайно размещаем запрошенное количество мин в неоткрытых ячейках
+      const shuffledCells = [...availableForMines].sort(() => Math.random() - 0.5);
+      const minesToPlace = Math.min(requestedMinesCount, shuffledCells.length);
+      
+      for (let i = 0; i < minesToPlace; i++) {
+        const [row, col] = shuffledCells[i];
+        displayGrid[row][col] = 'mine';
+      }
+      
+      console.log(`ОТЛАДКА СЕТКИ: Размещено ${minesToPlace} мин из ${requestedMinesCount} запрошенных`);
+      return displayGrid;
+    }
+    
+    // Логика для активной игры - скрываем модификаторы
     // Если реальных мин больше, чем запрошено, скрываем лишние
     if (realMinesCount > requestedMinesCount) {
       const minesToHide = realMinesCount - requestedMinesCount;
@@ -944,9 +983,9 @@ async playSlots(userData, gameData) {
           win: true
         });
         
-        // ИСПРАВЛЕНИЕ: Создаем фейковую сетку для cashout
+        // ИСПРАВЛЕНИЕ: Создаем фейковую сетку для cashout (показываем мины при завершении)
         const requestedMinesCount = game.gameData.requestedMinesCount || payoutMinesCount;
-        const displayGrid = this.generateDisplayGrid(game.result.grid, actualMinesOnField, requestedMinesCount, clickedCells);
+        const displayGrid = this.generateDisplayGrid(game.result.grid, actualMinesOnField, requestedMinesCount, clickedCells, true);
         
         // Возвращаем данные для клиента
         return {
@@ -1026,9 +1065,9 @@ async playSlots(userData, gameData) {
           // Добавляем новую ячейку в локальный массив для ответа
           clickedCells.push([row, col]);
           
-          // ИСПРАВЛЕНИЕ: Создаем фейковую сетку с запрошенным количеством мин
+          // ИСПРАВЛЕНИЕ: Создаем фейковую сетку с запрошенным количеством мин для проигрыша
           const requestedMinesCount = game.gameData.requestedMinesCount || payoutMinesCount;
-          const displayGrid = this.generateDisplayGrid(grid, actualMinesOnField, requestedMinesCount, clickedCells);
+          const displayGrid = this.generateDisplayGrid(grid, actualMinesOnField, requestedMinesCount, clickedCells, true);
           
           // Возвращаем данные для клиента с фейковой сеткой
           return {
@@ -1119,7 +1158,7 @@ async playSlots(userData, gameData) {
             
             // ИСПРАВЛЕНИЕ: Создаем фейковую сетку для максимального выигрыша
             const requestedMinesCount = game.gameData.requestedMinesCount || payoutMinesCount;
-            const displayGrid = this.generateDisplayGrid(game.result.grid, actualMinesOnField, requestedMinesCount, clickedCells);
+            const displayGrid = this.generateDisplayGrid(game.result.grid, actualMinesOnField, requestedMinesCount, clickedCells, true);
             
             // Возвращаем данные для клиента
             return {
@@ -1144,7 +1183,7 @@ async playSlots(userData, gameData) {
               throw new Error('Ошибка расчета множителя');
             }
             
-            console.log(`ОТЛАДКА МНОЖИТЕЛЯ: minesCount=${minesCount}, revealedCount=${revealedCount}, multiplier=${multiplier}`);
+            console.log(`ОТЛАДКА МНОЖИТЕЛЯ: payoutMinesCount=${payoutMinesCount}, revealedCount=${revealedCount}, multiplier=${multiplier}`);
             
             // НОВЫЙ ПОДХОД: Используем $push для добавления в массив и $set для обновления множителя
             await Game.updateOne(

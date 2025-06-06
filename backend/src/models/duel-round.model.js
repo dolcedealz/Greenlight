@@ -20,7 +20,7 @@ const duelRoundSchema = new mongoose.Schema({
   },
   gameType: {
     type: String,
-    enum: ['🎲', '🎯', '⚽', '🏀', '🎳', '🎰'],
+    enum: ['🎲', '🎯', '⚽', '⚽️', '🏀', '🎳', '🎰'],
     required: true
   },
   
@@ -111,6 +111,7 @@ duelRoundSchema.methods.determineWinner = function(gameType, challengerResult, o
       break;
       
     case '⚽': // Футбол - гол (4,5) побеждает
+    case '⚽️': // Футбол - гол (4,5) побеждает
     case '🏀': // Баскетбол - попадание (4,5) побеждает
       const challengerScore = challengerResult >= 4;
       const opponentScore = opponentResult >= 4;
@@ -150,6 +151,7 @@ duelRoundSchema.methods.getResultText = function() {
       return `(${dartC} vs ${dartO})`;
       
     case '⚽':
+    case '⚽️':
       const goalC = c >= 4 ? 'ГОЛ!' : 'Мимо';
       const goalO = o >= 4 ? 'ГОЛ!' : 'Мимо';
       return `(${goalC} vs ${goalO})`;

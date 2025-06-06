@@ -514,3 +514,10 @@ async function updateCasinoFinance(type, amount) {
     console.error('Ошибка обновления финансовой статистики:', error);
   }
 }
+
+module.exports = {
+  activatePromocode,
+  validatePromocode,
+  getUserPromocodes,
+  getAvailablePromocodes
+};

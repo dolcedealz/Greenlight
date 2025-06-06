@@ -33,7 +33,7 @@ function getGameConfig(gameType) {
       rules: 'Гол при значении 4-5'
     },
     '⚽️': {
-      emoji: '⚽',
+      emoji: '⚽️',
       name: 'Футбол',
       actionText: 'Удар по мячу',
       processText: 'Бьем по мячу...',
@@ -78,6 +78,23 @@ function getGameConfig(gameType) {
  */
 function getGameName(gameType) {
   return getGameConfig(gameType).name;
+}
+
+/**
+ * Получение эмодзи для Telegram Dice API (базовые эмодзи без variation selector)
+ */
+function getTelegramDiceEmoji(gameType) {
+  const telegramEmojiMap = {
+    '🎲': '🎲',
+    '🎯': '🎯',
+    '⚽': '⚽',
+    '⚽️': '⚽', // Важно: Telegram API требует базовый эмодзи
+    '🏀': '🏀',
+    '🎳': '🎳',
+    '🎰': '🎰'
+  };
+  
+  return telegramEmojiMap[gameType] || '🎲';
 }
 
 /**
@@ -232,6 +249,7 @@ function formatRoundResults(rounds, challengerUsername, opponentUsername, duel =
 module.exports = {
   getGameConfig,
   getGameName,
+  getTelegramDiceEmoji,
   convertGameNameToEmoji,
   getFormatConfig,
   validateDuelParams,

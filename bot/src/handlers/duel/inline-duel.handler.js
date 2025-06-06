@@ -431,11 +431,11 @@ class InlineDuelHandler {
         
         if (!moveResult) return;
         
-        const { duel, gameResult, gameConfig } = moveResult;
+        const { duel: updatedDuel, gameResult, gameConfig } = moveResult;
         
         // Форматируем результат
         const resultData = duelGameHandler.formatGameResult(
-          duel, gameResult, gameConfig, userId, username
+          updatedDuel, gameResult, gameConfig, userId, username
         );
         
         // Отправляем результат текущему игроку
@@ -449,7 +449,7 @@ class InlineDuelHandler {
           await duelGameHandler.notifyOpponent(
             ctx, 
             resultData.opponentId, 
-            duel, 
+            updatedDuel, 
             gameConfig, 
             resultData.isCompleted,
             resultData.roundsText

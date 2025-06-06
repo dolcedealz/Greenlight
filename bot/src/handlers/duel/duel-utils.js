@@ -181,19 +181,29 @@ function formatDuelMessage(duel, isPersonal = false) {
 /**
  * Форматирование результатов раунда
  */
-function formatRoundResults(rounds, challengerUsername, opponentUsername) {
+function formatRoundResults(rounds, challengerUsername, opponentUsername, duel = null) {
   if (!rounds || rounds.length === 0) return '';
   
   let result = '📍 **Результаты раундов:**\n';
   
   rounds.forEach((round, index) => {
     if (round.challengerResult !== null && round.opponentResult !== null) {
-      const challengerWon = round.winnerId && round.winnerId.toString() === round.challengerId?.toString();
-      const opponentWon = round.winnerId && round.winnerId.toString() === round.opponentId?.toString();
+      let resultIcon = '🤝'; // ничья по умолчанию
       
-      let resultIcon = '🤝'; // ничья
-      if (challengerWon) resultIcon = '🅰️';
-      else if (opponentWon) resultIcon = '🅱️';
+      // Определяем победителя раунда
+      if (round.winnerId) {
+        if (duel) {
+          // Если передан объект дуэли, используем его для определения победителя
+          if (round.winnerId === duel.challengerId) {
+            resultIcon = '✅';
+          } else if (round.winnerId === duel.opponentId) {
+            resultIcon = '❌';
+          }
+        } else {
+          // Иначе просто показываем что есть победитель
+          resultIcon = '⭐';
+        }
+      }
       
       result += `• Раунд ${index + 1}: @${challengerUsername} [${round.challengerResult}] vs @${opponentUsername} [${round.opponentResult}] ${resultIcon}\n`;
     }

@@ -306,7 +306,8 @@ class GroupDuelHandler {
                          `🏆 Формат: ${formatConfig.name} (${formatConfig.description})\n` +
                          `💰 Банк: ${duel.totalAmount} USDT\n` +
                          `📊 Счёт: ${duel.challengerScore}:${duel.opponentScore}\n\n` +
-                         `🎯 **Ход: @${currentPlayer.currentPlayerUsername}**`;
+                         `🎯 **Ход: @${currentPlayer.currentPlayerUsername}**\n\n` +
+                         `🤖 @Greenlightgames_bot`;
       
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback(`${gameConfig.emoji} Ход @${currentPlayer.currentPlayerUsername}`, `group_move_${sessionId}`)],
@@ -402,7 +403,7 @@ class GroupDuelHandler {
         if (duelData.success) {
           const duel = duelData.data;
           const gameConfig = getGameConfig(duel.gameType);
-          const roundsText = formatRoundResults(duel.rounds, duel.challengerUsername, duel.opponentUsername);
+          const roundsText = formatRoundResults(duel.rounds, duel.challengerUsername, duel.opponentUsername, duel);
           
           const statusMessage = `📊 **Статус дуэли ${duel.sessionId}**\n\n` +
                                formatDuelMessage(duel) + '\n\n' +
@@ -434,7 +435,7 @@ class GroupDuelHandler {
       if (duel.status === 'completed') {
         // Дуэль завершена
         const winnerUsername = duel.winnerId === duel.challengerId ? duel.challengerUsername : duel.opponentUsername;
-        const roundsText = formatRoundResults(duel.rounds, duel.challengerUsername, duel.opponentUsername);
+        const roundsText = formatRoundResults(duel.rounds, duel.challengerUsername, duel.opponentUsername, duel);
         
         const messageText = `🏆 **ДУЭЛЬ ЗАВЕРШЕНА** 🏆\n\n` +
                            `⚔️ @${duel.challengerUsername} VS @${duel.opponentUsername}\n\n` +
@@ -451,6 +452,7 @@ class GroupDuelHandler {
       } else {
         // Дуэль продолжается
         const currentPlayer = duelGameHandler.getCurrentPlayer(duel);
+        const roundsText = formatRoundResults(duel.rounds, duel.challengerUsername, duel.opponentUsername, duel);
         
         const messageText = `${gameConfig.emoji} **ДУЭЛЬ В ПРОЦЕССЕ** ${gameConfig.emoji}\n\n` +
                            `⚔️ @${duel.challengerUsername} VS @${duel.opponentUsername}\n\n` +
@@ -458,7 +460,9 @@ class GroupDuelHandler {
                            `🏆 Формат: ${formatConfig.name} (${formatConfig.description})\n` +
                            `📊 Счёт: ${duel.challengerScore}:${duel.opponentScore}\n` +
                            `🎯 Последний ход: @${lastPlayerUsername} [${lastResult}]\n\n` +
-                           `🎯 **Ход: @${currentPlayer.currentPlayerUsername}**`;
+                           (roundsText ? roundsText + '\n' : '') +
+                           `🎯 **Ход: @${currentPlayer.currentPlayerUsername}**\n\n` +
+                           `🤖 @Greenlightgames_bot`;
         
         const keyboard = Markup.inlineKeyboard([
           [Markup.button.callback(`${gameConfig.emoji} Ход @${currentPlayer.currentPlayerUsername}`, `group_move_${sessionId}`)],

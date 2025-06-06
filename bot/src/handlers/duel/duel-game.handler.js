@@ -43,7 +43,7 @@ class DuelGameHandler {
       
       // Отправляем соответствующий Telegram dice
       // ВАЖНО: replyWithDice принимает emoji как параметр
-      const diceMessage = await ctx.replyWithDice({ emoji: gameConfig.emoji });
+      const diceMessage = await ctx.replyWithDice(gameConfig.emoji);
       console.log(`🎲 DEBUG DICE: Отправлен ${gameConfig.emoji}, получен результат ${diceMessage.dice.value}`);
       let gameResult = diceMessage.dice.value;
       

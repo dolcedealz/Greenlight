@@ -289,7 +289,8 @@ class InlineDuelHandler {
               `${gameConfig.emoji} Игра: ${gameConfig.name}\n` +
               `💰 Ставка: ${createdDuel.amount} USDT каждый\n` +
               `🏆 Формат: ${createdDuel.format.toUpperCase()}\n\n` +
-              `📱 Игра начинается в личных сообщениях бота!`,
+              `📱 Игра начинается в личных сообщениях бота!\n\n` +
+              `🎮 Перейти в бот: @Greenlightgames_bot`,
               { parse_mode: 'Markdown' }
             );
           } catch (editError) {
@@ -387,7 +388,19 @@ class InlineDuelHandler {
   async sendGameMessages(ctx, duel, sessionId) {
     try {
       const gameConfig = getGameConfig(duel.gameType);
-      const messageText = formatDuelMessage(duel, true);
+      const formatConfig = getFormatConfig(duel.format);
+      
+      // Определяем кто должен ходить первым (challenger всегда первый)
+      const currentPlayerUsername = duel.challengerUsername;
+      
+      const messageText = `${gameConfig.emoji} **ДУЭЛЬ НАЧИНАЕТСЯ** ${gameConfig.emoji}\n\n` +
+                         `⚔️ @${duel.challengerUsername} VS @${duel.opponentUsername}\n\n` +
+                         `🎮 Игра: ${gameConfig.name}\n` +
+                         `🏆 Формат: ${formatConfig.name} (${formatConfig.description})\n` +
+                         `💰 Банк: ${duel.totalAmount} USDT\n` +
+                         `📊 Счёт: ${duel.challengerScore}:${duel.opponentScore}\n\n` +
+                         `🎯 **Ход: @${currentPlayerUsername}**\n\n` +
+                         `🤖 @Greenlightgames_bot`;
       
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback(`${gameConfig.emoji} ${gameConfig.actionText}`, `play_game_${sessionId}`)],
@@ -397,7 +410,7 @@ class InlineDuelHandler {
       // Отправляем сообщение принявшему игроку
       await ctx.telegram.sendMessage(
         duel.opponentId,
-        messageText + '\n\n🚀 **Игра начинается!**',
+        messageText,
         { 
           parse_mode: 'Markdown',
           ...keyboard
@@ -409,7 +422,7 @@ class InlineDuelHandler {
       // Отправляем сообщение инициатору
       await ctx.telegram.sendMessage(
         duel.challengerId,
-        messageText + '\n\n🚀 **Игра начинается!**',
+        messageText,
         { 
           parse_mode: 'Markdown',
           ...keyboard

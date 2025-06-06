@@ -10,8 +10,10 @@ class WebSocketService {
     this.reconnectDelay = 1000;
     this.eventListeners = new Map();
     
-    // URL для WebSocket соединения
-    this.socketUrl = process.env.REACT_APP_WS_URL || 'https://greenlight-api-ghqh.onrender.com';
+    // Принудительно устанавливаем правильный WebSocket URL для продакшена
+    this.socketUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://greenlight-api-ghqh.onrender.com'
+      : (process.env.REACT_APP_WS_URL || 'https://greenlight-api-ghqh.onrender.com');
     
     console.log('WebSocketService инициализирован, URL:', this.socketUrl);
   }

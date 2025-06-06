@@ -1,8 +1,10 @@
 // frontend/src/services/api.js
 import axios from 'axios';
 
-// Получаем API URL из environment variables
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// Принудительно устанавливаем правильный API URL для продакшена
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://greenlight-api-ghqh.onrender.com/api'
+  : (process.env.REACT_APP_API_URL || 'http://localhost:3001/api');
 
 // Логируем только в development режиме
 if (process.env.NODE_ENV !== 'production' && process.env.REACT_APP_ENABLE_LOGS !== 'false') {

@@ -1,4 +1,4 @@
-// frontend/src/components/games/coin/CoinFlip.js - СТАБИЛЬНАЯ ВЕРСИЯ
+// frontend/src/components/games/coin/CoinFlip.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import '../../../styles/CoinFlip.css';
 
@@ -21,7 +21,7 @@ const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
     }, 200);
   }, [onAnimationComplete]);
   
-  // Основная логика анимации
+  // ИСПРАВЛЕННАЯ логика анимации
   useEffect(() => {
     if (flipping && result !== null) {
       const coin = coinRef.current;
@@ -33,20 +33,35 @@ const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
       setAnimationState('flipping');
       setLocalResult(result);
       
-      // Сбрасываем классы и устанавливаем начальную позицию
+      // ИСПРАВЛЕНО: Правильная настройка начального состояния
       coin.className = 'coin';
       coin.classList.add('start-position', currentSide);
       
-      // Небольшая задержка для подготовки, затем запуск анимации
-      setTimeout(() => {
-        coin.classList.remove('start-position');
-        coin.classList.add('flipping');
-        console.log('🪙 АНИМАЦИЯ: Запущена CSS анимация');
-      }, 100);
+      console.log('🪙 АНИМАЦИЯ: Подготовка к анимации...');
       
-      // Завершение CSS анимации и установка финальной позиции
+      // Небольшая задержка для стабилизации DOM
       setTimeout(() => {
-        coin.classList.remove('flipping');
+        // Удаляем начальную позицию и добавляем анимацию
+        coin.classList.remove('start-position');
+        
+        // ИСПРАВЛЕНО: Добавляем класс анимации в зависимости от текущей стороны
+        coin.classList.add('flipping', currentSide);
+        
+        console.log(`🪙 АНИМАЦИЯ: Запущена CSS анимация с классами: flipping, ${currentSide}`);
+        
+        // Обновляем состояние тени
+        const shadow = document.querySelector('.coin-shadow');
+        if (shadow) {
+          shadow.className = 'coin-shadow flipping';
+        }
+      }, 50);
+      
+      // ИСПРАВЛЕНО: Завершение анимации с правильным таймингом
+      setTimeout(() => {
+        // Убираем классы анимации
+        coin.classList.remove('flipping', currentSide);
+        
+        // Устанавливаем финальный результат
         coin.classList.add('final-result', result);
         
         // Обновляем текущую сторону для следующего раза
@@ -54,11 +69,23 @@ const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
         
         console.log('🪙 АНИМАЦИЯ: Установлена финальная позиция:', result);
         setAnimationState('showing');
-      }, 2600); // Время CSS анимации + небольшой буфер
+        
+        // Обновляем состояние тени
+        const shadow = document.querySelector('.coin-shadow');
+        if (shadow) {
+          shadow.className = 'coin-shadow showing';
+        }
+      }, 2500); // Время CSS анимации
       
       // Показ локального результата
       setTimeout(() => {
         console.log('🪙 АНИМАЦИЯ: Показываем локальный результат');
+        
+        // Финальное состояние тени
+        const shadow = document.querySelector('.coin-shadow');
+        if (shadow) {
+          shadow.className = 'coin-shadow completed';
+        }
       }, 3000);
       
       // Полное завершение
@@ -73,6 +100,13 @@ const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
         coin.className = 'coin';
         coin.classList.add('final-result', currentSide);
       }
+      
+      // Сброс тени
+      const shadow = document.querySelector('.coin-shadow');
+      if (shadow) {
+        shadow.className = 'coin-shadow idle';
+      }
+      
       setAnimationState('idle');
       setLocalResult(null);
     }
@@ -84,8 +118,10 @@ const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
     if (!coin) return;
     
     const handleCSSAnimationEnd = (event) => {
-      if (event.animationName === 'coinFlipAnimation') {
-        console.log('🪙 АНИМАЦИЯ: CSS анимация завершена');
+      console.log('🪙 АНИМАЦИЯ: CSS анимация завершена:', event.animationName);
+      
+      if (event.animationName === 'coinFlipFromHeads' || event.animationName === 'coinFlipFromTails') {
+        console.log('🪙 АНИМАЦИЯ: Основная анимация подбрасывания завершена');
       }
     };
     

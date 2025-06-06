@@ -2,6 +2,7 @@
 const { telegramAuthMiddleware, universalAuthMiddleware, adminAuthMiddleware } = require('./auth.middleware');
 const { validateCoinFlip, validateTelegramAuth, validateMinesPlay, validateMinesComplete } = require('./validation.middleware');
 const errorMiddleware = require('./error.middleware');
+const notFoundMiddleware = require('./notFound.middleware');
 const { bettingLimit, generalLimit, adminLimit, authLimit, createRateLimit } = require('./rateLimiting.middleware');
 const { validatePlaceBet, validateCreateEvent, validateFinishEvent, validateObjectId, sanitizeStrings } = require('./eventValidation.middleware');
 
@@ -15,6 +16,7 @@ module.exports = {
   validateMinesPlay,
   validateMinesComplete,
   errorMiddleware,
+  notFoundMiddleware,
   
   // Rate limiting middleware
   bettingLimit,

@@ -7,72 +7,103 @@ const transactionsCommands = require('../commands/transactions.command');
 const promoCommands = require('../commands/promo.command');
 
 /**
- *  538AB@8@C5B >1@01>BG8:8 B5:AB>2KE A>>1I5=89 4;O 04<8=-1>B0
- * @param {Object} bot - -:75<?;O@ Telegraf
+ * Регистрирует обработчики текстовых сообщений для админ-бота
+ * @param {Object} bot - Экземпляр Telegraf
  */
 function registerMessageHandlers(bot) {
-  console.log('=�  538AB@0F8O message handlers...');
+  console.log('🔄 Регистрация message handlers...');
 
-  // 1@01>B:0 B5:AB>2KE A>>1I5=89
-  bot.on('text', async (ctx, next) => {
-    console.log('ADMIN: >;CG5=> B5:AB>2>5 A>>1I5=85:', ctx.message.text);
+  // Обработка текстовых сообщений
+  bot.on('text', async (ctx) => {
+    const text = ctx.message.text.trim();
     
     try {
-      // @>25@O5<, 5A;8 MB> ?@>F5AA A>740=8O A>1KB8O
-      if (ctx.session && ctx.session.creatingEvent) {
-        console.log('ADMIN: 1@010BK205< A>740=85 A>1KB8O');
+      // Обработка создания события
+      if (ctx.session?.creatingEvent) {
         await eventsCommands.handleEventCreation(ctx);
         return;
       }
       
-      // @>25@O5<, 5A;8 MB> ?@>F5AA 7025@H5=8O A>1KB8O
-      if (ctx.session && ctx.session.finishingEvent) {
-        console.log('ADMIN: 1@010BK205< 7025@H5=85 A>1KB8O');
+      // Обработка завершения события
+      if (ctx.session?.finishingEvent) {
         await eventsCommands.handleEventFinishing(ctx);
         return;
       }
-
-      // @>25@O5< ?>8A: ?>;L7>20B5;59
-      if (ctx.session && ctx.session.searchingUser) {
-        console.log('ADMIN: 1@010BK205< ?>8A: ?>;L7>20B5;O');
+      
+      // Обработка поиска пользователя
+      if (ctx.session?.searchingUser) {
         await usersCommands.handleUserSearch(ctx);
         return;
       }
-
-      // @>25@O5< 87<5=5=85 10;0=A0 ?>;L7>20B5;O
-      if (ctx.session && ctx.session.adjustingBalance) {
-        console.log('ADMIN: 1@010BK205< 87<5=5=85 10;0=A0 ?>;L7>20B5;O');
+      
+      // Обработка изменения баланса пользователя
+      if (ctx.session?.adjustingBalance) {
         await usersCommands.handleBalanceAdjustment(ctx);
         return;
       }
-
-      // @>25@O5< >B:;>=5=85 2K2>40
-      if (ctx.session && ctx.session.rejectingWithdrawal) {
-        console.log('ADMIN: 1@010BK205< >B:;>=5=85 2K2>40');
+      
+      // Обработка отклонения вывода
+      if (ctx.session?.rejectingWithdrawal) {
         await transactionsCommands.handleWithdrawalRejection(ctx);
         return;
       }
-
-      // @>25@O5< A>740=85 ?@><>:>40
-      if (ctx.session && ctx.session.creatingPromo) {
-        console.log('ADMIN: 1@010BK205< A>740=85 ?@><>:>40');
+      
+      // Обработка создания промокода
+      if (ctx.session?.creatingPromo) {
         await promoCommands.handlePromoCreation(ctx);
         return;
       }
-
-      // A;8 MB> :><0=40 8;8 >1KG=>5 A>>1I5=85 157 0:B82=>9 A5AA88
-      console.log('ADMIN: "5:AB>2>5 A>>1I5=85 157 0:B82=>9 A5AA88, ?5@5405< 40;LH5');
-      return next();
+      
+      // Команды
+      if (text.startsWith('/')) {
+        const command = text.toLowerCase();
+        
+        switch (command) {
+          case '/start':
+            await ctx.reply(
+              '🏠 *Добро пожаловать в админ-панель!*\n\nВыберите раздел для управления:',
+              {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      { text: '💰 Финансы', callback_data: 'finances_menu' },
+                      { text: '👥 Пользователи', callback_data: 'users_menu' }
+                    ],
+                    [
+                      { text: '💳 Транзакции', callback_data: 'transactions_menu' },
+                      { text: '🎯 События', callback_data: 'events_menu' }
+                    ],
+                    [
+                      { text: '🎁 Промокоды', callback_data: 'promo_menu' },
+                      { text: '📊 Статистика', callback_data: 'stats_menu' }
+                    ]
+                  ]
+                }
+              }
+            );
+            break;
+            
+          default:
+            await ctx.reply(
+              '❓ Неизвестная команда. Используйте /start для открытия меню.'
+            );
+        }
+        return;
+      }
+      
+      // Если нет активной сессии - показываем подсказку
+      await ctx.reply(
+        '❓ Используйте кнопки меню для навигации или /start для возврата в главное меню.'
+      );
       
     } catch (error) {
-      console.error('ADMIN: H81:0 >1@01>B:8 B5:AB>2>3> A>>1I5=8O:', error);
-      await ctx.reply('L @>87>H;0 >H81:0 ?@8 >1@01>B:5 A>>1I5=8O. >?@>1C9B5 5I5 @07.');
+      console.error('ADMIN: Ошибка обработки текстового сообщения:', error);
+      await ctx.reply('❌ Произошла ошибка при обработке вашего сообщения.');
     }
   });
 
-  console.log(' Message handlers 70@538AB@8@>20=K CA?5H=>');
+  console.log('✅ Message handlers зарегистрированы');
 }
 
-module.exports = {
-  registerMessageHandlers
-};
+module.exports = registerMessageHandlers;

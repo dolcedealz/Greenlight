@@ -1,6 +1,6 @@
 // admin/src/handlers/index.js
-const { registerCallbackHandlers } = require('./callback.handler');
-const { registerMessageHandlers } = require('./message.handler');
+const registerCallbackHandlers = require('./callback.handler');
+const registerMessageHandlers = require('./message.handler');
 
 /**
  * Регистрирует все обработчики для админ-бота

@@ -1,35 +1,59 @@
 // admin/src/config.js
-module.exports = {
-  // API Configuration
+require('dotenv').config();
+
+// Базовая конфигурация админ-бота
+const config = {
+  // API настройки
   apiUrl: process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api',
   adminToken: process.env.ADMIN_API_TOKEN,
   
-  // Bot Configuration
+  // Telegram Bot настройки
   botToken: process.env.ADMIN_BOT_TOKEN,
   adminIds: process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => Number(id.trim())) : [],
   
-  // Timeout settings
-  apiTimeout: 30000, // 30 seconds
+  // Таймауты для API запросов
+  apiTimeout: 30000,
   
-  // Validation
-  validate() {
+  // Пагинация
+  defaultPageSize: 10,
+  maxPageSize: 50,
+  
+  // Лимиты
+  maxSearchResults: 20,
+  maxHistoryItems: 15,
+  
+  // Валидация
+  validateRequired() {
     const errors = [];
     
-    if (!this.botToken) {
-      errors.push('ADMIN_BOT_TOKEN is required');
+    if (!this.adminToken) {
+      errors.push('ADMIN_API_TOKEN не установлен');
     }
     
-    if (!this.adminToken) {
-      errors.push('ADMIN_API_TOKEN is required for API access');
+    if (!this.botToken) {
+      errors.push('ADMIN_BOT_TOKEN не установлен');
     }
     
     if (this.adminIds.length === 0) {
-      errors.push('ADMIN_IDS should be configured');
+      errors.push('ADMIN_IDS не установлен или пуст');
     }
     
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
+    if (errors.length > 0) {
+      console.error('❌ Ошибки конфигурации админ-бота:');
+      errors.forEach(error => console.error(`   - ${error}`));
+      return false;
+    }
+    
+    console.log('✅ Конфигурация админ-бота валидна');
+    console.log(`   - API URL: ${this.apiUrl}`);
+    console.log(`   - Админов: ${this.adminIds.length} (${this.adminIds.join(', ')})`);
+    console.log(`   - API Token: ${this.adminToken ? 'Установлен' : 'НЕ установлен'}`);
+    
+    return true;
   }
 };
+
+// Выполняем валидацию при загрузке модуля
+config.validateRequired();
+
+module.exports = config;

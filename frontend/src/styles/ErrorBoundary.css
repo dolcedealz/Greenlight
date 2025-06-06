@@ -1,0 +1,92 @@
+/* Error Boundary Styles */
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  background: var(--bg-primary, #1a1a1a);
+  color: var(--text-primary, #ffffff);
+}
+
+.error-boundary-content {
+  max-width: 400px;
+  text-align: center;
+  background: var(--bg-secondary, #2a2a2a);
+  padding: 30px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #333);
+}
+
+.error-boundary h2 {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  color: var(--error-color, #ff3b30);
+}
+
+.error-boundary p {
+  margin: 0 0 24px 0;
+  color: var(--text-secondary, #cccccc);
+  line-height: 1.5;
+}
+
+.error-details {
+  margin: 20px 0;
+  text-align: left;
+  background: var(--bg-tertiary, #1a1a1a);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.error-details summary {
+  padding: 12px;
+  cursor: pointer;
+  background: var(--bg-secondary, #2a2a2a);
+  border-bottom: 1px solid var(--border-color, #333);
+  font-weight: 500;
+}
+
+.error-details pre {
+  padding: 12px;
+  margin: 0;
+  font-size: 12px;
+  overflow-x: auto;
+  background: var(--bg-tertiary, #1a1a1a);
+  color: var(--text-tertiary, #999);
+}
+
+.error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.error-actions .btn {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.error-actions .btn-primary {
+  background: var(--primary-color, #0ba84a);
+  color: white;
+}
+
+.error-actions .btn-primary:hover {
+  background: var(--primary-hover, #0a9341);
+}
+
+.error-actions .btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border-color, #333);
+  color: var(--text-secondary, #cccccc);
+}
+
+.error-actions .btn-secondary:hover {
+  background: var(--bg-tertiary, #1a1a1a);
+}

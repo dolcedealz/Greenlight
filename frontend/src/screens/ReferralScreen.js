@@ -1,7 +1,7 @@
 // frontend/src/screens/ReferralScreen.js
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout';
-import { ReferralStats, ReferralsList, EarningsHistory, PayoutModal } from '../components/referral';
+import { ReferralsList, EarningsHistory, PayoutModal } from '../components/referral';
 import { referralApi } from '../services/api';
 import { showNotification, showConfirmation } from '../utils/telegram';
 import useTactileFeedback from '../hooks/useTactileFeedback';

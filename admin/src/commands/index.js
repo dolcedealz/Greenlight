@@ -1885,21 +1885,44 @@ function registerCommands(bot) {
     usersCommands = require('./users.command');
   } catch (e) {
     console.warn('users.command module not found');
-    usersCommands = { showUsersList: () => {}, startUserSearch: () => {}, handleUserSearch: () => {}, showUsersStats: () => {} };
+    usersCommands = { 
+      showUsersList: async (ctx) => await ctx.reply('❌ Функция списка пользователей временно недоступна'),
+      startUserSearch: async (ctx) => await ctx.reply('❌ Функция поиска пользователей временно недоступна'),
+      handleUserSearch: async (ctx) => await ctx.reply('❌ Функция обработки поиска пользователей временно недоступна'),
+      showUsersStats: async (ctx) => await ctx.reply('❌ Функция статистики пользователей временно недоступна'),
+      showUserDetails: async (ctx) => await ctx.reply('❌ Функция деталей пользователя временно недоступна'),
+      toggleUserBlock: async (ctx) => await ctx.reply('❌ Функция блокировки пользователей временно недоступна'),
+      startBalanceAdjustment: async (ctx) => await ctx.reply('❌ Функция изменения баланса временно недоступна'),
+      handleBalanceAdjustment: async (ctx) => await ctx.reply('❌ Функция обработки изменения баланса временно недоступна')
+    };
   }
   
   try {
     transactionsCommands = require('./transactions.command');
   } catch (e) {
     console.warn('transactions.command module not found');
-    transactionsCommands = { showPendingWithdrawals: () => {}, showTransactionsHistory: () => {}, showTransactionsStats: () => {}, showDepositsInfo: () => {} };
+    transactionsCommands = { 
+      showPendingWithdrawals: async (ctx) => await ctx.reply('❌ Функция ожидающих выводов временно недоступна'),
+      showTransactionsHistory: async (ctx) => await ctx.reply('❌ Функция истории транзакций временно недоступна'),
+      showTransactionsStats: async (ctx) => await ctx.reply('❌ Функция статистики транзакций временно недоступна'),
+      showDepositsInfo: async (ctx) => await ctx.reply('❌ Функция информации о депозитах временно недоступна'),
+      approveWithdrawal: async (ctx) => await ctx.reply('❌ Функция одобрения выводов временно недоступна'),
+      rejectWithdrawal: async (ctx) => await ctx.reply('❌ Функция отклонения выводов временно недоступна')
+    };
   }
   
   try {
     coefficientsCommands = require('./coefficients.command');
   } catch (e) {
     console.warn('coefficients.command module not found');
-    coefficientsCommands = { showGlobalCoefficients: () => {}, showUserCoefficients: () => {}, handleCoefficientSetting: () => {}, showCoefficientsStats: () => {} };
+    coefficientsCommands = { 
+      showGlobalCoefficients: async (ctx) => await ctx.reply('❌ Функция глобальных коэффициентов временно недоступна'),
+      showUserCoefficients: async (ctx) => await ctx.reply('❌ Функция пользовательских коэффициентов временно недоступна'),
+      handleCoefficientSetting: async (ctx) => await ctx.reply('❌ Функция настройки коэффициентов временно недоступна'),
+      showCoefficientsStats: async (ctx) => await ctx.reply('❌ Функция статистики коэффициентов временно недоступна'),
+      resetAllModifiers: async (ctx) => await ctx.reply('❌ Функция сброса модификаторов временно недоступна'),
+      toggleModifierMode: async (ctx) => await ctx.reply('❌ Функция переключения режима временно недоступна')
+    };
   }
   
   try {
@@ -1913,28 +1936,50 @@ function registerCommands(bot) {
     securityCommands = require('./security.command');
   } catch (e) {
     console.warn('security.command module not found');
-    securityCommands = { showSecurityMenu: () => {} };
+    securityCommands = { 
+      showSecurityMenu: async (ctx) => await ctx.reply('❌ Модуль безопасности временно недоступен'),
+      showSecurityAlerts: async (ctx) => await ctx.reply('❌ Функция алертов временно недоступна'),
+      showAuditLog: async (ctx) => await ctx.reply('❌ Функция аудита временно недоступна'),
+      showSuspiciousActivity: async (ctx) => await ctx.reply('❌ Функция мониторинга активности временно недоступна')
+    };
   }
   
   try {
     monitoringCommands = require('./monitoring.command');
   } catch (e) {
     console.warn('monitoring.command module not found');
-    monitoringCommands = { showMonitoringMenu: () => {} };
+    monitoringCommands = { 
+      showMonitoringMenu: async (ctx) => await ctx.reply('❌ Модуль мониторинга временно недоступен'),
+      showSystemMetrics: async (ctx) => await ctx.reply('❌ Функция системных метрик временно недоступна'),
+      showPerformanceMetrics: async (ctx) => await ctx.reply('❌ Функция метрик производительности временно недоступна'),
+      showOnlineUsers: async (ctx) => await ctx.reply('❌ Функция онлайн пользователей временно недоступна'),
+      showFinancialMonitoring: async (ctx) => await ctx.reply('❌ Функция финансового мониторинга временно недоступна'),
+      showActiveAlerts: async (ctx) => await ctx.reply('❌ Функция активных алертов временно недоступна')
+    };
   }
   
   try {
     backupCommands = require('./backup.command');
   } catch (e) {
     console.warn('backup.command module not found');
-    backupCommands = { showBackupMenu: () => {} };
+    backupCommands = { 
+      showBackupMenu: async (ctx) => await ctx.reply('❌ Модуль бэкапов временно недоступен'),
+      createBackup: async (ctx) => await ctx.reply('❌ Функция создания бэкапов временно недоступна'),
+      showBackupList: async (ctx) => await ctx.reply('❌ Функция списка бэкапов временно недоступна'),
+      showBackupStats: async (ctx) => await ctx.reply('❌ Функция статистики бэкапов временно недоступна')
+    };
   }
   
   try {
     notificationsCommands = require('./notifications.command');
   } catch (e) {
     console.warn('notifications.command module not found');
-    notificationsCommands = { showNotificationsMenu: () => {} };
+    notificationsCommands = { 
+      showNotificationsMenu: async (ctx) => await ctx.reply('❌ Модуль уведомлений временно недоступен'),
+      startNotificationCreation: async (ctx) => await ctx.reply('❌ Функция создания уведомлений временно недоступна'),
+      showNotificationsHistory: async (ctx) => await ctx.reply('❌ Функция истории уведомлений временно недоступна'),
+      showNotificationsStats: async (ctx) => await ctx.reply('❌ Функция статистики уведомлений временно недоступна')
+    };
   }
 
   // === ДЕЛЕГИРОВАНИЕ К МОДУЛЯМ ===
@@ -1968,55 +2013,11 @@ function registerCommands(bot) {
   }
 
   async function showUsersStats(ctx) {
-    console.log('ADMIN: Запрос статистики пользователей');
-    
     try {
-      const response = await apiClient.get('/admin/stats/users');
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Ошибка получения статистики');
-      }
-      
-      const stats = response.data.data;
-      
-      let message = '👥 *СТАТИСТИКА ПОЛЬЗОВАТЕЛЕЙ*\n\n';
-      
-      message += `👤 Всего пользователей: \`${stats.totalUsers || 0}\`\n`;
-      message += `💚 Активных (за 24ч): \`${stats.activeToday || 0}\`\n`;
-      message += `💚 Активных (за неделю): \`${stats.activeWeek || 0}\`\n`;
-      message += `💰 С депозитами: \`${stats.withDeposits || 0}\`\n`;
-      message += `🚫 Заблокированных: \`${stats.blocked || 0}\`\n\n`;
-      
-      if (stats.averageBalance) {
-        message += `📊 Средний баланс: \`${stats.averageBalance.toFixed(2)} USDT\`\n`;
-      }
-      
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🔄 Обновить', 'users_stats')],
-        [Markup.button.callback('◀️ Назад', 'users_menu')]
-      ]);
-      
-      if (ctx.callbackQuery) {
-        await ctx.editMessageText(message, {
-          parse_mode: 'Markdown',
-          ...keyboard
-        });
-      } else {
-        await ctx.reply(message, {
-          parse_mode: 'Markdown',
-          ...keyboard
-        });
-      }
-      
+      return await usersCommands.showUsersStats(ctx);
     } catch (error) {
-      console.error('ADMIN: Ошибка получения статистики пользователей:', error);
-      const errorMessage = `❌ Ошибка получения статистики: ${error.response?.data?.message || error.message}`;
-      
-      if (ctx.callbackQuery) {
-        await ctx.answerCbQuery(errorMessage);
-      } else {
-        await ctx.reply(errorMessage);
-      }
+      console.error('ADMIN: Ошибка показа статистики пользователей:', error);
+      await ctx.reply('❌ Функция статистики пользователей временно недоступна');
     }
   }
 

@@ -73,6 +73,50 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+/* Screen Loading */
+.screen-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+/* Loader Component Styles */
+.loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loader-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--bg-tertiary, #333);
+  border-top: 3px solid var(--primary-color, #0ba84a);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loader-small .loader-spinner {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.loader-large .loader-spinner {
+  width: 60px;
+  height: 60px;
+  border-width: 4px;
+}
+
+.loader-text {
+  color: var(--text-secondary, #cccccc);
+  font-size: 14px;
+  text-align: center;
+}
+
 /* Стили для карточек */
 .card {
   background: linear-gradient(135deg, var(--card-background) 0%, rgba(255, 255, 255, 0.02) 100%);

@@ -57,11 +57,39 @@ class FinanceController {
     try {
       const { period = 'day' } = req.query;
       
+      // Получаем текущее состояние финансов
+      const financeState = await casinoFinanceService.getCurrentFinanceState();
       const report = await casinoFinanceService.getFinancialReport(period);
+      
+      // Формируем полный отчет с детализацией комиссий
+      const fullReport = {
+        current: {
+          totalUserBalance: financeState.totalUserBalance,
+          operationalBalance: financeState.operationalBalance,
+          reserveBalance: financeState.reserveBalance,
+          availableForWithdrawal: financeState.availableForWithdrawal,
+          reservePercentage: financeState.reservePercentage,
+          totalCommissions: financeState.totalCommissions,
+          totalPromocodeExpenses: financeState.totalPromocodeExpenses,
+          commissionBreakdown: financeState.commissionBreakdown,
+          warnings: financeState.warnings
+        },
+        allTime: {
+          totalBets: financeState.totalBets,
+          totalWins: financeState.totalWins,
+          totalDeposits: financeState.totalDeposits,
+          totalWithdrawals: financeState.totalWithdrawals,
+          gameStats: financeState.gameStats
+        },
+        period: {
+          name: period,
+          ...report
+        }
+      };
       
       res.status(200).json({
         success: true,
-        data: report
+        data: fullReport
       });
     } catch (error) {
       console.error('FINANCE CONTROLLER: Ошибка получения отчета:', error);

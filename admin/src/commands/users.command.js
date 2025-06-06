@@ -2,11 +2,11 @@
 const { Markup } = require('telegraf');
 const axios = require('axios');
 
-// >;CG05< API URL 8 B>:5= 87 ?5@5<5==KE >:@C65=8O
+// Получаем API URL и токен из переменных окружения
 const apiUrl = process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api';
 const adminToken = process.env.ADMIN_API_TOKEN;
 
-// !>7405< axios instance A ?@54CAB0=>2;5==K<8 703>;>2:0<8
+// Создаем axios instance с предустановленными заголовками
 const apiClient = axios.create({
   baseURL: apiUrl,
   headers: {
@@ -17,10 +17,10 @@ const apiClient = axios.create({
 });
 
 /**
- * >:070BL A?8A>: ?>;L7>20B5;59
+ * Показать список пользователей
  */
 async function showUsersList(ctx, page = 1) {
-  console.log('ADMIN: 0?@>A A?8A:0 ?>;L7>20B5;59, AB@0=8F0:', page);
+  console.log('ADMIN: Запрос списка пользователей, страница:', page);
   
   try {
     const response = await apiClient.get('/admin/users', {
@@ -31,7 +31,7 @@ async function showUsersList(ctx, page = 1) {
     });
     
     if (!response.data.success) {
-      throw new Error(response.data.message || 'H81:0 ?>;CG5=8O ?>;L7>20B5;59');
+      throw new Error(response.data.message || 'Ошибка получения пользователей');
     }
     
     const data = response.data.data;
@@ -39,9 +39,9 @@ async function showUsersList(ctx, page = 1) {
     const pagination = data.pagination;
     
     if (users.length === 0) {
-      const message = '=e *!?8A>: ?>;L7>20B5;59*\n\n>;L7>20B5;8 =5 =0945=K.';
+      const message = '👥 *Список пользователей*\n\nПользователи не найдены.';
       const keyboard = Markup.inlineKeyboard([[
-        Markup.button.callback('� 0704', 'users_menu')
+        Markup.button.callback('◀️ Назад', 'users_menu')
       ]]);
       
       if (ctx.callbackQuery) {
@@ -58,44 +58,44 @@ async function showUsersList(ctx, page = 1) {
       return;
     }
     
-    let message = `=e *!?8A>: ?>;L7>20B5;59* (AB@. ${pagination.current}/${pagination.pages})\n\n`;
+    let message = `👥 *Список пользователей* (стр. ${pagination.current}/${pagination.pages})\n\n`;
     
     users.forEach((user, index) => {
       const userNum = (pagination.current - 1) * 10 + index + 1;
-      const statusEmoji = user.isBlocked ? '=�' : '';
-      const username = user.username ? `@${user.username}` : '5B username';
+      const statusEmoji = user.isBlocked ? '🚫' : '✅';
+      const username = user.username ? `@${user.username}` : 'Нет username';
       
       message += `${userNum}. ${statusEmoji} *${user.firstName} ${user.lastName || ''}*\n`;
       message += `   ${username}\n`;
-      message += `   =� 0;0=A: ${user.balance.toFixed(2)} USDT\n`;
-      message += `   =� @81K;L: ${((user.totalWon || 0) - (user.totalWagered || 0)).toFixed(2)} USDT\n`;
-      message += `   <� 3@: ${user.totalGames || 0}\n`;
-      message += `   =�  538AB@0F8O: ${new Date(user.createdAt).toLocaleDateString('ru-RU')}\n\n`;
+      message += `   💰 Баланс: ${user.balance.toFixed(2)} USDT\n`;
+      message += `   📊 Прибыль: ${((user.totalWon || 0) - (user.totalWagered || 0)).toFixed(2)} USDT\n`;
+      message += `   🎮 Игр: ${user.totalGames || 0}\n`;
+      message += `   📅 Регистрация: ${new Date(user.createdAt).toLocaleDateString('ru-RU')}\n\n`;
     });
     
-    // !>7405< :;0280BC@C A :=>?:0<8 =02830F88 8 459AB28O<8
+    // Создаем клавиатуру с кнопками навигации и действиями
     const buttons = [];
     
-    // =>?:8 =02830F88
+    // Кнопки навигации
     if (pagination.current > 1 || pagination.current < pagination.pages) {
       const navButtons = [];
       if (pagination.current > 1) {
-        navButtons.push(Markup.button.callback(' @54.', `users_list_${pagination.current - 1}`));
+        navButtons.push(Markup.button.callback('⬅ Пред.', `users_list_${pagination.current - 1}`));
       }
       if (pagination.current < pagination.pages) {
-        navButtons.push(Markup.button.callback('!;54. �', `users_list_${pagination.current + 1}`));
+        navButtons.push(Markup.button.callback('След. ➡', `users_list_${pagination.current + 1}`));
       }
       buttons.push(navButtons);
     }
     
-    // A=>2=K5 459AB28O
+    // Основные действия
     buttons.push([
-      Markup.button.callback('= >8A:', 'users_search'),
-      Markup.button.callback('=� !B0B8AB8:0', 'users_stats')
+      Markup.button.callback('🔍 Поиск', 'users_search'),
+      Markup.button.callback('📊 Статистика', 'users_stats')
     ]);
     
-    buttons.push([Markup.button.callback('= 1=>28BL', 'users_list')]);
-    buttons.push([Markup.button.callback('� 0704', 'users_menu')]);
+    buttons.push([Markup.button.callback('🔄 Обновить', 'users_list')]);
+    buttons.push([Markup.button.callback('◀️ Назад', 'users_menu')]);
     
     const keyboard = Markup.inlineKeyboard(buttons);
     
@@ -112,8 +112,8 @@ async function showUsersList(ctx, page = 1) {
     }
     
   } catch (error) {
-    console.error('ADMIN: H81:0 ?>;CG5=8O A?8A:0 ?>;L7>20B5;59:', error);
-    const errorMessage = `L H81:0 ?>;CG5=8O ?>;L7>20B5;59: ${error.message}`;
+    console.error('ADMIN: Ошибка получения списка пользователей:', error);
+    const errorMessage = `❌ Ошибка получения пользователей: ${error.message}`;
     
     if (ctx.callbackQuery) {
       await ctx.answerCbQuery(errorMessage);
@@ -124,19 +124,19 @@ async function showUsersList(ctx, page = 1) {
 }
 
 /**
- * 0G0BL ?>8A: ?>;L7>20B5;O
+ * Начать поиск пользователя
  */
 async function startUserSearch(ctx) {
-  console.log('ADMIN: 0G0;> ?>8A:0 ?>;L7>20B5;O');
+  console.log('ADMIN: Начало поиска пользователя');
   
   ctx.session = ctx.session || {};
   ctx.session.searchingUser = {
     step: 'query'
   };
   
-  const message = '= *>8A: ?>;L7>20B5;O*\n\n2548B5:\n" Telegram ID\n" Username (157 @)\n" <O 8;8 D0<8;8N\n" Email';
+  const message = '🔍 *Поиск пользователя*\n\nВведите:\n• Telegram ID\n• Username (без @)\n• Имя или фамилию\n• Email';
   const keyboard = Markup.inlineKeyboard([[
-    Markup.button.callback('L B<5=0', 'users_search_cancel')
+    Markup.button.callback('❌ Отмена', 'users_search_cancel')
   ]]);
   
   if (ctx.callbackQuery) {
@@ -153,7 +153,7 @@ async function startUserSearch(ctx) {
 }
 
 /**
- * 1@01>B0BL ?>8A: ?>;L7>20B5;O
+ * Обработать поиск пользователя
  */
 async function handleUserSearch(ctx) {
   if (!ctx.session || !ctx.session.searchingUser) {
@@ -161,7 +161,7 @@ async function handleUserSearch(ctx) {
   }
   
   const query = ctx.message.text.trim();
-  console.log('ADMIN: >8A: ?>;L7>20B5;O ?> 70?@>AC:', query);
+  console.log('ADMIN: Поиск пользователя по запросу:', query);
   
   try {
     const response = await apiClient.get('/admin/users', {
@@ -172,48 +172,48 @@ async function handleUserSearch(ctx) {
     });
     
     if (!response.data.success) {
-      throw new Error(response.data.message || 'H81:0 ?>8A:0');
+      throw new Error(response.data.message || 'Ошибка поиска');
     }
     
     const users = response.data.data.users;
     
     if (users.length === 0) {
       await ctx.reply(
-        'L >;L7>20B5;8 =5 =0945=K.\n\n>?@>1C9B5 4@C3>9 70?@>A:',
+        '❌ Пользователи не найдены.\n\nПопробуйте другой запрос:',
         Markup.inlineKeyboard([[
-          Markup.button.callback('L B<5=0', 'users_search_cancel')
+          Markup.button.callback('❌ Отмена', 'users_search_cancel')
         ]])
       );
       return;
     }
     
-    let message = `= * 57C;LB0BK ?>8A:0* (=0945=>: ${users.length})\n\n`;
+    let message = `🔍 *Результаты поиска* (найдено: ${users.length})\n\n`;
     
     const buttons = [];
     
     users.slice(0, 10).forEach((user, index) => {
-      const statusEmoji = user.isBlocked ? '=�' : '';
-      const username = user.username ? `@${user.username}` : '5B username';
+      const statusEmoji = user.isBlocked ? '🚫' : '✅';
+      const username = user.username ? `@${user.username}` : 'Нет username';
       
       message += `${index + 1}. ${statusEmoji} *${user.firstName} ${user.lastName || ''}*\n`;
       message += `   ${username} | ID: \`${user.telegramId}\`\n`;
-      message += `   =� ${user.balance.toFixed(2)} USDT | `;
-      message += `<� ${user.totalGames || 0} 83@\n\n`;
+      message += `   💰 ${user.balance.toFixed(2)} USDT | `;
+      message += `🎮 ${user.totalGames || 0} игр\n\n`;
       
-      // >102;O5< :=>?:C 4;O ?@>A<>B@0 45B0;59 ?>;L7>20B5;O
+      // Добавляем кнопку для просмотра деталей пользователя
       buttons.push([Markup.button.callback(
-        `=d ${user.firstName} ${user.lastName || ''}`, 
+        `👤 ${user.firstName} ${user.lastName || ''}`, 
         `user_details_${user._id}`
       )]);
     });
     
     if (users.length > 10) {
-      message += `\n... 8 5I5 ${users.length - 10} ?>;L7>20B5;59`;
+      message += `\n... и еще ${users.length - 10} пользователей`;
     }
     
     buttons.push([
-      Markup.button.callback('= >2K9 ?>8A:', 'users_search'),
-      Markup.button.callback('� 0704', 'users_menu')
+      Markup.button.callback('🔍 Новый поиск', 'users_search'),
+      Markup.button.callback('◀️ Назад', 'users_menu')
     ]);
     
     await ctx.reply(message, {
@@ -221,26 +221,26 @@ async function handleUserSearch(ctx) {
       ...Markup.inlineKeyboard(buttons)
     });
     
-    // G8I05< A5AA8N ?>8A:0
+    // Очищаем сессию поиска
     delete ctx.session.searchingUser;
     
   } catch (error) {
-    console.error('ADMIN: H81:0 ?>8A:0 ?>;L7>20B5;O:', error);
-    await ctx.reply(`L H81:0 ?>8A:0: ${error.message}`);
+    console.error('ADMIN: Ошибка поиска пользователя:', error);
+    await ctx.reply(`❌ Ошибка поиска: ${error.message}`);
   }
 }
 
 /**
- * >:070BL 45B0;8 ?>;L7>20B5;O
+ * Показать детали пользователя
  */
 async function showUserDetails(ctx, userId) {
-  console.log('ADMIN: 0?@>A 45B0;59 ?>;L7>20B5;O:', userId);
+  console.log('ADMIN: Запрос деталей пользователя:', userId);
   
   try {
     const response = await apiClient.get(`/admin/users/${userId}`);
     
     if (!response.data.success) {
-      throw new Error(response.data.message || '>;L7>20B5;L =5 =0945=');
+      throw new Error(response.data.message || 'Пользователь не найден');
     }
     
     const data = response.data.data;
@@ -248,62 +248,62 @@ async function showUserDetails(ctx, userId) {
     const gameStats = data.gameStats || [];
     const recentTransactions = data.recentTransactions || [];
     
-    let message = `=d *@>D8;L ?>;L7>20B5;O*\n\n`;
-    message += `**A=>2=0O 8=D>@<0F8O:**\n`;
-    message += `$: ${user.firstName} ${user.lastName || ''}\n`;
-    message += `Username: ${user.username ? `@${user.username}` : '5 C:070='}\n`;
+    let message = `👤 *Профиль пользователя*\n\n`;
+    message += `**Основная информация:**\n`;
+    message += `ФИО: ${user.firstName} ${user.lastName || ''}\n`;
+    message += `Username: ${user.username ? `@${user.username}` : 'Не указан'}\n`;
     message += `Telegram ID: \`${user.telegramId}\`\n`;
-    message += ` >;L: ${user.role === 'admin' ? '=Q 4<8=8AB@0B>@' : '=d >;L7>20B5;L'}\n`;
-    message += `!B0BCA: ${user.isBlocked ? '=� 01;>:8@>20=' : ' :B825='}\n\n`;
+    message += `Роль: ${user.role === 'admin' ? '👑 Администратор' : '👤 Пользователь'}\n`;
+    message += `Статус: ${user.isBlocked ? '🚫 Заблокирован' : '✅ Активен'}\n\n`;
     
-    message += `**$8=0=AK:**\n`;
-    message += `=� 0;0=A: ${user.balance.toFixed(2)} USDT\n`;
-    message += `=� A53> ?>AB02;5=>: ${user.totalWagered.toFixed(2)} USDT\n`;
-    message += `=� A53> 2K83@0=>: ${user.totalWon.toFixed(2)} USDT\n`;
-    message += `=� @81K;L/C1KB>:: ${(user.totalWon - user.totalWagered).toFixed(2)} USDT\n\n`;
+    message += `**Финансы:**\n`;
+    message += `💰 Баланс: ${user.balance.toFixed(2)} USDT\n`;
+    message += `📈 Всего поставлено: ${user.totalWagered.toFixed(2)} USDT\n`;
+    message += `📊 Всего выиграно: ${user.totalWon.toFixed(2)} USDT\n`;
+    message += `💰 Прибыль/убыток: ${(user.totalWon - user.totalWagered).toFixed(2)} USDT\n\n`;
     
     if (gameStats.length > 0) {
-      message += `**!B0B8AB8:0 ?> 83@0<:**\n`;
+      message += `**Статистика по играм:**\n`;
       gameStats.forEach(stat => {
         const gameEmoji = {
-          'coin': '>�',
-          'crash': '=�',
-          'slots': '<�',
-          'mines': '=�'
-        }[stat._id] || '<�';
+          'coin': '🪙',
+          'crash': '🚀',
+          'slots': '🎰',
+          'mines': '💣'
+        }[stat._id] || '🎮';
         
-        message += `${gameEmoji} ${stat._id}: ${stat.totalGames} 83@, `;
-        message += `${stat.totalBet.toFixed(2)} USDT AB02>:\n`;
+        message += `${gameEmoji} ${stat._id}: ${stat.totalGames} игр, `;
+        message += `${stat.totalBet.toFixed(2)} USDT ставок\n`;
       });
       message += '\n';
     }
     
-    message += `** 5D5@0;L=0O ?@>3@0<<0:**\n`;
+    message += `**Реферальная программа:**\n`;
     if (user.referralStats) {
-      message += `<� #@>25=L: ${user.referralStats.level}\n`;
-      message += `=e  5D5@0;>2: ${user.referralStats.totalReferrals}\n`;
-      message += `=� 0@01>B0=>: ${user.referralStats.totalEarned.toFixed(2)} USDT\n`;
-      message += `<� 0;0=A @5D5@0;:8: ${user.referralStats.referralBalance.toFixed(2)} USDT\n\n`;
+      message += `🎯 Уровень: ${user.referralStats.level}\n`;
+      message += `👥 Рефералов: ${user.referralStats.totalReferrals}\n`;
+      message += `💰 Заработано: ${user.referralStats.totalEarned.toFixed(2)} USDT\n`;
+      message += `🎯 Баланс реферальных: ${user.referralStats.referralBalance.toFixed(2)} USDT\n\n`;
     }
     
-    message += `**0BK:**\n`;
-    message += `=�  538AB@0F8O: ${new Date(user.createdAt).toLocaleString('ru-RU')}\n`;
-    message += `� >A;54=OO 0:B82=>ABL: ${new Date(user.lastActivity).toLocaleString('ru-RU')}`;
+    message += `**Даты:**\n`;
+    message += `📅 Регистрация: ${new Date(user.createdAt).toLocaleString('ru-RU')}\n`;
+    message += `🕒 Последняя активность: ${new Date(user.lastActivity).toLocaleString('ru-RU')}`;
     
     const buttons = [
       [
         Markup.button.callback(
-          user.isBlocked ? '  071;>:8@>20BL' : '=� 01;>:8@>20BL', 
+          user.isBlocked ? '✅ Разблокировать' : '🚫 Заблокировать', 
           `user_toggle_block_${user._id}`
         ),
-        Markup.button.callback('=� 7<5=8BL 10;0=A', `user_balance_${user._id}`)
+        Markup.button.callback('💰 Изменить баланс', `user_balance_${user._id}`)
       ],
       [
-        Markup.button.callback('<� >48D8:0B>@K', `user_modifiers_${user._id}`),
-        Markup.button.callback('=� "@0=70:F88', `user_transactions_${user._id}`)
+        Markup.button.callback('🎯 Модификаторы', `user_modifiers_${user._id}`),
+        Markup.button.callback('💳 Транзакции', `user_transactions_${user._id}`)
       ],
-      [Markup.button.callback('= 1=>28BL', `user_details_${user._id}`)],
-      [Markup.button.callback('�  ?>8A:C', 'users_search')]
+      [Markup.button.callback('🔄 Обновить', `user_details_${user._id}`)],
+      [Markup.button.callback('🔍 К поиску', 'users_search')]
     ];
     
     if (ctx.callbackQuery) {
@@ -319,8 +319,8 @@ async function showUserDetails(ctx, userId) {
     }
     
   } catch (error) {
-    console.error('ADMIN: H81:0 ?>;CG5=8O 45B0;59 ?>;L7>20B5;O:', error);
-    const errorMessage = `L H81:0: ${error.message}`;
+    console.error('ADMIN: Ошибка получения деталей пользователя:', error);
+    const errorMessage = `❌ Ошибка: ${error.message}`;
     
     if (ctx.callbackQuery) {
       await ctx.answerCbQuery(errorMessage);
@@ -331,44 +331,44 @@ async function showUserDetails(ctx, userId) {
 }
 
 /**
- * >:070BL AB0B8AB8:C ?>;L7>20B5;59
+ * Показать статистику пользователей
  */
 async function showUsersStats(ctx) {
-  console.log('ADMIN: 0?@>A AB0B8AB8:8 ?>;L7>20B5;59');
+  console.log('ADMIN: Запрос статистики пользователей');
   
   try {
-    // >;CG05< >1ICN AB0B8AB8:C
-    const response = await apiClient.get('/admin/stats');
+    // Получаем общую статистику
+    const response = await apiClient.get('/admin/stats/users');
     
     if (!response.data.success) {
-      throw new Error(response.data.message || 'H81:0 ?>;CG5=8O AB0B8AB8:8');
+      throw new Error(response.data.message || 'Ошибка получения статистики');
     }
     
     const stats = response.data.data;
     
-    let message = '=� *!B0B8AB8:0 ?>;L7>20B5;59*\n\n';
+    let message = '👥 *Статистика пользователей*\n\n';
     
-    message += `**1I0O 8=D>@<0F8O:**\n`;
-    message += `=e A53> ?>;L7>20B5;59: ${stats.totalUsers || 0}\n`;
-    message += ` :B82=KE: ${stats.activeUsers || 0}\n`;
-    message += `=� 01;>:8@>20==KE: ${stats.blockedUsers || 0}\n`;
-    message += `=Q 4<8=8AB@0B>@>2: ${stats.adminUsers || 0}\n\n`;
+    message += `**Общая информация:**\n`;
+    message += `👥 Всего пользователей: ${stats.totalUsers || 0}\n`;
+    message += `✅ Активных: ${stats.activeToday || 0}\n`;
+    message += `🚫 Заблокированных: ${stats.blocked || 0}\n`;
+    message += `👑 Администраторов: ${stats.adminUsers || 0}\n\n`;
     
-    message += `**:B82=>ABL:**\n`;
-    message += `=� >2KE 70 ACB:8: ${stats.newUsersToday || 0}\n`;
-    message += `=� >2KE 70 =545;N: ${stats.newUsersWeek || 0}\n`;
-    message += `<� 3@0;8 A53>4=O: ${stats.playedToday || 0}\n`;
-    message += `=� !45;0;8 45?>78B: ${stats.usersWithDeposits || 0}\n\n`;
+    message += `**Активность:**\n`;
+    message += `🆕 Новых за сутки: ${stats.newUsersToday || 0}\n`;
+    message += `📅 Новых за неделю: ${stats.newUsersWeek || 0}\n`;
+    message += `🎮 Играли сегодня: ${stats.playedToday || 0}\n`;
+    message += `💰 Сделали депозит: ${stats.usersWithDeposits || 0}\n\n`;
     
-    message += `**$8=0=AK:**\n`;
-    message += `=� 1I89 10;0=A 2A5E ?>;L7>20B5;59: ${(stats.totalUserBalances || 0).toFixed(2)} USDT\n`;
-    message += `=� !@54=89 10;0=A: ${((stats.totalUserBalances || 0) / (stats.totalUsers || 1)).toFixed(2)} USDT\n`;
-    message += `<� 1I89 >1J5< AB02>:: ${(stats.totalWagered || 0).toFixed(2)} USDT\n`;
-    message += `<� 1I85 2K83@KH8: ${(stats.totalWon || 0).toFixed(2)} USDT`;
+    message += `**Финансы:**\n`;
+    message += `💰 Общий баланс всех пользователей: ${(stats.totalUserBalances || 0).toFixed(2)} USDT\n`;
+    message += `📊 Средний баланс: ${((stats.totalUserBalances || 0) / (stats.totalUsers || 1)).toFixed(2)} USDT\n`;
+    message += `🎰 Общий объем ставок: ${(stats.totalWagered || 0).toFixed(2)} USDT\n`;
+    message += `🎯 Общие выигрыши: ${(stats.totalWon || 0).toFixed(2)} USDT`;
     
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('= 1=>28BL', 'users_stats')],
-      [Markup.button.callback('� 0704', 'users_menu')]
+      [Markup.button.callback('🔄 Обновить', 'users_stats')],
+      [Markup.button.callback('◀️ Назад', 'users_menu')]
     ]);
     
     if (ctx.callbackQuery) {
@@ -384,8 +384,8 @@ async function showUsersStats(ctx) {
     }
     
   } catch (error) {
-    console.error('ADMIN: H81:0 ?>;CG5=8O AB0B8AB8:8 ?>;L7>20B5;59:', error);
-    const errorMessage = `L H81:0 ?>;CG5=8O AB0B8AB8:8: ${error.message}`;
+    console.error('ADMIN: Ошибка получения статистики пользователей:', error);
+    const errorMessage = `❌ Ошибка получения статистики: ${error.message}`;
     
     if (ctx.callbackQuery) {
       await ctx.answerCbQuery(errorMessage);
@@ -396,37 +396,37 @@ async function showUsersStats(ctx) {
 }
 
 /**
- * 5@5:;NG8BL 1;>:8@>2:C ?>;L7>20B5;O
+ * Переключить блокировку пользователя
  */
 async function toggleUserBlock(ctx, userId) {
-  console.log('ADMIN: 5@5:;NG5=85 1;>:8@>2:8 ?>;L7>20B5;O:', userId);
+  console.log('ADMIN: Переключение блокировки пользователя:', userId);
   
   try {
     const response = await apiClient.post(`/admin/users/${userId}/block`);
     
     if (!response.data.success) {
-      throw new Error(response.data.message || 'H81:0 87<5=5=8O AB0BCA0');
+      throw new Error(response.data.message || 'Ошибка изменения статуса');
     }
     
     const result = response.data.data;
-    const status = result.isBlocked ? '701;>:8@>20=' : '@071;>:8@>20=';
+    const status = result.isBlocked ? 'заблокирован' : 'разблокирован';
     
-    await ctx.answerCbQuery(` >;L7>20B5;L ${status}`);
+    await ctx.answerCbQuery(`✅ Пользователь ${status}`);
     
-    // 1=>2;O5< 8=D>@<0F8N > ?>;L7>20B5;5
+    // Обновляем информацию о пользователе
     await showUserDetails(ctx, userId);
     
   } catch (error) {
-    console.error('ADMIN: H81:0 ?5@5:;NG5=8O 1;>:8@>2:8:', error);
-    await ctx.answerCbQuery(`L H81:0: ${error.message}`);
+    console.error('ADMIN: Ошибка переключения блокировки:', error);
+    await ctx.answerCbQuery(`❌ Ошибка: ${error.message}`);
   }
 }
 
 /**
- * 0G0BL 87<5=5=85 10;0=A0 ?>;L7>20B5;O
+ * Начать изменение баланса пользователя
  */
 async function startBalanceAdjustment(ctx, userId) {
-  console.log('ADMIN: 0G0;> 87<5=5=8O 10;0=A0 ?>;L7>20B5;O:', userId);
+  console.log('ADMIN: Начало изменения баланса пользователя:', userId);
   
   ctx.session = ctx.session || {};
   ctx.session.adjustingBalance = {
@@ -434,9 +434,9 @@ async function startBalanceAdjustment(ctx, userId) {
     step: 'amount'
   };
   
-  const message = '=� *7<5=5=85 10;0=A0 ?>;L7>20B5;O*\n\n2548B5 AC<<C 87<5=5=8O:\n\n" >;>68B5;L=>5 G8A;> 4;O =0G8A;5=8O\n" B@8F0B5;L=>5 G8A;> 4;O A?8A0=8O\n\n@8<5@: +100 8;8 -50';
+  const message = '💰 *Изменение баланса пользователя*\n\nВведите сумму изменения:\n\n• Положительное число для начисления\n• Отрицательное число для списания\n\nПример: +100 или -50';
   const keyboard = Markup.inlineKeyboard([[
-    Markup.button.callback('L B<5=0', `user_details_${userId}`)
+    Markup.button.callback('❌ Отмена', `user_details_${userId}`)
   ]]);
   
   await ctx.reply(message, {
@@ -446,7 +446,7 @@ async function startBalanceAdjustment(ctx, userId) {
 }
 
 /**
- * 1@01>B0BL 87<5=5=85 10;0=A0
+ * Обработать изменение баланса
  */
 async function handleBalanceAdjustment(ctx) {
   if (!ctx.session || !ctx.session.adjustingBalance) {
@@ -460,7 +460,7 @@ async function handleBalanceAdjustment(ctx) {
     const amount = parseFloat(text);
     
     if (isNaN(amount) || amount === 0) {
-      await ctx.reply('L 2548B5 :>@@5:B=CN AC<<C (G8A;>, =5 @02=>5 =C;N):');
+      await ctx.reply('❌ Введите корректную сумму (число, не равное нулю):');
       return;
     }
     
@@ -468,9 +468,9 @@ async function handleBalanceAdjustment(ctx) {
     session.step = 'reason';
     
     await ctx.reply(
-      `=� !C<<0: ${amount > 0 ? '+' : ''}${amount.toFixed(2)} USDT\n\n"5?5@L 22548B5 ?@8G8=C 87<5=5=8O:`,
+      `💰 Сумма: ${amount > 0 ? '+' : ''}${amount.toFixed(2)} USDT\n\nТеперь введите причину изменения:`,
       Markup.inlineKeyboard([[
-        Markup.button.callback('L B<5=0', `user_details_${session.userId}`)
+        Markup.button.callback('❌ Отмена', `user_details_${session.userId}`)
       ]])
     );
     
@@ -478,7 +478,7 @@ async function handleBalanceAdjustment(ctx) {
     const reason = text;
     
     if (reason.length < 5) {
-      await ctx.reply('L @8G8=0 4>;6=0 A>45@60BL <8=8<C< 5 A8<2>;>2:');
+      await ctx.reply('❌ Причина должна содержать минимум 5 символов:');
       return;
     }
     
@@ -489,21 +489,21 @@ async function handleBalanceAdjustment(ctx) {
       });
       
       if (!response.data.success) {
-        throw new Error(response.data.message || 'H81:0 87<5=5=8O 10;0=A0');
+        throw new Error(response.data.message || 'Ошибка изменения баланса');
       }
       
       const result = response.data.data;
       
       await ctx.reply(
-        ` *0;0=A 87<5=5= CA?5H=>!*\n\n` +
-        `=� K;>: ${result.oldBalance.toFixed(2)} USDT\n` +
-        `=� !B0;>: ${result.newBalance.toFixed(2)} USDT\n` +
-        `=� 7<5=5=85: ${result.adjustment > 0 ? '+' : ''}${result.adjustment.toFixed(2)} USDT\n` +
-        `=� @8G8=0: ${reason}`,
+        `✅ *Баланс изменен успешно!*\n\n` +
+        `📊 Было: ${result.oldBalance.toFixed(2)} USDT\n` +
+        `📊 Стало: ${result.newBalance.toFixed(2)} USDT\n` +
+        `💰 Изменение: ${result.adjustment > 0 ? '+' : ''}${result.adjustment.toFixed(2)} USDT\n` +
+        `📝 Причина: ${reason}`,
         {
           parse_mode: 'Markdown',
           ...Markup.inlineKeyboard([[
-            Markup.button.callback('=d  ?@>D8;N', `user_details_${session.userId}`)
+            Markup.button.callback('👤 К профилю', `user_details_${session.userId}`)
           ]])
         }
       );
@@ -511,8 +511,8 @@ async function handleBalanceAdjustment(ctx) {
       delete ctx.session.adjustingBalance;
       
     } catch (error) {
-      console.error('ADMIN: H81:0 87<5=5=8O 10;0=A0:', error);
-      await ctx.reply(`L H81:0 87<5=5=8O 10;0=A0: ${error.message}`);
+      console.error('ADMIN: Ошибка изменения баланса:', error);
+      await ctx.reply(`❌ Ошибка изменения баланса: ${error.message}`);
     }
   }
 }

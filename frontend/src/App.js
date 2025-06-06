@@ -1,11 +1,18 @@
-// frontend/src/App.js - ОБНОВЛЕННАЯ ВЕРСИЯ
-import React, { useEffect, useState } from 'react';
-import { MainScreen, GameScreen, ProfileScreen, HistoryScreen } from './screens';
-import EventsScreen from './screens/EventsScreen'; // Добавляем импорт
+// frontend/src/App.js - PRODUCTION VERSION WITH LAZY LOADING
+import React, { useEffect, useState, Suspense } from 'react';
+import { MainScreen } from './screens'; // Главный экран загружаем сразу
 import { Navigation } from './components/layout';
+import { ErrorBoundary, Loader } from './components/common';
 import { initTelegram } from './utils/telegram';
 import { userApi } from './services';
+import Logger from './utils/logger';
 import './styles/global.css';
+
+// Lazy loading для неосновных экранов
+const GameScreen = React.lazy(() => import('./screens/GameScreen'));
+const ProfileScreen = React.lazy(() => import('./screens/ProfileScreen'));
+const HistoryScreen = React.lazy(() => import('./screens/HistoryScreen'));
+const EventsScreen = React.lazy(() => import('./screens/EventsScreen'));
 
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState('main');
@@ -35,14 +42,17 @@ const App = () => {
         let telegramUser;
         if (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
           telegramUser = webApp.initDataUnsafe.user;
-        } else {
-          // Устанавливаем тестовые данные для разработки
+        } else if (process.env.NODE_ENV === 'development') {
+          // Тестовые данные только для development
           telegramUser = {
             id: 123456789,
             first_name: 'Тестовый',
             last_name: 'Пользователь',
             username: 'test_user'
           };
+        } else {
+          // В продакшене без Telegram данных показываем ошибку
+          throw new Error('Приложение должно запускаться только в Telegram');
         }
         
         // Аутентификация пользователя на сервере
@@ -143,7 +153,8 @@ const App = () => {
 
   // Отображение основного контента
   return (
-    <div className="app">
+    <ErrorBoundary>
+      <div className="app">
       {/* Основной контент */}
       {currentScreen === 'main' && (
         <MainScreen 
@@ -156,41 +167,49 @@ const App = () => {
       )}
       
       {currentScreen === 'game' && (
-        <GameScreen 
-          gameType={gameType}
-          userData={userData}
-          telegramWebApp={telegramWebApp}
-          onBack={handleBackFromGame}
-          onBalanceUpdate={updateBalanceFromServer}
-          balance={balance}
-          setBalance={setBalance}
-        />
+        <Suspense fallback={<div className="screen-loading"><Loader text="Загрузка игры..." /></div>}>
+          <GameScreen 
+            gameType={gameType}
+            userData={userData}
+            telegramWebApp={telegramWebApp}
+            onBack={handleBackFromGame}
+            onBalanceUpdate={updateBalanceFromServer}
+            balance={balance}
+            setBalance={setBalance}
+          />
+        </Suspense>
       )}
       
       {currentScreen === 'events' && (
-        <EventsScreen 
-          userData={userData}
-          telegramWebApp={telegramWebApp}
-          balance={balance}
-          onBalanceUpdate={updateBalanceFromServer}
-        />
+        <Suspense fallback={<div className="screen-loading"><Loader text="Загрузка событий..." /></div>}>
+          <EventsScreen 
+            userData={userData}
+            telegramWebApp={telegramWebApp}
+            balance={balance}
+            onBalanceUpdate={updateBalanceFromServer}
+          />
+        </Suspense>
       )}
       
       {currentScreen === 'profile' && (
-        <ProfileScreen 
-          userData={userData}
-          telegramWebApp={telegramWebApp}
-          balance={balance}
-          onBalanceUpdate={updateBalanceFromServer}
-        />
+        <Suspense fallback={<div className="screen-loading"><Loader text="Загрузка профиля..." /></div>}>
+          <ProfileScreen 
+            userData={userData}
+            telegramWebApp={telegramWebApp}
+            balance={balance}
+            onBalanceUpdate={updateBalanceFromServer}
+          />
+        </Suspense>
       )}
       
       {currentScreen === 'history' && (
-        <HistoryScreen 
-          userData={userData}
-          telegramWebApp={telegramWebApp}
-          balance={balance}
-        />
+        <Suspense fallback={<div className="screen-loading"><Loader text="Загрузка истории..." /></div>}>
+          <HistoryScreen 
+            userData={userData}
+            telegramWebApp={telegramWebApp}
+            balance={balance}
+          />
+        </Suspense>
       )}
 
       {/* Навигация */}
@@ -198,7 +217,8 @@ const App = () => {
         currentScreen={currentScreen} 
         onScreenChange={handleScreenChange} 
       />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

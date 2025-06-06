@@ -4,7 +4,7 @@ import { Header } from '../components/layout';
 import Deposits from '../components/profile/Deposits';
 import Withdrawals from '../components/profile/Withdrawals';
 import { ReferralsList, EarningsHistory, PayoutModal } from '../components/referral';
-// import { PromoCodeInput, UserPromoCodes } from '../components/promocodes'; // Temporarily disabled
+import { PromoCodeInput, UserPromoCodes } from '../components/promocodes';
 import useTactileFeedback from '../hooks/useTactileFeedback';
 import { userApi, gameApi, referralApi } from '../services';
 import { showNotification } from '../utils/telegram';
@@ -218,14 +218,12 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
         {/* Компонент выводов */}
         <Withdrawals balance={balance} onBalanceUpdate={onBalanceUpdate} />
         
-        {/* Компоненты промокодов - временно отключены */}
-        {/* 
+        {/* Компоненты промокодов */}
         <div className="promocodes-section">
           <h3>🎁 Промокоды</h3>
           <PromoCodeInput onBalanceUpdate={onBalanceUpdate} />
           <UserPromoCodes />
         </div>
-        */}
         
         <div className="profile-stats">
           <h3>Статистика</h3>

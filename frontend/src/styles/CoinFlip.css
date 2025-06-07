@@ -1,4 +1,4 @@
-/* frontend/src/styles/CoinFlip.css - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ С УПРОЩЕННОЙ АНИМАЦИЕЙ */
+/* frontend/src/styles/CoinFlip.css - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ С УСКОРЕННОЙ АНИМАЦИЕЙ */
 .coin-flip-container {
   display: flex;
   flex-direction: column;
@@ -99,7 +99,7 @@
 .coin-shadow.flipping {
   transform: scale(1.3, 0.7);
   opacity: 0.7;
-  animation: shadowFlip 2.5s ease-in-out;
+  animation: shadowFlip 1.25s ease-in-out;
 }
 
 @keyframes shadowFlip {
@@ -144,23 +144,23 @@
   transform: rotateY(180deg) rotateX(0deg);
 }
 
-/* ИСПРАВЛЕННАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ */
+/* ИСПРАВЛЕННАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ - УСКОРЕННАЯ В 2 РАЗА */
 .coin.flipping {
   /* Важно: animation должен переопределять transform */
-  animation: coinFlipAnimation 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  animation: coinFlipAnimation 1.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
 }
 
-/* АНИМАЦИЯ ДЛЯ ОРЛА (начинается с 0 градусов) */
+/* АНИМАЦИЯ ДЛЯ ОРЛА (начинается с 0 градусов) - УСКОРЕННАЯ */
 .coin.flipping.heads {
-  animation: coinFlipFromHeads 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  animation: coinFlipFromHeads 1.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
 }
 
-/* АНИМАЦИЯ ДЛЯ РЕШКИ (начинается с 180 градусов) */
+/* АНИМАЦИЯ ДЛЯ РЕШКИ (начинается с 180 градусов) - УСКОРЕННАЯ */
 .coin.flipping.tails {
-  animation: coinFlipFromTails 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  animation: coinFlipFromTails 1.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
 }
 
-/* Анимация подбрасывания с орла - УПРОЩЕННАЯ */
+/* Анимация подбрасывания с орла - УПРОЩЕННАЯ И УСКОРЕННАЯ */
 @keyframes coinFlipFromHeads {
   0% {
     transform: rotateY(0deg) translateY(0px) scale(1);
@@ -197,7 +197,7 @@
   }
 }
 
-/* Анимация подбрасывания с решки - УПРОЩЕННАЯ */
+/* Анимация подбрасывания с решки - УПРОЩЕННАЯ И УСКОРЕННАЯ */
 @keyframes coinFlipFromTails {
   0% {
     transform: rotateY(180deg) translateY(0px) scale(1);

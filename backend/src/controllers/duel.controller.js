@@ -514,7 +514,14 @@ class DuelController {
   async cancelDuel(req, res) {
     try {
       const { sessionId } = req.params;
-      const userId = req.user.id;
+      const userId = req.user.telegramId?.toString() || req.user.id; // Используем telegramId для дуэлей
+      
+      console.log(`🚫 CANCEL CONTROLLER: Отмена дуэли ${sessionId} пользователем ${userId}`);
+      console.log(`🚫 CANCEL CONTROLLER: req.user:`, {
+        id: req.user.id,
+        telegramId: req.user.telegramId,
+        username: req.user.username
+      });
       
       const duel = await duelService.cancelDuel(sessionId, userId);
       

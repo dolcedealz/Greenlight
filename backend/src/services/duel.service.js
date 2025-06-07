@@ -434,11 +434,17 @@ class DuelService {
     const winnerId = duel.winnerId;
     const loserId = duel.challengerId === winnerId ? duel.opponentId : duel.challengerId;
     
-    // Разблокируем средства проигравшего (они уже списаны)
-    await this.unlockUserFunds(loserId, duel.amount, session);
+    console.log(`💰 PAYOUTS: Обработка выплат для дуэли ${duel.sessionId}`);
+    console.log(`💰 PAYOUTS: Победитель: ${winnerId}, Проигравший: ${loserId}`);
+    console.log(`💰 PAYOUTS: Сумма ставки: ${duel.amount}, Выигрыш: ${duel.winAmount}`);
     
-    // Возвращаем средства победителю + выигрыш
-    await this.unlockUserFunds(winnerId, duel.amount, session);
+    // Убираем заблокированные средства проигравшего БЕЗ возврата на баланс
+    await this.removeLockedFunds(loserId, duel.amount, session);
+    
+    // Убираем заблокированные средства победителя БЕЗ возврата (они уже были списаны при блокировке)
+    await this.removeLockedFunds(winnerId, duel.amount, session);
+    
+    // Начисляем победителю полный выигрыш (его ставка + выигрыш)
     await this.creditUserFunds(winnerId, duel.winAmount, 'duel_win', duel.sessionId, session);
     
     // Находим пользователей для транзакций
@@ -563,18 +569,23 @@ class DuelService {
       }
       
       // 🔧 УЛУЧШЕННАЯ ЛОГИКА ОТМЕНЫ: проверяем права более точно
-      if (reason === 'user_cancel') {
-        const isChallenger = duel.challengerId === userId;
-        const isOpponent = duel.opponentId === userId;
+      if (reason === 'user_cancel' && userId) {
+        // Преобразуем userId в строку для сравнения
+        const userIdStr = userId.toString();
+        const isChallenger = duel.challengerId === userIdStr || duel.challengerId === userId;
+        const isOpponent = duel.opponentId === userIdStr || duel.opponentId === userId;
+        
+        console.log(`🚫 CANCEL LOGIC: Проверка прав отмены`);
+        console.log(`🚫 CANCEL LOGIC: userId: ${userId} (${typeof userId})`);
+        console.log(`🚫 CANCEL LOGIC: challengerId: ${duel.challengerId} (${typeof duel.challengerId})`);
+        console.log(`🚫 CANCEL LOGIC: opponentId: ${duel.opponentId} (${typeof duel.opponentId})`);
+        console.log(`🚫 CANCEL LOGIC: isChallenger: ${isChallenger}, isOpponent: ${isOpponent}`);
+        console.log(`🚫 CANCEL LOGIC: duel status: ${duel.status}`);
         
         // Для pending дуэлей:
         if (duel.status === 'pending') {
-          // Открытая дуэль - только создатель может отменить
-          if (!duel.opponentUsername && !isChallenger) {
-            throw new Error('Только создатель может отменить открытую дуэль');
-          }
-          // Направленная дуэль - только создатель может отменить (целевой игрок еще не принял)
-          else if (duel.opponentUsername && !isChallenger) {
+          // Только создатель может отменить pending дуэль
+          if (!isChallenger) {
             throw new Error('Только создатель может отменить непринятую дуэль');
           }
         }
@@ -828,6 +839,34 @@ class DuelService {
     
     console.log(`✅ UNLOCK: Баланс после: ${result.balance}, заблокированные средства:`, result.lockedFunds);
     console.log(`✅ UNLOCK: Успешно разблокировано ${amount} USDT для пользователя ${userId}`);
+    
+    return true;
+  }
+  
+  // Новый метод для удаления заблокированных средств БЕЗ возврата на баланс
+  async removeLockedFunds(userId, amount, session) {
+    console.log(`🔒 REMOVE LOCKED: Удаляем заблокированные ${amount} USDT для пользователя ${userId} БЕЗ возврата`);
+    
+    // Атомарная операция удаления из lockedFunds БЕЗ изменения баланса
+    const result = await User.findOneAndUpdate(
+      { telegramId: parseInt(userId) },
+      { 
+        $pull: { 
+          lockedFunds: { 
+            amount, 
+            reason: 'duel' 
+          }
+        }
+      },
+      { session, new: true }
+    );
+    
+    if (!result) {
+      console.error(`❌ REMOVE LOCKED: Не удалось обновить пользователя ${userId}`);
+      throw new Error('Пользователь не найден');
+    }
+    
+    console.log(`✅ REMOVE LOCKED: Заблокированные средства удалены для пользователя ${userId}`);
     
     return true;
   }

@@ -275,6 +275,12 @@ class DuelController {
       const telegramId = req.user.telegramId?.toString();
       
       console.log(`🔍 BACKEND DEBUG: getDuel called for sessionId: ${sessionId}, userId: ${userId}, telegramId: ${telegramId}`);
+      console.log(`🔍 BACKEND DEBUG: Full req.user object:`, req.user);
+      console.log(`🔍 BACKEND DEBUG: Request headers:`, {
+        authorization: req.headers.authorization ? 'PRESENT' : 'MISSING',
+        'x-telegram-user-id': req.headers['x-telegram-user-id'],
+        'x-telegram-username': req.headers['x-telegram-username']
+      });
       
       const duel = await duelService.getDuel(sessionId);
       
@@ -290,26 +296,44 @@ class DuelController {
       
       console.log(`DUEL ACCESS: Проверка доступа - telegramId: ${telegramId}, challengerId: ${duel.challengerId}, opponentId: ${duel.opponentId}`);
       
-      // 🔧 ИСПРАВЛЕНИЕ: Проверяем права доступа используя и telegramId и userId
-      const hasAccess = duel.isParticipant(telegramId) || 
-                       duel.isParticipant(userId) || 
-                       duel.isParticipant(req.user.telegramId) ||
-                       duel.challengerId === telegramId ||
-                       duel.opponentId === telegramId ||
-                       duel.challengerId === userId ||
-                       duel.opponentId === userId;
+      // 🔧 ИСПРАВЛЕНИЕ: Проверяем права доступа используя множественные идентификаторы
+      const userIdFromHeaders = req.headers['x-telegram-user-id'];
+      const userIdFromQuery = req.query.userId;
+      
+      // Собираем все возможные варианты ID пользователя
+      const possibleUserIds = [
+        telegramId,
+        userId,
+        req.user?.telegramId?.toString(),
+        req.user?.telegramId,
+        userIdFromHeaders,
+        userIdFromQuery
+      ].filter(id => id); // Убираем пустые значения
+      
+      console.log(`🔍 POSSIBLE USER IDS:`, possibleUserIds);
+      
+      // Проверяем доступ через все возможные ID
+      const hasAccess = possibleUserIds.some(id => 
+        duel.isParticipant(id?.toString()) ||
+        duel.challengerId === id?.toString() ||
+        duel.opponentId === id?.toString() ||
+        duel.challengerId === id ||
+        duel.opponentId === id
+      );
       
       console.log(`🔍 ACCESS CHECK DETAILS:`, {
-        telegramId,
-        userId, 
-        userTelegramId: req.user.telegramId,
+        possibleUserIds,
         challengerId: duel.challengerId,
         opponentId: duel.opponentId,
-        isParticipantTelegramId: duel.isParticipant(telegramId),
-        isParticipantUserId: duel.isParticipant(userId),
-        directChallengerMatch: duel.challengerId === telegramId,
-        directOpponentMatch: duel.opponentId === telegramId,
-        hasAccess
+        userIdFromHeaders,
+        userIdFromQuery,
+        hasAccess,
+        participantChecks: possibleUserIds.map(id => ({
+          id,
+          isParticipant: duel.isParticipant(id?.toString()),
+          matchesChallenger: duel.challengerId === id?.toString(),
+          matchesOpponent: duel.opponentId === id?.toString()
+        }))
       });
       
       if (!hasAccess) {

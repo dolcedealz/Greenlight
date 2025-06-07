@@ -57,12 +57,12 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
   }, [gameActive, gameOver, loading, clickedCellsSet, gameActionFeedback, onCellClick]);
 
   // ОПТИМИЗАЦИЯ: Мемоизированный компонент ячейки
-  const CellComponent = React.memo(({ cell, rowIndex, colIndex, isRevealed, cellClass }) => (
+  const CellComponent = React.memo(({ cell, rowIndex, colIndex, isRevealed, cellClass, gameOver }) => (
     <div
       className={cellClass}
       onClick={() => handleCellClick(rowIndex, colIndex)}
     >
-      {isRevealed && cell === 'mine' && <span className="mine-icon">💣</span>}
+      {(isRevealed || gameOver) && cell === 'mine' && <span className="mine-icon">💣</span>}
       {isRevealed && cell === 'gem' && <span className="gem-icon">💎</span>}
     </div>
   ));
@@ -82,11 +82,20 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
             const cellKey = `${rowIndex}-${colIndex}`;
             const isRevealed = clickedCellsSet.has(cellKey);
             
+            // ИСПРАВЛЕНИЕ: При завершении игры показываем все мины
+            const shouldShowMine = cell === 'mine' && (isRevealed || gameOver);
+            const shouldShowGem = cell === 'gem' && isRevealed;
+            
+            // Логирование для отладки отображения мин
+            if (gameOver && cell === 'mine' && !isRevealed) {
+              console.log(`💣 ОТОБРАЖЕНИЕ: Показываем мину в неоткрытой ячейке [${rowIndex},${colIndex}]`);
+            }
+            
             const cellClass = `mines-cell 
-              ${isRevealed ? 'revealed' : ''} 
-              ${isRevealed && cell === 'mine' ? 'mine' : ''} 
-              ${isRevealed && cell === 'gem' ? 'gem' : ''}
-              ${!gameActive && !isRevealed ? 'disabled' : ''}
+              ${isRevealed || (gameOver && cell === 'mine') ? 'revealed' : ''} 
+              ${shouldShowMine ? 'mine' : ''} 
+              ${shouldShowGem ? 'gem' : ''}
+              ${!gameActive && !isRevealed && !(gameOver && cell === 'mine') ? 'disabled' : ''}
             `;
             
             return (
@@ -97,6 +106,7 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
                 colIndex={colIndex}
                 isRevealed={isRevealed}
                 cellClass={cellClass}
+                gameOver={gameOver}
               />
             );
           })}

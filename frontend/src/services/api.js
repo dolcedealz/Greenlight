@@ -31,20 +31,37 @@ api.interceptors.request.use(
       
       // Если есть initData, добавляем его в заголовки
       if (webApp.initData) {
-        config.headers['Telegram-Data'] = webApp.initData;
+        config.headers['telegram-data'] = webApp.initData;
         console.log('Данные Telegram добавлены в заголовки');
       } else {
         console.warn('Данные Telegram WebApp.initData отсутствуют');
         
-        // Если нет initData, но есть user, создаем базовый объект для тестирования
+        // Если нет initData, но есть user, создаем базовую строку для development
         if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
           const userData = webApp.initDataUnsafe.user;
-          config.headers['X-Telegram-User'] = JSON.stringify(userData);
-          console.log('Добавлены тестовые данные пользователя Telegram:', userData);
+          
+          // Создаем упрощенную строку initData для development
+          const simpleInitData = `user=${encodeURIComponent(JSON.stringify(userData))}&auth_date=${Math.floor(Date.now() / 1000)}&hash=dev_hash`;
+          config.headers['telegram-data'] = simpleInitData;
+          console.log('Добавлены тестовые данные пользователя Telegram для development:', userData);
         }
       }
     } else {
       console.warn('Telegram WebApp не обнаружен');
+      
+      // Fallback для разработки вне Telegram
+      if (process.env.NODE_ENV === 'development') {
+        const testUser = {
+          id: 123456789,
+          first_name: 'Тестовый',
+          last_name: 'Пользователь',
+          username: 'test_user'
+        };
+        
+        const simpleInitData = `user=${encodeURIComponent(JSON.stringify(testUser))}&auth_date=${Math.floor(Date.now() / 1000)}&hash=dev_hash`;
+        config.headers['telegram-data'] = simpleInitData;
+        console.log('Добавлены тестовые данные для development режима:', testUser);
+      }
     }
     
     return config;

@@ -9,8 +9,14 @@ class TelegramAuth {
   constructor() {
     this.botToken = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     if (!this.botToken) {
+      console.error('TELEGRAM_AUTH: Переменные окружения:', {
+        BOT_TOKEN: process.env.BOT_TOKEN ? 'ЕСТЬ' : 'НЕТ',
+        TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN ? 'ЕСТЬ' : 'НЕТ',
+        NODE_ENV: process.env.NODE_ENV
+      });
       throw new Error('BOT_TOKEN или TELEGRAM_BOT_TOKEN не установлен в переменных окружения');
     }
+    console.log('TELEGRAM_AUTH: Инициализирован с токеном длиной:', this.botToken.length);
   }
 
   /**
@@ -20,9 +26,18 @@ class TelegramAuth {
    */
   verifyTelegramData(initData) {
     try {
+      console.log('TELEGRAM_AUTH: Начало верификации данных');
+      
       // Парсим данные
       const urlParams = new URLSearchParams(initData);
       const hash = urlParams.get('hash');
+      
+      console.log('TELEGRAM_AUTH: Параметры из initData:', {
+        parametersCount: urlParams.size,
+        hasHash: !!hash,
+        hasUser: !!urlParams.get('user'),
+        hasAuthDate: !!urlParams.get('auth_date')
+      });
       
       if (!hash) {
         return {
@@ -41,11 +56,19 @@ class TelegramAuth {
         .map(([key, value]) => `${key}=${value}`)
         .join('\n');
       
+      console.log('TELEGRAM_AUTH: Строка для проверки (первые 200 символов):', dataCheckString.substring(0, 200));
+      
       // Создаем ключ для проверки
       const secretKey = crypto.createHmac('sha256', 'WebAppData').update(this.botToken).digest();
       
       // Вычисляем ожидаемый hash
       const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+      
+      console.log('TELEGRAM_AUTH: Сравнение hash-ей:', {
+        received: hash.substring(0, 10) + '...',
+        calculated: calculatedHash.substring(0, 10) + '...',
+        match: hash === calculatedHash
+      });
       
       // Сравниваем hash'и
       const isValid = hash === calculatedHash;
@@ -54,7 +77,7 @@ class TelegramAuth {
         return {
           isValid: false,
           userData: null,
-          error: 'Некорректная подпись данных'
+          error: `Некорректная подпись данных. Получен: ${hash.substring(0, 10)}..., ожидался: ${calculatedHash.substring(0, 10)}...`
         };
       }
 
@@ -65,13 +88,22 @@ class TelegramAuth {
       if (userData.auth_date) {
         const authTime = parseInt(userData.auth_date);
         const currentTime = Math.floor(Date.now() / 1000);
+        const age = currentTime - authTime;
         const maxAge = 86400; // 24 часа
         
-        if (currentTime - authTime > maxAge) {
+        console.log('TELEGRAM_AUTH: Проверка времени:', {
+          authTime: new Date(authTime * 1000).toISOString(),
+          currentTime: new Date(currentTime * 1000).toISOString(),
+          ageInMinutes: Math.floor(age / 60),
+          maxAgeInHours: maxAge / 3600,
+          isExpired: age > maxAge
+        });
+        
+        if (age > maxAge) {
           return {
             isValid: false,
             userData: null,
-            error: 'Данные аутентификации устарели'
+            error: `Данные аутентификации устарели (возраст: ${Math.floor(age / 3600)} часов)`
           };
         }
       }

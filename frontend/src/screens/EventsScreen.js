@@ -119,9 +119,37 @@ const EventsScreen = ({ balance, onBalanceUpdate }) => {
       }
     } catch (err) {
       console.error('Ошибка размещения ставки:', err);
+      console.error('Детали ошибки:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+        config: {
+          url: err.config?.url,
+          method: err.config?.method,
+          headers: err.config?.headers
+        }
+      });
+      
       errorNotification();
       
-      const errorMessage = err.response?.data?.message || err.message || 'Ошибка размещения ставки';
+      let errorMessage = 'Ошибка размещения ставки';
+      
+      if (err.response?.status === 401) {
+        errorMessage = 'Ошибка аутентификации. Попробуйте перезапустить приложение из Telegram.';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Доступ запрещен. Проверьте права доступа.';
+      } else if (err.response?.status === 400) {
+        errorMessage = err.response?.data?.message || 'Некорректные данные ставки';
+      } else if (err.response?.status >= 500) {
+        errorMessage = 'Ошибка сервера. Попробуйте позже.';
+      } else {
+        errorMessage = err.response?.data?.message || err.message || 'Ошибка размещения ставки';
+      }
+      
+      // Добавляем debug информацию для разработки
+      if (process.env.NODE_ENV === 'development' && err.response?.data?.debug) {
+        errorMessage += `\nDebug: ${err.response.data.debug}`;
+      }
       
       if (window.Telegram?.WebApp) {
         window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`);

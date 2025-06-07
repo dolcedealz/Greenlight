@@ -11,12 +11,19 @@ const mongoose = require('mongoose');
 async function telegramAuthMiddleware(req, res, next) {
   try {
     console.log('AUTH: Проверка аутентификации для:', req.method, req.originalUrl);
+    console.log('AUTH: Заголовки запроса:', {
+      'telegram-data': req.headers['telegram-data'] ? 'ПРИСУТСТВУЕТ' : 'ОТСУТСТВУЕТ',
+      'user-agent': req.headers['user-agent'],
+      'origin': req.headers['origin'],
+      'referer': req.headers['referer']
+    });
     
     // Получаем данные инициализации из заголовка
     const initData = req.headers['telegram-data'];
     
     if (!initData) {
       console.log('AUTH: Отсутствуют данные аутентификации');
+      console.log('AUTH: Доступные заголовки:', Object.keys(req.headers));
       return res.status(401).json({
         success: false,
         message: 'Отсутствуют данные аутентификации'
@@ -25,6 +32,9 @@ async function telegramAuthMiddleware(req, res, next) {
     
     const telegramAuth = require('../utils/telegram-auth');
     
+    console.log('AUTH: Длина initData:', initData.length);
+    console.log('AUTH: Первые 100 символов initData:', initData.substring(0, 100));
+    
     // Верифицируем Telegram данные криптографически
     const verificationResult = process.env.NODE_ENV === 'development' 
       ? telegramAuth.devVerifyTelegramData(initData)
@@ -32,9 +42,12 @@ async function telegramAuthMiddleware(req, res, next) {
     
     if (!verificationResult.isValid) {
       console.error('AUTH: Верификация не пройдена:', verificationResult.error);
+      console.error('AUTH: NODE_ENV:', process.env.NODE_ENV);
+      console.error('AUTH: BOT_TOKEN доступен:', !!process.env.BOT_TOKEN);
       return res.status(401).json({
         success: false,
-        message: 'Данные аутентификации не прошли верификацию'
+        message: 'Данные аутентификации не прошли верификацию',
+        debug: process.env.NODE_ENV === 'development' ? verificationResult.error : undefined
       });
     }
     

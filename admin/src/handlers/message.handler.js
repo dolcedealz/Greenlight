@@ -5,6 +5,9 @@ const eventsCommands = require('../commands/events.command');
 const usersCommands = require('../commands/users.command');
 const transactionsCommands = require('../commands/transactions.command');
 const promoCommands = require('../commands/promo.command');
+const coefficientsCommands = require('../commands/coefficients.command');
+const notificationsCommands = require('../commands/notifications.command');
+const monitoringCommands = require('../commands/monitoring.command');
 const apiService = require('../services/admin.service');
 
 /**
@@ -61,6 +64,24 @@ function registerMessageHandlers(bot) {
         return;
       }
       
+      // Обработка настройки коэффициентов
+      if (ctx.session?.settingCoefficient) {
+        await coefficientsCommands.handleCoefficientSetting(ctx);
+        return;
+      }
+      
+      // Обработка поиска пользователя для коэффициентов
+      if (ctx.session?.searchingUserCoeff) {
+        await coefficientsCommands.handleUserCoefficientSearch(ctx);
+        return;
+      }
+      
+      // Обработка создания уведомления
+      if (ctx.session?.creatingNotification) {
+        await notificationsCommands.handleNotificationCreation(ctx);
+        return;
+      }
+      
       // Обработка вывода прибыли владельца
       if (ctx.session?.withdrawingProfit) {
         await handleProfitWithdrawal(ctx);
@@ -90,6 +111,13 @@ function registerMessageHandlers(bot) {
                     [
                       { text: '🎁 Промокоды', callback_data: 'promo_menu' },
                       { text: '📊 Статистика', callback_data: 'stats_menu' }
+                    ],
+                    [
+                      { text: '🎮 Коэффициенты', callback_data: 'coefficients_menu' },
+                      { text: '📊 Мониторинг', callback_data: 'monitoring_menu' }
+                    ],
+                    [
+                      { text: '📢 Уведомления', callback_data: 'notifications_menu' }
                     ]
                   ]
                 }
@@ -149,7 +177,8 @@ function registerMessageHandlers(bot) {
           break;
 
         case '🎯 Коэффициенты':
-          await ctx.reply('🎯 Управление коэффициентами временно недоступно');
+        case '🎮 Коэффициенты':
+          await coefficientsCommands.showGlobalCoefficients(ctx);
           break;
 
         case '🎁 Промокоды':
@@ -161,7 +190,7 @@ function registerMessageHandlers(bot) {
           break;
 
         case '📊 Мониторинг':
-          await ctx.reply('📊 Модуль мониторинга временно недоступен');
+          await monitoringCommands.showMonitoringMenu(ctx);
           break;
 
         case '💾 Бэкапы':
@@ -169,7 +198,7 @@ function registerMessageHandlers(bot) {
           break;
 
         case '📢 Уведомления':
-          await ctx.reply('📢 Модуль уведомлений временно недоступен');
+          await notificationsCommands.showNotificationsMenu(ctx);
           break;
 
         case '⚙️ Настройки':

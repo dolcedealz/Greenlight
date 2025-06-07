@@ -7,6 +7,11 @@ const usersCommands = require('../commands/users.command');
 const eventsCommands = require('../commands/events.command');
 const transactionsCommands = require('../commands/transactions.command');
 const promoCommands = require('../commands/promo.command');
+const coefficientsCommands = require('../commands/coefficients.command');
+const monitoringCommands = require('../commands/monitoring.command');
+const notificationsCommands = require('../commands/notifications.command');
+const securityCommands = require('../commands/security.command');
+const backupCommands = require('../commands/backup.command');
 
 /**
  * Регистрирует все callback handlers для админ-бота
@@ -53,6 +58,13 @@ function registerCallbackHandlers(bot) {
           [
             Markup.button.callback('🎁 Промокоды', 'promo_menu'),
             Markup.button.callback('📊 Статистика', 'stats_menu')
+          ],
+          [
+            Markup.button.callback('🎮 Коэффициенты', 'coefficients_menu'),
+            Markup.button.callback('📊 Мониторинг', 'monitoring_menu')
+          ],
+          [
+            Markup.button.callback('📢 Уведомления', 'notifications_menu')
           ]
         ])
       });
@@ -72,6 +84,13 @@ function registerCallbackHandlers(bot) {
           [
             Markup.button.callback('🎁 Промокоды', 'promo_menu'),
             Markup.button.callback('📊 Статистика', 'stats_menu')
+          ],
+          [
+            Markup.button.callback('🎮 Коэффициенты', 'coefficients_menu'),
+            Markup.button.callback('📊 Мониторинг', 'monitoring_menu')
+          ],
+          [
+            Markup.button.callback('📢 Уведомления', 'notifications_menu')
           ]
         ])
       });
@@ -552,6 +571,215 @@ function registerCallbackHandlers(bot) {
       console.error('ADMIN: Ошибка в withdraw_profit_amount:', error);
       await ctx.reply('❌ Ошибка при обработке суммы');
     }
+  });
+
+  // === КОЭФФИЦИЕНТЫ ===
+
+  bot.action('coefficients_menu', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_menu');
+    await ctx.answerCbQuery();
+    
+    const message = '🎯 *Управление коэффициентами*\n\nВыберите тип настроек:';
+    
+    await ctx.editMessageText(message, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback('🌍 Глобальные настройки', 'coefficients_global'),
+          Markup.button.callback('👤 Пользовательские', 'coefficients_users')
+        ],
+        [
+          Markup.button.callback('📊 Статистика модификаторов', 'coefficients_stats'),
+          Markup.button.callback('🔄 Сбросить все', 'coefficients_reset')
+        ],
+        [Markup.button.callback('🔙 Назад', 'main_menu')]
+      ])
+    });
+  });
+
+  bot.action('coefficients_global', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_global');
+    await ctx.answerCbQuery();
+    await coefficientsCommands.showGlobalCoefficients(ctx);
+  });
+
+  bot.action('coefficients_users', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_users');
+    await ctx.answerCbQuery();
+    await coefficientsCommands.showUserCoefficients(ctx);
+  });
+
+  bot.action('coefficients_stats', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_stats');
+    await ctx.answerCbQuery();
+    await coefficientsCommands.showCoefficientsStats(ctx);
+  });
+
+  bot.action('coefficients_reset', async (ctx) => {
+    console.log('ADMIN: Callback coefficients_reset');
+    await ctx.answerCbQuery();
+    await coefficientsCommands.resetAllModifiers(ctx);
+  });
+
+  // Обработчики для настройки коэффициентов конкретных игр
+  bot.action(/coeff_global_(coin|slots|mines|crash)/, async (ctx) => {
+    const gameType = ctx.match[1];
+    console.log(`ADMIN: Callback coeff_global_${gameType}`);
+    await ctx.answerCbQuery();
+    await coefficientsCommands.setupGlobalGameCoefficient(ctx, gameType);
+  });
+
+  bot.action('coeff_toggle_mode', async (ctx) => {
+    console.log('ADMIN: Callback coeff_toggle_mode');
+    await coefficientsCommands.toggleModifierMode(ctx);
+  });
+
+  bot.action(/coeff_enable_(true|false)/, async (ctx) => {
+    const enabled = ctx.match[1] === 'true';
+    console.log(`ADMIN: Callback coeff_enable_${enabled}`);
+    await coefficientsCommands.confirmCoefficientSetting(ctx, enabled);
+  });
+
+  // === МОНИТОРИНГ ===
+
+  bot.action('monitoring_menu', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_menu');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showMonitoringMenu(ctx);
+  });
+
+  bot.action('monitoring_metrics', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_metrics');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showSystemMetrics(ctx);
+  });
+
+  bot.action('monitoring_performance', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_performance');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showPerformanceMetrics(ctx);
+  });
+
+  bot.action('monitoring_online', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_online');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showOnlineUsers(ctx);
+  });
+
+  bot.action('monitoring_financial', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_financial');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showFinancialMonitoring(ctx);
+  });
+
+  bot.action('monitoring_alerts', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_alerts');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showActiveAlerts(ctx);
+  });
+
+  // === УВЕДОМЛЕНИЯ ===
+
+  bot.action('notifications_menu', async (ctx) => {
+    console.log('ADMIN: Callback notifications_menu');
+    await ctx.answerCbQuery();
+    await notificationsCommands.showNotificationsMenu(ctx);
+  });
+
+  bot.action('notifications_create', async (ctx) => {
+    console.log('ADMIN: Callback notifications_create');
+    await ctx.answerCbQuery();
+    await notificationsCommands.startNotificationCreation(ctx);
+  });
+
+  bot.action('notifications_history', async (ctx) => {
+    console.log('ADMIN: Callback notifications_history');
+    await ctx.answerCbQuery();
+    await notificationsCommands.showNotificationsHistory(ctx, 1);
+  });
+
+  // Пагинация истории уведомлений
+  bot.action(/notifications_history_(\d+)/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log(`ADMIN: Callback notifications_history_${page}`);
+    await ctx.answerCbQuery();
+    await notificationsCommands.showNotificationsHistory(ctx, page);
+  });
+
+  bot.action('notifications_stats', async (ctx) => {
+    console.log('ADMIN: Callback notifications_stats');
+    await ctx.answerCbQuery();
+    await notificationsCommands.showNotificationsStats(ctx);
+  });
+
+  // Обработчики для создания уведомлений
+  bot.action(/notif_type_(all|active|vip|inactive|segmented|custom)/, async (ctx) => {
+    const audienceType = ctx.match[1];
+    console.log(`ADMIN: Callback notif_type_${audienceType}`);
+    await notificationsCommands.handleAudienceSelection(ctx, audienceType);
+  });
+
+  bot.action(/notif_priority_(high|medium|low|normal)/, async (ctx) => {
+    const priority = ctx.match[1];
+    console.log(`ADMIN: Callback notif_priority_${priority}`);
+    await notificationsCommands.handlePrioritySelection(ctx, priority);
+  });
+
+  bot.action(/notif_timing_(now|scheduled|ab_test)/, async (ctx) => {
+    const timing = ctx.match[1];
+    console.log(`ADMIN: Callback notif_timing_${timing}`);
+    await notificationsCommands.handleTimingSelection(ctx, timing);
+  });
+
+  bot.action('notif_confirm_send', async (ctx) => {
+    console.log('ADMIN: Callback notif_confirm_send');
+    await notificationsCommands.confirmNotificationSend(ctx);
+  });
+
+  bot.action('notifications_cancel', async (ctx) => {
+    console.log('ADMIN: Callback notifications_cancel');
+    await ctx.answerCbQuery();
+    
+    if (ctx.session) {
+      delete ctx.session.creatingNotification;
+    }
+    
+    await ctx.editMessageText(
+      '❌ Создание рассылки отменено',
+      {
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('📢 К уведомлениям', 'notifications_menu')]
+        ])
+      }
+    );
+  });
+
+  // === СТАТИСТИКА МЕНЮ ===
+
+  bot.action('stats_menu', async (ctx) => {
+    console.log('ADMIN: Callback stats_menu');
+    await ctx.answerCbQuery();
+    
+    const message = '📊 *Статистика и аналитика*\n\nВыберите раздел для просмотра:';
+    
+    await ctx.editMessageText(message, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback('💰 Финансы', 'finances_stats'),
+          Markup.button.callback('👥 Пользователи', 'users_stats')
+        ],
+        [
+          Markup.button.callback('🎮 Игры', 'finances_games'),
+          Markup.button.callback('💰 Комиссии', 'stats_commission')
+        ],
+        [
+          Markup.button.callback('📊 Мониторинг', 'monitoring_menu'),
+          Markup.button.callback('📢 Уведомления', 'notifications_stats')
+        ],
+        [Markup.button.callback('🔙 Назад', 'main_menu')]
+      ])
+    });
   });
 
   console.log('✅ Callback handlers зарегистрированы');

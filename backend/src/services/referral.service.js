@@ -136,8 +136,17 @@ class ReferralService {
       // Получаем актуальную информацию о партнере
       const updatedPartner = await User.findById(partner._id).session(session);
       
+      // Определяем процент комиссии с учетом партнерского статуса
+      let commissionPercent;
+      if (updatedPartner.partnerLevel && updatedPartner.partnerLevel !== 'none' && this.partnerLevels[updatedPartner.partnerLevel]) {
+        // Используем партнерский уровень если он назначен
+        commissionPercent = this.partnerLevels[updatedPartner.partnerLevel].commissionPercent;
+      } else {
+        // Иначе используем автоматический реферальный уровень
+        commissionPercent = updatedPartner.referralStats.commissionPercent;
+      }
+      
       // Рассчитываем комиссию с ПРОИГРЫША реферала
-      const commissionPercent = updatedPartner.referralStats.commissionPercent;
       const lossAmount = Math.abs(profit); // Размер проигрыша
       const earnedAmount = lossAmount * (commissionPercent / 100);
       
@@ -365,11 +374,28 @@ class ReferralService {
       // Получаем обновленные данные
       const updatedPartner = await User.findById(partnerId);
       
+      // Определяем активный уровень и комиссию
+      let activeLevel, activeLevelInfo, activeCommissionPercent;
+      
+      if (updatedPartner.partnerLevel && updatedPartner.partnerLevel !== 'none' && this.partnerLevels[updatedPartner.partnerLevel]) {
+        // Используем партнерский уровень
+        activeLevel = updatedPartner.partnerLevel;
+        activeLevelInfo = this.partnerLevels[updatedPartner.partnerLevel];
+        activeCommissionPercent = this.partnerLevels[updatedPartner.partnerLevel].commissionPercent;
+      } else {
+        // Используем автоматический реферальный уровень
+        activeLevel = updatedPartner.referralStats.level;
+        activeLevelInfo = this.levels[updatedPartner.referralStats.level];
+        activeCommissionPercent = updatedPartner.referralStats.commissionPercent;
+      }
+      
       // Базовая статистика
       const stats = {
-        level: updatedPartner.referralStats.level,
-        levelInfo: this.levels[updatedPartner.referralStats.level],
-        commissionPercent: updatedPartner.referralStats.commissionPercent,
+        level: activeLevel,
+        levelInfo: activeLevelInfo,
+        commissionPercent: activeCommissionPercent,
+        partnerLevel: updatedPartner.partnerLevel,
+        autoLevel: updatedPartner.referralStats.level,
         referralBalance: updatedPartner.referralStats.referralBalance,
         totalEarned: updatedPartner.referralStats.totalEarned,
         totalWithdrawn: updatedPartner.referralStats.totalWithdrawn,
@@ -404,22 +430,32 @@ class ReferralService {
         stats.periodTransactions = earningsStats[0]?.periodTransactions || 0;
       }
       
-      // Прогресс до следующего уровня
-      const currentLevelIndex = Object.keys(this.levels).indexOf(stats.level);
-      const levelKeys = Object.keys(this.levels);
-      
-      if (currentLevelIndex < levelKeys.length - 1) {
-        const nextLevel = levelKeys[currentLevelIndex + 1];
-        const nextLevelConfig = this.levels[nextLevel];
-        stats.nextLevel = nextLevel;
-        stats.referralsToNextLevel = Math.max(0, 
-          nextLevelConfig.requiredActiveReferrals - stats.activeReferrals
-        );
-        stats.progressToNextLevel = (stats.activeReferrals / nextLevelConfig.requiredActiveReferrals) * 100;
-      } else {
+      // Прогресс до следующего уровня (только для автоматических уровней)
+      if (updatedPartner.partnerLevel && updatedPartner.partnerLevel !== 'none') {
+        // Партнерский уровень - нет автоматического прогресса
         stats.nextLevel = null;
         stats.referralsToNextLevel = 0;
         stats.progressToNextLevel = 100;
+        stats.isPartnerLevel = true;
+      } else {
+        // Автоматический уровень - показываем прогресс
+        const currentLevelIndex = Object.keys(this.levels).indexOf(updatedPartner.referralStats.level);
+        const levelKeys = Object.keys(this.levels);
+        
+        if (currentLevelIndex < levelKeys.length - 1) {
+          const nextLevel = levelKeys[currentLevelIndex + 1];
+          const nextLevelConfig = this.levels[nextLevel];
+          stats.nextLevel = nextLevel;
+          stats.referralsToNextLevel = Math.max(0, 
+            nextLevelConfig.requiredActiveReferrals - stats.activeReferrals
+          );
+          stats.progressToNextLevel = (stats.activeReferrals / nextLevelConfig.requiredActiveReferrals) * 100;
+        } else {
+          stats.nextLevel = null;
+          stats.referralsToNextLevel = 0;
+          stats.progressToNextLevel = 100;
+        }
+        stats.isPartnerLevel = false;
       }
       
       return {
@@ -860,9 +896,21 @@ class ReferralService {
             continue;
           }
           
-          // Определяем уровень партнера и комиссию
-          const partnerLevel = this.getPartnerLevel(partner.level);
-          const commissionPercent = partnerLevel.commissionPercent;
+          // Обновляем уровень партнера
+          await this.updatePartnerLevel(partner._id, session);
+          
+          // Получаем актуальную информацию о партнере
+          const updatedPartner = await User.findById(partner._id).session(session);
+          
+          // Определяем процент комиссии с учетом партнерского статуса
+          let commissionPercent;
+          if (updatedPartner.partnerLevel && updatedPartner.partnerLevel !== 'none' && this.partnerLevels[updatedPartner.partnerLevel]) {
+            // Используем партнерский уровень если он назначен
+            commissionPercent = this.partnerLevels[updatedPartner.partnerLevel].commissionPercent;
+          } else {
+            // Иначе используем автоматический реферальный уровень
+            commissionPercent = updatedPartner.referralStats.commissionPercent;
+          }
           
           // Вычисляем реферальное начисление с комиссии казино
           const referralAmount = Math.round(commission * (commissionPercent / 100) * 100) / 100;
@@ -884,43 +932,40 @@ class ReferralService {
               commissionAmount: commission,
               commissionPercent,
               earnedAmount: referralAmount,
-              level: partnerLevel.name
+              level: updatedPartner.partnerLevel || updatedPartner.referralStats.level
             },
             status: 'credited'
           }], { session });
           
           // Начисляем баланс партнеру
-          partner.balance = Math.round((partner.balance + referralAmount) * 100) / 100;
-          partner.totalEarnings = Math.round((partner.totalEarnings + referralAmount) * 100) / 100;
-          await partner.save({ session });
+          updatedPartner.balance = Math.round((updatedPartner.balance + referralAmount) * 100) / 100;
+          updatedPartner.totalEarnings = Math.round((updatedPartner.totalEarnings + referralAmount) * 100) / 100;
+          await updatedPartner.save({ session });
           
           // Создаем транзакцию
           await Transaction.create([{
-            user: partner._id,
+            user: updatedPartner._id,
             type: 'referral_commission',
             amount: referralAmount,
             description: `Реферальная комиссия с дуэли ${gameId}`,
-            balanceBefore: partner.balance - referralAmount,
-            balanceAfter: partner.balance,
+            balanceBefore: updatedPartner.balance - referralAmount,
+            balanceAfter: updatedPartner.balance,
             relatedUser: user._id
           }], { session });
-          
-          // Обновляем уровень партнера
-          await this.updatePartnerLevel(partner._id, session);
           
           await session.commitTransaction();
           
           results.push({
-            partnerId: partner._id,
-            partnerUsername: partner.username,
+            partnerId: updatedPartner._id,
+            partnerUsername: updatedPartner.username,
             userId: user._id,
             userUsername: user.username,
             earnedAmount: referralAmount,
             commissionPercent,
-            level: partnerLevel.name
+            level: updatedPartner.partnerLevel || updatedPartner.referralStats.level
           });
           
-          console.log(`REFERRAL: Начислено ${referralAmount} USDT партнеру ${partner.username} (${commissionPercent}% с ${commission} USDT)`);
+          console.log(`REFERRAL: Начислено ${referralAmount} USDT партнеру ${updatedPartner.username} (${commissionPercent}% с ${commission} USDT)`);
           
         } catch (error) {
           await session.abortTransaction();

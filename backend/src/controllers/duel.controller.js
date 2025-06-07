@@ -290,8 +290,29 @@ class DuelController {
       
       console.log(`DUEL ACCESS: Проверка доступа - telegramId: ${telegramId}, challengerId: ${duel.challengerId}, opponentId: ${duel.opponentId}`);
       
-      // Проверяем права доступа (используем Telegram ID, не MongoDB ID)
-      if (!duel.isParticipant(telegramId)) {
+      // 🔧 ИСПРАВЛЕНИЕ: Проверяем права доступа используя и telegramId и userId
+      const hasAccess = duel.isParticipant(telegramId) || 
+                       duel.isParticipant(userId) || 
+                       duel.isParticipant(req.user.telegramId) ||
+                       duel.challengerId === telegramId ||
+                       duel.opponentId === telegramId ||
+                       duel.challengerId === userId ||
+                       duel.opponentId === userId;
+      
+      console.log(`🔍 ACCESS CHECK DETAILS:`, {
+        telegramId,
+        userId, 
+        userTelegramId: req.user.telegramId,
+        challengerId: duel.challengerId,
+        opponentId: duel.opponentId,
+        isParticipantTelegramId: duel.isParticipant(telegramId),
+        isParticipantUserId: duel.isParticipant(userId),
+        directChallengerMatch: duel.challengerId === telegramId,
+        directOpponentMatch: duel.opponentId === telegramId,
+        hasAccess
+      });
+      
+      if (!hasAccess) {
         return res.status(403).json({
           success: false,
           message: 'Нет доступа к этой дуэли'

@@ -1,8 +1,7 @@
-// frontend/src/components/games/coin/CoinGame.js - ОБНОВЛЕННАЯ ВЕРСИЯ
+// frontend/src/components/games/coin/CoinGame.js - УПРОЩЕННАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import CoinFlip from './CoinFlip';
 import CoinControls from './CoinControls';
-import { gameApi } from '../../../services';
 import '../../../styles/CoinGame.css';
 
 const CoinGame = ({ 
@@ -15,17 +14,16 @@ const CoinGame = ({
   isFlipping, // Принимаем isFlipping из GameScreen
   result, // Принимаем result из GameScreen
   lastResults, // Принимаем lastResults из GameScreen
-  onAnimationComplete // НОВЫЙ: принимаем onAnimationComplete из GameScreen
+  onAnimationComplete // Принимаем onAnimationComplete из GameScreen
 }) => {
   const [isInitializing, setIsInitializing] = useState(true);
-  const [loading, setLoading] = useState(false);
   
   useEffect(() => {
     const initializeGame = async () => {
       try {
         console.log('=== ИНИЦИАЛИЗАЦИЯ ИГРЫ МОНЕТКА ===');
         
-        // Показываем загрузочный экран минимум 1.5 секунды
+        // Показываем загрузочный экран 1.5 секунды
         await new Promise(resolve => setTimeout(resolve, 1500));
         
         setIsInitializing(false);
@@ -41,14 +39,9 @@ const CoinGame = ({
     initializeGame();
   }, [setError]);
   
-  // Обработчик игры - теперь используется переданный onFlip
+  // Простой обработчик игры - просто передаем запрос в GameScreen
   const handleFlip = async (betData) => {
     console.log('🪙 COIN GAME: Получен запрос на подбрасывание:', betData);
-    
-    if (loading || isFlipping) {
-      console.log('🪙 COIN GAME: Блокировано - уже идет игра или загрузка');
-      return;
-    }
     
     if (!onFlip) {
       console.error('🪙 COIN GAME: Ошибка - функция onFlip не передана из GameScreen!');
@@ -56,20 +49,15 @@ const CoinGame = ({
       return;
     }
     
-    console.log('🪙 COIN GAME: Передаем запрос в GameScreen через onFlip');
-    
     try {
-      setLoading(true);
       setError(null);
       
-      // Вызываем обработчик из GameScreen
+      // Просто вызываем обработчик из GameScreen
       await onFlip(betData);
       
     } catch (err) {
       console.error('🪙 COIN GAME: Ошибка при обработке:', err);
       setError(err.message || 'Произошла ошибка при игре');
-    } finally {
-      setLoading(false);
     }
   };
   
@@ -125,7 +113,7 @@ const CoinGame = ({
         <CoinFlip 
           flipping={isFlipping}
           result={result}
-          onAnimationComplete={onAnimationComplete} // ИСПРАВЛЕНО: используем правильный prop
+          onAnimationComplete={onAnimationComplete}
         />
         
         {/* История результатов */}
@@ -161,10 +149,10 @@ const CoinGame = ({
       
       {/* Управление игрой */}
       <CoinControls 
-        onFlip={handleFlip} // Передаем наш локальный обработчик
-        isFlipping={loading || isFlipping} // Учитываем и loading и isFlipping
+        onFlip={handleFlip}
+        isFlipping={isFlipping}
         balance={balance}
-        lastResults={lastResults || []} // Передаем lastResults или пустой массив
+        lastResults={lastResults || []}
       />
     </div>
   );

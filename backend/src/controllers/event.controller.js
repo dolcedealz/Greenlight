@@ -144,95 +144,99 @@ class EventController {
     }
   }
 
-  /**
-   * Разместить ставку на событие
-   */
-  async placeBet(req, res) {
-    try {
-      console.log('EVENT CONTROLLER: Запрос на размещение ставки');
-      console.log('EVENT CONTROLLER: Params:', JSON.stringify(req.params, null, 2));
-      console.log('EVENT CONTROLLER: Body:', JSON.stringify(req.body, null, 2));
-      
-      // Проверяем аутентификацию пользователя
-      if (!req.user || !req.user._id) {
-        console.log('EVENT CONTROLLER: Пользователь не аутентифицирован');
-        return res.status(401).json({
-          success: false,
-          message: 'Пользователь не аутентифицирован'
-        });
-      }
-      
-      const { eventId } = req.params;
-      const { outcomeId, betAmount } = req.body;
-      const userId = req.user._id;
-      const userIp = req.ip || req.connection.remoteAddress || 'unknown';
-      
-      // Валидация данных
-      if (!eventId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Не указан ID события'
-        });
-      }
-      
-      if (!outcomeId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Не указан ID исхода'
-        });
-      }
-      
-      if (!betAmount || betAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Некорректная сумма ставки'
-        });
-      }
-      
-      const amount = parseFloat(betAmount);
-      
-      if (isNaN(amount) || amount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Сумма ставки должна быть положительным числом'
-        });
-      }
-      
-      console.log(`EVENT CONTROLLER: Размещение ставки: пользователь=${userId}, событие=${eventId}, исход=${outcomeId}, сумма=${amount}`);
-      
-      const result = await eventService.placeBet(userId, eventId, outcomeId, amount, userIp);
-      
-      console.log('EVENT CONTROLLER: Ставка успешно размещена');
-      
-      res.status(201).json({
-        success: true,
-        message: 'Ставка успешно размещена',
-        data: result
-      });
-      
-    } catch (error) {
-      console.error('EVENT CONTROLLER: Ошибка размещения ставки:', error);
-      
-      if (error.message.includes('не найдено') || error.message.includes('не найден')) {
-        return res.status(404).json({
-          success: false,
-          message: error.message
-        });
-      }
-      
-      if (error.message.includes('Недостаточно средств')) {
-        return res.status(400).json({
-          success: false,
-          message: error.message
-        });
-      }
-      
-      res.status(500).json({
+// backend/src/controllers/event.controller.js - ИСПРАВЛЕННАЯ ЧАСТЬ
+// Только метод placeBet с исправлениями
+
+/**
+ * Разместить ставку на событие - ИСПРАВЛЕНО
+ */
+async placeBet(req, res) {
+  try {
+    console.log('EVENT CONTROLLER: Запрос на размещение ставки');
+    console.log('EVENT CONTROLLER: Params:', JSON.stringify(req.params, null, 2));
+    console.log('EVENT CONTROLLER: Body:', JSON.stringify(req.body, null, 2));
+    
+    // Проверяем аутентификацию пользователя
+    if (!req.user || !req.user._id) {
+      console.log('EVENT CONTROLLER: Пользователь не аутентифицирован');
+      return res.status(401).json({
         success: false,
-        message: error.message || 'Внутренняя ошибка сервера при размещении ставки'
+        message: 'Пользователь не аутентифицирован'
       });
     }
+    
+    const { eventId } = req.params;
+    const { outcomeId, betAmount } = req.body; // ← Правильно используем betAmount
+    const userId = req.user._id;
+    const userIp = req.ip || req.connection.remoteAddress || 'unknown';
+    
+    // Валидация данных (дополнительная проверка после middleware)
+    if (!eventId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Не указан ID события'
+      });
+    }
+    
+    if (!outcomeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Не указан ID исхода'
+      });
+    }
+    
+    if (!betAmount || betAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Некорректная сумма ставки'
+      });
+    }
+    
+    const amount = parseFloat(betAmount); // ← ИСПРАВЛЕНО: используем betAmount
+    
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Сумма ставки должна быть положительным числом'
+      });
+    }
+    
+    console.log(`EVENT CONTROLLER: Размещение ставки: пользователь=${userId}, событие=${eventId}, исход=${outcomeId}, сумма=${amount}`);
+    
+    // Передаем исправленную сумму в сервис
+    const result = await eventService.placeBet(userId, eventId, outcomeId, amount, userIp);
+    
+    console.log('EVENT CONTROLLER: Ставка успешно размещена');
+    
+    res.status(201).json({
+      success: true,
+      message: 'Ставка успешно размещена',
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('EVENT CONTROLLER: Ошибка размещения ставки:', error);
+    
+    if (error.message.includes('не найдено') || error.message.includes('не найден')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    if (error.message.includes('Недостаточно средств')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Внутренняя ошибка сервера при размещении ставки'
+    });
   }
+}
   
   /**
    * ИСПРАВЛЕННЫЙ МЕТОД: Получить ставки пользователя

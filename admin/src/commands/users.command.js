@@ -21,6 +21,14 @@ const apiClient = axios.create({
 });
 
 /**
+ * Экранирует специальные символы для Telegram Markdown
+ */
+function escapeMarkdown(text) {
+  if (!text) return '';
+  return text.toString().replace(/[_*\[\]()~`>#+=|{}.!\\-]/g, '\\$&');
+}
+
+/**
  * Показать список пользователей
  */
 async function showUsersList(ctx, page = 1) {
@@ -70,8 +78,8 @@ async function showUsersList(ctx, page = 1) {
       const username = user.username ? `@${user.username}` : 'Нет username';
       
       // Экранируем специальные символы в именах для Markdown
-      const firstName = (user.firstName || '').replace(/[_*\[\]()~`>#+-=|{}.!]/g, '\\$&');
-      const lastName = (user.lastName || '').replace(/[_*\[\]()~`>#+-=|{}.!]/g, '\\$&');
+      const firstName = escapeMarkdown(user.firstName || '');
+      const lastName = escapeMarkdown(user.lastName || '');
       
       message += `${userNum}\\. ${statusEmoji} *${firstName} ${lastName}*\n`;
       message += `   ${username}\n`;
@@ -203,14 +211,17 @@ async function handleUserSearch(ctx) {
       const statusEmoji = user.isBlocked ? '🚫' : '✅';
       const username = user.username ? `@${user.username}` : 'Нет username';
       
-      message += `${index + 1}. ${statusEmoji} *${user.firstName} ${user.lastName || ''}*\n`;
+      const firstName = escapeMarkdown(user.firstName || '');
+      const lastName = escapeMarkdown(user.lastName || '');
+      
+      message += `${index + 1}. ${statusEmoji} *${firstName} ${lastName}*\n`;
       message += `   ${username} | ID: \`${user.telegramId}\`\n`;
       message += `   💰 ${user.balance.toFixed(2)} USDT | `;
       message += `🎮 ${user.totalGames || 0} игр\n\n`;
       
       // Добавляем кнопку для просмотра деталей пользователя
       buttons.push([Markup.button.callback(
-        `👤 ${user.firstName} ${user.lastName || ''}`, 
+        `👤 ${firstName} ${lastName}`, 
         `user_details_${user._id}`
       )]);
     });
@@ -256,9 +267,12 @@ async function showUserDetails(ctx, userId) {
     const gameStats = data.gameStats || [];
     const recentTransactions = data.recentTransactions || [];
     
+    const firstName = escapeMarkdown(user.firstName || '');
+    const lastName = escapeMarkdown(user.lastName || '');
+    
     let message = `👤 *Профиль пользователя*\n\n`;
     message += `**Основная информация:**\n`;
-    message += `ФИО: ${user.firstName} ${user.lastName || ''}\n`;
+    message += `ФИО: ${firstName} ${lastName}\n`;
     message += `Username: ${user.username ? `@${user.username}` : 'Не указан'}\n`;
     message += `Telegram ID: \`${user.telegramId}\`\n`;
     message += `Роль: ${user.role === 'admin' ? '👑 Администратор' : '👤 Пользователь'}\n`;

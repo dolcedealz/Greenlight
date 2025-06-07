@@ -21,6 +21,14 @@ const apiClient = axios.create({
 });
 
 /**
+ * Экранирует специальные символы для Telegram Markdown
+ */
+function escapeMarkdown(text) {
+  if (!text) return '';
+  return text.toString().replace(/[_*\[\]()~`>#+=|{}.!\\-]/g, '\\$&');
+}
+
+/**
  * Показать ожидающие одобрения выводы
  */
 async function showPendingWithdrawals(ctx) {
@@ -33,7 +41,10 @@ async function showPendingWithdrawals(ctx) {
       throw new Error(response.data.message || 'Ошибка получения выводов');
     }
     
-    const withdrawals = response.data.data;
+    // Обрабатываем различные структуры данных от API
+    const withdrawals = Array.isArray(response.data.data) 
+      ? response.data.data 
+      : response.data.data.withdrawals || [];
     
     if (withdrawals.length === 0) {
       const message = '⏳ *Ожидающие одобрения*\n\nНет выводов, ожидающих одобрения.';
@@ -64,9 +75,11 @@ async function showPendingWithdrawals(ctx) {
       const user = withdrawal.user;
       const username = user.username ? `@${user.username}` : 'Нет username';
       const suspiciousFlag = withdrawal.metadata?.suspicious ? '⚠️ ' : '';
+      const firstName = escapeMarkdown(user.firstName || '');
+      const lastName = escapeMarkdown(user.lastName || '');
       
       message += `${index + 1}. ${suspiciousFlag}*${withdrawal.amount.toFixed(2)} USDT*\n`;
-      message += `   👤 ${user.firstName} ${user.lastName || ''} (${username})\n`;
+      message += `   👤 ${firstName} ${lastName} (${username})\n`;
       message += `   📱 ID: \`${user.telegramId}\`\n`;
       message += `   🏦 Получатель: \`${withdrawal.recipient}\`\n`;
       message += `   💰 Баланс пользователя: ${user.balance.toFixed(2)} USDT\n`;
@@ -148,10 +161,13 @@ async function approveWithdrawal(ctx, withdrawalId) {
     await ctx.answerCbQuery('✅ Вывод одобрен');
     
     // Отправляем подтверждение
+    const firstName = escapeMarkdown(withdrawal.user.firstName || '');
+    const lastName = escapeMarkdown(withdrawal.user.lastName || '');
+    
     await ctx.reply(
       `✅ *Вывод одобрен и обработан*\n\n` +
       `💰 Сумма: ${withdrawal.amount.toFixed(2)} USDT\n` +
-      `👤 Пользователь: ${withdrawal.user.firstName} ${withdrawal.user.lastName || ''}\n` +
+      `👤 Пользователь: ${firstName} ${lastName}\n` +
       `🏦 Получатель: \`${withdrawal.recipient}\`\n` +
       `📅 Время: ${new Date().toLocaleString('ru-RU')}`,
       {

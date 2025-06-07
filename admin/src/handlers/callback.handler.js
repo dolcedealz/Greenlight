@@ -64,7 +64,11 @@ function registerCallbackHandlers(bot) {
             Markup.button.callback('📊 Мониторинг', 'monitoring_menu')
           ],
           [
-            Markup.button.callback('📢 Уведомления', 'notifications_menu')
+            Markup.button.callback('📢 Уведомления', 'notifications_menu'),
+            Markup.button.callback('🛡️ Безопасность', 'security_menu')
+          ],
+          [
+            Markup.button.callback('💾 Бэкапы', 'backup_menu')
           ]
         ])
       });
@@ -90,7 +94,11 @@ function registerCallbackHandlers(bot) {
             Markup.button.callback('📊 Мониторинг', 'monitoring_menu')
           ],
           [
-            Markup.button.callback('📢 Уведомления', 'notifications_menu')
+            Markup.button.callback('📢 Уведомления', 'notifications_menu'),
+            Markup.button.callback('🛡️ Безопасность', 'security_menu')
+          ],
+          [
+            Markup.button.callback('💾 Бэкапы', 'backup_menu')
           ]
         ])
       });
@@ -752,6 +760,97 @@ function registerCallbackHandlers(bot) {
         ])
       }
     );
+  });
+
+  // === БЕЗОПАСНОСТЬ ===
+
+  bot.action('security_menu', async (ctx) => {
+    console.log('ADMIN: Callback security_menu');
+    await ctx.answerCbQuery();
+    await securityCommands.showSecurityMenu(ctx);
+  });
+
+  bot.action('security_alerts', async (ctx) => {
+    console.log('ADMIN: Callback security_alerts');
+    await ctx.answerCbQuery();
+    await securityCommands.showSecurityAlerts(ctx);
+  });
+
+  bot.action('security_audit', async (ctx) => {
+    console.log('ADMIN: Callback security_audit');
+    await ctx.answerCbQuery();
+    await securityCommands.showAuditLog(ctx, 1);
+  });
+
+  bot.action('security_suspicious', async (ctx) => {
+    console.log('ADMIN: Callback security_suspicious');
+    await ctx.answerCbQuery();
+    await securityCommands.showSuspiciousActivity(ctx);
+  });
+
+  bot.action('security_blocked_ips', async (ctx) => {
+    console.log('ADMIN: Callback security_blocked_ips');
+    await ctx.answerCbQuery();
+    await securityCommands.showBlockedIPs(ctx);
+  });
+
+  bot.action('security_settings', async (ctx) => {
+    console.log('ADMIN: Callback security_settings');
+    await ctx.answerCbQuery();
+    await securityCommands.showSecuritySettings(ctx);
+  });
+
+  // === БЭКАПЫ ===
+
+  bot.action('backup_menu', async (ctx) => {
+    console.log('ADMIN: Callback backup_menu');
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupMenu(ctx);
+  });
+
+  bot.action('backup_create', async (ctx) => {
+    console.log('ADMIN: Callback backup_create');
+    await ctx.answerCbQuery();
+    await backupCommands.createBackup(ctx);
+  });
+
+  bot.action('backup_list', async (ctx) => {
+    console.log('ADMIN: Callback backup_list');
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupList(ctx, 1);
+  });
+
+  bot.action('backup_stats', async (ctx) => {
+    console.log('ADMIN: Callback backup_stats');
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupStats(ctx);
+  });
+
+  bot.action('backup_settings', async (ctx) => {
+    console.log('ADMIN: Callback backup_settings');
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupSettings(ctx);
+  });
+
+  bot.action('backup_cleanup', async (ctx) => {
+    console.log('ADMIN: Callback backup_cleanup');
+    await ctx.answerCbQuery();
+    await backupCommands.performBackupCleanup(ctx);
+  });
+
+  // Backup type selection handlers
+  bot.action(/backup_create_(full|users|financial|games|settings)/, async (ctx) => {
+    const backupType = ctx.match[1];
+    console.log(`ADMIN: Callback backup_create_${backupType}`);
+    await backupCommands.performBackup(ctx, backupType);
+  });
+
+  // Backup list pagination
+  bot.action(/backup_list_(\d+)/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log(`ADMIN: Callback backup_list_${page}`);
+    await ctx.answerCbQuery();
+    await backupCommands.showBackupList(ctx, page);
   });
 
   // === СТАТИСТИКА МЕНЮ ===

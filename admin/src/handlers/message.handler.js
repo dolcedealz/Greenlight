@@ -8,6 +8,8 @@ const promoCommands = require('../commands/promo.command');
 const coefficientsCommands = require('../commands/coefficients.command');
 const notificationsCommands = require('../commands/notifications.command');
 const monitoringCommands = require('../commands/monitoring.command');
+const securityCommands = require('../commands/security.command');
+const backupCommands = require('../commands/backup.command');
 const apiService = require('../services/admin.service');
 
 /**
@@ -117,7 +119,11 @@ function registerMessageHandlers(bot) {
                       { text: '📊 Мониторинг', callback_data: 'monitoring_menu' }
                     ],
                     [
-                      { text: '📢 Уведомления', callback_data: 'notifications_menu' }
+                      { text: '📢 Уведомления', callback_data: 'notifications_menu' },
+                      { text: '🛡️ Безопасность', callback_data: 'security_menu' }
+                    ],
+                    [
+                      { text: '💾 Бэкапы', callback_data: 'backup_menu' }
                     ]
                   ]
                 }
@@ -193,12 +199,16 @@ function registerMessageHandlers(bot) {
           await monitoringCommands.showMonitoringMenu(ctx);
           break;
 
-        case '💾 Бэкапы':
-          await ctx.reply('💾 Модуль бэкапов временно недоступен');
-          break;
-
         case '📢 Уведомления':
           await notificationsCommands.showNotificationsMenu(ctx);
+          break;
+
+        case '🛡️ Безопасность':
+          await securityCommands.showSecurityMenu(ctx);
+          break;
+
+        case '💾 Бэкапы':
+          await backupCommands.showBackupMenu(ctx);
           break;
 
         case '⚙️ Настройки':

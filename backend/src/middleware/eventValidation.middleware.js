@@ -1,56 +1,84 @@
-// backend/src/middleware/eventValidation.middleware.js
+// backend/src/middleware/eventValidation.middleware.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 // Валидация для endpoints событий
 
 const mongoose = require('mongoose');
 
 /**
- * Валидация для размещения ставки
+ * Валидация для размещения ставки - ИСПРАВЛЕНО
  */
 const validatePlaceBet = (req, res, next) => {
   try {
+    console.log('VALIDATION: Валидация ставки');
+    console.log('VALIDATION: req.params:', JSON.stringify(req.params, null, 2));
+    console.log('VALIDATION: req.body:', JSON.stringify(req.body, null, 2));
+    
     const { eventId } = req.params;
-    const { outcomeId, amount } = req.body;
+    const { outcomeId, betAmount } = req.body; // ← ИСПРАВЛЕНО: используем betAmount вместо amount
+    
+    console.log('VALIDATION: Извлеченные значения:', { eventId, outcomeId, betAmount });
     
     const errors = [];
     
     // Валидация eventId
+    console.log('VALIDATION: Проверка eventId:', eventId);
     if (!eventId) {
+      console.log('VALIDATION: Ошибка - eventId отсутствует');
       errors.push('ID события обязательно');
     } else if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      console.log('VALIDATION: Ошибка - некорректный формат eventId');
       errors.push('Некорректный формат ID события');
+    } else {
+      console.log('VALIDATION: eventId валиден');
     }
     
     // Валидация outcomeId
+    console.log('VALIDATION: Проверка outcomeId:', outcomeId, 'тип:', typeof outcomeId);
     if (!outcomeId) {
+      console.log('VALIDATION: Ошибка - outcomeId отсутствует');
       errors.push('ID исхода обязательно');
     } else if (typeof outcomeId !== 'string' || outcomeId.length < 1 || outcomeId.length > 100) {
+      console.log('VALIDATION: Ошибка - некорректный формат outcomeId');
       errors.push('ID исхода должен быть строкой от 1 до 100 символов');
+    } else {
+      console.log('VALIDATION: outcomeId валиден');
     }
     
-    // Валидация amount
-    if (amount === undefined || amount === null) {
+    // Валидация betAmount - ИСПРАВЛЕНО
+    console.log('VALIDATION: Проверка betAmount:', betAmount, 'тип:', typeof betAmount);
+    if (betAmount === undefined || betAmount === null) {
+      console.log('VALIDATION: Ошибка - betAmount отсутствует');
       errors.push('Сумма ставки обязательна');
     } else {
-      const numAmount = parseFloat(amount);
+      const numAmount = parseFloat(betAmount); // ← ИСПРАВЛЕНО: используем betAmount
+      console.log('VALIDATION: Преобразованная сумма:', numAmount);
       
       if (isNaN(numAmount)) {
+        console.log('VALIDATION: Ошибка - betAmount не является числом');
         errors.push('Сумма ставки должна быть числом');
       } else if (numAmount <= 0) {
+        console.log('VALIDATION: Ошибка - betAmount отрицательная или ноль');
         errors.push('Сумма ставки должна быть положительной');
       } else if (numAmount > 10000) {
+        console.log('VALIDATION: Ошибка - betAmount превышает максимум');
         errors.push('Сумма ставки не может превышать 10,000 USDT');
       } else if (!Number.isFinite(numAmount)) {
+        console.log('VALIDATION: Ошибка - betAmount не конечное число');
         errors.push('Сумма ставки должна быть конечным числом');
       } else {
         // Проверяем количество десятичных знаков (максимум 2)
-        const decimalPart = amount.toString().split('.')[1];
+        const decimalPart = betAmount.toString().split('.')[1]; // ← ИСПРАВЛЕНО
         if (decimalPart && decimalPart.length > 2) {
+          console.log('VALIDATION: Ошибка - слишком много десятичных знаков');
           errors.push('Сумма ставки не может иметь более 2 десятичных знаков');
+        } else {
+          console.log('VALIDATION: betAmount валиден');
         }
       }
     }
     
+    console.log('VALIDATION: Общее количество ошибок:', errors.length);
     if (errors.length > 0) {
+      console.log('VALIDATION: Список ошибок:', errors);
       return res.status(400).json({
         success: false,
         message: 'Ошибки валидации',
@@ -58,8 +86,9 @@ const validatePlaceBet = (req, res, next) => {
       });
     }
     
-    // Нормализуем amount
-    req.body.amount = parseFloat(amount);
+    // Нормализуем betAmount - ИСПРАВЛЕНО
+    req.body.betAmount = parseFloat(betAmount);
+    console.log('VALIDATION: Валидация успешна, нормализованная сумма:', req.body.betAmount);
     
     next();
   } catch (error) {

@@ -1,7 +1,7 @@
 // backend/src/routes/game.routes.js - ОБНОВЛЕННАЯ ВЕРСИЯ
 const express = require('express');
 const { gameController } = require('../controllers');
-const { telegramAuthMiddleware, validateCoinFlip, validateMinesPlay, validateMinesComplete } = require('../middleware');
+const { telegramAuthMiddleware, validateCoinFlip, validateMinesPlay, validateMinesComplete, bettingLimit } = require('../middleware');
 
 const router = express.Router();
 

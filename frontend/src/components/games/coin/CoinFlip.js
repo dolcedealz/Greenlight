@@ -1,136 +1,104 @@
-// frontend/src/components/games/coin/CoinFlip.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
+// frontend/src/components/games/coin/CoinFlip.js - ИСПРАВЛЕННАЯ ВЕРСИЯ БЕЗ ДВОЙНОЙ АНИМАЦИИ
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import '../../../styles/CoinFlip.css';
 
 const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
   const coinRef = useRef(null);
-  const [currentSide, setCurrentSide] = useState('heads'); // Текущая сторона монеты
-  const [animationState, setAnimationState] = useState('idle'); // idle, flipping, showing, completed
-  const [localResult, setLocalResult] = useState(null);
+  const [currentSide, setCurrentSide] = useState('heads');
+  const [animationState, setAnimationState] = useState('idle');
+  const [isAnimating, setIsAnimating] = useState(false); // Флаг для предотвращения двойного запуска
   
   // Стабильный обработчик завершения анимации
   const handleAnimationEnd = useCallback(() => {
     console.log('🪙 АНИМАЦИЯ: Завершена полностью');
     setAnimationState('completed');
+    setIsAnimating(false);
     
-    // Уведомляем родителя с небольшой задержкой для плавности
-    setTimeout(() => {
-      if (onAnimationComplete) {
-        onAnimationComplete(true); // true = показать результат игры
-      }
-    }, 200);
+    // Уведомляем родителя о завершении
+    if (onAnimationComplete) {
+      onAnimationComplete(true);
+    }
   }, [onAnimationComplete]);
   
-  // ИСПРАВЛЕННАЯ логика анимации
+  // ИСПРАВЛЕННАЯ логика анимации - предотвращаем двойной запуск
   useEffect(() => {
+    // Предотвращаем повторный запуск если анимация уже идет
+    if (isAnimating) {
+      console.log('🪙 АНИМАЦИЯ: Уже запущена, пропускаем');
+      return;
+    }
+    
     if (flipping && result !== null) {
+      console.log('🪙 АНИМАЦИЯ: НАЧИНАЕМ НОВУЮ анимацию, результат:', result);
+      
       const coin = coinRef.current;
       if (!coin) return;
       
-      console.log('🪙 АНИМАЦИЯ: Начинаем с текущей стороны:', currentSide, 'результат:', result);
-      
-      // Устанавливаем начальное состояние
+      // Устанавливаем флаг анимации
+      setIsAnimating(true);
       setAnimationState('flipping');
-      setLocalResult(result);
       
-      // ИСПРАВЛЕНО: Правильная настройка начального состояния
+      // Сбрасываем все классы
       coin.className = 'coin';
       coin.classList.add('start-position', currentSide);
       
-      console.log('🪙 АНИМАЦИЯ: Подготовка к анимации...');
-      
-      // Небольшая задержка для стабилизации DOM
+      // Запускаем анимацию
       setTimeout(() => {
-        // Удаляем начальную позицию и добавляем анимацию
         coin.classList.remove('start-position');
-        
-        // ИСПРАВЛЕНО: Добавляем класс анимации в зависимости от текущей стороны
         coin.classList.add('flipping', currentSide);
         
-        console.log(`🪙 АНИМАЦИЯ: Запущена CSS анимация с классами: flipping, ${currentSide}`);
+        console.log(`🪙 АНИМАЦИЯ: CSS анимация запущена с классами: flipping, ${currentSide}`);
         
-        // Обновляем состояние тени
+        // Обновляем тень
         const shadow = document.querySelector('.coin-shadow');
         if (shadow) {
           shadow.className = 'coin-shadow flipping';
         }
       }, 50);
       
-      // ИСПРАВЛЕНО: Завершение анимации с правильным таймингом
+      // СИНХРОНИЗИРОВАННОЕ завершение - сокращаем время до 2000ms
       setTimeout(() => {
-        // Убираем классы анимации
+        // Убираем анимацию и устанавливаем финальный результат
         coin.classList.remove('flipping', currentSide);
-        
-        // Устанавливаем финальный результат
         coin.classList.add('final-result', result);
         
-        // Обновляем текущую сторону для следующего раза
         setCurrentSide(result);
-        
-        console.log('🪙 АНИМАЦИЯ: Установлена финальная позиция:', result);
         setAnimationState('showing');
         
-        // Обновляем состояние тени
-        const shadow = document.querySelector('.coin-shadow');
-        if (shadow) {
-          shadow.className = 'coin-shadow showing';
-        }
-      }, 2500); // Время CSS анимации
-      
-      // Показ локального результата
-      setTimeout(() => {
-        console.log('🪙 АНИМАЦИЯ: Показываем локальный результат');
+        console.log('🪙 АНИМАЦИЯ: Установлен финальный результат:', result);
         
-        // Финальное состояние тени
+        // Обновляем тень
         const shadow = document.querySelector('.coin-shadow');
         if (shadow) {
           shadow.className = 'coin-shadow completed';
         }
-      }, 3000);
-      
-      // Полное завершение
-      setTimeout(() => {
-        handleAnimationEnd();
-      }, 4000); // Общее время анимации
+        
+        // Завершаем анимацию и уведомляем родителя сразу
+        setTimeout(() => {
+          handleAnimationEnd();
+        }, 300); // Короткая задержка для плавности
+        
+      }, 1800); // Синхронизируем с CSS анимацией (1.5s + небольшой буфер)
       
     } else if (!flipping && animationState !== 'idle') {
       // Сброс состояния
+      console.log('🪙 АНИМАЦИЯ: Сброс состояния');
       const coin = coinRef.current;
       if (coin) {
         coin.className = 'coin';
         coin.classList.add('final-result', currentSide);
       }
       
-      // Сброс тени
       const shadow = document.querySelector('.coin-shadow');
       if (shadow) {
         shadow.className = 'coin-shadow idle';
       }
       
       setAnimationState('idle');
-      setLocalResult(null);
+      setIsAnimating(false);
     }
-  }, [flipping, result, currentSide, animationState, handleAnimationEnd]);
+  }, [flipping, result]); // Убираем лишние dependencies
   
-  // CSS анимация завершена - слушаем событие
-  useEffect(() => {
-    const coin = coinRef.current;
-    if (!coin) return;
-    
-    const handleCSSAnimationEnd = (event) => {
-      console.log('🪙 АНИМАЦИЯ: CSS анимация завершена:', event.animationName);
-      
-      if (event.animationName === 'coinFlipFromHeads' || event.animationName === 'coinFlipFromTails') {
-        console.log('🪙 АНИМАЦИЯ: Основная анимация подбрасывания завершена');
-      }
-    };
-    
-    coin.addEventListener('animationend', handleCSSAnimationEnd);
-    return () => {
-      coin.removeEventListener('animationend', handleCSSAnimationEnd);
-    };
-  }, []);
-
   return (
     <div className="coin-flip-container">
       {/* Декоративные элементы */}
@@ -147,7 +115,7 @@ const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
       {/* Основная монета */}
       <div className="coin-wrapper">
         <div className="coin" ref={coinRef}>
-          {/* Сторона "Орёл" - лицевая (0 градусов) */}
+          {/* Сторона "Орёл" */}
           <div className="coin-side heads">
             <div className="coin-face">
               <div className="coin-inner-ring">
@@ -164,7 +132,7 @@ const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
             </div>
           </div>
           
-          {/* Сторона "Решка" - обратная (180 градусов) */}
+          {/* Сторона "Решка" */}
           <div className="coin-side tails">
             <div className="coin-face">
               <div className="coin-inner-ring">
@@ -183,7 +151,7 @@ const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
         </div>
       </div>
       
-      {/* Статус анимации */}
+      {/* Статус анимации - показываем только во время подбрасывания */}
       {animationState === 'flipping' && (
         <div className="flip-status">
           <div className="flip-text">Подбрасываем монету...</div>
@@ -191,24 +159,6 @@ const CoinFlip = ({ flipping, result, onAnimationComplete }) => {
             <span></span>
             <span></span>
             <span></span>
-          </div>
-        </div>
-      )}
-      
-      {/* Локальный результат анимации */}
-      {animationState === 'showing' && localResult && (
-        <div className={`coin-result ${localResult}`}>
-          <div className="result-icon">
-            {localResult === 'heads' ? '₿' : '💎'}
-          </div>
-          <div className="result-text">
-            {localResult === 'heads' ? 'ОРЁЛ!' : 'РЕШКА!'}
-          </div>
-          <div className="result-celebration">
-            <div className="celebration-particle"></div>
-            <div className="celebration-particle"></div>
-            <div className="celebration-particle"></div>
-            <div className="celebration-particle"></div>
           </div>
         </div>
       )}

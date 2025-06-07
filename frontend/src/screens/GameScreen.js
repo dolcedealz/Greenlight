@@ -1,4 +1,4 @@
-// frontend/src/screens/GameScreen.js - СТАБИЛЬНАЯ ВЕРСИЯ
+// frontend/src/screens/GameScreen.js - СТАБИЛЬНАЯ ВЕРСИЯ С ИСПРАВЛЕННОЙ МОНЕТКОЙ
 import React, { useState, useEffect } from 'react';
 import CoinGame from '../components/games/coin/CoinGame';
 import MinesGame from '../components/games/mines/MinesGame';
@@ -88,7 +88,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     fetchData();
   }, [gameType]);
   
-  // НОВЫЙ ПРОСТОЙ обработчик для монетки
+  // ИСПРАВЛЕННЫЙ обработчик для монетки
   const handleCoinFlip = async (betData) => {
     console.log('🎮 GAME SCREEN: Запрос на подбрасывание монеты:', betData);
     
@@ -120,11 +120,12 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         newBalance: gameData.balanceAfter
       };
       
-      // Обновляем состояние с результатом
+      // ИСПРАВЛЕНО: Устанавливаем результат без showResult - он будет установлен через onAnimationComplete
       setCoinGameData(prev => ({
         ...prev,
         result: gameData.result,
         gameResult: newGameResult
+        // showResult остается false до завершения анимации
       }));
       
       // Обновляем историю и баланс
@@ -161,19 +162,19 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     }
   };
   
-  // Обработчик завершения анимации монетки
+  // ИСПРАВЛЕННЫЙ обработчик завершения анимации - синхронный показ результата
   const handleCoinAnimationComplete = (showResultNow) => {
     console.log('🎮 GAME SCREEN: Анимация монетки завершена, показываем результат:', showResultNow);
     
-    // Показываем результат игры
+    // ИСПРАВЛЕНО: Синхронно показываем результат и останавливаем игру
     if (showResultNow && coinGameData.gameResult) {
       setCoinGameData(prev => ({
         ...prev,
         showResult: true,
-        isPlaying: false
+        isPlaying: false // Останавливаем игру сразу
       }));
       
-      // Вибрация
+      // Вибрация синхронно с показом результата
       if (coinGameData.gameResult.win) {
         gameWinFeedback();
       } else {
@@ -334,8 +335,8 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         </h1>
       </div>
       
-      {/* Результат ТОЛЬКО для монетки - показываем когда showResult === true */}
-      {gameType === 'coin' && coinGameData.showResult && coinGameData.gameResult && (
+      {/* ИСПРАВЛЕНО: Результат для монетки - показываем ТОЛЬКО когда showResult === true И анимация завершена */}
+      {gameType === 'coin' && coinGameData.showResult && coinGameData.gameResult && !coinGameData.isPlaying && (
         <div className={`game-result ${coinGameData.gameResult.win ? 'win' : 'lose'}`}>
           <div className="result-text">
             {coinGameData.gameResult.win ? 'ВЫИГРЫШ!' : 'ПРОИГРЫШ'}

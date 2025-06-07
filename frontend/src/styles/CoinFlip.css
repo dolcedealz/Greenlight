@@ -1,4 +1,4 @@
-/* frontend/src/styles/CoinFlip.css - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ С УСКОРЕННОЙ АНИМАЦИЕЙ */
+/* frontend/src/styles/CoinFlip.css - ИСПРАВЛЕННАЯ ВЕРСИЯ С СИНХРОНИЗИРОВАННЫМИ ТАЙМИНГАМИ */
 .coin-flip-container {
   display: flex;
   flex-direction: column;
@@ -99,7 +99,7 @@
 .coin-shadow.flipping {
   transform: scale(1.3, 0.7);
   opacity: 0.7;
-  animation: shadowFlip 1.25s ease-in-out;
+  animation: shadowFlip 1.5s ease-in-out; /* СИНХРОНИЗИРОВАНО */
 }
 
 @keyframes shadowFlip {
@@ -125,42 +125,36 @@
   z-index: 5;
 }
 
-/* Основная монета - ИСПРАВЛЕНО */
+/* Основная монета */
 .coin {
   width: 160px;
   height: 160px;
   position: relative;
   transform-style: preserve-3d;
-  /* Убираем transition, который может конфликтовать с animation */
 }
 
 .coin.start-position.heads {
-  /* Начинаем с орла */
   transform: rotateY(0deg) rotateX(0deg);
 }
 
 .coin.start-position.tails {
-  /* Начинаем с решки */
   transform: rotateY(180deg) rotateX(0deg);
 }
 
-/* ИСПРАВЛЕННАЯ АНИМАЦИЯ ПОДБРАСЫВАНИЯ - УСКОРЕННАЯ В 2 РАЗА */
+/* ИСПРАВЛЕННАЯ АНИМАЦИЯ - СИНХРОНИЗИРОВАННАЯ С JAVASCRIPT (1.5s) */
 .coin.flipping {
-  /* Важно: animation должен переопределять transform */
-  animation: coinFlipAnimation 1.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  animation: coinFlipAnimation 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
 }
 
-/* АНИМАЦИЯ ДЛЯ ОРЛА (начинается с 0 градусов) - УСКОРЕННАЯ */
 .coin.flipping.heads {
-  animation: coinFlipFromHeads 1.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  animation: coinFlipFromHeads 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
 }
 
-/* АНИМАЦИЯ ДЛЯ РЕШКИ (начинается с 180 градусов) - УСКОРЕННАЯ */
 .coin.flipping.tails {
-  animation: coinFlipFromTails 1.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  animation: coinFlipFromTails 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
 }
 
-/* Анимация подбрасывания с орла - УПРОЩЕННАЯ И УСКОРЕННАЯ */
+/* Анимация подбрасывания с орла - СИНХРОНИЗИРОВАННАЯ */
 @keyframes coinFlipFromHeads {
   0% {
     transform: rotateY(0deg) translateY(0px) scale(1);
@@ -197,7 +191,7 @@
   }
 }
 
-/* Анимация подбрасывания с решки - УПРОЩЕННАЯ И УСКОРЕННАЯ */
+/* Анимация подбрасывания с решки - СИНХРОНИЗИРОВАННАЯ */
 @keyframes coinFlipFromTails {
   0% {
     transform: rotateY(180deg) translateY(0px) scale(1);
@@ -234,17 +228,17 @@
   }
 }
 
-/* ФИНАЛЬНЫЕ ПОЗИЦИИ - ИСПРАВЛЕНО */
+/* ФИНАЛЬНЫЕ ПОЗИЦИИ */
 .coin.final-result.heads {
   transform: rotateY(0deg) rotateX(0deg) !important;
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  animation: none !important; /* Отключаем анимацию */
+  animation: none !important;
 }
 
 .coin.final-result.tails {
   transform: rotateY(180deg) rotateX(0deg) !important;
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  animation: none !important; /* Отключаем анимацию */
+  animation: none !important;
 }
 
 /* СТОРОНЫ МОНЕТЫ */
@@ -266,7 +260,7 @@
   transition: all 0.3s ease;
 }
 
-/* ДИЗАЙН ОРЛА (золотой) - лицевая сторона (0 градусов) */
+/* ДИЗАЙН ОРЛА (золотой) */
 .coin-side.heads {
   background: linear-gradient(135deg, 
     #ffd700 0%, 
@@ -282,7 +276,7 @@
     inset 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
-/* ДИЗАЙН РЕШКИ (серебряный) - обратная сторона (180 градусов) */
+/* ДИЗАЙН РЕШКИ (серебряный) */
 .coin-side.tails {
   background: linear-gradient(135deg, 
     #c0c0c0 0%, 
@@ -322,7 +316,6 @@
   background: radial-gradient(circle, transparent 30%, rgba(255, 255, 255, 0.1) 70%);
 }
 
-/* Специальные внутренние кольца для каждой стороны */
 .coin-side.heads .coin-inner-ring {
   border-color: rgba(0, 0, 0, 0.3);
   background: radial-gradient(circle, transparent 30%, rgba(255, 215, 0, 0.2) 70%);
@@ -351,13 +344,11 @@
   animation: symbolPulse 3s ease-in-out infinite;
 }
 
-/* Цвета символов для орла */
 .coin-side.heads .coin-symbol {
   color: #b8860b;
   text-shadow: 0 2px 4px rgba(255, 215, 0, 0.5);
 }
 
-/* Цвета символов для решки */
 .coin-side.tails .coin-symbol {
   color: #4a5568;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -375,12 +366,10 @@
   margin-top: 2px;
 }
 
-/* Цвета текста для орла */
 .coin-side.heads .coin-text {
   color: #8b4513;
 }
 
-/* Цвета текста для решки */
 .coin-side.tails .coin-text {
   color: #2d3748;
 }
@@ -423,13 +412,11 @@
   animation-delay: 1.4s;
 }
 
-/* Блестки для золотой стороны (орел) */
 .coin-side.heads .sparkle {
   background: rgba(255, 255, 255, 1);
   box-shadow: 0 0 4px rgba(255, 215, 0, 0.8);
 }
 
-/* Блестки для серебряной стороны (решка) */
 .coin-side.tails .sparkle {
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 0 4px rgba(192, 192, 192, 0.6);
@@ -498,149 +485,6 @@
   }
 }
 
-/* Результат игры */
-.coin-result {
-  margin-top: 30px;
-  padding: 20px;
-  border-radius: 16px;
-  text-align: center;
-  animation: resultAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  z-index: 7;
-}
-
-.coin-result.heads {
-  background: linear-gradient(135deg, 
-    rgba(255, 215, 0, 0.25) 0%, 
-    rgba(255, 215, 0, 0.15) 100%);
-  border: 2px solid #ffd700;
-  color: #ffd700;
-  box-shadow: 
-    0 0 30px rgba(255, 215, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.coin-result.tails {
-  background: linear-gradient(135deg, 
-    rgba(192, 192, 192, 0.25) 0%, 
-    rgba(192, 192, 192, 0.15) 100%);
-  border: 2px solid #c0c0c0;
-  color: #c0c0c0;
-  box-shadow: 
-    0 0 30px rgba(192, 192, 192, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.result-icon {
-  font-size: 40px;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
-  animation: iconBounce 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-@keyframes iconBounce {
-  0% { transform: scale(0) rotate(0deg); }
-  50% { transform: scale(1.3) rotate(180deg); }
-  100% { transform: scale(1) rotate(360deg); }
-}
-
-.result-text {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 8px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  animation: textSlide 1s ease;
-}
-
-@keyframes textSlide {
-  0% { 
-    opacity: 0; 
-    transform: translateY(20px); 
-  }
-  100% { 
-    opacity: 1; 
-    transform: translateY(0); 
-  }
-}
-
-/* Анимация частиц празднования */
-.result-celebration {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.celebration-particle {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  animation: celebrationParticle 1.5s ease-out forwards;
-}
-
-.celebration-particle:nth-child(1) {
-  background: #ffd700;
-  top: 20%;
-  left: 20%;
-  animation-delay: 0s;
-}
-
-.celebration-particle:nth-child(2) {
-  background: #ff6b6b;
-  top: 30%;
-  right: 20%;
-  animation-delay: 0.2s;
-}
-
-.celebration-particle:nth-child(3) {
-  background: #4ecdc4;
-  bottom: 30%;
-  left: 30%;
-  animation-delay: 0.4s;
-}
-
-.celebration-particle:nth-child(4) {
-  background: #45b7d1;
-  bottom: 20%;
-  right: 30%;
-  animation-delay: 0.6s;
-}
-
-@keyframes celebrationParticle {
-  0% {
-    opacity: 1;
-    transform: scale(0) translateY(0);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.2) translateY(-25px);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.3) translateY(-50px);
-  }
-}
-
-@keyframes resultAppear {
-  0% {
-    opacity: 0;
-    transform: scale(0.3) translateY(30px);
-  }
-  60% {
-    transform: scale(1.1) translateY(-5px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
 /* Адаптивность */
 @media (max-width: 500px) {
   .coin-flip-container {
@@ -664,14 +508,6 @@
   .coin-shadow {
     width: 80px;
     height: 16px;
-  }
-  
-  .result-icon {
-    font-size: 32px;
-  }
-  
-  .result-text {
-    font-size: 20px;
   }
   
   .flip-text {
@@ -702,14 +538,6 @@
     height: 14px;
   }
   
-  .result-icon {
-    font-size: 28px;
-  }
-  
-  .result-text {
-    font-size: 18px;
-  }
-  
   .flip-text {
     font-size: 14px;
   }
@@ -724,9 +552,6 @@
   .sparkle,
   .flip-dots span,
   .coin-symbol,
-  .result-icon,
-  .result-text,
-  .celebration-particle,
   .flip-status {
     animation: none !important;
   }

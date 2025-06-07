@@ -189,11 +189,24 @@ duelSchema.methods.isExpired = function() {
   return this.expiresAt && new Date() > this.expiresAt;
 };
 
-duelSchema.methods.canAccept = function(userId) {
-  return this.status === 'pending' && 
-         !this.isExpired() && 
-         this.challengerId !== userId &&
-         (!this.opponentId || this.opponentId === userId);
+duelSchema.methods.canAccept = function(userId, username = null) {
+  // Основные проверки
+  if (this.status !== 'pending' || this.isExpired() || this.challengerId === userId) {
+    return false;
+  }
+  
+  // Проверяем, что место оппонента свободно
+  if (this.opponentId && this.opponentId !== userId) {
+    return false;
+  }
+  
+  // 🔒 КРИТИЧЕСКАЯ ПРОВЕРКА: Направленная дуэль
+  if (this.opponentUsername && username && this.opponentUsername !== username) {
+    console.warn(`🚫 DUEL SECURITY: Пользователь ${username} пытается принять дуэль, предназначенную для ${this.opponentUsername}`);
+    return false;
+  }
+  
+  return true;
 };
 
 duelSchema.methods.isParticipant = function(userId) {

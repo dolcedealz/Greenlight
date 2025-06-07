@@ -498,11 +498,18 @@ class DuelController {
       const playerId = userId || req.user.id;
       const playerUsername = req.user.username || req.body.username || 'Unknown';
       
+      console.log(`🎯 DUEL ACCEPT ATTEMPT: Player ${playerUsername} (${playerId}) trying to accept duel ${sessionId}`);
+      
       // Сначала находим дуэль по sessionId
       const existingDuel = await duelService.getDuel(sessionId);
       
+      // 🔒 ЛОГИРУЕМ ДЕТАЛИ ДУЭЛИ ДЛЯ АУДИТА
+      console.log(`🔍 DUEL DETAILS: Challenger: ${existingDuel.challengerUsername} (${existingDuel.challengerId}), Target: ${existingDuel.opponentUsername || 'anyone'}, Status: ${existingDuel.status}`);
+      
       // Затем присоединяемся к ней
       const duel = await duelService.joinDuel(existingDuel._id, playerId, playerUsername);
+      
+      console.log(`✅ DUEL ACCEPTED SUCCESSFULLY: ${playerUsername} joined duel ${sessionId}`);
       
       res.json({
         success: true,
@@ -510,7 +517,7 @@ class DuelController {
       });
       
     } catch (error) {
-      console.error('Ошибка принятия дуэли:', error);
+      console.error(`❌ DUEL ACCEPT FAILED: ${error.message} (Player: ${req.body.username || 'unknown'}, SessionId: ${req.params.sessionId})`);
       res.status(400).json({
         success: false,
         message: error.message

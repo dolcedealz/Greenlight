@@ -43,6 +43,12 @@ function registerMessageHandlers(bot) {
         return;
       }
       
+      // Обработка назначения партнерского статуса
+      if (ctx.session?.assigningPartner) {
+        await usersCommands.handlePartnerAssignment(ctx);
+        return;
+      }
+      
       // Обработка отклонения вывода
       if (ctx.session?.rejectingWithdrawal) {
         await transactionsCommands.handleWithdrawalRejection(ctx);

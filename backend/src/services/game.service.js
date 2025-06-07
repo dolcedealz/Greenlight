@@ -628,7 +628,6 @@ async playSlots(userData, gameData) {
       }
       
       const totalMinesShown = minesAlreadyShown + actualMinesToPlace;
-      console.log(`ЧЕСТНАЯ СЕТКА: Попал на мину: ${hitMine}, размещено ${actualMinesToPlace} дополнительных мин, итого показано ${totalMinesShown} из ${requestedMinesCount} заявленных`);
       return displayGrid;
     }
     

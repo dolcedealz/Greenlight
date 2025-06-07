@@ -542,6 +542,9 @@ async function showUsersMenu(ctx) {
       Markup.button.callback('🚫 Заблокированные', 'users_blocked')
     ],
     [
+      Markup.button.callback('👑 Управление партнерами', 'partners_menu')
+    ],
+    [
       Markup.button.callback('🔙 Назад', 'main_menu')
     ]
   ]);
@@ -567,6 +570,606 @@ async function showUsersMenu(ctx) {
   }
 }
 
+/**
+ * Показать меню управления партнерами
+ */
+async function showPartnersMenu(ctx) {
+  console.log('ADMIN: Показ меню партнеров');
+  
+  const message = '👔 *Управление партнерами*\n\nВыберите действие:';
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('📋 Список партнеров', 'partners_list'),
+      Markup.button.callback('➕ Назначить статус', 'partners_assign')
+    ],
+    [
+      Markup.button.callback('🔍 Поиск партнера', 'partners_search'),
+      Markup.button.callback('📊 Статистика', 'partners_stats')
+    ],
+    [
+      Markup.button.callback('📜 История изменений', 'partners_logs'),
+      Markup.button.callback('🎯 Уровни партнеров', 'partners_levels')
+    ],
+    [
+      Markup.button.callback('🔙 К пользователям', 'users_menu')
+    ]
+  ]);
+  
+  try {
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    } else {
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка показа меню партнеров:', error);
+    await ctx.reply(message, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+  }
+}
+
+/**
+ * Показать список партнеров
+ */
+async function showPartnersList(ctx, page = 1) {
+  console.log('ADMIN: Запрос списка партнеров, страница:', page);
+  
+  try {
+    // Используем новую функцию из referral service
+    const response = await apiClient.get('/admin/referral/partners', {
+      params: { 
+        page: page,
+        limit: 10
+      }
+    });
+    
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Ошибка получения партнеров');
+    }
+    
+    const data = response.data.data;
+    const partners = data.partners;
+    const summary = data.summary;
+    const pagination = data.pagination;
+    
+    if (partners.length === 0) {
+      const message = '👔 *Список партнеров*\n\nПартнеры не найдены.';
+      const keyboard = Markup.inlineKeyboard([[
+        Markup.button.callback('◀️ Назад', 'partners_menu')
+      ]]);
+      
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+      return;
+    }
+    
+    let message = `👔 *Список партнеров* (стр. ${Math.floor(pagination.offset / pagination.limit) + 1})`;
+    
+    // Добавляем сводку по уровням
+    if (summary && summary.length > 0) {
+      message += '\n\n📊 *Сводка по уровням:*\n';
+      summary.forEach(level => {
+        const levelEmoji = {
+          'partner_bronze': '🥉',
+          'partner_silver': '🥈', 
+          'partner_gold': '🥇'
+        }[level._id] || '❓';
+        
+        message += `${levelEmoji} ${level._id}: ${level.count} чел.\n`;
+      });
+    }
+    
+    message += '\n\n👔 *Партнеры:*\n\n';
+    
+    partners.forEach((partner, index) => {
+      const partnerNum = pagination.offset + index + 1;
+      const levelEmoji = {
+        'partner_bronze': '🥉',
+        'partner_silver': '🥈',
+        'partner_gold': '🥇'
+      }[partner.partnerLevel] || '❓';
+      
+      const username = partner.username ? `@${partner.username}` : 'Нет username';
+      
+      message += `${partnerNum}. ${levelEmoji} *${partner.username || partner.telegramId}*\n`;
+      message += `   Уровень: ${partner.partnerLevel}\n`;
+      message += `   👥 Рефералов: ${partner.referralStats?.totalReferrals || 0}\n`;
+      message += `   💰 Заработано: ${(partner.referralStats?.totalEarned || 0).toFixed(2)} USDT\n`;
+      
+      if (partner.partnerMeta?.assignedAt) {
+        const assignedDate = new Date(partner.partnerMeta.assignedAt).toLocaleDateString('ru-RU');
+        message += `   📅 Назначен: ${assignedDate}\n`;
+      }
+      
+      message += '\n';
+    });
+    
+    // Создаем клавиатуру с кнопками навигации
+    const buttons = [];
+    
+    // Кнопки навигации
+    if (pagination.offset > 0 || pagination.hasMore) {
+      const navButtons = [];
+      if (pagination.offset > 0) {
+        const prevPage = Math.floor((pagination.offset - pagination.limit) / pagination.limit) + 1;
+        navButtons.push(Markup.button.callback('⬅ Пред.', `partners_list_${prevPage}`));
+      }
+      if (pagination.hasMore) {
+        const nextPage = Math.floor(pagination.offset / pagination.limit) + 2;
+        navButtons.push(Markup.button.callback('След. ➡', `partners_list_${nextPage}`));
+      }
+      buttons.push(navButtons);
+    }
+    
+    // Основные действия
+    buttons.push([
+      Markup.button.callback('➕ Назначить статус', 'partners_assign'),
+      Markup.button.callback('📊 Статистика', 'partners_stats')
+    ]);
+    
+    buttons.push([Markup.button.callback('🔄 Обновить', 'partners_list')]);
+    buttons.push([Markup.button.callback('◀️ Назад', 'partners_menu')]);
+    
+    const keyboard = Markup.inlineKeyboard(buttons);
+    
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    } else {
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+    
+  } catch (error) {
+    console.error('ADMIN: Ошибка получения списка партнеров:', error);
+    const errorMessage = `❌ Ошибка получения партнеров: ${error.message}`;
+    
+    if (ctx.callbackQuery) {
+      await ctx.answerCbQuery(errorMessage);
+    } else {
+      await ctx.reply(errorMessage);
+    }
+  }
+}
+
+/**
+ * Начать назначение партнерского статуса
+ */
+async function startPartnerAssignment(ctx) {
+  console.log('ADMIN: Начало назначения партнерского статуса');
+  
+  ctx.session = ctx.session || {};
+  ctx.session.assigningPartner = {
+    step: 'userId'
+  };
+  
+  const message = '➕ *Назначение партнерского статуса*\n\nВведите Telegram ID или username пользователя:';
+  const keyboard = Markup.inlineKeyboard([[
+    Markup.button.callback('❌ Отмена', 'partners_menu')
+  ]]);
+  
+  if (ctx.callbackQuery) {
+    await ctx.editMessageText(message, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+  } else {
+    await ctx.reply(message, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+  }
+}
+
+/**
+ * Обработать назначение партнерского статуса
+ */
+async function handlePartnerAssignment(ctx) {
+  if (!ctx.session || !ctx.session.assigningPartner) {
+    return;
+  }
+  
+  const session = ctx.session.assigningPartner;
+  const text = ctx.message.text.trim();
+  
+  if (session.step === 'userId') {
+    try {
+      // Поиск пользователя
+      const response = await apiClient.get('/admin/users', {
+        params: { search: text, limit: 1 }
+      });
+      
+      if (!response.data.success || response.data.data.users.length === 0) {
+        await ctx.reply('❌ Пользователь не найден. Попробуйте еще раз:');
+        return;
+      }
+      
+      const user = response.data.data.users[0];
+      session.user = user;
+      session.step = 'level';
+      
+      const currentLevel = user.partnerLevel === 'none' ? 'Обычный пользователь' : user.partnerLevel;
+      
+      const message = `👤 *Пользователь найден:*\n\n` +
+        `Имя: ${user.firstName} ${user.lastName || ''}\n` +
+        `Username: ${user.username ? `@${user.username}` : 'Не указан'}\n` +
+        `Telegram ID: \`${user.telegramId}\`\n` +
+        `Текущий статус: ${currentLevel}\n\n` +
+        `Выберите новый партнерский уровень:`;
+      
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback('🥉 Партнер Бронза (20%)', 'assign_partner_bronze'),
+          Markup.button.callback('🥈 Партнер Серебро (30%)', 'assign_partner_silver')
+        ],
+        [
+          Markup.button.callback('🥇 Партнер Золото (40%)', 'assign_partner_gold'),
+          Markup.button.callback('❌ Убрать статус', 'assign_none')
+        ],
+        [
+          Markup.button.callback('🔙 Отмена', 'partners_menu')
+        ]
+      ]);
+      
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка поиска пользователя:', error);
+      await ctx.reply('❌ Ошибка поиска пользователя. Попробуйте еще раз:');
+    }
+    
+  } else if (session.step === 'reason') {
+    const reason = text;
+    
+    if (reason.length < 3) {
+      await ctx.reply('❌ Причина должна содержать минимум 3 символа:');
+      return;
+    }
+    
+    try {
+      // Назначаем партнерский статус
+      const response = await apiClient.post('/admin/referral/assign-partner', {
+        userId: session.user._id,
+        newLevel: session.selectedLevel,
+        reason: reason,
+        metadata: {
+          ipAddress: ctx.from?.id || 'unknown',
+          userAgent: 'Telegram Admin Bot'
+        }
+      });
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Ошибка назначения статуса');
+      }
+      
+      const result = response.data.data;
+      
+      const actionText = {
+        'assign': 'назначен',
+        'change': 'изменен',
+        'remove': 'убран'
+      }[result.action] || 'обновлен';
+      
+      await ctx.reply(
+        `✅ *Партнерский статус ${actionText}!*\n\n` +
+        `👤 Пользователь: ${result.user.username}\n` +
+        `📊 Было: ${result.user.previousLevel}\n` +
+        `📊 Стало: ${result.user.newLevel}\n` +
+        `💰 Комиссия: ${result.user.commissionPercent}%\n` +
+        `👑 Админ: ${result.admin.username}\n` +
+        `📝 Причина: ${reason}`,
+        {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([[
+            Markup.button.callback('📋 К списку партнеров', 'partners_list')
+          ]])
+        }
+      );
+      
+      delete ctx.session.assigningPartner;
+      
+    } catch (error) {
+      console.error('ADMIN: Ошибка назначения партнерского статуса:', error);
+      await ctx.reply(`❌ Ошибка назначения статуса: ${error.message}`);
+    }
+  }
+}
+
+/**
+ * Обработать выбор партнерского уровня
+ */
+async function handlePartnerLevelSelection(ctx, level) {
+  console.log(`ADMIN: Выбор партнерского уровня: ${level}`);
+  
+  if (!ctx.session || !ctx.session.assigningPartner) {
+    return ctx.answerCbQuery('❌ Сессия назначения статуса истекла');
+  }
+  
+  ctx.session.assigningPartner.selectedLevel = level;
+  ctx.session.assigningPartner.step = 'reason';
+  
+  const levelNames = {
+    'partner_bronze': '🥉 Партнер Бронза (20%)',
+    'partner_silver': '🥈 Партнер Серебро (30%)',
+    'partner_gold': '🥇 Партнер Золото (40%)',
+    'none': '❌ Убрать партнерский статус'
+  };
+  
+  const selectedLevelName = levelNames[level] || level;
+  
+  await ctx.editMessageText(
+    `📝 *Подтверждение назначения*\n\n` +
+    `👤 Пользователь: ${ctx.session.assigningPartner.user.firstName} ${ctx.session.assigningPartner.user.lastName || ''}\n` +
+    `📊 Новый статус: ${selectedLevelName}\n\n` +
+    `Введите причину назначения:`,
+    {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([[
+        Markup.button.callback('🔙 Отмена', 'partners_menu')
+      ]])
+    }
+  );
+  
+  await ctx.answerCbQuery();
+}
+
+/**
+ * Показать историю изменений партнерских статусов
+ */
+async function showPartnersLogs(ctx, page = 1) {
+  console.log('ADMIN: Запрос истории партнеров, страница:', page);
+  
+  try {
+    const response = await apiClient.get('/admin/referral/partner-logs', {
+      params: { 
+        page: page,
+        limit: 10
+      }
+    });
+    
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Ошибка получения истории');
+    }
+    
+    const data = response.data.data;
+    const logs = data.logs;
+    const pagination = data.pagination;
+    
+    if (logs.length === 0) {
+      const message = '📜 *История изменений*\n\nИстория пуста.';
+      const keyboard = Markup.inlineKeyboard([[
+        Markup.button.callback('◀️ Назад', 'partners_menu')
+      ]]);
+      
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+      return;
+    }
+    
+    let message = `📜 *История изменений* (стр. ${Math.floor(pagination.offset / pagination.limit) + 1})\n\n`;
+    
+    logs.forEach((log, index) => {
+      const logNum = pagination.offset + index + 1;
+      const actionEmoji = {
+        'assign': '➕',
+        'change': '🔄',
+        'remove': '❌'
+      }[log.action] || '❓';
+      
+      const userName = log.user?.username || log.user?.telegramId || 'Неизвестно';
+      const adminName = log.admin?.username || log.admin?.telegramId || 'Неизвестно';
+      
+      message += `${logNum}. ${actionEmoji} *${log.action}*\n`;
+      message += `   👤 Пользователь: ${userName}\n`;
+      message += `   📊 ${log.previousLevel} → ${log.newLevel}\n`;
+      message += `   👑 Админ: ${adminName}\n`;
+      
+      if (log.reason) {
+        message += `   📝 Причина: ${log.reason}\n`;
+      }
+      
+      const date = new Date(log.createdAt).toLocaleString('ru-RU');
+      message += `   📅 ${date}\n\n`;
+    });
+    
+    // Создаем клавиатуру с кнопками навигации
+    const buttons = [];
+    
+    // Кнопки навигации
+    if (pagination.offset > 0 || pagination.hasMore) {
+      const navButtons = [];
+      if (pagination.offset > 0) {
+        const prevPage = Math.floor((pagination.offset - pagination.limit) / pagination.limit) + 1;
+        navButtons.push(Markup.button.callback('⬅ Пред.', `partners_logs_${prevPage}`));
+      }
+      if (pagination.hasMore) {
+        const nextPage = Math.floor(pagination.offset / pagination.limit) + 2;
+        navButtons.push(Markup.button.callback('След. ➡', `partners_logs_${nextPage}`));
+      }
+      buttons.push(navButtons);
+    }
+    
+    buttons.push([Markup.button.callback('🔄 Обновить', 'partners_logs')]);
+    buttons.push([Markup.button.callback('◀️ Назад', 'partners_menu')]);
+    
+    const keyboard = Markup.inlineKeyboard(buttons);
+    
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    } else {
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+    
+  } catch (error) {
+    console.error('ADMIN: Ошибка получения истории партнеров:', error);
+    const errorMessage = `❌ Ошибка получения истории: ${error.message}`;
+    
+    if (ctx.callbackQuery) {
+      await ctx.answerCbQuery(errorMessage);
+    } else {
+      await ctx.reply(errorMessage);
+    }
+  }
+}
+
+/**
+ * Показать статистику партнерской программы
+ */
+async function showPartnersStats(ctx) {
+  console.log('ADMIN: Запрос статистики партнеров');
+  
+  try {
+    const response = await apiClient.get('/admin/referral/stats');
+    
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Ошибка получения статистики');
+    }
+    
+    const stats = response.data.data;
+    
+    let message = '📊 *Статистика партнерской программы*\n\n';
+    
+    // Статистика по партнерам
+    if (stats.partners) {
+      message += '👔 *Партнеры:*\n';
+      message += `   Всего партнеров: ${stats.partners.total}\n`;
+      message += `   Активный баланс: ${stats.partners.totalBalance.toFixed(2)} USDT\n\n`;
+      
+      if (stats.partners.byLevel && stats.partners.byLevel.length > 0) {
+        message += '   По уровням:\n';
+        stats.partners.byLevel.forEach(level => {
+          const levelEmoji = {
+            'partner_bronze': '🥉',
+            'partner_silver': '🥈',
+            'partner_gold': '🥇'
+          }[level._id] || '❓';
+          
+          message += `   ${levelEmoji} ${level._id}: ${level.count} (${level.totalEarned.toFixed(2)} USDT)\n`;
+        });
+      }
+      message += '\n';
+    }
+    
+    // Статистика по рефералам
+    if (stats.referrals) {
+      message += '👥 *Рефералы:*\n';
+      message += `   Всего рефералов: ${stats.referrals.total}\n`;
+      message += `   Активных: ${stats.referrals.active}\n`;
+      message += `   С депозитами: ${stats.referrals.withDeposits}\n`;
+      message += `   Конверсия: ${stats.referrals.conversionRate}%\n\n`;
+    }
+    
+    // Финансовая статистика
+    if (stats.finance) {
+      message += '💰 *Финансы:*\n';
+      message += `   Общие выплаты: ${stats.finance.totalReferralPayments.toFixed(2)} USDT\n`;
+      message += `   К выплате: ${stats.finance.pendingPayouts.toFixed(2)} USDT\n`;
+    }
+    
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🔄 Обновить', 'partners_stats')],
+      [Markup.button.callback('◀️ Назад', 'partners_menu')]
+    ]);
+    
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    } else {
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+    
+  } catch (error) {
+    console.error('ADMIN: Ошибка получения статистики партнеров:', error);
+    const errorMessage = `❌ Ошибка получения статистики: ${error.message}`;
+    
+    if (ctx.callbackQuery) {
+      await ctx.answerCbQuery(errorMessage);
+    } else {
+      await ctx.reply(errorMessage);
+    }
+  }
+}
+
+/**
+ * Показать информацию об уровнях партнеров
+ */
+async function showPartnerLevels(ctx) {
+  console.log('ADMIN: Показ уровней партнеров');
+  
+  const message = `🎯 *Уровни партнеров*\n\n` +
+    `**Автоматические уровни (по рефералам):**\n` +
+    `🥉 Бронза: 0+ активных рефералов (5%)\n` +
+    `🥈 Серебро: 6+ активных рефералов (7%)\n` +
+    `🥇 Золото: 21+ активных рефералов (10%)\n` +
+    `💎 Платина: 51+ активных рефералов (12%)\n` +
+    `🌟 VIP: 101+ активных рефералов (15%)\n\n` +
+    `**Партнерские уровни (назначаются админом):**\n` +
+    `🥉 Партнер Бронза: комиссия 20%\n` +
+    `🥈 Партнер Серебро: комиссия 30%\n` +
+    `🥇 Партнер Золото: комиссия 40%\n\n` +
+    `*Партнерские уровни имеют приоритет над автоматическими*`;
+  
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback('◀️ Назад', 'partners_menu')]
+  ]);
+  
+  if (ctx.callbackQuery) {
+    await ctx.editMessageText(message, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+  } else {
+    await ctx.reply(message, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+  }
+}
+
 module.exports = {
   showUsersMenu,
   showUsersList,
@@ -576,5 +1179,14 @@ module.exports = {
   showUsersStats,
   toggleUserBlock,
   startBalanceAdjustment,
-  handleBalanceAdjustment
+  handleBalanceAdjustment,
+  // Новые функции для партнеров
+  showPartnersMenu,
+  showPartnersList,
+  startPartnerAssignment,
+  handlePartnerAssignment,
+  handlePartnerLevelSelection,
+  showPartnersLogs,
+  showPartnersStats,
+  showPartnerLevels
 };

@@ -104,6 +104,30 @@ const userSchema = new Schema({
       default: null
     }
   },
+  
+  // НОВОЕ: Партнерский статус (назначается только админом)
+  partnerLevel: {
+    type: String,
+    enum: ['none', 'partner_bronze', 'partner_silver', 'partner_gold'],
+    default: 'none'
+  },
+  
+  // НОВОЕ: Метаданные партнерского статуса
+  partnerMeta: {
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    assignedAt: {
+      type: Date,
+      default: null
+    },
+    previousLevel: {
+      type: String,
+      default: null
+    }
+  },
   totalWagered: {
     type: Number,
     default: 0

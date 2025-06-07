@@ -86,10 +86,6 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
             const shouldShowMine = cell === 'mine' && (isRevealed || gameOver);
             const shouldShowGem = cell === 'gem' && isRevealed;
             
-            // Логирование для отладки отображения мин
-            if (gameOver && cell === 'mine' && !isRevealed) {
-              console.log(`💣 ОТОБРАЖЕНИЕ: Показываем мину в неоткрытой ячейке [${rowIndex},${colIndex}]`);
-            }
             
             const cellClass = `mines-cell 
               ${isRevealed || (gameOver && cell === 'mine') ? 'revealed' : ''} 

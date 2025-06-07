@@ -8,6 +8,7 @@ const CrashRound = require('./crash-round.model');
 const CasinoFinance = require('./casino-finance.model');
 const ReferralEarning = require('./referral-earning.model');
 const ReferralPayout = require('./referral-payout.model');
+const PartnerLog = require('./partner-log.model');
 const GameSettings = require('./game-settings.model');
 const Event = require('./Event');
 const EventBet = require('./EventBet');
@@ -25,6 +26,7 @@ module.exports = {
   CasinoFinance,
   ReferralEarning,
   ReferralPayout,
+  PartnerLog,
   GameSettings,
   Event,
   EventBet,

@@ -1,5 +1,5 @@
 // backend/src/services/referral.service.js
-const { User, ReferralEarning, ReferralPayout, Transaction } = require('../models');
+const { User, ReferralEarning, ReferralPayout, Transaction, PartnerLog } = require('../models');
 const mongoose = require('mongoose');
 
 class ReferralService {
@@ -35,6 +35,28 @@ class ReferralService {
         requiredActiveReferrals: 101,
         commissionPercent: 15, // Восстановлено до заявленного 15%
         color: '🌟'
+      }
+    };
+    
+    // НОВОЕ: Партнерские уровни (назначаются только админом)
+    this.partnerLevels = {
+      partner_bronze: {
+        name: 'Партнер Бронза',
+        commissionPercent: 20,
+        color: '🥉',
+        adminOnly: true
+      },
+      partner_silver: {
+        name: 'Партнер Серебро', 
+        commissionPercent: 30,
+        color: '🥈',
+        adminOnly: true
+      },
+      partner_gold: {
+        name: 'Партнер Золото',
+        commissionPercent: 40,
+        color: '🥇',
+        adminOnly: true
       }
     };
   }
@@ -282,25 +304,38 @@ class ReferralService {
         referrer: partnerId 
       }).session(session);
       
-      // Определяем новый уровень
-      let newLevel = 'bronze';
-      let newCommissionPercent = 5;
+      // НОВАЯ ЛОГИКА: Проверяем партнерский статус
+      let finalCommissionPercent;
       
-      for (const [level, config] of Object.entries(this.levels).reverse()) {
-        if (activeReferralsCount >= config.requiredActiveReferrals) {
-          newLevel = level;
-          newCommissionPercent = config.commissionPercent;
-          break;
+      // Если у пользователя есть партнерский статус - он имеет приоритет
+      if (partner.partnerLevel && partner.partnerLevel !== 'none' && this.partnerLevels[partner.partnerLevel]) {
+        finalCommissionPercent = this.partnerLevels[partner.partnerLevel].commissionPercent;
+        console.log(`REFERRAL: Партнер ${partnerId} использует партнерский статус ${partner.partnerLevel} (${finalCommissionPercent}%)`);
+      } else {
+        // Иначе используем автоматический уровень по количеству рефералов
+        let newLevel = 'bronze';
+        let newCommissionPercent = 5;
+        
+        for (const [level, config] of Object.entries(this.levels).reverse()) {
+          if (activeReferralsCount >= config.requiredActiveReferrals) {
+            newLevel = level;
+            newCommissionPercent = config.commissionPercent;
+            break;
+          }
         }
+        
+        // Обновляем автоматический уровень если он изменился
+        if (partner.referralStats.level !== newLevel) {
+          console.log(`REFERRAL: Партнер ${partnerId} повышен до автоматического уровня ${newLevel}`);
+          partner.referralStats.level = newLevel;
+          partner.referralStats.levelUpdatedAt = new Date();
+        }
+        
+        finalCommissionPercent = newCommissionPercent;
       }
       
-      // Обновляем уровень если он изменился
-      if (partner.referralStats.level !== newLevel) {
-        console.log(`REFERRAL: Партнер ${partnerId} повышен до уровня ${newLevel}`);
-        partner.referralStats.level = newLevel;
-        partner.referralStats.commissionPercent = newCommissionPercent;
-        partner.referralStats.levelUpdatedAt = new Date();
-      }
+      // Устанавливаем итоговый процент комиссии
+      partner.referralStats.commissionPercent = finalCommissionPercent;
       
       await partner.save({ session });
       return partner;
@@ -899,6 +934,248 @@ class ReferralService {
       
     } catch (error) {
       console.error('REFERRAL: Ошибка обработки комиссии:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * НОВОЕ: Назначает партнерский статус пользователю (только админ)
+   * @param {string} userId - ID пользователя
+   * @param {string} newLevel - Новый партнерский уровень
+   * @param {string} adminId - ID админа
+   * @param {string} reason - Причина изменения
+   * @param {Object} metadata - Метаданные (IP, User-Agent)
+   */
+  async assignPartnerLevel(userId, newLevel, adminId, reason = '', metadata = {}) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      // Проверяем валидность нового уровня
+      const validLevels = ['none', 'partner_bronze', 'partner_silver', 'partner_gold'];
+      if (!validLevels.includes(newLevel)) {
+        throw new Error(`Недопустимый партнерский уровень: ${newLevel}`);
+      }
+      
+      // Получаем пользователя и админа
+      const user = await User.findById(userId).session(session);
+      const admin = await User.findById(adminId).session(session);
+      
+      if (!user) {
+        throw new Error('Пользователь не найден');
+      }
+      
+      if (!admin) {
+        throw new Error('Админ не найден');
+      }
+      
+      // Проверяем права админа (можно добавить проверку роли)
+      // if (!admin.isAdmin) {
+      //   throw new Error('Недостаточно прав для назначения партнерского статуса');
+      // }
+      
+      const previousLevel = user.partnerLevel || 'none';
+      
+      // Если уровень не изменился
+      if (previousLevel === newLevel) {
+        throw new Error('Новый уровень совпадает с текущим');
+      }
+      
+      // Определяем тип действия
+      let action;
+      if (previousLevel === 'none' && newLevel !== 'none') {
+        action = 'assign';
+      } else if (previousLevel !== 'none' && newLevel === 'none') {
+        action = 'remove';
+      } else {
+        action = 'change';
+      }
+      
+      // Обновляем партнерский статус пользователя
+      user.partnerLevel = newLevel;
+      user.partnerMeta = {
+        assignedBy: adminId,
+        assignedAt: new Date(),
+        previousLevel: previousLevel
+      };
+      
+      await user.save({ session });
+      
+      // Создаем лог изменения
+      const partnerLog = new PartnerLog({
+        user: userId,
+        admin: adminId,
+        action: action,
+        previousLevel: previousLevel,
+        newLevel: newLevel,
+        reason: reason,
+        metadata: {
+          ...metadata,
+          timestamp: new Date()
+        }
+      });
+      
+      await partnerLog.save({ session });
+      
+      // Обновляем уровень партнера (пересчитываем комиссию)
+      await this.updatePartnerLevel(userId, session);
+      
+      await session.commitTransaction();
+      
+      console.log(`REFERRAL: Партнерский статус изменен для ${user.username}: ${previousLevel} → ${newLevel} (админ: ${admin.username})`);
+      
+      return {
+        success: true,
+        user: {
+          id: user._id,
+          username: user.username,
+          previousLevel: previousLevel,
+          newLevel: newLevel,
+          commissionPercent: user.referralStats.commissionPercent
+        },
+        admin: {
+          id: admin._id,
+          username: admin.username
+        },
+        action: action,
+        reason: reason
+      };
+      
+    } catch (error) {
+      await session.abortTransaction();
+      console.error('REFERRAL: Ошибка назначения партнерского статуса:', error);
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  /**
+   * НОВОЕ: Получает историю изменений партнерских статусов
+   * @param {string} userId - ID пользователя (опционально)
+   * @param {Object} options - Опции фильтрации
+   */
+  async getPartnerLogs(userId = null, options = {}) {
+    try {
+      const {
+        limit = 50,
+        offset = 0,
+        action = null,
+        adminId = null,
+        startDate = null,
+        endDate = null
+      } = options;
+      
+      // Строим фильтр
+      const filter = {};
+      
+      if (userId) {
+        filter.user = userId;
+      }
+      
+      if (action) {
+        filter.action = action;
+      }
+      
+      if (adminId) {
+        filter.admin = adminId;
+      }
+      
+      if (startDate || endDate) {
+        filter.createdAt = {};
+        if (startDate) filter.createdAt.$gte = new Date(startDate);
+        if (endDate) filter.createdAt.$lte = new Date(endDate);
+      }
+      
+      // Получаем логи с populate
+      const logs = await PartnerLog.find(filter)
+        .populate('user', 'username telegramId')
+        .populate('admin', 'username telegramId')
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(offset);
+      
+      const total = await PartnerLog.countDocuments(filter);
+      
+      return {
+        logs: logs,
+        pagination: {
+          total: total,
+          limit: limit,
+          offset: offset,
+          hasMore: offset + limit < total
+        }
+      };
+      
+    } catch (error) {
+      console.error('REFERRAL: Ошибка получения логов партнеров:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * НОВОЕ: Получает список всех партнеров
+   * @param {Object} options - Опции фильтрации
+   */
+  async getAllPartners(options = {}) {
+    try {
+      const {
+        level = null,
+        limit = 100,
+        offset = 0,
+        sortBy = 'assignedAt',
+        sortOrder = 'desc'
+      } = options;
+      
+      // Строим фильтр
+      const filter = {
+        partnerLevel: { $ne: 'none' }
+      };
+      
+      if (level && level !== 'all') {
+        filter.partnerLevel = level;
+      }
+      
+      // Строим сортировку
+      const sort = {};
+      sort[`partnerMeta.${sortBy}`] = sortOrder === 'desc' ? -1 : 1;
+      
+      // Получаем партнеров
+      const partners = await User.find(filter)
+        .populate('partnerMeta.assignedBy', 'username telegramId')
+        .select('username telegramId partnerLevel partnerMeta referralStats')
+        .sort(sort)
+        .limit(limit)
+        .skip(offset);
+      
+      const total = await User.countDocuments(filter);
+      
+      // Группируем по уровням
+      const summary = await User.aggregate([
+        { $match: { partnerLevel: { $ne: 'none' } } },
+        {
+          $group: {
+            _id: '$partnerLevel',
+            count: { $sum: 1 },
+            totalEarned: { $sum: '$referralStats.totalEarned' },
+            totalReferrals: { $sum: '$referralStats.totalReferrals' }
+          }
+        }
+      ]);
+      
+      return {
+        partners: partners,
+        summary: summary,
+        pagination: {
+          total: total,
+          limit: limit,
+          offset: offset,
+          hasMore: offset + limit < total
+        }
+      };
+      
+    } catch (error) {
+      console.error('REFERRAL: Ошибка получения списка партнеров:', error);
       throw error;
     }
   }

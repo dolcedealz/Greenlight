@@ -133,7 +133,6 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       if (data.clickedCells) {
         // Сохраняем все открытые ячейки с правильным форматом
         setClickedCells(data.clickedCells);
-        console.log('💣 GAME: Обновлены открытые ячейки:', data.clickedCells);
       }
       
       if (data.win === false) {
@@ -142,13 +141,8 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         // Обновляем сетку с позициями мин (с учетом модификаторов)
         if (data.grid) {
           setGrid(data.grid);
-          console.log('💣 GAME: Игра окончена, обновлена сетка с минами:', data.grid);
         }
         
-        // Если есть информация о фактическом количестве мин, показываем в консоли
-        if (data.actualMinesCount) {
-          console.log(`💣 GAME: Фактическое количество мин на поле: ${data.actualMinesCount} (выбрано: ${minesCount})`);
-        }
         
         // Завершаем игру
         setGameActive(false);
@@ -258,13 +252,11 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       // Сохраняем состояние открытых ячеек при кешауте
       if (data.clickedCells) {
         setClickedCells(data.clickedCells);
-        console.log('💣 GAME: Кешаут - сохранены открытые ячейки:', data.clickedCells);
       }
       
       // Обновляем сетку при кешауте (показываем мины)
       if (data.grid) {
         setGrid(data.grid);
-        console.log('💣 GAME: Кешаут - обновлена сетка с минами:', data.grid);
       }
       
       // Завершаем игру

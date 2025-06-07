@@ -177,12 +177,22 @@ class DuelService {
         throw new Error('Дуэль не найдена');
       }
       
-      if (duel.status !== 'pending' || duel.opponentId) {
-        throw new Error('Дуэль уже занята или завершена');
-      }
-      
-      if (duel.challengerId === playerId) {
-        throw new Error('Нельзя присоединиться к собственной дуэли');
+      // 🔒 КРИТИЧЕСКАЯ ПРОВЕРКА: Используем обновленный метод canAccept
+      if (!duel.canAccept(playerId, playerUsername)) {
+        // Определяем причину отказа
+        if (duel.status !== 'pending') {
+          throw new Error('Дуэль уже недоступна для принятия');
+        } else if (duel.isExpired()) {
+          throw new Error('Время принятия дуэли истекло');
+        } else if (duel.challengerId === playerId) {
+          throw new Error('Нельзя присоединиться к собственной дуэли');
+        } else if (duel.opponentId && duel.opponentId !== playerId) {
+          throw new Error('Дуэль уже занята другим игроком');
+        } else if (duel.opponentUsername && playerUsername && duel.opponentUsername !== playerUsername) {
+          throw new Error(`Этот вызов предназначен для @${duel.opponentUsername}`);
+        } else {
+          throw new Error('Невозможно принять данную дуэль');
+        }
       }
       
       // Валидация и блокировка средств

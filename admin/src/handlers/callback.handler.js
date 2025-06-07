@@ -33,6 +33,7 @@ function registerCallbackHandlers(bot) {
       delete ctx.session.rejectingWithdrawal;
       delete ctx.session.creatingPromo;
       delete ctx.session.creatingNotification;
+      delete ctx.session.assigningPartner;
     }
     
     const message = '🏠 *Главное меню администратора*\n\nВыберите раздел для управления:';
@@ -108,24 +109,7 @@ function registerCallbackHandlers(bot) {
   bot.action('users_menu', async (ctx) => {
     console.log('ADMIN: Callback users_menu');
     await ctx.answerCbQuery();
-    
-    const message = '👥 *Управление пользователями*\n\nВыберите действие:';
-    
-    await ctx.editMessageText(message, {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [
-          Markup.button.callback('📋 Список пользователей', 'users_list'),
-          Markup.button.callback('🔍 Поиск пользователя', 'users_search')
-        ],
-        [
-          Markup.button.callback('📊 Статистика пользователей', 'users_stats')
-        ],
-        [
-          Markup.button.callback('◀️ Главное меню', 'main_menu')
-        ]
-      ])
-    });
+    await usersCommands.showUsersMenu(ctx);
   });
 
   bot.action('users_list', async (ctx) => {
@@ -186,6 +170,73 @@ function registerCallbackHandlers(bot) {
     console.log(`ADMIN: Callback user_balance_${userId}`);
     await ctx.answerCbQuery();
     await usersCommands.startBalanceAdjustment(ctx, userId);
+  });
+
+  // === ПАРТНЕРЫ ===
+
+  bot.action('partners_menu', async (ctx) => {
+    console.log('ADMIN: Callback partners_menu');
+    await ctx.answerCbQuery();
+    
+    // Очищаем сессию назначения партнеров
+    if (ctx.session) {
+      delete ctx.session.assigningPartner;
+    }
+    
+    await usersCommands.showPartnersMenu(ctx);
+  });
+
+  bot.action('partners_list', async (ctx) => {
+    console.log('ADMIN: Callback partners_list');
+    await ctx.answerCbQuery();
+    await usersCommands.showPartnersList(ctx, 1);
+  });
+
+  // Пагинация списка партнеров
+  bot.action(/partners_list_(\d+)/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log(`ADMIN: Callback partners_list_${page}`);
+    await ctx.answerCbQuery();
+    await usersCommands.showPartnersList(ctx, page);
+  });
+
+  bot.action('partners_assign', async (ctx) => {
+    console.log('ADMIN: Callback partners_assign');
+    await ctx.answerCbQuery();
+    await usersCommands.startPartnerAssignment(ctx);
+  });
+
+  bot.action('partners_stats', async (ctx) => {
+    console.log('ADMIN: Callback partners_stats');
+    await ctx.answerCbQuery();
+    await usersCommands.showPartnersStats(ctx);
+  });
+
+  bot.action('partners_logs', async (ctx) => {
+    console.log('ADMIN: Callback partners_logs');
+    await ctx.answerCbQuery();
+    await usersCommands.showPartnersLogs(ctx, 1);
+  });
+
+  // Пагинация логов партнеров
+  bot.action(/partners_logs_(\d+)/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log(`ADMIN: Callback partners_logs_${page}`);
+    await ctx.answerCbQuery();
+    await usersCommands.showPartnersLogs(ctx, page);
+  });
+
+  bot.action('partners_levels', async (ctx) => {
+    console.log('ADMIN: Callback partners_levels');
+    await ctx.answerCbQuery();
+    await usersCommands.showPartnerLevels(ctx);
+  });
+
+  // Обработка выбора партнерского уровня
+  bot.action(/assign_(partner_bronze|partner_silver|partner_gold|none)/, async (ctx) => {
+    const level = ctx.match[1];
+    console.log(`ADMIN: Callback assign_${level}`);
+    await usersCommands.handlePartnerLevelSelection(ctx, level);
   });
 
   // === СОБЫТИЯ ===

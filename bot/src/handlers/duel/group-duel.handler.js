@@ -269,15 +269,69 @@ class GroupDuelHandler {
   username: '${username}'
 }`);
         
+        // 🔒 БЕЗОПАСНОСТЬ: Получаем данные дуэли для валидации цели
+        const duelDataResult = await apiService.getDuelData(sessionId, userId, ctx.from);
+        
+        if (!duelDataResult.success) {
+          console.warn(`⚠️ Не удалось получить данные дуэли ${sessionId}:`, duelDataResult.error);
+          await ctx.answerCbQuery('❌ Ошибка получения данных дуэли');
+          return;
+        }
+        
+        const duel = duelDataResult.data;
+        
+        // 🔒 БЕЗОПАСНОСТЬ: Проверяем, что это направленная дуэль
+        if (duel.opponentUsername && duel.opponentUsername !== username) {
+          // 🚨 КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ ПОПЫТКИ МОШЕННИЧЕСТВА
+          console.error(`🚨 DUEL THEFT ATTEMPT DETECTED 🚨`);
+          console.error(`Пользователь: ${username} (ID: ${userId})`);
+          console.error(`Пытается принять дуэль: ${sessionId}`);
+          console.error(`Предназначенную для: @${duel.opponentUsername}`);
+          console.error(`Чат: ${ctx.chat?.id} (${ctx.chat?.title || 'unknown'})`);
+          console.error(`Команда: accept_group_duel_${sessionId}`);
+          console.error(`Статус дуэли: ${duel.status}`);
+          console.error(`Автор дуэли: ${duel.challengerUsername} (ID: ${duel.challengerId})`);
+          
+          // Отправляем предупреждение в чат (опционально)
+          try {
+            await ctx.reply(
+              `⚠️ Пользователь @${username} пытается принять чужой вызов!\n` +
+              `Этот вызов предназначен для @${duel.opponentUsername}`,
+              { reply_to_message_id: ctx.callbackQuery.message.message_id }
+            );
+          } catch (notifyError) {
+            console.error('Ошибка отправки предупреждения:', notifyError);
+          }
+          
+          await ctx.answerCbQuery(`❌ Этот вызов предназначен для @${duel.opponentUsername}`);
+          return;
+        }
+        
+        // 🔒 БЕЗОПАСНОСТЬ: Предотвращаем само-принятие дуэли
+        if (duel.challengerId === userId) {
+          console.warn(`🚫 SELF-ACCEPT ATTEMPT: Пользователь ${username} (${userId}) пытается принять собственную дуэль`);
+          await ctx.answerCbQuery('❌ Нельзя принять собственный вызов');
+          return;
+        }
+        
+        // 🔒 БЕЗОПАСНОСТЬ: Проверяем, что дуэль еще активна
+        if (duel.status !== 'pending') {
+          console.warn(`⚠️ Попытка принять дуэль с неподходящим статусом: ${duel.status}`);
+          await ctx.answerCbQuery('❌ Дуэль уже недоступна для принятия');
+          return;
+        }
+        
+        console.log(`✅ Валидация пройдена. Принимаем дуэль...`);
+        
         const result = await apiService.acceptDuel(sessionId, userId, ctx.from);
         
         if (result.success) {
-          const duel = result.data.duel;
+          const acceptedDuel = result.data.duel;
           
           await ctx.answerCbQuery('✅ Дуэль принята! Начинаем игру...');
           
           // Обновляем сообщение на игровое
-          await this.updateToGameMessage(ctx, duel, sessionId);
+          await this.updateToGameMessage(ctx, acceptedDuel, sessionId);
           
         } else {
           await ctx.answerCbQuery(`❌ ${result.error}`);

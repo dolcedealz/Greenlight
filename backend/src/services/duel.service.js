@@ -562,8 +562,21 @@ class DuelService {
         throw new Error('Дуэль не найдена');
       }
       
-      if (!duel.isParticipant(userId) && reason === 'user_cancel') {
-        throw new Error('Вы не можете отменить эту дуэль');
+      // 🔧 УЛУЧШЕННАЯ ЛОГИКА ОТМЕНЫ: проверяем права более точно
+      if (reason === 'user_cancel') {
+        const isChallenger = duel.challengerId === userId;
+        const isOpponent = duel.opponentId === userId;
+        const isParticipant = duel.isParticipant(userId);
+        
+        // Для pending дуэлей: только challenger может отменить
+        if (duel.status === 'pending' && !isChallenger) {
+          throw new Error('Только создатель дуэли может её отменить');
+        }
+        
+        // Для принятых/активных дуэлей: любой участник может отменить
+        if ((duel.status === 'accepted' || duel.status === 'active') && !isParticipant && !isChallenger && !isOpponent) {
+          throw new Error('Вы не можете отменить эту дуэль');
+        }
       }
       
       if (duel.status === 'completed' || duel.status === 'cancelled') {

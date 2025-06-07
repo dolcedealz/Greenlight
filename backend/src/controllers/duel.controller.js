@@ -299,6 +299,7 @@ class DuelController {
       // 🔧 ИСПРАВЛЕНИЕ: Проверяем права доступа используя множественные идентификаторы
       const userIdFromHeaders = req.headers['x-telegram-user-id'];
       const userIdFromQuery = req.query.userId;
+      const userUsername = req.user?.username || req.headers['x-telegram-username'];
       
       // Собираем все возможные варианты ID пользователя
       const possibleUserIds = [
@@ -311,14 +312,28 @@ class DuelController {
       ].filter(id => id); // Убираем пустые значения
       
       console.log(`🔍 POSSIBLE USER IDS:`, possibleUserIds);
+      console.log(`🔍 USER INFO:`, {
+        userUsername,
+        duelOpponentUsername: duel.opponentUsername,
+        duelChallengerUsername: duel.challengerUsername,
+        duelStatus: duel.status
+      });
       
-      // Проверяем доступ через все возможные ID
-      const hasAccess = possibleUserIds.some(id => 
-        duel.isParticipant(id?.toString()) ||
-        duel.challengerId === id?.toString() ||
-        duel.opponentId === id?.toString() ||
-        duel.challengerId === id ||
-        duel.opponentId === id
+      // 🔧 УЛУЧШЕННАЯ ЛОГИКА ДОСТУПА: Проверяем для pending дуэлей по username тоже
+      const hasAccess = possibleUserIds.some(id => {
+        // Прямое сравнение ID с участниками
+        const isChallenger = duel.challengerId === id?.toString() || duel.challengerId === id;
+        const isOpponent = duel.opponentId === id?.toString() || duel.opponentId === id;
+        const isParticipant = duel.isParticipant(id?.toString());
+        
+        return isChallenger || isOpponent || isParticipant;
+      }) || (
+        // Дополнительная проверка для pending дуэлей по username
+        duel.status === 'pending' && userUsername && (
+          duel.challengerUsername === userUsername ||
+          duel.opponentUsername === userUsername ||
+          !duel.opponentUsername // Открытая дуэль - любой может посмотреть
+        )
       );
       
       console.log(`🔍 ACCESS CHECK DETAILS:`, {
@@ -327,7 +342,17 @@ class DuelController {
         opponentId: duel.opponentId,
         userIdFromHeaders,
         userIdFromQuery,
+        userUsername,
         hasAccess,
+        usernameCheck: {
+          isPending: duel.status === 'pending',
+          userUsername,
+          challengerUsername: duel.challengerUsername,
+          opponentUsername: duel.opponentUsername,
+          matchesChallenger: duel.challengerUsername === userUsername,
+          matchesOpponent: duel.opponentUsername === userUsername,
+          isOpenDuel: !duel.opponentUsername
+        },
         participantChecks: possibleUserIds.map(id => ({
           id,
           isParticipant: duel.isParticipant(id?.toString()),

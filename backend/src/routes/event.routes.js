@@ -92,12 +92,12 @@ router.get('/user/bets',
 
 // === МАРШРУТЫ С ПАРАМЕТРОМ eventId ===
 
-// Разместить ставку на событие
+// Разместить ставку на событие - ИСПРАВЛЕН ПОРЯДОК MIDDLEWARE
 router.post('/:eventId/bet', 
+  telegramAuthMiddleware,    // ← ИСПРАВЛЕНО: сначала аутентификация
   bettingLimit,
   sanitizeStrings,
-  validatePlaceBet,
-  telegramAuthMiddleware, 
+  validatePlaceBet,          // ← потом валидация (может использовать req.user)
   eventController.placeBet
 );
 

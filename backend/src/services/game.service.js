@@ -612,18 +612,23 @@ async playSlots(userData, gameData) {
         }
       }
       
-      // Размещаем оставшиеся мины для достижения ЗАЯВЛЕННОГО количества
+      // ИСПРАВЛЕННАЯ ЛОГИКА: Размещаем ВСЕ заявленные мины в доступных ячейках
       const shuffledCells = [...availableForMines].sort(() => Math.random() - 0.5);
-      const minesAlreadyShown = hitMine ? 1 : 0; // Количество мин уже показанных игроку
-      const minesToPlace = Math.max(0, requestedMinesCount - minesAlreadyShown);
-      const actualMinesToPlace = Math.min(minesToPlace, shuffledCells.length);
+      
+      // Считаем сколько мин уже показано в открытых ячейках
+      const minesAlreadyShown = hitMine ? 1 : 0;
+      
+      // Размещаем оставшиеся мины до полного заявленного количества
+      const minesToPlace = requestedMinesCount - minesAlreadyShown;
+      const actualMinesToPlace = Math.min(Math.max(0, minesToPlace), shuffledCells.length);
       
       for (let i = 0; i < actualMinesToPlace; i++) {
         const [row, col] = shuffledCells[i];
         displayGrid[row][col] = 'mine';
       }
       
-      console.log(`ЧЕСТНАЯ СЕТКА: Игрок попал на мину: ${hitMine}, размещено ${actualMinesToPlace} дополнительных мин из ${requestedMinesCount} заявленных`);
+      const totalMinesShown = minesAlreadyShown + actualMinesToPlace;
+      console.log(`ЧЕСТНАЯ СЕТКА: Попал на мину: ${hitMine}, размещено ${actualMinesToPlace} дополнительных мин, итого показано ${totalMinesShown} из ${requestedMinesCount} заявленных`);
       return displayGrid;
     }
     

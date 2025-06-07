@@ -271,6 +271,13 @@ function registerCallbackHandlers(bot) {
   bot.action('events_menu', async (ctx) => {
     console.log('ADMIN: Callback events_menu');
     await ctx.answerCbQuery();
+    
+    // Очищаем все сессии событий при возврате в меню
+    if (ctx.session) {
+      delete ctx.session.creatingEvent;
+      delete ctx.session.finishingEvent;
+    }
+    
     await eventsCommands.showEventsMenu(ctx);
   });
 
@@ -296,6 +303,26 @@ function registerCallbackHandlers(bot) {
     console.log('ADMIN: Callback events_stats');
     await ctx.answerCbQuery();
     await eventsCommands.showEventsStats(ctx);
+  });
+
+  bot.action('events_featured', async (ctx) => {
+    console.log('ADMIN: Callback events_featured');
+    await ctx.answerCbQuery();
+    await eventsCommands.manageFeaturedEvent(ctx);
+  });
+
+  // Установка главного события
+  bot.action(/set_featured_(.+)/, async (ctx) => {
+    const eventId = ctx.match[1];
+    console.log(`ADMIN: Callback set_featured_${eventId}`);
+    await eventsCommands.setFeaturedEvent(ctx, eventId);
+  });
+
+  // Снятие главного события
+  bot.action('unset_featured', async (ctx) => {
+    console.log('ADMIN: Callback unset_featured');
+    await ctx.answerCbQuery();
+    await eventsCommands.unsetFeaturedEvent(ctx);
   });
 
   // Выбор категории события

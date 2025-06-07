@@ -503,6 +503,71 @@ class EventController {
       });
     }
   }
+
+  /**
+   * Установить событие как главное
+   */
+  async setFeaturedEvent(req, res) {
+    try {
+      const { eventId } = req.params;
+      const { featured = true } = req.body;
+      
+      console.log('EVENT CONTROLLER: Установка главного события:', eventId, 'featured:', featured);
+      
+      // Проверяем права админа
+      if (req.user.role !== 'admin' && !req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Доступ запрещен. Требуются права администратора'
+        });
+      }
+      
+      const result = await eventService.setFeaturedEvent(eventId, featured);
+      
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: featured ? 'Событие установлено как главное' : 'Событие убрано из главных'
+      });
+    } catch (error) {
+      console.error('EVENT CONTROLLER: Ошибка установки главного события:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Ошибка установки главного события'
+      });
+    }
+  }
+
+  /**
+   * Убрать главное событие
+   */
+  async unsetFeaturedEvent(req, res) {
+    try {
+      console.log('EVENT CONTROLLER: Снятие главного события');
+      
+      // Проверяем права админа
+      if (req.user.role !== 'admin' && !req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Доступ запрещен. Требуются права администратора'
+        });
+      }
+      
+      const result = await eventService.unsetAllFeaturedEvents();
+      
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Главное событие убрано'
+      });
+    } catch (error) {
+      console.error('EVENT CONTROLLER: Ошибка снятия главного события:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Ошибка снятия главного события'
+      });
+    }
+  }
 }
 
 module.exports = new EventController();

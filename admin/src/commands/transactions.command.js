@@ -25,7 +25,26 @@ const apiClient = axios.create({
  */
 function escapeMarkdown(text) {
   if (!text) return '';
-  return text.toString().replace(/[_*\[\]()~`>#+=|{}.!\\-]/g, '\\$&');
+  
+  // Преобразуем в строку и удаляем проблемные символы
+  let cleaned = text.toString()
+    // Удаляем все невидимые и управляющие символы Unicode
+    .replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u034F\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3000\uFE00-\uFE0F\uFEFF]/g, '')
+    // Удаляем другие проблемные Unicode символы
+    .replace(/[\u2000-\u206F]/g, '')
+    // Заменяем неразрывные пробелы на обычные
+    .replace(/\u00A0/g, ' ')
+    // Удаляем лишние пробелы
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Если после очистки строка пустая, возвращаем безопасную замену
+  if (!cleaned) {
+    return 'Unknown';
+  }
+  
+  // Экранируем специальные символы Markdown v2
+  return cleaned.replace(/[_*\[\]()~`>#+=|{}.!\\-]/g, '\\$&');
 }
 
 /**

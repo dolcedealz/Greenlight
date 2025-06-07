@@ -25,7 +25,26 @@ const apiClient = axios.create({
  */
 function escapeMarkdown(text) {
   if (!text) return '';
-  return text.toString().replace(/[_*\[\]()~`>#+=|{}.!\\-]/g, '\\$&');
+  
+  // Преобразуем в строку и удаляем проблемные символы
+  let cleaned = text.toString()
+    // Удаляем все невидимые и управляющие символы Unicode
+    .replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u034F\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3000\uFE00-\uFE0F\uFEFF]/g, '')
+    // Удаляем другие проблемные Unicode символы
+    .replace(/[\u2000-\u206F]/g, '')
+    // Заменяем неразрывные пробелы на обычные
+    .replace(/\u00A0/g, ' ')
+    // Удаляем лишние пробелы
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Если после очистки строка пустая, возвращаем безопасную замену
+  if (!cleaned) {
+    return 'Unknown';
+  }
+  
+  // Экранируем специальные символы Markdown v2
+  return cleaned.replace(/[_*\[\]()~`>#+=|{}.!\\-]/g, '\\$&');
 }
 
 /**
@@ -73,20 +92,46 @@ async function showUsersList(ctx, page = 1) {
     let message = `👥 *Список пользователей* (стр. ${pagination.current}/${pagination.pages})\n\n`;
     
     users.forEach((user, index) => {
-      const userNum = (pagination.current - 1) * 10 + index + 1;
-      const statusEmoji = user.isBlocked ? '🚫' : '✅';
-      const username = user.username ? `@${user.username}` : 'Нет username';
-      
-      // Экранируем специальные символы в именах для Markdown
-      const firstName = escapeMarkdown(user.firstName || '');
-      const lastName = escapeMarkdown(user.lastName || '');
-      
-      message += `${userNum}\\. ${statusEmoji} *${firstName} ${lastName}*\n`;
-      message += `   ${username}\n`;
-      message += `   💰 Баланс: ${user.balance.toFixed(2)} USDT\n`;
-      message += `   📊 Прибыль: ${((user.totalWon || 0) - (user.totalWagered || 0)).toFixed(2)} USDT\n`;
-      message += `   🎮 Игр: ${user.totalGames || 0}\n`;
-      message += `   📅 Регистрация: ${new Date(user.createdAt).toLocaleDateString('ru-RU')}\n\n`;
+      try {
+        const userNum = (pagination.current - 1) * 10 + index + 1;
+        const statusEmoji = user.isBlocked ? '🚫' : '✅';
+        
+        // Безопасная обработка username
+        let username = 'Нет username';
+        if (user.username && typeof user.username === 'string') {
+          const cleanUsername = escapeMarkdown(user.username);
+          if (cleanUsername && cleanUsername !== 'Unknown') {
+            username = `@${cleanUsername}`;
+          }
+        }
+        
+        // Безопасная обработка имен
+        const firstName = escapeMarkdown(user.firstName || 'Пользователь');
+        const lastName = escapeMarkdown(user.lastName || '');
+        
+        // Создаем полное имя, убеждаемся что оно не пустое
+        let fullName = `${firstName} ${lastName}`.trim();
+        if (!fullName || fullName === 'Unknown Unknown' || fullName === 'Unknown') {
+          fullName = `Пользователь ${user.telegramId || userNum}`;
+        }
+        
+        message += `${userNum}\\. ${statusEmoji} *${fullName}*\n`;
+        message += `   ${username}\n`;
+        message += `   💰 Баланс: ${(user.balance || 0).toFixed(2)} USDT\n`;
+        message += `   📊 Прибыль: ${((user.totalWon || 0) - (user.totalWagered || 0)).toFixed(2)} USDT\n`;
+        message += `   🎮 Игр: ${user.totalGames || 0}\n`;
+        
+        // Безопасная обработка даты
+        try {
+          const regDate = new Date(user.createdAt).toLocaleDateString('ru-RU');
+          message += `   📅 Регистрация: ${regDate}\n\n`;
+        } catch (dateError) {
+          message += `   📅 Регистрация: Неизвестно\n\n`;
+        }
+      } catch (userError) {
+        console.error('ADMIN: Ошибка обработки пользователя:', userError, user);
+        message += `${(pagination.current - 1) * 10 + index + 1}\\. ❌ *Ошибка отображения пользователя*\n\n`;
+      }
     });
     
     // Создаем клавиатуру с кнопками навигации и действиями
@@ -208,22 +253,47 @@ async function handleUserSearch(ctx) {
     const buttons = [];
     
     users.slice(0, 10).forEach((user, index) => {
-      const statusEmoji = user.isBlocked ? '🚫' : '✅';
-      const username = user.username ? `@${user.username}` : 'Нет username';
-      
-      const firstName = escapeMarkdown(user.firstName || '');
-      const lastName = escapeMarkdown(user.lastName || '');
-      
-      message += `${index + 1}. ${statusEmoji} *${firstName} ${lastName}*\n`;
-      message += `   ${username} | ID: \`${user.telegramId}\`\n`;
-      message += `   💰 ${user.balance.toFixed(2)} USDT | `;
-      message += `🎮 ${user.totalGames || 0} игр\n\n`;
-      
-      // Добавляем кнопку для просмотра деталей пользователя
-      buttons.push([Markup.button.callback(
-        `👤 ${firstName} ${lastName}`, 
-        `user_details_${user._id}`
-      )]);
+      try {
+        const statusEmoji = user.isBlocked ? '🚫' : '✅';
+        
+        // Безопасная обработка username
+        let username = 'Нет username';
+        if (user.username && typeof user.username === 'string') {
+          const cleanUsername = escapeMarkdown(user.username);
+          if (cleanUsername && cleanUsername !== 'Unknown') {
+            username = `@${cleanUsername}`;
+          }
+        }
+        
+        const firstName = escapeMarkdown(user.firstName || 'Пользователь');
+        const lastName = escapeMarkdown(user.lastName || '');
+        
+        // Создаем безопасное имя для отображения
+        let fullName = `${firstName} ${lastName}`.trim();
+        if (!fullName || fullName === 'Unknown Unknown' || fullName === 'Unknown') {
+          fullName = `Пользователь ${user.telegramId || index + 1}`;
+        }
+        
+        // Безопасное имя для кнопки (без спецсимволов)
+        let buttonName = `${firstName} ${lastName}`.trim().replace(/[_*\[\]()~`>#+=|{}.!\\-]/g, '');
+        if (!buttonName || buttonName.length < 2) {
+          buttonName = `Пользователь ${index + 1}`;
+        }
+        
+        message += `${index + 1}. ${statusEmoji} *${fullName}*\n`;
+        message += `   ${username} | ID: \`${user.telegramId || 'unknown'}\`\n`;
+        message += `   💰 ${(user.balance || 0).toFixed(2)} USDT | `;
+        message += `🎮 ${user.totalGames || 0} игр\n\n`;
+        
+        // Добавляем кнопку для просмотра деталей пользователя
+        buttons.push([Markup.button.callback(
+          `👤 ${buttonName}`, 
+          `user_details_${user._id}`
+        )]);
+      } catch (userError) {
+        console.error('ADMIN: Ошибка обработки пользователя в поиске:', userError, user);
+        message += `${index + 1}. ❌ *Ошибка отображения пользователя*\n\n`;
+      }
     });
     
     if (users.length > 10) {

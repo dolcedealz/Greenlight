@@ -53,6 +53,7 @@ const eventsCommands = {
       [Markup.button.callback('📋 Список событий', 'events_list')],
       [Markup.button.callback('➕ Создать событие', 'events_create')],
       [Markup.button.callback('✅ Завершить событие', 'events_finish')],
+      [Markup.button.callback('⭐ Главное событие', 'events_featured')],
       [Markup.button.callback('📊 Статистика событий', 'events_stats')],
       [Markup.button.callback('🔙 Назад', 'main_menu')]
     ]);
@@ -271,7 +272,9 @@ const eventsCommands = {
   async createEvent(ctx, eventData) {
     try {
       const now = new Date();
-      const endTime = new Date(now.getTime() + eventData.durationHours * 60 * 60 * 1000);
+      // Добавляем 1 минуту к текущему времени, чтобы избежать ошибки "время в прошлом"
+      const startTime = new Date(now.getTime() + 60 * 1000);
+      const endTime = new Date(startTime.getTime() + eventData.durationHours * 60 * 60 * 1000);
       const bettingEndsAt = new Date(endTime.getTime() - 30 * 60 * 1000); // За 30 минут до окончания
       
       const createData = {
@@ -282,7 +285,7 @@ const eventsCommands = {
           { name: eventData.outcome2 }
         ],
         category: eventData.category,
-        startTime: now.toISOString(),
+        startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         bettingEndsAt: bettingEndsAt.toISOString(),
         featured: true, // Делаем новое событие главным
@@ -362,6 +365,18 @@ const eventsCommands = {
     }
     
     const text = ctx.message.text.trim();
+    
+    // Игнорируем обычные кнопки меню и эмодзи-команды
+    const menuCommands = ['📊 Финансы', '👥 Пользователи', '💳 Транзакции', '🎯 События', 
+                         '🎁 Промокоды', '📊 Статистика', '🎮 Коэффициенты', '📊 Мониторинг',
+                         '📢 Уведомления', '🛡️ Безопасность', '💾 Бэкапы', '⚙️ Настройки',
+                         '🔮 События', '🏦 Транзакции'];
+    
+    if (menuCommands.includes(text) || text.includes('🏠') || text.includes('🔙')) {
+      // Очищаем сессию и обрабатываем как обычную команду меню
+      delete ctx.session.finishingEvent;
+      return;
+    }
     
     if (ctx.session.finishingEvent.step === 'eventId') {
       try {
@@ -523,6 +538,118 @@ const eventsCommands = {
     } catch (error) {
       console.error('EVENTS: Ошибка получения статистики:', error);
       await ctx.answerCbQuery('❌ Ошибка получения статистики');
+    }
+  },
+
+  /**
+   * Управление главным событием
+   */
+  async manageFeaturedEvent(ctx) {
+    try {
+      // Получаем список активных событий
+      const response = await apiClient.get('/events/admin/all?status=active');
+      
+      if (!response.data.success) {
+        return ctx.answerCbQuery('❌ Ошибка получения событий');
+      }
+      
+      const events = response.data.data.events;
+      
+      if (events.length === 0) {
+        return ctx.editMessageText(
+          '⭐ *Управление главным событием*\n\n' +
+          'Нет активных событий для назначения главным.',
+          {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([[
+              Markup.button.callback('🔙 Назад', 'events_menu')
+            ]])
+          }
+        );
+      }
+      
+      // Находим текущее главное событие
+      const featuredEvent = events.find(e => e.featured);
+      
+      let message = '⭐ *Управление главным событием*\n\n';
+      
+      if (featuredEvent) {
+        message += `🔖 Текущее главное событие:\n`;
+        message += `📝 ${featuredEvent.title}\n`;
+        message += `🆔 ID: \`${featuredEvent._id}\`\n\n`;
+      } else {
+        message += '❌ Главное событие не назначено\n\n';
+      }
+      
+      message += '📋 Выберите событие для назначения главным:';
+      
+      const buttons = [];
+      
+      // Показываем первые 8 активных событий
+      events.slice(0, 8).forEach((event, index) => {
+        const isFeatured = event.featured ? '⭐ ' : '';
+        buttons.push([Markup.button.callback(
+          `${index + 1}. ${isFeatured}${event.title.substring(0, 40)}...`,
+          `set_featured_${event._id}`
+        )]);
+      });
+      
+      if (featuredEvent) {
+        buttons.push([Markup.button.callback('❌ Убрать главное событие', 'unset_featured')]);
+      }
+      
+      buttons.push([Markup.button.callback('🔙 Назад', 'events_menu')]);
+      
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard(buttons)
+      });
+      
+    } catch (error) {
+      console.error('EVENTS: Ошибка управления главным событием:', error);
+      await ctx.answerCbQuery('❌ Ошибка получения событий');
+    }
+  },
+
+  /**
+   * Установить событие как главное
+   */
+  async setFeaturedEvent(ctx, eventId) {
+    try {
+      const response = await apiClient.patch(`/events/admin/${eventId}/featured`, {
+        featured: true
+      });
+      
+      if (response.data.success) {
+        await ctx.answerCbQuery('✅ Главное событие установлено');
+        await this.manageFeaturedEvent(ctx);
+      } else {
+        await ctx.answerCbQuery('❌ Ошибка установки главного события');
+      }
+      
+    } catch (error) {
+      console.error('EVENTS: Ошибка установки главного события:', error);
+      await ctx.answerCbQuery('❌ Ошибка установки главного события');
+    }
+  },
+
+  /**
+   * Убрать главное событие
+   */
+  async unsetFeaturedEvent(ctx) {
+    try {
+      const response = await apiClient.patch('/events/admin/featured/unset');
+      
+      if (response.data.success) {
+        await ctx.answerCbQuery('✅ Главное событие убрано');
+        await this.manageFeaturedEvent(ctx);
+      } else {
+        await ctx.answerCbQuery('❌ Ошибка снятия главного события');
+      }
+      
+    } catch (error) {
+      console.error('EVENTS: Ошибка снятия главного события:', error);
+      await ctx.answerCbQuery('❌ Ошибка снятия главного события');
     }
   }
 };

@@ -67,6 +67,21 @@ router.put('/admin/:eventId/finish',
   eventController.finishEvent
 );
 
+// Установить событие как главное
+router.patch('/admin/:eventId/featured', 
+  adminLimit,
+  validateObjectId('eventId'),
+  adminAuthMiddleware, 
+  eventController.setFeaturedEvent
+);
+
+// Убрать главное событие
+router.patch('/admin/featured/unset', 
+  adminLimit,
+  adminAuthMiddleware, 
+  eventController.unsetFeaturedEvent
+);
+
 // === ПОЛЬЗОВАТЕЛЬСКИЕ МАРШРУТЫ ДЛЯ СТАВОК ===
 
 // Получить ставки пользователя - ИСПРАВЛЕННЫЙ МАРШРУТ

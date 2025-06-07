@@ -769,6 +769,94 @@ class EventService {
       // Не прерываем основную логику
     }
   }
+
+  /**
+   * Установить событие как главное
+   */
+  async setFeaturedEvent(eventId, featured = true) {
+    try {
+      console.log('EVENT SERVICE: Установка главного события:', eventId, 'featured:', featured);
+      
+      if (!mongoose.Types.ObjectId.isValid(eventId)) {
+        throw new Error('Некорректный ID события');
+      }
+      
+      // Находим событие
+      const event = await Event.findById(eventId);
+      if (!event) {
+        throw new Error('Событие не найдено');
+      }
+      
+      // Проверяем, что событие активно
+      if (event.status !== 'active') {
+        throw new Error('Можно назначить главным только активное событие');
+      }
+      
+      // Если устанавливаем событие как главное
+      if (featured) {
+        // Сначала убираем featured флаг у всех других событий
+        await Event.updateMany(
+          { featured: true },
+          { $set: { featured: false } }
+        );
+        
+        console.log('EVENT SERVICE: Убраны featured флаги у других событий');
+        
+        // Устанавливаем текущее событие как главное
+        event.featured = true;
+        event.priority = 999; // Высокий приоритет для главного события
+        await event.save();
+        
+        console.log(`EVENT SERVICE: Событие "${event.title}" установлено как главное`);
+      } else {
+        // Просто убираем featured флаг
+        event.featured = false;
+        event.priority = 0;
+        await event.save();
+        
+        console.log(`EVENT SERVICE: Событие "${event.title}" убрано из главных`);
+      }
+      
+      return {
+        eventId: event._id,
+        title: event.title,
+        featured: event.featured,
+        priority: event.priority
+      };
+    } catch (error) {
+      console.error('EVENT SERVICE: Ошибка установки главного события:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Убрать все главные события
+   */
+  async unsetAllFeaturedEvents() {
+    try {
+      console.log('EVENT SERVICE: Снятие всех главных событий');
+      
+      const result = await Event.updateMany(
+        { featured: true },
+        { 
+          $set: { 
+            featured: false,
+            priority: 0
+          } 
+        }
+      );
+      
+      console.log(`EVENT SERVICE: Убраны featured флаги у ${result.modifiedCount} событий`);
+      
+      return {
+        modifiedCount: result.modifiedCount,
+        message: `Убраны featured флаги у ${result.modifiedCount} событий`
+      };
+    } catch (error) {
+      console.error('EVENT SERVICE: Ошибка снятия главных событий:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new EventService();

@@ -255,11 +255,12 @@ class CrashService extends EventEmitter {
               this.currentRound.finalMultiplier = crashPoint;
               
               // Эмитим краш
+              console.log(`🔍 ОТЛАДКА КРАШ: Отправляем клиентам crashPoint=${crashPoint.toFixed(2)}, finalMultiplier=${crashPoint.toFixed(2)}, currentMultiplier=${this.currentMultiplier.toFixed(2)}`);
               this.emit('gameCrashed', {
                 roundId: currentRoundId,
                 status: 'crashed',
                 crashPoint: crashPoint,
-                finalMultiplier: crashPoint // ИСПРАВЛЕНО: используем точный crashPoint вместо currentMultiplier
+                finalMultiplier: crashPoint // ТОЧНЫЙ crash point для отображения
               });
             }
             

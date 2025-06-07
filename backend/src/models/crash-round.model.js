@@ -19,6 +19,11 @@ const crashRoundSchema = new Schema({
     required: true,
     min: 1.0
   },
+  finalMultiplier: {
+    type: Number,
+    default: null, // Будет установлен при краше
+    min: 1.0
+  },
   startedAt: {
     type: Date,
     default: null

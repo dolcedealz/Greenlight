@@ -31,6 +31,11 @@ class CrashWebSocketHandlers {
     });
 
     crashService.on('gameCrashed', (data) => {
+      console.log(`🔍 WEBSOCKET CRASH: Отправка crash_game_crashed события:`, {
+        roundId: data.roundId,
+        crashPoint: data.crashPoint,
+        finalMultiplier: data.finalMultiplier
+      });
       this.io.to('game_crash').emit('crash_game_crashed', data);
     });
 

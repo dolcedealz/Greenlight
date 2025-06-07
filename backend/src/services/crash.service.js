@@ -102,6 +102,7 @@ class CrashService extends EventEmitter {
       
       // Генерируем crash point используя provably fair алгоритм
       const crashPoint = this.generateCrashPoint(serverSeed, nonce);
+      console.log(`🎲 ГЕНЕРАЦИЯ CRASH POINT: Сгенерирован crashPoint=${crashPoint.toFixed(2)}x для раунда #${roundId}`);
       
       this.currentRound = new CrashRound({
         roundId,
@@ -237,6 +238,7 @@ class CrashService extends EventEmitter {
             this.currentMultiplier = crashPoint;
             
             console.log(`💥 CRASH SERVICE: Краш на ${crashPoint.toFixed(2)}x`);
+            console.log(`🔍 ОТЛАДКА КРАШ: currentMultiplier=${this.currentMultiplier.toFixed(2)}x, crashPoint=${crashPoint.toFixed(2)}x`);
             
             // Обрабатываем краш
             if (this.currentRound) {
@@ -257,7 +259,7 @@ class CrashService extends EventEmitter {
                 roundId: currentRoundId,
                 status: 'crashed',
                 crashPoint: crashPoint,
-                finalMultiplier: this.currentMultiplier
+                finalMultiplier: crashPoint // ИСПРАВЛЕНО: используем точный crashPoint вместо currentMultiplier
               });
             }
             
@@ -797,6 +799,8 @@ class CrashService extends EventEmitter {
         message: 'Игра инициализируется'
       };
     }
+    
+    console.log(`🔍 СОСТОЯНИЕ ИГРЫ: roundId=${this.currentRound.roundId}, status=${this.currentRound.status}, crashPoint=${this.currentRound.crashPoint?.toFixed(2)}x, currentMultiplier=${this.currentMultiplier?.toFixed(2)}x`);
     
     // Получаем пользователей для ставок
     const userIds = this.currentRound.bets.map(bet => bet.user);

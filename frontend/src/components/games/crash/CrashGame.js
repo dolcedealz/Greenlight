@@ -345,6 +345,7 @@ const CrashGame = ({
 
     const unsubGameCrashed = webSocketService.on('crash_game_crashed', (data) => {
       console.log('💥 Игра разбилась:', data);
+      console.log(`🔍 ОТЛАДКА FRONTEND: crashPoint=${data.crashPoint}, finalMultiplier=${data.finalMultiplier}`);
       setGameState('crashed');
       setCrashPoint(data.crashPoint);
       setCurrentMultiplier(data.crashPoint);

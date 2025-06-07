@@ -91,6 +91,7 @@ const CrashHistory = ({ history }) => {
                     <div 
                       className={`crash-multiplier ${getMultiplierClass(round.crashPoint)}`}
                       style={{ color: getMultiplierColor(round.crashPoint) }}
+                      title={`Crash Point: ${round.crashPoint.toFixed(2)}x`}
                     >
                       {round.crashPoint >= 10 ? '🚀' : round.crashPoint >= 5 ? '🔥' : round.crashPoint >= 2 ? '⚡' : '💥'} 
                       <span className="multiplier-value">{round.crashPoint.toFixed(2)}x</span>

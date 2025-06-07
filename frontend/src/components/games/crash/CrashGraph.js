@@ -569,7 +569,8 @@ const CrashGraph = ({ multiplier, gameState, crashPoint, timeToStart, roundId })
       const shake = Math.sin(time * 20) * 2;
       ctx.fillText('CRASHED', centerX + shake, centerY - 30);
       
-      // Финальный множитель
+      // Финальный множитель - логируем для отладки
+      console.log(`🔍 ГРАФИК КРАШ: Отображение crashPoint=${crashPoint.toFixed(2)}x`);
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 36px Arial';
       ctx.fillText(`${crashPoint.toFixed(2)}x`, centerX, centerY + 30);

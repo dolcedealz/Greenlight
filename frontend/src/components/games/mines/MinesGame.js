@@ -261,6 +261,12 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         console.log('💣 GAME: Кешаут - сохранены открытые ячейки:', data.clickedCells);
       }
       
+      // Обновляем сетку при кешауте (показываем мины)
+      if (data.grid) {
+        setGrid(data.grid);
+        console.log('💣 GAME: Кешаут - обновлена сетка с минами:', data.grid);
+      }
+      
       // Завершаем игру
       setGameOver(true);
       

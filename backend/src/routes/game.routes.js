@@ -39,6 +39,7 @@ router.post('/crash/bet',
 
 router.post('/crash/cashout', 
   telegramAuthMiddleware, 
+  bettingLimit, // ЗАЩИТА от спама кешаутом
   gameController.cashOutCrash
 );
 

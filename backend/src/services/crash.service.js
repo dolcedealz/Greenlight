@@ -17,6 +17,7 @@ class CrashService extends EventEmitter {
     this.currentMultiplier = 1.00;
     this.gameStartTime = null;
     this.lastProcessedMultiplier = 1.00; // НОВОЕ: Отслеживание последнего обработанного множителя
+    this.lastCashOutTimes = new Map(); // ЗАЩИТА от спама кешаутом
     
     // Глобальный модификатор для всей игры Crash
     this.globalCrashModifier = 0;
@@ -285,9 +286,9 @@ class CrashService extends EventEmitter {
   async processAutoCashOuts() {
     if (!this.currentRound) return;
     
-    // НОВОЕ: Проверяем только если множитель значительно изменился
-    if (Math.abs(this.currentMultiplier - this.lastProcessedMultiplier) < 0.01) {
-      return; // Пропускаем если изменение меньше 0.01x
+    // УЛУЧШЕНО: Более точная проверка для автокешаута
+    if (Math.abs(this.currentMultiplier - this.lastProcessedMultiplier) < 0.001) {
+      return; // Пропускаем если изменение меньше 0.001x (более точно)
     }
     
     const session = await mongoose.startSession();
@@ -696,6 +697,12 @@ class CrashService extends EventEmitter {
       throw new Error('Вывод невозможен в данный момент');
     }
     
+    // ЗАЩИТА от спама кешаутом (дополнительно к rate limiting)
+    const userLastCashOut = this.lastCashOutTimes?.get(userId) || 0;
+    if (Date.now() - userLastCashOut < 50) { // минимум 50мс между кешаутами
+      throw new Error('Слишком частые попытки кешаута');
+    }
+    
     const session = await mongoose.startSession();
     session.startTransaction();
     
@@ -776,6 +783,9 @@ class CrashService extends EventEmitter {
         profit: profit,
         balanceAfter: user.balance
       });
+      
+      // Обновляем время последнего кешаута
+      this.lastCashOutTimes.set(userId, Date.now());
       
       return {
         success: true,

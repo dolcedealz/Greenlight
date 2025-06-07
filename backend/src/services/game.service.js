@@ -578,27 +578,52 @@ async playSlots(userData, gameData) {
         }
       }
       
-      // Находим клетки, которые НЕ были открыты игроком
-      const availableForMines = [];
+      // ИСПРАВЛЕНИЕ: Создаем честную сетку без показа модификаторов
+      // Сначала помечаем все открытые игроком ячейки как безопасные (gem)
+      const openedPositions = new Set();
+      const mineHitPosition = null;
+      let hitMine = false;
+      
       for (let i = 0; i < 5; i++) {
         for (let j = 0; j < 5; j++) {
           const isClicked = clickedCells.some(cell => cell[0] === i && cell[1] === j);
+          if (isClicked) {
+            openedPositions.add(`${i},${j}`);
+            
+            // Проверяем попал ли игрок на реальную мину
+            if (realGrid[i][j] === 'mine') {
+              displayGrid[i][j] = 'mine'; // Показываем мину где игрок на неё попал
+              hitMine = true;
+            } else {
+              displayGrid[i][j] = 'gem'; // Показываем бриллиант в безопасной ячейке
+            }
+          }
+        }
+      }
+      
+      // Теперь размещаем ЗАЯВЛЕННОЕ количество мин в неоткрытых ячейках
+      const availableForMines = [];
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          const isClicked = openedPositions.has(`${i},${j}`);
           if (!isClicked) {
             availableForMines.push([i, j]);
           }
         }
       }
       
-      // Случайно размещаем запрошенное количество мин в неоткрытых ячейках
+      // Размещаем оставшиеся мины для достижения ЗАЯВЛЕННОГО количества
       const shuffledCells = [...availableForMines].sort(() => Math.random() - 0.5);
-      const minesToPlace = Math.min(requestedMinesCount, shuffledCells.length);
+      const minesAlreadyShown = hitMine ? 1 : 0; // Количество мин уже показанных игроку
+      const minesToPlace = Math.max(0, requestedMinesCount - minesAlreadyShown);
+      const actualMinesToPlace = Math.min(minesToPlace, shuffledCells.length);
       
-      for (let i = 0; i < minesToPlace; i++) {
+      for (let i = 0; i < actualMinesToPlace; i++) {
         const [row, col] = shuffledCells[i];
         displayGrid[row][col] = 'mine';
       }
       
-      console.log(`ОТЛАДКА СЕТКИ: Размещено ${minesToPlace} мин из ${requestedMinesCount} запрошенных`);
+      console.log(`ЧЕСТНАЯ СЕТКА: Игрок попал на мину: ${hitMine}, размещено ${actualMinesToPlace} дополнительных мин из ${requestedMinesCount} заявленных`);
       return displayGrid;
     }
     
@@ -1200,7 +1225,8 @@ async playSlots(userData, gameData) {
             return {
               win: null, // null означает, что игра продолжается
               clickedCells, // Возвращаем ВСЕ открытые ячейки
-              grid, // Добавляем сетку - САМОЕ ВАЖНОЕ ИЗМЕНЕНИЕ
+              // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: НЕ возвращаем сетку во время активной игры
+              // чтобы игрок не мог видеть позиции мин
               currentMultiplier: multiplier,
               possibleWin: game.bet * multiplier,
               balanceAfter: user.balance

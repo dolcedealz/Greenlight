@@ -260,6 +260,14 @@ async function universalAuthMiddleware(req, res, next) {
 async function duelAuthMiddleware(req, res, next) {
   try {
     console.log('DUEL AUTH: Проверка для дуэли:', req.method, req.originalUrl);
+    console.log('DUEL AUTH: Headers received:', {
+      authorization: req.headers.authorization ? 'PRESENT' : 'MISSING',
+      'x-telegram-user-id': req.headers['x-telegram-user-id'],
+      'x-telegram-username': req.headers['x-telegram-username'],
+      'telegram-data': req.headers['telegram-data'] ? 'PRESENT' : 'MISSING'
+    });
+    console.log('DUEL AUTH: Query params:', req.query);
+    console.log('DUEL AUTH: Body data:', req.body);
     
     // Сначала пытаемся стандартную аутентификацию
     const initData = req.headers['telegram-data'];
@@ -311,6 +319,12 @@ async function duelAuthMiddleware(req, res, next) {
         };
         
         console.log(`DUEL AUTH: Bot аутентификация успешна для ${user._id}, telegramId: ${user.telegramId}`);
+        console.log(`DUEL AUTH: Final req.user object:`, {
+          id: req.user.id,
+          telegramId: req.user.telegramId,
+          username: req.user.username,
+          _id: req.user._id
+        });
         return next();
       }
     }
@@ -340,6 +354,12 @@ async function duelAuthMiddleware(req, res, next) {
       };
       
       console.log(`DUEL AUTH: Временная аутентификация для дуэли успешна`);
+      console.log(`DUEL AUTH: Fallback req.user object:`, {
+        id: req.user.id,
+        telegramId: req.user.telegramId,
+        username: req.user.username,
+        _id: req.user._id
+      });
       return next();
     }
     

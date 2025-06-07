@@ -566,16 +566,24 @@ class DuelService {
       if (reason === 'user_cancel') {
         const isChallenger = duel.challengerId === userId;
         const isOpponent = duel.opponentId === userId;
-        const isParticipant = duel.isParticipant(userId);
         
-        // Для pending дуэлей: только challenger может отменить
-        if (duel.status === 'pending' && !isChallenger) {
-          throw new Error('Только создатель дуэли может её отменить');
+        // Для pending дуэлей:
+        if (duel.status === 'pending') {
+          // Открытая дуэль - только создатель может отменить
+          if (!duel.opponentUsername && !isChallenger) {
+            throw new Error('Только создатель может отменить открытую дуэль');
+          }
+          // Направленная дуэль - только создатель может отменить (целевой игрок еще не принял)
+          else if (duel.opponentUsername && !isChallenger) {
+            throw new Error('Только создатель может отменить непринятую дуэль');
+          }
         }
         
-        // Для принятых/активных дуэлей: любой участник может отменить
-        if ((duel.status === 'accepted' || duel.status === 'active') && !isParticipant && !isChallenger && !isOpponent) {
-          throw new Error('Вы не можете отменить эту дуэль');
+        // Для принятых/активных дуэлей: только участники могут отменить
+        if ((duel.status === 'accepted' || duel.status === 'active')) {
+          if (!isChallenger && !isOpponent) {
+            throw new Error('Только участники дуэли могут её отменить');
+          }
         }
       }
       
@@ -584,9 +592,18 @@ class DuelService {
       }
       
       // Разблокируем средства
+      console.log(`💰 CANCEL: Разблокируем средства для дуэли ${sessionId} (статус: ${duel.status})`);
+      
+      // Всегда возвращаем средства создателю
+      console.log(`💰 CANCEL: Возвращаем ${duel.amount} USDT создателю ${duel.challengerId}`);
       await this.unlockUserFunds(duel.challengerId, duel.amount, session);
-      if (duel.opponentId) {
+      
+      // Возвращаем средства оппоненту только если дуэль была принята (есть opponentId)
+      if (duel.opponentId && (duel.status === 'accepted' || duel.status === 'active')) {
+        console.log(`💰 CANCEL: Возвращаем ${duel.amount} USDT оппоненту ${duel.opponentId}`);
         await this.unlockUserFunds(duel.opponentId, duel.amount, session);
+      } else if (duel.status === 'pending') {
+        console.log(`💰 CANCEL: Дуэль была в ожидании, возвращаем средства только создателю`);
       }
       
       // Обновляем статус
@@ -778,6 +795,17 @@ class DuelService {
   }
   
   async unlockUserFunds(userId, amount, session) {
+    console.log(`🔓 UNLOCK: Начинаем разблокировку ${amount} USDT для пользователя ${userId}`);
+    
+    // Сначала найдем пользователя и проверим его текущее состояние
+    const userBefore = await User.findOne({ telegramId: parseInt(userId) }).session(session);
+    if (!userBefore) {
+      console.error(`❌ UNLOCK: Пользователь ${userId} не найден!`);
+      throw new Error('Пользователь не найден');
+    }
+    
+    console.log(`🔓 UNLOCK: Баланс до: ${userBefore.balance}, заблокированные средства:`, userBefore.lockedFunds);
+    
     // Атомарная операция разблокировки средств
     const result = await User.findOneAndUpdate(
       { telegramId: parseInt(userId) },
@@ -794,9 +822,14 @@ class DuelService {
     );
     
     if (!result) {
+      console.error(`❌ UNLOCK: Не удалось обновить пользователя ${userId}`);
       throw new Error('Пользователь не найден');
     }
     
+    console.log(`✅ UNLOCK: Баланс после: ${result.balance}, заблокированные средства:`, result.lockedFunds);
+    console.log(`✅ UNLOCK: Успешно разблокировано ${amount} USDT для пользователя ${userId}`);
+    
+    return true;
   }
   
   async creditUserFunds(userId, amount, type, reference, session) {

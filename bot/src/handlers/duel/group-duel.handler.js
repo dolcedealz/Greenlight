@@ -348,15 +348,25 @@ class GroupDuelHandler {
       try {
         const sessionId = ctx.match[1];
         const userId = ctx.from.id.toString();
+        const username = ctx.from.username;
         
-        // TODO: Реализовать отмену дуэли в API
+        console.log(`🚫 Отмена дуэли ${sessionId} пользователем ${username} (${userId})`);
         
-        await ctx.answerCbQuery('❌ Дуэль отменена');
+        // Вызываем API для отмены дуэли
+        const result = await apiService.cancelDuel(sessionId, userId, ctx.from);
         
-        await ctx.editMessageText(
-          '❌ **Дуэль отменена**\n\nИнициатор отменил вызов',
-          { parse_mode: 'Markdown' }
-        );
+        if (result.success) {
+          await ctx.answerCbQuery('✅ Дуэль отменена, средства возвращены');
+          
+          await ctx.editMessageText(
+            `❌ **Дуэль отменена**\n\n` +
+            `Отменил: @${username}\n` +
+            `💰 Средства возвращены участникам`,
+            { parse_mode: 'Markdown' }
+          );
+        } else {
+          await ctx.answerCbQuery(`❌ ${result.error}`);
+        }
         
       } catch (error) {
         console.error('Ошибка отмены дуэли:', error);

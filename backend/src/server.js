@@ -49,6 +49,34 @@ async function initializeCrashGame() {
   }
 }
 
+// Функция инициализации очистки просроченных дуэлей
+async function initializeDuelCleanup() {
+  try {
+    console.log('🧹 Инициализация очистки дуэлей...');
+    
+    const { duelService } = require('./services');
+    
+    // Запускаем очистку каждые 5 минут
+    setInterval(async () => {
+      try {
+        const result = await duelService.cleanupExpiredData();
+        if (result.expiredDuels > 0 || result.expiredInvitations > 0) {
+          console.log(`🧹 Очищено: ${result.expiredDuels} просроченных дуэлей, ${result.expiredInvitations} приглашений`);
+        }
+      } catch (error) {
+        console.error('❌ Ошибка очистки дуэлей:', error);
+      }
+    }, 5 * 60 * 1000); // 5 минут
+    
+    // Также запускаем очистку сразу
+    const initialResult = await duelService.cleanupExpiredData();
+    console.log(`✅ Дуэль очистка инициализирована. Очищено: ${initialResult.expiredDuels} дуэлей, ${initialResult.expiredInvitations} приглашений`);
+    
+  } catch (error) {
+    console.error('❌ Ошибка инициализации очистки дуэлей:', error);
+  }
+}
+
 // Подключение к MongoDB
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -82,6 +110,11 @@ mongoose
       setTimeout(() => {
         initializeCrashGame();
       }, 5000); // 5 секунд задержки для стабилизации всех систем
+      
+      // Инициализируем очистку дуэлей
+      setTimeout(() => {
+        initializeDuelCleanup();
+      }, 7000); // 7 секунд задержки
       
       // Показываем доступные endpoints
       console.log('\n📋 Доступные endpoints:');

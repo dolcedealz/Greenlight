@@ -8,10 +8,10 @@ import '../../../styles/MinesGame.css';
 
 const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) => {
   const { gameActionFeedback, criticalActionFeedback } = useTactileFeedback();
-  
+
   // НОВОЕ: Состояние загрузки
   const [isInitializing, setIsInitializing] = useState(true);
-  
+
   // Состояние игры
   const [grid, setGrid] = useState(Array(5).fill().map(() => Array(5).fill('gem')));
   const [clickedCells, setClickedCells] = useState([]);
@@ -24,38 +24,37 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
   const [possibleWin, setPossibleWin] = useState(0.95);
   const [loading, setLoading] = useState(false);
   const [autoplay, setAutoplay] = useState(false);
-  
+
   // НОВОЕ: Инициализация с загрузочным экраном
   useEffect(() => {
     const initializeGame = async () => {
       try {
         // Показываем загрузочный экран минимум 2 секунды
         await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        console.log('=== ИНИЦИАЛИЗАЦИЯ ИГРЫ В МИНЫ ===');
+
         setIsInitializing(false);
-        
+
       } catch (err) {
-        console.error('Ошибка инициализации мин:', err);
+
         setError('Ошибка загрузки игры');
         setIsInitializing(false);
       }
     };
-    
+
     initializeGame();
   }, [setError]);
-  
+
   // Обновление возможного выигрыша при изменении ставки или множителя
   useEffect(() => {
     setPossibleWin(betAmount * currentMultiplier);
   }, [betAmount, currentMultiplier]);
-  
+
   // Запуск новой игры
   const startGame = useCallback(async () => {
     try {
-      console.log("Начинаем новую игру в мины...");
+
       setLoading(true);
-      
+
       // Сбрасываем состояние игры
       setGameOver(false);
       setClickedCells([]);
@@ -64,61 +63,61 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       setGameActive(false);
       setGameResult(null);
       setError(null);
-      
+
       // Создаем уникальный seed для игры
       const uniqueSeed = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      
+
       // Отправляем запрос на создание игры
       const response = await gameApi.playMines(betAmount, minesCount, uniqueSeed);
-      
+
       // Проверяем ответ от сервера
       const data = response.data.data;
       if (!data || !data.gameId) {
         throw new Error("API не вернул ID игры");
       }
-      
+
       // Сохраняем ID игры
       setGameId(data.gameId);
-      
+
       // Обновляем баланс
       if (data.balanceAfter !== undefined) {
         setBalance(data.balanceAfter);
       }
-      
+
       // Сбрасываем игровую сетку
       setGrid(Array(5).fill().map(() => Array(5).fill('gem')));
-      
+
       // Активируем игру
       setGameActive(true);
       setLoading(false);
-      
+
     } catch (err) {
-      console.error("Ошибка при создании игры:", err);
+
       setError(err.response?.data?.message || "Не удалось создать игру");
       setLoading(false);
     }
   }, [betAmount, minesCount, setBalance, setError, setGameResult]);
-  
+
   // Обработка клика по ячейке
   const handleCellClick = useCallback(async (row, col) => {
     // Проверка возможности хода
     if (!gameActive || gameOver || loading || !gameId) {
       return;
     }
-    
+
     // Проверка, не открыта ли уже ячейка
     const cellAlreadyClicked = clickedCells.some(cell => 
       cell[0] === row && cell[1] === col
     );
-    
+
     if (cellAlreadyClicked) {
       return;
     }
-    
+
     try {
       // Блокируем интерфейс
       setLoading(true);
-      
+
       // Отправляем запрос на сервер
       const response = await gameApi.completeMinesGame(
         gameId, 
@@ -126,98 +125,97 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         col, 
         false
       );
-      
+
       const data = response.data.data;
-      
+
       // Получаем новые нажатые ячейки
       if (data.clickedCells) {
         // Сохраняем все открытые ячейки с правильным форматом
         setClickedCells(data.clickedCells);
       }
-      
+
       if (data.win === false) {
         // Попадание на мину - игра окончена
-        
+
         // Обновляем сетку с позициями мин (с учетом модификаторов)
         if (data.grid) {
           setGrid(data.grid);
         }
-        
-        
+
         // Завершаем игру
         setGameActive(false);
         setGameOver(true);
-        
+
         // Отображаем результат
         setGameResult({
           win: false,
           amount: betAmount,
           newBalance: data.balanceAfter
         });
-        
+
         // Обновляем баланс
         if (data.balanceAfter !== undefined) {
           setBalance(data.balanceAfter);
         }
-        
+
       } else if (data.maxWin === true) {
         // Все безопасные ячейки открыты - максимальный выигрыш
-        
+
         // Сохраняем состояние открытых ячеек
         if (data.clickedCells) {
           setClickedCells(data.clickedCells);
-          console.log('💣 GAME: Максимальный выигрыш - сохранены открытые ячейки:', data.clickedCells);
+
         }
-        
+
         // Показываем все мины на поле для полной картины
         if (data.grid) {
           setGrid(data.grid);
-          console.log('💣 GAME: Максимальный выигрыш - показаны все мины на поле');
+
         }
-        
+
         // Обновляем множитель
         const finalMultiplier = data.multiplier || (0.95 * (25 - minesCount));
         setCurrentMultiplier(finalMultiplier);
         setPossibleWin(betAmount * finalMultiplier);
-        
+
         // Завершаем игру
         setGameActive(false);
         setGameOver(true);
-        
+
         // Отображаем результат
         setGameResult({
           win: true,
           amount: data.profit,
           newBalance: data.balanceAfter
         });
-        
+
         // Обновляем баланс
         if (data.balanceAfter !== undefined) {
           setBalance(data.balanceAfter);
         }
-        
+
       } else {
         // Открыта безопасная ячейка - продолжаем игру
-        
+
         // Обновляем множитель
         if (data.currentMultiplier) {
           setCurrentMultiplier(data.currentMultiplier);
           setPossibleWin(betAmount * data.currentMultiplier);
         }
-        
+
         // Разблокируем интерфейс для продолжения игры
         setGameActive(true);
-        
+
         // Проверяем условие автоигры
         if (autoplay && data.currentMultiplier >= 2) {
           setTimeout(() => handleCashout(), 500);
         }
       }
-      
+
       setLoading(false);
-      
+
     } catch (err) {
-      console.error("Ошибка при открытии ячейки:", err);
+
       setError(err.response?.data?.message || "Ошибка при открытии ячейки");
       setGameActive(true);
       setLoading(false);
@@ -226,19 +224,19 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
     gameActive, gameOver, loading, clickedCells, betAmount, minesCount, gameId, 
     autoplay, setBalance, setError, setGameResult
   ]);
-  
+
   // Функция кешаута (забрать выигрыш)
   const handleCashout = useCallback(async () => {
     // Проверка возможности выполнить кешаут
     if (!gameActive || gameOver || loading || !gameId) {
       return;
     }
-    
+
     try {
       // Блокируем интерфейс
       setLoading(true);
       setGameActive(false);
-      
+
       // Отправляем запрос на кешаут
       const response = await gameApi.completeMinesGame(
         gameId, 
@@ -246,43 +244,43 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         null, 
         true
       );
-      
+
       const data = response.data.data;
-      
+
       // Сохраняем состояние открытых ячеек при кешауте
       if (data.clickedCells) {
         setClickedCells(data.clickedCells);
       }
-      
+
       // Обновляем сетку при кешауте (показываем мины)
       if (data.grid) {
         setGrid(data.grid);
       }
-      
+
       // Завершаем игру
       setGameOver(true);
-      
+
       // Обновляем множитель
       if (data.multiplier) {
         setCurrentMultiplier(data.multiplier);
       }
-      
+
       // Обновляем баланс
       if (data.balanceAfter !== undefined) {
         setBalance(data.balanceAfter);
       }
-      
+
       // Отображаем результат
       setGameResult({
         win: true,
         amount: data.profit,
         newBalance: data.balanceAfter
       });
-      
+
       setLoading(false);
-      
+
     } catch (err) {
-      console.error("Ошибка при кешауте:", err);
+
       setError(err.response?.data?.message || "Ошибка при кешауте");
       setGameActive(true);
       setLoading(false);
@@ -291,39 +289,35 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
 
   // НОВОЕ: Обработчики кнопок с вибрацией
   const handlePlayClick = () => {
-    console.log('💣 GAME: Нажата кнопка "Играть"');
-    
+
     if (gameActive || loading) {
-      console.log('💣 GAME: Блокировано - игра активна или загрузка');
+
       return;
     }
-    
+
     if (!betAmount || betAmount <= 0 || betAmount > balance) {
-      console.log('💣 GAME: Блокировано - неверная ставка');
+
       return;
     }
-    
-    console.log('💣 GAME: Запускаем игру');
+
     gameActionFeedback(); // Вибрация при начале игры
     startGame();
   };
 
   const handleCashoutClick = () => {
-    console.log('💣 GAME: Нажата кнопка "Забрать выигрыш"');
-    
+
     if (!gameActive || loading) {
-      console.log('💣 GAME: Блокировано - игра не активна или загрузка');
+
       return;
     }
-    
-    console.log('💣 GAME: Забираем выигрыш');
+
     criticalActionFeedback(); // Вибрация при кешауте
     handleCashout();
   };
-  
+
   // Получаем количество открытых ячеек
   const revealedCount = clickedCells.length;
-  
+
   // НОВОЕ: Загрузочный экран для мин
   if (isInitializing) {
     return (
@@ -344,7 +338,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
       </div>
     );
   }
-  
+
   return (
     <>
       <MinesGrid 
@@ -355,7 +349,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
         gameOver={gameOver}
         loading={loading}
       />
-      
+
       {/* НОВОЕ: Кнопки действий под игровым полем */}
       <div className="mines-action-buttons">
         {!gameActive ? (
@@ -376,7 +370,7 @@ const MinesGame = ({ balance, setBalance, gameStats, setGameResult, setError }) 
           </button>
         )}
       </div>
-      
+
       <MinesControls 
         balance={balance}
         onPlay={startGame}

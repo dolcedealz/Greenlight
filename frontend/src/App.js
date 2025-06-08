@@ -27,17 +27,17 @@ const App = () => {
     const init = async () => {
       try {
         setLoading(true);
-        
+
         // Инициализация Telegram Mini App
         let webApp;
         try {
           webApp = initTelegram();
           setTelegramWebApp(webApp);
         } catch (error) {
-          console.warn('Telegram WebApp не инициализирован:', error);
+
           // Продолжаем работу без Telegram WebApp (для разработки в браузере)
         }
-        
+
         // Получение данных пользователя из Telegram WebApp
         let telegramUser;
         if (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
@@ -54,22 +54,22 @@ const App = () => {
           // В продакшене без Telegram данных показываем ошибку
           throw new Error('Приложение должно запускаться только в Telegram');
         }
-        
+
         // Аутентификация пользователя на сервере
         try {
           const authResponse = await userApi.authWithTelegram(telegramUser);
           setUserData(authResponse.data.data.user);
           setBalance(authResponse.data.data.user.balance);
         } catch (authError) {
-          console.error('Ошибка аутентификации:', authError);
+
           setError('Ошибка аутентификации. Пожалуйста, попробуйте еще раз.');
         }
-        
+
         // Расширение окна (если в Telegram)
         if (webApp) {
           webApp.expand();
         }
-        
+
         // Анализ параметров URL
         const urlParams = new URLSearchParams(window.location.search);
         const screenParam = urlParams.get('screen');
@@ -80,15 +80,15 @@ const App = () => {
         } else if (screenParam) {
           setCurrentScreen(screenParam);
         }
-        
+
         setLoading(false);
       } catch (error) {
-        console.error('Ошибка инициализации:', error);
+
         setError('Произошла ошибка при инициализации приложения.');
         setLoading(false);
       }
     };
-    
+
     init();
   }, []);
 
@@ -99,7 +99,7 @@ const App = () => {
       setBalance(balanceResponse.data.data.balance);
       return balanceResponse.data.data.balance;
     } catch (err) {
-      console.error('Ошибка при обновлении баланса:', err);
+
       return balance;
     }
   };
@@ -112,24 +112,23 @@ const App = () => {
     }
     setCurrentScreen(screen);
   };
-  
+
   // Обработчик выбора игры
   const handleGameSelect = (game) => {
     setGameType(game);
     setCurrentScreen('game');
   };
-  
+
   // Обработчик выбора событий
   const handleEventsSelect = () => {
     setCurrentScreen('events');
   };
-  
+
   // Обработчик возврата из игры
   const handleBackFromGame = () => {
     updateBalanceFromServer();
     setCurrentScreen('main');
   };
-
 
   // Отображение экрана загрузки
   if (loading) {
@@ -165,7 +164,7 @@ const App = () => {
           balance={balance}
         />
       )}
-      
+
       {currentScreen === 'game' && (
         <Suspense fallback={<div className="screen-loading"><Loader text="Загрузка игры..." /></div>}>
           <GameScreen 
@@ -179,7 +178,7 @@ const App = () => {
           />
         </Suspense>
       )}
-      
+
       {currentScreen === 'events' && (
         <Suspense fallback={<div className="screen-loading"><Loader text="Загрузка событий..." /></div>}>
           <EventsScreen 
@@ -190,7 +189,7 @@ const App = () => {
           />
         </Suspense>
       )}
-      
+
       {currentScreen === 'profile' && (
         <Suspense fallback={<div className="screen-loading"><Loader text="Загрузка профиля..." /></div>}>
           <ProfileScreen 
@@ -201,7 +200,7 @@ const App = () => {
           />
         </Suspense>
       )}
-      
+
       {currentScreen === 'history' && (
         <Suspense fallback={<div className="screen-loading"><Loader text="Загрузка истории..." /></div>}>
           <HistoryScreen 

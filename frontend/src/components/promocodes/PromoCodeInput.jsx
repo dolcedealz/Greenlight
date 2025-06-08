@@ -14,7 +14,7 @@ const PromoCodeInput = ({ onActivation }) => {
     const upperCode = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     setCode(upperCode);
     setError('');
-    
+
     // Валидация в реальном времени при достижении минимальной длины
     if (upperCode.length >= 3) {
       try {
@@ -53,16 +53,16 @@ const PromoCodeInput = ({ onActivation }) => {
 
     try {
       const result = await activatePromoCode(code);
-      
+
       if (result.success) {
         // Уведомляем родительский компонент об успешной активации
         if (onActivation) {
           onActivation(result.data);
         }
-        
+
         // Показываем успешное сообщение
         showSuccessMessage(result.data);
-        
+
         // Очищаем форму
         setCode('');
         setValidation(null);
@@ -80,7 +80,7 @@ const PromoCodeInput = ({ onActivation }) => {
   const showSuccessMessage = (data) => {
     const { reward, promocode } = data;
     let message = `🎉 Промокод "${promocode.code}" успешно активирован!\n\n`;
-    
+
     switch (reward.type) {
       case 'balance':
         message += `💰 Получен бонус: ${reward.amount} ${reward.currency}`;
@@ -111,7 +111,7 @@ const PromoCodeInput = ({ onActivation }) => {
 
   const getValidationStatus = () => {
     if (!validation) return null;
-    
+
     if (validation.canUse) {
       return {
         type: 'success',
@@ -127,7 +127,7 @@ const PromoCodeInput = ({ onActivation }) => {
 
   const getRewardDescription = (reward) => {
     if (!reward) return 'Промокод готов к использованию';
-    
+
     switch (reward.type) {
       case 'balance':
         return `Бонус ${reward.amount} ${reward.currency}`;
@@ -159,7 +159,7 @@ const PromoCodeInput = ({ onActivation }) => {
             validationStatus?.type === 'error' ? 'error' : ''
           }`}
         />
-        
+
         <Button
           onClick={handleActivate}
           disabled={isLoading || !code || code.length < 3}
@@ -196,7 +196,7 @@ const PromoCodeInput = ({ onActivation }) => {
               <p><strong>Описание:</strong> {validation.description}</p>
             )}
             <p><strong>Награда:</strong> {getRewardDescription(validation.rewardPreview)}</p>
-            
+
             <div className="confirmation-actions">
               <Button
                 onClick={executeActivation}

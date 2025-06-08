@@ -13,109 +13,109 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [withdrawals, setWithdrawals] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  
+
   // Предустановленные суммы
   const presetAmounts = [10, 20, 50, 100, 500, 1000];
-  
+
   // Загрузка истории выводов
   useEffect(() => {
     fetchWithdrawalHistory();
   }, []);
-  
+
   const fetchWithdrawalHistory = async () => {
     try {
       setLoadingHistory(true);
       const response = await paymentApi.getUserWithdrawals({ limit: 5 });
       setWithdrawals(response.data.data.withdrawals || []);
     } catch (error) {
-      console.error('Ошибка загрузки истории выводов:', error);
+
     } finally {
       setLoadingHistory(false);
     }
   };
-  
+
   // Валидация username
   const validateUsername = (username) => {
     return /^[a-zA-Z0-9_]{5,32}$/.test(username);
   };
-  
+
   // Создание запроса на вывод
   const handleCreateWithdrawal = async () => {
     const amount = parseFloat(withdrawalAmount);
-    
+
     // Валидация суммы
     if (isNaN(amount) || amount <= 0) {
       showNotification('Введите корректную сумму');
       return;
     }
-    
+
     if (amount < 1) {
       showNotification('Минимальная сумма вывода: 1 USDT');
       return;
     }
-    
+
     if (amount > 10000) {
       showNotification('Максимальная сумма вывода: 10000 USDT');
       return;
     }
-    
+
     if (amount > balance) {
       showNotification(`Недостаточно средств. Ваш баланс: ${balance.toFixed(2)} USDT`);
       return;
     }
-    
+
     // Валидация получателя
     if (!recipient.trim()) {
       showNotification('Введите получателя');
       return;
     }
-    
+
     if (recipientType === 'username' && !validateUsername(recipient)) {
       showNotification('Некорректный username. Используйте только буквы, цифры и _ (5-32 символа)');
       return;
     }
-    
+
     // Подтверждение операции
     showConfirmation(
       `Подтвердите вывод:\n\nСумма: ${amount} USDT\nПолучатель: @${recipient}\n${amount > 300 ? '⚠️ Требует одобрения администратора' : '⚡ Автоматическая обработка'}`,
       async () => {
         try {
           setLoading(true);
-          
+
           const response = await paymentApi.createWithdrawal({
             amount,
             recipient: recipient.replace('@', ''),
             recipientType,
             comment: comment || undefined
           });
-          
+
           const withdrawalData = response.data.data;
-          
+
           showNotification(
             withdrawalData.requiresApproval 
               ? `✅ Запрос на вывод создан!\nТребуется одобрение администратора.\nВремя обработки: 24-48 часов`
               : `✅ Запрос на вывод создан!\nОжидайте поступления средств в течение 5-15 минут`
           );
-          
+
           // Закрываем модальное окно
           setShowWithdrawalModal(false);
           resetForm();
-          
+
           // Обновляем историю
           fetchWithdrawalHistory();
-          
+
           // Обновляем баланс
           if (onBalanceUpdate) {
             onBalanceUpdate();
           }
-          
+
           // Начинаем проверку статуса для автоматических выводов
           if (!withdrawalData.requiresApproval) {
             startStatusPolling(withdrawalData.withdrawalId);
           }
-          
+
         } catch (error) {
-          console.error('Ошибка создания вывода:', error);
+
           showNotification(error.response?.data?.message || 'Ошибка создания запроса на вывод');
         } finally {
           setLoading(false);
@@ -123,68 +123,68 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
       }
     );
   };
-  
+
   // Проверка статуса вывода
   const startStatusPolling = (withdrawalId) => {
     let attempts = 0;
     const maxAttempts = 60; // 5 минут максимум
-    
+
     const checkStatus = async () => {
       try {
         const response = await paymentApi.checkWithdrawalStatus(withdrawalId);
         const status = response.data.data;
-        
+
         if (status.isCompleted) {
           showNotification('✅ Вывод успешно выполнен!');
           fetchWithdrawalHistory();
           return;
         }
-        
+
         if (status.isRejected) {
           showNotification(`❌ Вывод отклонен: ${status.rejectionReason || 'без указания причины'}`);
-          
+
           // Обновляем баланс (средства возвращены)
           if (onBalanceUpdate) {
             onBalanceUpdate();
           }
-          
+
           fetchWithdrawalHistory();
           return;
         }
-        
+
         if (status.isFailed) {
           showNotification('❌ Ошибка при обработке вывода. Средства возвращены на баланс.');
-          
+
           // Обновляем баланс
           if (onBalanceUpdate) {
             onBalanceUpdate();
           }
-          
+
           fetchWithdrawalHistory();
           return;
         }
-        
+
         // Продолжаем проверку
         attempts++;
         if (attempts < maxAttempts) {
           setTimeout(checkStatus, 5000); // Проверяем каждые 5 секунд
         }
       } catch (error) {
-        console.error('Ошибка проверки статуса:', error);
+
       }
     };
-    
+
     // Начинаем проверку через 5 секунд
     setTimeout(checkStatus, 5000);
   };
-  
+
   // Сброс формы
   const resetForm = () => {
     setWithdrawalAmount('');
     setRecipient('');
     setComment('');
   };
-  
+
   // Форматирование даты
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU', {
@@ -195,7 +195,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
       minute: '2-digit'
     });
   };
-  
+
   // Получение иконки статуса
   const getStatusIcon = (status) => {
     switch (status) {
@@ -208,7 +208,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
       default: return '❓';
     }
   };
-  
+
   // Получение названия статуса
   const getStatusName = (status) => {
     switch (status) {
@@ -221,7 +221,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
       default: return status;
     }
   };
-  
+
   // Отмена запроса на вывод
   const handleCancelWithdrawal = async (withdrawalId) => {
     showConfirmation(
@@ -230,20 +230,20 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
         try {
           await paymentApi.cancelWithdrawal(withdrawalId);
           showNotification('Запрос на вывод отменен. Средства возвращены на баланс.');
-          
+
           // Обновляем историю и баланс
           fetchWithdrawalHistory();
           if (onBalanceUpdate) {
             onBalanceUpdate();
           }
         } catch (error) {
-          console.error('Ошибка отмены вывода:', error);
+
           showNotification(error.response?.data?.message || 'Не удалось отменить вывод');
         }
       }
     );
   };
-  
+
   return (
     <div className="withdrawals-section">
       <div className="withdrawals-header">
@@ -256,13 +256,13 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
           Вывести
         </button>
       </div>
-      
+
       {balance < 1 && (
         <div className="withdrawal-warning">
           Минимальная сумма для вывода: 1 USDT
         </div>
       )}
-      
+
       {/* История последних выводов */}
       <div className="withdrawals-history">
         <h4>Последние выводы</h4>
@@ -309,7 +309,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
           </div>
         )}
       </div>
-      
+
       {/* Модальное окно для создания вывода */}
       {showWithdrawalModal && (
         <div className="withdrawal-modal">
@@ -323,13 +323,13 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
                 ✕
               </button>
             </div>
-            
+
             <div className="withdrawal-modal-body">
               <div className="withdrawal-balance-info">
                 <span>Доступно для вывода:</span>
                 <span className="balance-amount">{balance.toFixed(2)} USDT</span>
               </div>
-              
+
               <div className="withdrawal-input-group">
                 <label>Сумма вывода (USDT)</label>
                 <input
@@ -342,7 +342,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
                   step="0.01"
                 />
               </div>
-              
+
               <div className="preset-amounts">
                 {presetAmounts.map(amount => (
                   <button
@@ -355,7 +355,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
                   </button>
                 ))}
               </div>
-              
+
               <div className="withdrawal-input-group">
                 <label>Telegram username получателя</label>
                 <div className="input-with-prefix">
@@ -372,7 +372,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
                   Получатель должен быть зарегистрирован в @CryptoBot
                 </small>
               </div>
-              
+
               <div className="withdrawal-input-group">
                 <label>Комментарий (необязательно)</label>
                 <input
@@ -383,7 +383,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
                   maxLength="100"
                 />
               </div>
-              
+
               <div className="withdrawal-info">
                 <p>💡 Минимальная сумма: 1 USDT</p>
                 <p>💡 Максимальная сумма: 10,000 USDT</p>
@@ -391,7 +391,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
                 <p>⏳ Свыше 300 USDT - требует одобрения (24-48 ч)</p>
               </div>
             </div>
-            
+
             <div className="withdrawal-modal-footer">
               <button
                 className="cancel-button"

@@ -47,7 +47,7 @@ const EventsPreview = ({ event, onClick }) => {
         <div className="event-title">
           {event.title}
         </div>
-        
+
         <div className="event-time-left">
           ⏰ {formatTimeLeft(event.bettingEndsAt)}
         </div>

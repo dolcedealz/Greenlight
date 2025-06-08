@@ -1,35 +1,28 @@
 // frontend/src/components/events/EventDetails.js
 import React, { useState, useEffect } from 'react';
 import '../../styles/EventDetails.css';
-
 const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
   const [timeLeft, setTimeLeft] = useState('');
-
   // Обновление времени каждую секунду
   useEffect(() => {
     const updateTime = () => {
       setTimeLeft(formatTimeLeft(event.bettingEndsAt));
     };
-
     updateTime();
     const interval = setInterval(updateTime, 1000);
-
     return () => clearInterval(interval);
   }, [event.bettingEndsAt, formatTimeLeft]);
-
   // Получение процента распределения ставок
   const getOutcomePercentage = (outcome) => {
     if (event.totalPool === 0) return 0;
     return ((outcome.totalBets / event.totalPool) * 100).toFixed(1);
   };
-
   // Получение цвета для полосы процентов
   const getPercentageBarColor = (percentage) => {
     if (percentage > 60) return '#ff3b30';
     if (percentage > 40) return '#ff9500';
     return '#0ba84a';
   };
-
   // Рендер статистики события
   const renderEventStats = () => (
     <div className="event-stats">
@@ -53,7 +46,6 @@ const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
       </div>
     </div>
   );
-
   // Рендер временной информации
   const renderTimeInfo = () => (
     <div className="time-info">
@@ -81,7 +73,6 @@ const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
       </div>
     </div>
   );
-
   return (
     <div className="event-details">
       {/* Заголовок события */}
@@ -91,24 +82,20 @@ const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
           {event.status === 'active' ? 'Активно' : 'Неактивно'}
         </div>
       </div>
-
       {/* Описание события */}
       <div className="event-description">
         <p>{event.description}</p>
       </div>
-
       {/* Временная информация */}
       <div className="event-section">
         <h3 className="section-title">⏰ Временные рамки</h3>
         {renderTimeInfo()}
       </div>
-
       {/* Статистика события */}
       <div className="event-section">
         <h3 className="section-title">📊 Статистика</h3>
         {renderEventStats()}
       </div>
-
       {/* Исходы для ставок */}
       <div className="event-section">
         <h3 className="section-title">🎯 Сделать ставку</h3>
@@ -117,14 +104,12 @@ const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
             const odds = event.currentOdds[outcome.id];
             const percentage = getOutcomePercentage(outcome);
             const barColor = getPercentageBarColor(percentage);
-
             return (
               <div key={outcome.id} className="outcome-betting-item">
                 <div className="outcome-header">
                   <div className="outcome-name">{outcome.name}</div>
                   <div className="outcome-odds">×{odds.toFixed(2)}</div>
                 </div>
-                
                 <div className="outcome-info">
                   <div className="outcome-bets-info">
                     <span>{outcome.betsCount} ставок</span>
@@ -132,7 +117,6 @@ const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
                   </div>
                   <div className="outcome-percentage">{percentage}%</div>
                 </div>
-
                 {/* Визуальная полоса процентов */}
                 <div className="percentage-bar">
                   <div 
@@ -143,7 +127,6 @@ const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
                     }}
                   />
                 </div>
-
                 {/* Кнопка ставки */}
                 <button 
                   className="bet-button"
@@ -159,7 +142,6 @@ const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
           })}
         </div>
       </div>
-
       {/* Информация о комиссии */}
       <div className="event-section">
         <h3 className="section-title">ℹ️ Важная информация</h3>
@@ -182,7 +164,6 @@ const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
           </div>
         </div>
       </div>
-
       {/* Предупреждение */}
       {timeLeft === 'Завершено' && (
         <div className="event-warning">
@@ -192,5 +173,4 @@ const EventDetails = ({ event, onOutcomeSelect, formatTimeLeft }) => {
     </div>
   );
 };
-
-export default EventDetails;
+export default EventDetails;

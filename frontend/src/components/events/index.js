@@ -2,4 +2,4 @@
 export { default as EventCard } from './EventCard';
 export { default as EventDetails } from './EventDetails';
 export { default as EventBet } from './EventBet';
-export { default as UserEventBets } from './UserEventBets';
+export { default as UserEventBets } from './UserEventBets';

@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import useTactileFeedback from '../../../hooks/useTactileFeedback';
 import '../../../styles/SlotControls.css';
-
 const SlotControls = ({ 
   balance, 
   onSpin, 
@@ -19,7 +18,6 @@ const SlotControls = ({
   onStopAutoplay // Новый проп для остановки автоспина
 }) => {
   const [maxWin, setMaxWin] = useState(0);
-  
   const { 
     buttonPressFeedback, 
     selectionChanged, 
@@ -27,110 +25,77 @@ const SlotControls = ({
     importantActionFeedback,
     heavyImpact 
   } = useTactileFeedback();
-  
   // Рассчитываем максимальный возможный выигрыш
   useEffect(() => {
     const jackpotMultiplier = 50; // Остается 50 (максвин)
     setMaxWin(betAmount * jackpotMultiplier);
   }, [betAmount]);
-  
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
-    
     if (inputValue === '' || inputValue === '0') {
       setBetAmount(inputValue);
       return;
     }
-    
     const value = parseFloat(inputValue);
     if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
       buttonPressFeedback(); // Легкая вибрация при изменении ставки
     }
   };
-  
   // Быстрые ставки
   const handleQuickBet = (multiplier) => {
     if (isSpinning || loading || autoplay) return; // БЛОКИРУЕМ при спине
-    
     buttonPressFeedback(); // Вибрация при быстрой ставке
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
-  
   // ИСПРАВЛЕННЫЙ обработчик кнопки "Крутить"
   const handleSpinClick = () => {
-    console.log('🎰 CONTROLS: Нажата кнопка "Крутить"');
-    console.log('🎰 CONTROLS: Состояние - betAmount:', betAmount, 'balance:', balance, 'isSpinning:', isSpinning, 'loading:', loading, 'autoplay:', autoplay);
-    
     // Проверяем все условия
     if (isSpinning) {
-      console.log('🎰 CONTROLS: Блокировано - уже идет вращение');
       return;
     }
-    
     if (loading) {
-      console.log('🎰 CONTROLS: Блокировано - идет загрузка');
       return;
     }
-    
     if (autoplay) {
-      console.log('🎰 CONTROLS: Блокировано - активна автоигра');
       return;
     }
-    
     if (!betAmount || betAmount <= 0) {
-      console.log('🎰 CONTROLS: Блокировано - неверная сумма ставки:', betAmount);
       return;
     }
-    
     if (betAmount > balance) {
-      console.log('🎰 CONTROLS: Блокировано - недостаточно средств. Ставка:', betAmount, 'Баланс:', balance);
       return;
     }
-    
     if (!onSpin) {
-      console.error('🎰 CONTROLS: Ошибка - функция onSpin не передана!');
       return;
     }
-    
-    console.log('🎰 CONTROLS: Все проверки пройдены, запускаем спин');
-    
     // Сильная вибрация для главного игрового действия
     heavyImpact();
     onSpin();
   };
-  
   // Обработчик автоигры - ИСПРАВЛЕННЫЙ
   const handleAutoplayToggle = () => {
     if (isSpinning || loading) return; // БЛОКИРУЕМ при спине
-    
     selectionChanged(); // Вибрация при переключении
-    console.log('🎰 CONTROLS: Переключение автоспина, текущее состояние:', autoplay);
-    
     // Передаем правильный параметр в родительский компонент
     // setAutoplay ожидает enabled параметр, а не setState логику
     if (setAutoplay) {
       setAutoplay(!autoplay);
     }
   };
-  
   // Обработчик изменения количества автоспинов
   const handleAutoplayCountChange = (count) => {
     if (isSpinning || loading || autoplay) return; // БЛОКИРУЕМ при спине
-    
     buttonPressFeedback(); // Легкая вибрация при выборе
     if (setAutoplayCount) {
       setAutoplayCount(count);
     }
   };
-
   // Обработчик остановки автоигры - ИСПРАВЛЕННЫЙ
   const handleStopAutoplay = () => {
     gameActionFeedback(); // Вибрация при остановке
-    console.log('🎰 CONTROLS: Нажата кнопка остановки автоспина');
-    
     // Используем функцию из родительского компонента
     if (onStopAutoplay) {
       onStopAutoplay();
@@ -139,7 +104,6 @@ const SlotControls = ({
       setAutoplay(false);
     }
   };
-  
   // ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ (дополнительно урезаны на 20% кроме jackpot)
   const slotSymbols = [
     { symbol: 'cherry', payout: 1.6, threeInRow: 0.8, emoji: '🍒' },        // было 2→1.6, было 1→0.8
@@ -151,7 +115,6 @@ const SlotControls = ({
     { symbol: 'star', payout: 20, threeInRow: 10, emoji: '⭐' },           // было 25→20, было 12.5→10
     { symbol: 'jackpot', payout: 50, threeInRow: 20, emoji: '🎰' }         // 50 остается, 25→20 (-20%)
   ];
-  
   return (
     <div className="slot-controls">
       {/* Кнопка спина */}
@@ -176,7 +139,6 @@ const SlotControls = ({
           )}
         </button>
       </div>
-      
       {/* Управление ставкой */}
       <div className="bet-section">
         <div className="bet-control">
@@ -193,7 +155,6 @@ const SlotControls = ({
             />
           </div>
         </div>
-        
         {/* Быстрые ставки */}
         <div className="quick-bets">
           <button 
@@ -212,7 +173,6 @@ const SlotControls = ({
           </button>
         </div>
       </div>
-      
       {/* Автоигра */}
       <div className="autoplay-section">
         <div className="autoplay-toggle">
@@ -236,7 +196,6 @@ const SlotControls = ({
             </button>
           )}
         </div>
-        
         {!autoplay && (
           <div className="autoplay-settings">
             <div className="autoplay-count">
@@ -254,7 +213,6 @@ const SlotControls = ({
                 ))}
               </div>
             </div>
-            
             <div className="autoplay-info">
               <small>
                 Автоигра остановится при достижении лимита спинов, недостатке средств или большом выигрыше
@@ -262,14 +220,12 @@ const SlotControls = ({
             </div>
           </div>
         )}
-        
         {autoplay && autoplayRemaining > 0 && (
           <div className="autoplay-status">
             <span>Осталось спинов: {autoplayRemaining}</span>
           </div>
         )}
       </div>
-      
       {/* Таблица выплат с обновленными коэффициентами */}
       <div className="payout-table">
         <h4>Таблица выплат</h4>
@@ -299,7 +255,6 @@ const SlotControls = ({
           * Коэффициенты дополнительно снижены на 20% для лучшего баланса (кроме джекпота 50x)
         </div>
       </div>
-      
       {/* Статистика */}
       {gameStats && (
         <div className="game-stats">
@@ -333,5 +288,4 @@ const SlotControls = ({
     </div>
   );
 };
-
-export default SlotControls;
+export default SlotControls;

@@ -67,7 +67,7 @@ const MinesControls = ({
   const getMaxMultiplier = (mines) => {
     const table = payoutTables[mines];
     if (!table) return 1;
-    
+
     // Находим максимальный ключ (количество открытых ячеек) в таблице
     const maxRevealed = Math.max(...Object.keys(table).map(Number));
     return table[maxRevealed];
@@ -97,27 +97,27 @@ const MinesControls = ({
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
-    
+
     // Разрешаем пустое значение или 0 для ввода
     if (inputValue === '' || inputValue === '0') {
       setBetAmount(inputValue);
       return;
     }
-    
+
     const value = parseFloat(inputValue);
     if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
       buttonPressFeedback(); // Легкая вибрация при изменении ставки
     }
   };
-  
+
   // Быстрые ставки (процент от баланса)
   const handleQuickBet = (multiplier) => {
     buttonPressFeedback(); // Вибрация при быстрой ставке
     const quickBet = Math.min(balance, Math.max(1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
-  
+
   // Быстрый выбор количества мин
   const handleQuickMines = (count) => {
     selectionChanged(); // Вибрация при смене выбора мин
@@ -131,10 +131,10 @@ const MinesControls = ({
       onAutoplayChange(checked);
     }
   };
-  
+
   // Для отображения в интерфейсе
   const safeTotal = 25 - (minesCount || 5);
-  
+
   return (
     <div className="mines-controls">
       <div className="mines-bet-section">
@@ -152,7 +152,7 @@ const MinesControls = ({
             />
           </div>
         </div>
-        
+
         <div className="quick-bets">
           <button 
             onClick={() => handleQuickBet(0.1)} 
@@ -184,12 +184,12 @@ const MinesControls = ({
           </button>
         </div>
       </div>
-      
+
       <div className="mines-count-section">
         <div className="mines-count-control">
           <label>Количество мин: <span className="selected-mines-count">{minesCount || 5}</span></label>
         </div>
-        
+
         {/* Отображение максимального возможного выигрыша с коэффициентами -5% */}
         <div className="max-win-display">
           <div className="max-win-content">
@@ -213,7 +213,7 @@ const MinesControls = ({
             </span>
           </div>
         </div>
-        
+
         <div className="quick-mines">
           <button 
             onClick={() => handleQuickMines(3)} 
@@ -284,7 +284,7 @@ const MinesControls = ({
           </button>
         </div>
       </div>
-      
+
       <div className="mines-game-info">
         <div className="info-item">
           <span className="info-label">Множитель:</span>
@@ -299,7 +299,7 @@ const MinesControls = ({
           <span className="info-value">{revealedCount} из {safeTotal}</span>
         </div>
       </div>
-      
+
       {/* УСЛОВНОЕ ОТОБРАЖЕНИЕ: Секция с кнопками действий (скрыта если hideActionButtons=true) */}
       {!hideActionButtons && (
         <div className="mines-actions">
@@ -322,7 +322,7 @@ const MinesControls = ({
           )}
         </div>
       )}
-      
+
       <div className="mines-autoplay">
         <label className="autoplay-toggle">
           <input 

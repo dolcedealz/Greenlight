@@ -31,12 +31,12 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
     try {
       setLoading(true);
       const response = await referralApi.getPartnerStats();
-      
+
       if (response.data.success) {
         setPartnerData(response.data.data);
       }
     } catch (error) {
-      console.error('Ошибка загрузки данных партнера:', error);
+
       showNotification('Ошибка загрузки данных');
     } finally {
       setLoading(false);
@@ -46,7 +46,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
   // Обновление данных
   const handleRefresh = async () => {
     if (refreshing) return;
-    
+
     buttonPressFeedback();
     setRefreshing(true);
     await fetchPartnerData();
@@ -62,10 +62,10 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
   // Копирование реферальной ссылки
   const copyReferralLink = () => {
     if (!partnerData) return;
-    
+
     buttonPressFeedback();
     const link = `https://t.me/Greenlightgames_bot?start=${partnerData.partner.referralCode}`;
-    
+
     navigator.clipboard.writeText(link)
       .then(() => {
         successNotification();
@@ -80,11 +80,11 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
   // Поделиться ссылкой
   const shareReferralLink = () => {
     if (!partnerData) return;
-    
+
     buttonPressFeedback();
     const link = `https://t.me/Greenlightgames_bot?start=${partnerData.partner.referralCode}`;
     const text = `🎰 Играй в Greenlight Casino и зарабатывай!\n\n💰 Бонус за регистрацию\n🎮 Лучшие игры\n💸 Быстрые выплаты\n\nРегистрируйся по моей ссылке:`;
-    
+
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.openTelegramLink(
         `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`
@@ -96,21 +96,21 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
   const handleCreatePayout = async (amount) => {
     try {
       buttonPressFeedback();
-      
+
       const response = await referralApi.createPayout(amount);
-      
+
       if (response.data.success) {
         successNotification();
         showNotification(`Выплата ${amount} USDT переведена на основной баланс!`);
-        
+
         // Обновляем данные
         await fetchPartnerData();
-        
+
         // Обновляем основной баланс
         if (onBalanceUpdate) {
           onBalanceUpdate();
         }
-        
+
         setShowPayoutModal(false);
       }
     } catch (error) {
@@ -128,7 +128,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
       platinum: { name: 'Платина', icon: '💎', color: '#E5E4E2' },
       vip: { name: 'VIP', icon: '🌟', color: '#9400D3' }
     };
-    
+
     return levels[level] || { name: level, icon: '🎯', color: '#0ba84a' };
   };
 
@@ -149,10 +149,10 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
   // Рендер статистики
   const renderOverview = () => {
     if (!partnerData) return null;
-    
+
     const levelInfo = getLevelDisplay(partnerData.partner.level);
     const progress = partnerData.partner.progress;
-    
+
     return (
       <div className="referral-overview">
         {/* Карточка уровня */}
@@ -164,7 +164,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
               <p className="commission-rate">{partnerData.stats.commissionPercent}% комиссия</p>
             </div>
           </div>
-          
+
           {progress.nextLevel && (
             <div className="level-progress">
               <div className="progress-info">
@@ -220,7 +220,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
               <div className="stat-label">Всего рефералов</div>
             </div>
           </div>
-          
+
           <div className="stat-card">
             <div className="stat-icon">🔥</div>
             <div className="stat-content">
@@ -228,7 +228,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
               <div className="stat-label">Активных</div>
             </div>
           </div>
-          
+
           <div className="stat-card">
             <div className="stat-icon">💎</div>
             <div className="stat-content">
@@ -236,7 +236,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
               <div className="stat-label">С депозитами</div>
             </div>
           </div>
-          
+
           <div className="stat-card">
             <div className="stat-icon">📈</div>
             <div className="stat-content">
@@ -360,7 +360,7 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
       <Header balance={balance} />
       {renderHeader()}
       {renderTabs()}
-      
+
       <div className="referral-content">
         {renderTabContent()}
       </div>

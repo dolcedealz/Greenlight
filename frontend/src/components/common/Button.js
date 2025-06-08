@@ -18,7 +18,7 @@ const Button = ({
     danger: 'btn-danger',
     success: 'btn-success'
   };
-  
+
   const classes = [
     baseClasses,
     variantClasses[variant] || variantClasses.primary,
@@ -36,7 +36,7 @@ const Button = ({
       {...props}
     >
       {loading ? (
-        <span className="btn-spinner">ó</span>
+        <span className="btn-spinner">ï¿½</span>
       ) : (
         children
       )}

@@ -19,7 +19,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
   const [activeTab, setActiveTab] = useState('profile');
   const [referralData, setReferralData] = useState(null);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
-  
+
   // Добавляем тактильную обратную связь
   const { 
     buttonPressFeedback, 
@@ -27,33 +27,33 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     successNotification,
     navigationFeedback 
   } = useTactileFeedback();
-  
+
   // Загружаем данные пользователя при загрузке компонента
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        
+
         // Загружаем профиль пользователя
         const profileResponse = await userApi.getUserProfile();
         setUserData(profileResponse.data.data);
-        
+
         // Загружаем транзакции пользователя
         const transactionsResponse = await userApi.getTransactions({ limit: 20 });
         setTransactions(transactionsResponse.data.data.transactions);
-        
+
         // Загружаем статистику игр
         const statsResponse = await gameApi.getGameStats();
         setStats(statsResponse.data.data);
-        
+
         setLoading(false);
       } catch (err) {
-        console.error('Ошибка загрузки данных профиля:', err);
+
         setError('Не удалось загрузить данные профиля. Пожалуйста, попробуйте еще раз.');
         setLoading(false);
       }
     };
-    
+
     fetchUserData();
   }, []);
 
@@ -67,27 +67,27 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             setReferralData(response.data.data);
           }
         } catch (err) {
-          console.error('Ошибка загрузки реферальных данных:', err);
+
           showNotification('Не удалось загрузить реферальные данные');
         }
       };
-      
+
       fetchReferralData();
     }
   }, [activeTab, referralData]);
-  
+
   // Копирование реферального кода для вкладки рефералов
   const copyReferralCode = () => {
     if (referralData?.partner?.referralCode) {
       buttonPressFeedback(); // Вибрация при нажатии
-      
+
       navigator.clipboard.writeText(`https://t.me/Greenlightgames_bot?start=${referralData.partner.referralCode}`)
         .then(() => {
           successNotification(); // Вибрация успеха
           showNotification('Реферальная ссылка скопирована!');
         })
         .catch(err => {
-          console.error('Ошибка при копировании:', err);
+
           showNotification('Не удалось скопировать ссылку');
         });
     }
@@ -124,32 +124,32 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
   const handleCreatePayout = async (amount) => {
     try {
       buttonPressFeedback();
-      
+
       const response = await referralApi.createPayout(amount);
-      
+
       if (response.data.success) {
         successNotification();
         showNotification(`Выплата ${amount} USDT переведена на основной баланс!`);
-        
+
         // Обновляем реферальные данные
         const updatedReferralData = await referralApi.getPartnerStats();
         if (updatedReferralData.data.success) {
           setReferralData(updatedReferralData.data.data);
         }
-        
+
         // Обновляем основной баланс
         if (onBalanceUpdate) {
           onBalanceUpdate();
         }
-        
+
         setShowPayoutModal(false);
       }
     } catch (error) {
-      console.error('Ошибка создания выплаты:', error);
+
       showNotification(error.response?.data?.message || 'Ошибка создания выплаты');
     }
   };
-  
+
   // Форматирование даты
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -161,7 +161,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       minute: '2-digit'
     });
   };
-  
+
   // Получаем иконку для типа транзакции
   const getTransactionIcon = (type) => {
     switch (type) {
@@ -174,7 +174,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       default: return '📋';
     }
   };
-  
+
   // Получаем название типа транзакции
   const getTransactionName = (type) => {
     switch (type) {
@@ -187,11 +187,11 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       default: return type;
     }
   };
-  
+
   // Рендер вкладки профиля
   const renderProfileTab = () => {
     if (!userData) return null;
-    
+
     return (
       <div className="profile-tab">
         <div className="profile-info">
@@ -204,27 +204,27 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             <p className="join-date">На платформе с {formatDate(userData.createdAt)}</p>
           </div>
         </div>
-        
+
         <div className="profile-balance">
           <div className="balance-header">
             <h3>Баланс</h3>
           </div>
           <div className="balance-amount">{balance.toFixed(2)} USDT</div>
         </div>
-        
+
         {/* Компонент депозитов */}
         <Deposits balance={balance} onBalanceUpdate={onBalanceUpdate} />
-        
+
         {/* Компонент выводов */}
         <Withdrawals balance={balance} onBalanceUpdate={onBalanceUpdate} />
-        
+
         {/* Компоненты промокодов */}
         <div className="promocodes-section">
           <h3>🎁 Промокоды</h3>
           <PromoCodeInput onBalanceUpdate={onBalanceUpdate} />
           <UserPromoCodes />
         </div>
-        
+
         <div className="profile-stats">
           <h3>Статистика</h3>
           <div className="stats-grid">
@@ -248,17 +248,17 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             </div>
           </div>
         </div>
-        
+
       </div>
     );
   };
-  
+
   // Рендер вкладки транзакций
   const renderTransactionsTab = () => {
     return (
       <div className="transactions-tab">
         <h3>История транзакций</h3>
-        
+
         {transactions.length === 0 ? (
           <div className="no-transactions">
             <p>У вас пока нет транзакций</p>
@@ -292,7 +292,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       </div>
     );
   };
-  
+
   // ОБНОВЛЕННАЯ функция рендера статистики
   const renderStatsTab = () => {
     if (!stats) {
@@ -334,11 +334,11 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       };
       return gameNames[gameType] || gameType;
     };
-    
+
     return (
       <div className="stats-tab">
         <h3>📊 Детальная статистика</h3>
-        
+
         {/* Общая статистика с улучшенным дизайном */}
         <div className="game-stats-summary">
           <div className="summary-item">
@@ -372,11 +372,11 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             </span>
           </div>
         </div>
-        
+
         {/* Детальная статистика по играм */}
         <div className="game-stats-details">
           <h4>🎲 Статистика по типам игр</h4>
-          
+
           {Object.keys(stats.byGameType).length === 0 ? (
             <div className="no-game-stats">
               <div className="stats-icon">🎯</div>
@@ -389,54 +389,54 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               const profitLoss = (gameStats.totalWin || 0) - (gameStats.totalLoss || 0);
               const avgBet = gameStats.totalGames > 0 ? (gameStats.totalBet / gameStats.totalGames) : 0;
               const avgWin = gameStats.winCount > 0 ? (gameStats.totalWin / gameStats.winCount) : 0;
-              
+
               return (
                 <div key={gameType} className="game-stat-item">
                   <div className="game-stat-header">
                     <h5 data-game={gameType}>{getGameDisplayName(gameType)}</h5>
                     <span className="game-stat-count">{gameStats.totalGames} игр</span>
                   </div>
-                  
+
                   <div className="game-stat-details">
                     <div className="game-stat-detail">
                       <span>💰 Общие ставки:</span>
                       <span>{gameStats.totalBet?.toFixed(2) || '0.00'} USDT</span>
                     </div>
-                    
+
                     <div className="game-stat-detail">
                       <span>🎯 Выигрыши:</span>
                       <span>{gameStats.winCount} из {gameStats.totalGames}</span>
                     </div>
-                    
+
                     <div className="game-stat-detail">
                       <span>📊 Процент побед:</span>
                       <span>{renderWinrateIndicator(gameStats.winRate)}</span>
                     </div>
-                    
+
                     <div className="game-stat-detail">
                       <span>💎 Общий выигрыш:</span>
                       <span className="positive">{gameStats.totalWin?.toFixed(2) || '0.00'} USDT</span>
                     </div>
-                    
+
                     <div className="game-stat-detail">
                       <span>📈 Итоговый результат:</span>
                       <span className={profitLoss >= 0 ? 'positive' : 'negative'}>
                         {profitLoss >= 0 ? '+' : ''}{profitLoss.toFixed(2)} USDT
                       </span>
                     </div>
-                    
+
                     <div className="game-stat-detail">
                       <span>⚡ Средняя ставка:</span>
                       <span>{avgBet.toFixed(2)} USDT</span>
                     </div>
-                    
+
                     {gameStats.winCount > 0 && (
                       <div className="game-stat-detail">
                         <span>🏆 Средний выигрыш:</span>
                         <span className="positive">{avgWin.toFixed(2)} USDT</span>
                       </div>
                     )}
-                    
+
                     {gameStats.maxWin && gameStats.maxWin > 0 && (
                       <div className="game-stat-detail">
                         <span>🚀 Максимальный выигрыш:</span>
@@ -452,7 +452,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       </div>
     );
   };
-  
+
   // Рендер вкладки рефералов
   const renderReferralsTab = () => {
     if (!referralData) {
@@ -467,7 +467,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     }
 
     const { partner, stats } = referralData;
-    
+
     // Функция для получения отображения уровня
     const getLevelDisplay = (level) => {
       const levels = {
@@ -494,7 +494,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               <p className="commission-rate">{stats.commissionPercent}% комиссия</p>
             </div>
           </div>
-          
+
           {progress.nextLevel && (
             <div className="level-progress">
               <div className="progress-info">
@@ -550,7 +550,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               <div className="stat-label">Всего рефералов</div>
             </div>
           </div>
-          
+
           <div className="stat-card">
             <div className="stat-icon">🔥</div>
             <div className="stat-content">
@@ -558,7 +558,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               <div className="stat-label">Активных</div>
             </div>
           </div>
-          
+
           <div className="stat-card">
             <div className="stat-icon">💎</div>
             <div className="stat-content">
@@ -590,7 +590,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             <h4>👥 Список рефералов</h4>
             <ReferralsList />
           </div>
-          
+
           <div className="referral-section">
             <h4>💰 История начислений</h4>
             <EarningsHistory />
@@ -605,7 +605,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     return (
       <div className="settings-tab">
         <h3>Настройки</h3>
-        
+
         <div className="settings-section">
           <h4>Уведомления</h4>
           <div className="setting-item">
@@ -642,7 +642,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             </label>
           </div>
         </div>
-        
+
         <div className="settings-section">
           <h4>Отображение</h4>
           <div className="setting-item">
@@ -668,7 +668,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             </label>
           </div>
         </div>
-        
+
         <div className="settings-section">
           <h4>Безопасность</h4>
           <div className="setting-item">
@@ -683,7 +683,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             </label>
           </div>
         </div>
-        
+
         <div className="settings-section">
           <h4>О приложении</h4>
           <div className="about-item">
@@ -716,7 +716,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       </div>
     );
   };
-  
+
   // Рендер активной вкладки
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -734,15 +734,15 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
         return renderProfileTab();
     }
   };
-  
+
   return (
     <div className="profile-screen">
       <Header balance={balance} />
-      
+
       <div className="profile-header">
         <h1 className="profile-title">Профиль</h1>
       </div>
-      
+
       {loading ? (
         <div className="profile-loading">
           <div className="loader"></div>
@@ -787,7 +787,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               Настройки
             </button>
           </div>
-          
+
           <div className="profile-content">
             {renderActiveTab()}
           </div>

@@ -1,114 +1,62 @@
 // frontend/src/components/events/UserEventBets.js - УЛУЧШЕННАЯ ВЕРСИЯ С ДЕТАЛЬНЫМ ЛОГИРОВАНИЕМ
 import React, { useState, useEffect } from 'react';
 import { eventsApi } from '../../services/api';
-
 const UserEventBets = ({ onRefresh }) => {
   const [bets, setBets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-
-  console.log('UserEventBets: Компонент загружен');
-
   // Загрузка ставок при монтировании
   useEffect(() => {
-    console.log('UserEventBets: useEffect - начальная загрузка');
     fetchUserBets();
   }, []);
-
   // Загрузка ставок пользователя с детальным логированием
   const fetchUserBets = async (showLoader = true) => {
     try {
-      console.log('UserEventBets: === НАЧАЛО ЗАГРУЗКИ СТАВОК ===');
-      console.log('UserEventBets: showLoader:', showLoader);
-      
       if (showLoader) {
         setLoading(true);
-        console.log('UserEventBets: Устанавливаем loading = true');
       } else {
         setRefreshing(true);
-        console.log('UserEventBets: Устанавливаем refreshing = true');
       }
-
       setError(null);
-      console.log('UserEventBets: Сбрасываем ошибку');
-
       // Проверяем доступность API метода
       if (!eventsApi || typeof eventsApi.getUserBets !== 'function') {
         throw new Error('API метод eventsApi.getUserBets не найден');
       }
-
-      console.log('UserEventBets: Вызываем eventsApi.getUserBets...');
-      console.log('UserEventBets: API URL:', eventsApi.defaults?.baseURL || 'неизвестно');
-      
       const startTime = Date.now();
       const response = await eventsApi.getUserBets({ limit: 50 });
       const endTime = Date.now();
-      
-      console.log(`UserEventBets: API запрос занял ${endTime - startTime}ms`);
-      console.log('UserEventBets: Полный ответ API:', response);
-      console.log('UserEventBets: response.data:', response.data);
-      
       if (!response) {
         throw new Error('Получен пустой ответ от API');
       }
-
       if (!response.data) {
         throw new Error('Отсутствует поле data в ответе API');
       }
-      
       if (response.data.success === false) {
         throw new Error(response.data.message || 'API вернул success: false');
       }
-
       if (response.data.success === true) {
-        console.log('UserEventBets: API вернул success: true');
-        
         if (!response.data.data) {
-          console.warn('UserEventBets: Отсутствует поле data.data, устанавливаем пустой массив');
           setBets([]);
         } else {
-          console.log('UserEventBets: response.data.data:', response.data.data);
-          
           const betsData = response.data.data.bets || response.data.data || [];
-          console.log('UserEventBets: Извлеченные ставки:', betsData);
           console.log('UserEventBets: Количество ставок:', Array.isArray(betsData) ? betsData.length : 'не массив');
-          
           if (Array.isArray(betsData)) {
             setBets(betsData);
-            console.log('UserEventBets: Ставки успешно установлены');
           } else {
-            console.warn('UserEventBets: betsData не является массивом:', typeof betsData);
             setBets([]);
           }
         }
       } else {
-        console.warn('UserEventBets: Неопределенный статус success:', response.data.success);
         setBets([]);
       }
-      
-      console.log('UserEventBets: === УСПЕШНОЕ ЗАВЕРШЕНИЕ ЗАГРУЗКИ ===');
-      
     } catch (err) {
-      console.error('UserEventBets: === ОШИБКА ПРИ ЗАГРУЗКЕ ===');
-      console.error('UserEventBets: Тип ошибки:', err.constructor.name);
-      console.error('UserEventBets: Сообщение ошибки:', err.message);
-      console.error('UserEventBets: Полная ошибка:', err);
-      
       if (err.response) {
-        console.error('UserEventBets: HTTP статус:', err.response.status);
-        console.error('UserEventBets: Заголовки ответа:', err.response.headers);
-        console.error('UserEventBets: Данные ответа:', err.response.data);
       } else if (err.request) {
-        console.error('UserEventBets: Запрос был отправлен, но ответ не получен');
-        console.error('UserEventBets: Детали запроса:', err.request);
       } else {
-        console.error('UserEventBets: Ошибка при настройке запроса:', err.message);
       }
-      
       // Детальная обработка ошибок
       let errorMessage = 'Неизвестная ошибка';
-      
       if (err.message.includes('getUserBets не найден')) {
         errorMessage = 'API метод getUserBets еще не реализован';
       } else if (err.response?.status === 404) {
@@ -126,29 +74,20 @@ const UserEventBets = ({ onRefresh }) => {
       } else {
         errorMessage = err.message;
       }
-      
-      console.error('UserEventBets: Финальное сообщение об ошибке:', errorMessage);
       setError(errorMessage);
       setBets([]); // Всегда устанавливаем пустой массив при ошибке
-      
     } finally {
-      console.log('UserEventBets: === БЛОК FINALLY ===');
       setLoading(false);
       setRefreshing(false);
-      console.log('UserEventBets: loading и refreshing установлены в false');
     }
   };
-
   // Обработчик обновления
   const handleRefresh = () => {
-    console.log('UserEventBets: Ручное обновление пользователем');
     fetchUserBets(false);
     if (onRefresh) {
-      console.log('UserEventBets: Вызываем onRefresh callback');
       onRefresh();
     }
   };
-
   // Получение статуса ставки
   const getBetStatus = (bet) => {
     if (!bet.isSettled) {
@@ -157,14 +96,12 @@ const UserEventBets = ({ onRefresh }) => {
       }
       return { text: 'Активна', color: '#0ba84a', icon: '🎯' };
     }
-
     if (bet.isWin) {
       return { text: 'Выигрыш', color: '#0ba84a', icon: '🏆' };
     } else {
       return { text: 'Проигрыш', color: '#ff3b30', icon: '❌' };
     }
   };
-
   // Форматирование даты
   const formatDate = (dateString) => {
     try {
@@ -176,25 +113,20 @@ const UserEventBets = ({ onRefresh }) => {
         minute: '2-digit'
       });
     } catch (err) {
-      console.error('UserEventBets: Ошибка форматирования даты:', dateString, err);
       return 'Неизвестно';
     }
   };
-
   // Расчет потенциального выигрыша
   const getPotentialWin = (bet) => {
     try {
       const win = bet.potentialWin || (bet.betAmount * bet.odds) || (bet.amount * bet.odds);
       return win.toFixed(2);
     } catch (err) {
-      console.error('UserEventBets: Ошибка расчета потенциального выигрыша:', bet, err);
       return '0.00';
     }
   };
-
   // Создаем тестовые данные для демонстрации при ошибке API
   const createMockBets = () => {
-    console.log('UserEventBets: Создаем тестовые данные');
     return [
       {
         _id: 'demo1',
@@ -235,7 +167,6 @@ const UserEventBets = ({ onRefresh }) => {
       }
     ];
   };
-
   // Стили
   const styles = {
     container: {
@@ -351,10 +282,8 @@ const UserEventBets = ({ onRefresh }) => {
       color: '#ff3b30'
     }
   };
-
   // Данные для отображения (реальные или демо при ошибке)
   const displayBets = error ? createMockBets() : bets;
-
   // Рендер загрузки
   if (loading) {
     return (
@@ -366,7 +295,6 @@ const UserEventBets = ({ onRefresh }) => {
       </div>
     );
   }
-
   return (
     <div style={styles.container}>
       {/* Заголовок */}
@@ -380,7 +308,6 @@ const UserEventBets = ({ onRefresh }) => {
           {refreshing ? '⟳' : '🔄'}
         </button>
       </div>
-
       {/* Уведомление об ошибке API */}
       {error && (
         <div style={styles.errorBox}>
@@ -396,7 +323,6 @@ const UserEventBets = ({ onRefresh }) => {
           </div>
         </div>
       )}
-
       {/* Контент */}
       {displayBets.length === 0 ? (
         <div style={styles.noBets}>
@@ -414,7 +340,6 @@ const UserEventBets = ({ onRefresh }) => {
           {displayBets.map(bet => {
             const status = getBetStatus(bet);
             const potentialWin = getPotentialWin(bet);
-
             return (
               <div 
                 key={bet._id} 
@@ -432,24 +357,20 @@ const UserEventBets = ({ onRefresh }) => {
                     {status.icon} {status.text}
                   </div>
                 </div>
-
                 {/* Информация об исходе */}
                 <div style={styles.outcomeInfo}>
                   <strong style={{ color: '#0ba84a' }}>Исход:</strong> {bet.outcomeName}
                 </div>
-
                 {/* Детали ставки */}
                 <div style={styles.detailsGrid}>
                   <div style={styles.detailItem}>
                     <span style={styles.label}>Ставка:</span>
                     <span style={styles.value}>{(bet.betAmount || 0).toFixed(2)} USDT</span>
                   </div>
-                  
                   <div style={styles.detailItem}>
                     <span style={styles.label}>Коэффициент:</span>
                     <span style={styles.value}>×{(bet.odds || bet.oddsAtBet || 2.0).toFixed(2)}</span>
                   </div>
-
                   <div style={styles.detailItem}>
                     <span style={styles.label}>
                       {bet.isSettled && bet.isWin ? 'Выигрыш:' : 'Потенциальный выигрыш:'}
@@ -458,7 +379,6 @@ const UserEventBets = ({ onRefresh }) => {
                       {bet.isSettled && bet.isWin ? (bet.actualWin || 0).toFixed(2) : potentialWin} USDT
                     </span>
                   </div>
-
                   {bet.isSettled && (
                     <div style={styles.detailItem}>
                       <span style={styles.label}>Прибыль:</span>
@@ -471,7 +391,6 @@ const UserEventBets = ({ onRefresh }) => {
                     </div>
                   )}
                 </div>
-
                 {/* Дата */}
                 <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', marginTop: '8px' }}>
                   Создана: {formatDate(bet.placedAt)}
@@ -486,7 +405,6 @@ const UserEventBets = ({ onRefresh }) => {
           })}
         </div>
       )}
-
       {/* Статистика */}
       {displayBets.length > 0 && (
         <div style={{ 
@@ -528,5 +446,4 @@ const UserEventBets = ({ onRefresh }) => {
     </div>
   );
 };
-
-export default UserEventBets;
+export default UserEventBets;

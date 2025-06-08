@@ -194,7 +194,7 @@ class TelegramAuth {
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 часа
     };
 
-    const secret = process.env.JWT_SECRET || 'fallback-secret-key';
+    const secret = process.env.JWT_SECRET;
     
     return jwt.sign(payload, secret);
   }
@@ -208,7 +208,7 @@ class TelegramAuth {
     const jwt = require('jsonwebtoken');
     
     try {
-      const secret = process.env.JWT_SECRET || 'fallback-secret-key';
+      const secret = process.env.JWT_SECRET;
       const payload = jwt.verify(token, secret);
       
       return {

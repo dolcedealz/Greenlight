@@ -9,13 +9,10 @@ class WebSocketService {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
     this.eventListeners = new Map();
-    
+
     // Принудительно устанавливаем правильный WebSocket URL для продакшена
-    this.socketUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://greenlight-api-ghqh.onrender.com'
-      : (process.env.REACT_APP_WS_URL || 'https://greenlight-api-ghqh.onrender.com');
-    
-    console.log('WebSocketService инициализирован, URL:', this.socketUrl);
+    this.socketUrl = process.env.REACT_APP_WS_URL || 'https://greenlight-api-ghqh.onrender.com';
+
   }
 
   /**
@@ -25,33 +22,31 @@ class WebSocketService {
   async connect(userTelegramId = null) {
     try {
       if (this.socket && this.socket.connected) {
-        console.log('WebSocket уже подключен');
+
         return true;
       }
 
-      console.log('🔌 Подключение к WebSocket серверу Telegram Mini App...');
-
       // Получаем Telegram WebApp данные если доступны
       let authData = {};
-      
+
       if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
         const tg = window.Telegram.WebApp;
-        
+
         // Используем initData для аутентификации
         if (tg.initData) {
           authData.initData = tg.initData;
-          console.log('🔐 Использование Telegram initData для аутентификации');
+
         }
-        
+
         // Fallback на telegramId если есть
         if (userTelegramId && !authData.initData) {
           authData.telegramId = userTelegramId;
-          console.log('🔐 Fallback на telegramId:', userTelegramId);
+
         }
       } else if (userTelegramId) {
         // Если не в Telegram WebApp, используем переданный ID
         authData.telegramId = userTelegramId;
-        console.log('🔐 Обычное подключение с telegramId:', userTelegramId);
+
       }
 
       // Создаем новое соединение с аутентификацией
@@ -79,19 +74,19 @@ class WebSocketService {
           clearTimeout(timeout);
           this.isConnected = true;
           this.reconnectAttempts = 0;
-          console.log('✅ WebSocket подключен успешно');
+
           resolve(true);
         });
 
         this.socket.on('connect_error', (error) => {
           clearTimeout(timeout);
-          console.error('❌ Ошибка подключения к WebSocket:', error);
+
           reject(error);
         });
       });
 
     } catch (error) {
-      console.error('❌ Ошибка создания WebSocket соединения:', error);
+
       throw error;
     }
   }
@@ -106,38 +101,37 @@ class WebSocketService {
     this.socket.on('connect', () => {
       this.isConnected = true;
       this.reconnectAttempts = 0;
-      console.log('🔌 WebSocket подключен, ID:', this.socket.id);
+
     });
 
     // Соединение разорвано
     this.socket.on('disconnect', (reason) => {
       this.isConnected = false;
-      console.log('🔌 WebSocket отключен, причина:', reason);
-      
+
       // Автоматическое переподключение
       if (reason === 'io server disconnect') {
         // Сервер принудительно отключил - не переподключаемся
         return;
       }
-      
+
       this.attemptReconnect();
     });
 
     // Ошибка соединения
     this.socket.on('connect_error', (error) => {
-      console.error('🔌 Ошибка WebSocket соединения:', error);
+
       this.isConnected = false;
       this.attemptReconnect();
     });
 
     // Pong ответ на ping
     this.socket.on('pong', (data) => {
-      console.log('🏓 Pong получен:', data);
+
     });
 
     // Общая ошибка
     this.socket.on('error', (error) => {
-      console.error('🔌 WebSocket ошибка:', error);
+
     });
   }
 
@@ -146,15 +140,15 @@ class WebSocketService {
    */
   attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('🔌 Превышено максимальное количество попыток переподключения');
+
       return;
     }
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * this.reconnectAttempts;
-    
+
     console.log(`🔌 Переподключение через ${delay}ms (попытка ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-    
+
     setTimeout(() => {
       if (this.socket && !this.socket.connected) {
         this.socket.connect();
@@ -167,7 +161,7 @@ class WebSocketService {
    */
   disconnect() {
     if (this.socket) {
-      console.log('🔌 Отключение от WebSocket...');
+
       this.socket.disconnect();
       this.socket = null;
       this.isConnected = false;
@@ -179,18 +173,16 @@ class WebSocketService {
    */
   joinCrash() {
     if (!this.socket || !this.isConnected) {
-      console.warn('🎮 Нельзя присоединиться к Crash - WebSocket не подключен');
+
       return false;
     }
 
-    console.log('🎮 Присоединение к Crash игре...');
-    
     // Отправляем специальное событие для краша
     this.socket.emit('join_crash');
-    
+
     // Также присоединяемся к общей комнате игры
     this.socket.emit('join_game', 'crash');
-    
+
     return true;
   }
 
@@ -199,18 +191,16 @@ class WebSocketService {
    */
   leaveCrash() {
     if (!this.socket || !this.isConnected) {
-      console.warn('🎮 Нельзя покинуть Crash - WebSocket не подключен');
+
       return false;
     }
 
-    console.log('🎮 Покидание Crash игры...');
-    
     // Отправляем специальное событие для краша
     this.socket.emit('leave_crash');
-    
+
     // Также покидаем общую комнату игры
     this.socket.emit('leave_game', 'crash');
-    
+
     return true;
   }
 
@@ -219,11 +209,10 @@ class WebSocketService {
    */
   requestCrashState() {
     if (!this.socket || !this.isConnected) {
-      console.warn('🎮 Нельзя запросить состояние - WebSocket не подключен');
+
       return false;
     }
 
-    console.log('🎮 Запрос состояния Crash игры...');
     this.socket.emit('get_crash_state');
     return true;
   }
@@ -236,12 +225,10 @@ class WebSocketService {
    */
   on(event, callback) {
     if (!this.socket) {
-      console.warn(`🔌 Нельзя подписаться на событие ${event} - WebSocket не создан`);
+
       return () => {};
     }
 
-    console.log(`📡 Подписка на событие: ${event}`);
-    
     // Сохраняем колбэк для возможности отписки
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set());
@@ -259,7 +246,7 @@ class WebSocketService {
       if (this.eventListeners.has(event)) {
         this.eventListeners.get(event).delete(callback);
       }
-      console.log(`📡 Отписка от события: ${event}`);
+
     };
   }
 
@@ -280,8 +267,7 @@ class WebSocketService {
       this.socket.off(event);
       this.eventListeners.delete(event);
     }
-    
-    console.log(`📡 Отписка от события: ${event}`);
+
   }
 
   /**
@@ -291,11 +277,10 @@ class WebSocketService {
    */
   emit(event, data = null) {
     if (!this.socket || !this.isConnected) {
-      console.warn(`🔌 Нельзя отправить событие ${event} - WebSocket не подключен`);
+
       return false;
     }
 
-    console.log(`📤 Отправка события: ${event}`, data);
     this.socket.emit(event, data);
     return true;
   }
@@ -305,11 +290,10 @@ class WebSocketService {
    */
   ping() {
     if (!this.socket || !this.isConnected) {
-      console.warn('🏓 Нельзя отправить ping - WebSocket не подключен');
+
       return false;
     }
 
-    console.log('🏓 Отправка ping...');
     this.socket.emit('ping');
     return true;
   }
@@ -334,7 +318,7 @@ class WebSocketService {
       this.socket.removeAllListeners();
     }
     this.eventListeners.clear();
-    console.log('📡 Все подписки удалены');
+
   }
 
   /**

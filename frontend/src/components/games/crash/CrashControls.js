@@ -21,63 +21,63 @@ const CrashControls = ({
   autoWithdrawn = false,
   isApproachingAutoCashOut = false
 }) => {
-  
+
   const { 
     buttonPressFeedback, 
     selectionChanged, 
     gameActionFeedback, 
     importantActionFeedback 
   } = useTactileFeedback();
-  
+
   // Корректный обработчик изменения ставки
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
-    
+
     if (inputValue === '') {
       setBetAmount('');
       return;
     }
-    
+
     const value = parseFloat(inputValue);
     if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
       buttonPressFeedback();
     }
   };
-  
+
   // Обработчик изменения автовывода
   const handleAutoCashOutChange = (e) => {
     const inputValue = e.target.value;
-    
+
     if (inputValue === '') {
       setAutoCashOut('');
       return;
     }
-    
+
     const value = parseFloat(inputValue);
     if (!isNaN(value) && value >= 1.01 && value <= 1000) {
       setAutoCashOut(value);
       buttonPressFeedback();
     }
   };
-  
+
   // Быстрые ставки
   const handleQuickBet = (multiplier) => {
     if (gameState !== 'waiting' || hasBet || loading) return;
-    
+
     buttonPressFeedback();
     const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
-  
+
   // Быстрые значения автовывода
   const handleQuickAutoCashOut = (value) => {
     if (gameState === 'flying' && hasBet) return;
-    
+
     selectionChanged();
     setAutoCashOut(value);
   };
-  
+
   // УЛУЧШЕННАЯ функция получения потенциального выигрыша с учетом автовывода
   const getPotentialWin = () => {
     if (gameState === 'flying' && hasBet) {
@@ -96,7 +96,7 @@ const CrashControls = ({
       return '???.??';
     }
   };
-  
+
   // УЛУЧШЕННАЯ функция получения текущей прибыли
   const getCurrentProfit = () => {
     if (gameState === 'flying' && hasBet) {
@@ -107,7 +107,7 @@ const CrashControls = ({
       // Если еще не вывели - показываем текущую прибыль
       return (parseFloat(getPotentialWin()) - userBet.amount).toFixed(2);
     }
-    
+
     // ИСПРАВЛЕНИЕ: Учитываем включен ли автовывод
     if (autoCashOutEnabled && autoCashOut > 0) {
       return (parseFloat(getPotentialWin()) - betAmount).toFixed(2);
@@ -115,19 +115,19 @@ const CrashControls = ({
       return '???.??';
     }
   };
-  
+
   // Можно ли изменять ставку
   const canEditBet = gameState === 'waiting' && !hasBet && !loading;
-  
+
   // Можно ли изменять автовывод
   const canEditAutoCashOut = (gameState === 'waiting' || gameState === 'crashed') && !loading;
-  
+
   // НОВАЯ функция: Получение статуса автовывода для отображения
   const getAutoCashOutStatus = () => {
     if (!autoCashOutEnabled) {
       return 'Ручной режим - нажимайте "Вывести"';
     }
-    
+
     if (gameState === 'flying' && hasBet) {
       if (cashedOut) {
         if (autoWithdrawn) {
@@ -145,14 +145,14 @@ const CrashControls = ({
         }
       }
     }
-    
+
     if (autoCashOut > 0) {
       return `При ${autoCashOut}x: ${getPotentialWin()} USDT`;
     }
-    
+
     return 'Установите множитель автовывода';
   };
-  
+
   return (
     <div className="crash-controls">
       <div className="controls-row">
@@ -162,7 +162,7 @@ const CrashControls = ({
             <span className="panel-title">💰 Ставка</span>
             <span className="balance-info">Баланс: {balance.toFixed(2)} USDT</span>
           </div>
-          
+
           <div className="input-group">
             <input
               type="number"
@@ -177,7 +177,7 @@ const CrashControls = ({
             />
             <span className="input-suffix">USDT</span>
           </div>
-          
+
           <div className="quick-buttons">
             <button 
               onClick={() => handleQuickBet(0.1)} 
@@ -209,7 +209,7 @@ const CrashControls = ({
             </button>
           </div>
         </div>
-        
+
         {/* Правая панель - Автовывод */}
         <div className="control-panel auto-panel">
           <div className="panel-header">
@@ -235,7 +235,7 @@ const CrashControls = ({
               {getAutoCashOutStatus()}
             </span>
           </div>
-          
+
           <div className={`input-group ${!autoCashOutEnabled ? 'disabled' : ''}`}>
             <input
               type="number"
@@ -249,7 +249,7 @@ const CrashControls = ({
             />
             <span className="input-suffix">x</span>
           </div>
-          
+
           <div className="quick-buttons">
             <button 
               onClick={() => handleQuickAutoCashOut(1.25)} 
@@ -282,7 +282,7 @@ const CrashControls = ({
           </div>
         </div>
       </div>
-      
+
       {/* УЛУЧШЕННАЯ информация о текущей ставке */}
       {hasBet && userBet && (
         <div className="current-bet-info">
@@ -290,7 +290,7 @@ const CrashControls = ({
             <span>💰 Ваша ставка:</span>
             <span className="bet-amount">{userBet.amount} USDT</span>
           </div>
-          
+
           {/* УЛУЧШЕННАЯ логика отображения текущего выигрыша */}
           {gameState === 'flying' && (
             <>
@@ -331,7 +331,7 @@ const CrashControls = ({
               )}
             </>
           )}
-          
+
           {/* УЛУЧШЕННАЯ информация об автовыводе */}
           {!cashedOut && (
             <>
@@ -353,7 +353,7 @@ const CrashControls = ({
           )}
         </div>
       )}
-      
+
       {/* ИСПРАВЛЕННАЯ информация о состоянии игры */}
       <div className="game-state-info">
         <div className="state-indicator">
@@ -364,7 +364,7 @@ const CrashControls = ({
             {gameState === 'crashed' && '💥 Краш (пауза 3 сек)'}
           </span>
         </div>
-        
+
         {/* Показываем множитель во время полета */}
         {gameState === 'flying' && (
           <div className="multiplier-info">
@@ -372,7 +372,7 @@ const CrashControls = ({
             <span className="multiplier-value">{currentMultiplier.toFixed(2)}x</span>
           </div>
         )}
-        
+
         {/* Дополнительная информация для пользователей без ставок */}
         {gameState === 'flying' && !hasBet && (
           <div className="multiplier-info">
@@ -380,7 +380,7 @@ const CrashControls = ({
             <span className="multiplier-value">Наблюдение (без ставки)</span>
           </div>
         )}
-        
+
         {/* Информация о продолжении игры после кешаута */}
         {gameState === 'flying' && cashedOut && (
           <div className="multiplier-info">
@@ -389,7 +389,7 @@ const CrashControls = ({
           </div>
         )}
       </div>
-      
+
       {/* УЛУЧШЕННЫЙ индикатор скорости роста */}
       {gameState === 'flying' && (
         <div className="game-state-info">
@@ -403,7 +403,7 @@ const CrashControls = ({
           </div>
         </div>
       )}
-      
+
       {/* НОВОЕ: Подсказки для новых игроков */}
       {gameState === 'waiting' && !hasBet && (
         <div className="game-state-info">
@@ -417,7 +417,7 @@ const CrashControls = ({
           </div>
         </div>
       )}
-      
+
       {/* УЛУЧШЕННОЕ предупреждение о приближении автовывода */}
       {isApproachingAutoCashOut && hasBet && !cashedOut && (
         <div className="game-state-info approaching-auto-info">
@@ -429,7 +429,7 @@ const CrashControls = ({
           </div>
         </div>
       )}
-      
+
       {/* НОВОЕ: Информация об успешном автовыводе */}
       {cashedOut && autoWithdrawn && gameState === 'flying' && (
         <div className="game-state-info">

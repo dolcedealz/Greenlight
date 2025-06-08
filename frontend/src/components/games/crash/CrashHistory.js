@@ -3,7 +3,7 @@ import React from 'react';
 import '../../../styles/CrashHistory.css';
 
 const CrashHistory = ({ history }) => {
-  
+
   // Получение цвета для множителя
   const getMultiplierColor = (multiplier) => {
     if (multiplier < 1.5) return '#ff3b30'; // Красный
@@ -12,7 +12,7 @@ const CrashHistory = ({ history }) => {
     if (multiplier < 10) return '#34c759'; // Зеленый
     return '#0ba84a'; // Темно-зеленый
   };
-  
+
   // Получение класса для множителя
   const getMultiplierClass = (multiplier) => {
     if (multiplier < 1.5) return 'very-low';
@@ -21,7 +21,7 @@ const CrashHistory = ({ history }) => {
     if (multiplier < 10) return 'high';
     return 'very-high';
   };
-  
+
   // Форматирование времени
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
@@ -31,15 +31,15 @@ const CrashHistory = ({ history }) => {
       second: '2-digit' 
     });
   };
-  
+
   // Функция для получения истории - показываем только реальные данные
   const getDisplayHistory = () => {
     // Возвращаем только реальную историю из API
     return history && Array.isArray(history) ? history : [];
   };
-  
+
   const displayHistory = getDisplayHistory();
-  
+
   return (
     <div className="crash-history">
       <div className="history-header">
@@ -48,7 +48,7 @@ const CrashHistory = ({ history }) => {
           <span className="history-count">{displayHistory.length} раундов</span>
         )}
       </div>
-      
+
       <div className="history-content">
         {displayHistory.length === 0 ? (
           <div className="no-history">
@@ -74,7 +74,7 @@ const CrashHistory = ({ history }) => {
                 ))}
               </div>
             </div>
-            
+
             {/* УЛУЧШЕННЫЙ: Детальный список с лучшей информацией */}
             <div className="history-detailed">
               {displayHistory.slice(0, 15).map((round, index) => (
@@ -86,7 +86,7 @@ const CrashHistory = ({ history }) => {
                     </div>
                     <div className="round-time">{formatTime(round.timestamp)}</div>
                   </div>
-                  
+
                   <div className="round-result">
                     <div 
                       className={`crash-multiplier ${getMultiplierClass(round.crashPoint)}`}
@@ -97,7 +97,7 @@ const CrashHistory = ({ history }) => {
                       <span className="multiplier-value">{round.crashPoint.toFixed(2)}x</span>
                     </div>
                   </div>
-                  
+
                   <div className="round-stats">
                     <div className="stat">
                       <span className="stat-icon">👥</span>
@@ -114,7 +114,7 @@ const CrashHistory = ({ history }) => {
           </>
         )}
       </div>
-      
+
       {/* УЛУЧШЕННАЯ: Статистика по истории с дополнительной информацией */}
       {displayHistory.length > 0 && (
         <div className="history-stats">
@@ -157,7 +157,7 @@ const CrashHistory = ({ history }) => {
               </span>
             </div>
           </div>
-          
+
           {/* НОВОЕ: Дополнительная информация о скорости игры */}
           <div className="speed-info">
             <div className="speed-note">

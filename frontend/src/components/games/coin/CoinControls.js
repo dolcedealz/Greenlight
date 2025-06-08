@@ -6,38 +6,38 @@ import '../../../styles/CoinControls.css';
 const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
   const [betAmount, setBetAmount] = useState(1);
   const [selectedSide, setSelectedSide] = useState('heads');
-  
+
   const { 
     buttonPressFeedback, 
     selectionChanged, 
     gameActionFeedback, 
     importantActionFeedback 
   } = useTactileFeedback();
-  
+
   // Обработчик изменения суммы ставки
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
-    
+
     // Разрешаем пустое значение или 0 для ввода
     if (inputValue === '' || inputValue === '0') {
       setBetAmount(inputValue);
       return;
     }
-    
+
     const value = parseFloat(inputValue);
     if (!isNaN(value) && value >= 0 && value <= balance) {
       setBetAmount(value);
       buttonPressFeedback();
     }
   };
-  
+
   // Быстрые кнопки для ставки
   const handleQuickBet = (multiplier) => {
     buttonPressFeedback();
     const quickBet = Math.min(balance, Math.max(0.01, Math.floor(balance * multiplier * 100) / 100));
     setBetAmount(quickBet);
   };
-  
+
   // Обработчик выбора стороны
   const handleSideSelection = (side) => {
     if (!isFlipping) {
@@ -45,37 +45,33 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
       setSelectedSide(side);
     }
   };
-  
+
   // ИСПРАВЛЕННЫЙ обработчик нажатия кнопки подбрасывания
   const handleFlipClick = () => {
-    console.log('🪙 CONTROLS: Нажата кнопка подбрасывания');
-    console.log('🪙 CONTROLS: Состояние - isFlipping:', isFlipping, 'betAmount:', betAmount, 'balance:', balance);
-    
+
     // Проверяем все условия
     if (isFlipping) {
-      console.log('🪙 CONTROLS: Блокировано - уже идет подбрасывание');
+
       return;
     }
-    
+
     if (!betAmount || betAmount <= 0) {
-      console.log('🪙 CONTROLS: Блокировано - неверная сумма ставки:', betAmount);
+
       return;
     }
-    
+
     if (betAmount > balance) {
-      console.log('🪙 CONTROLS: Блокировано - недостаточно средств. Ставка:', betAmount, 'Баланс:', balance);
+
       return;
     }
-    
+
     if (!onFlip) {
-      console.error('🪙 CONTROLS: Ошибка - функция onFlip не передана!');
+
       return;
     }
-    
-    console.log('🪙 CONTROLS: Все проверки пройдены, вызываем onFlip');
-    
+
     importantActionFeedback();
-    
+
     // Вызываем функцию с правильными параметрами
     onFlip({
       betAmount: parseFloat(betAmount),
@@ -108,7 +104,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
           )}
         </div>
       </button>
-      
+
       {/* Выбор стороны */}
       <div className="side-selection">
         <h3 className="selection-title">Выберите сторону</h3>
@@ -127,7 +123,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
             </div>
             {selectedSide === 'heads' && <div className="selection-indicator">✓</div>}
           </div>
-          
+
           <div 
             className={`side-option tails ${selectedSide === 'tails' ? 'selected' : ''}`}
             onClick={() => handleSideSelection('tails')}
@@ -144,7 +140,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
           </div>
         </div>
       </div>
-      
+
       {/* Управление ставкой */}
       <div className="bet-control-section">
         <div className="bet-control">
@@ -165,7 +161,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
               <div className="input-currency">USDT</div>
             </div>
           </div>
-          
+
           <div className="bet-info">
             <div className="potential-win">
               <span className="info-label">Возможный выигрыш:</span>
@@ -177,7 +173,7 @@ const CoinControls = ({ onFlip, isFlipping, balance, lastResults }) => {
             </div>
           </div>
         </div>
-        
+
         {/* Быстрые ставки */}
         <div className="quick-bets">
           <div className="quick-bets-label">Быстрые ставки:</div>

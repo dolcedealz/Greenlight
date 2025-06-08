@@ -12,9 +12,9 @@ const useTactileFeedback = () => {
     if (isWebAppAvailable()) {
       try {
         window.Telegram.WebApp.HapticFeedback.impactOccurred(type);
-        console.log('🔊 Вибрация отправлена:', type);
+
       } catch (error) {
-        console.warn('Ошибка отправки тактильной обратной связи:', error);
+
       }
     } else {
       console.log('🔊 Вибрация пропущена (не в Telegram WebApp)');
@@ -26,9 +26,9 @@ const useTactileFeedback = () => {
     if (isWebAppAvailable()) {
       try {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred(type);
-        console.log('🔔 Уведомление отправлено:', type);
+
       } catch (error) {
-        console.warn('Ошибка отправки уведомления:', error);
+
       }
     } else {
       console.log('🔔 Уведомление пропущено (не в Telegram WebApp)');

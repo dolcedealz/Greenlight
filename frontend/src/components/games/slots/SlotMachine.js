@@ -1,7 +1,6 @@
 // frontend/src/components/games/slots/SlotMachine.js - ИСПРАВЛЕННАЯ АНИМАЦИЯ
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../../styles/SlotMachine.css';
-
 // ОБНОВЛЕННЫЕ КОЭФФИЦИЕНТЫ (дополнительно урезаны на 20% кроме jackpot)
 const SLOT_SYMBOLS = [
   { symbol: 'cherry', name: 'cherry', weight: 25, payout: 1.6, emoji: '🍒' },
@@ -13,7 +12,6 @@ const SLOT_SYMBOLS = [
   { symbol: 'star', name: 'star', weight: 3, payout: 20, emoji: '⭐' },
   { symbol: 'jackpot', name: 'jackpot', weight: 2, payout: 50, emoji: '🎰' }
 ];
-
 const SlotMachine = ({ 
   onSpin, 
   isSpinning, 
@@ -32,14 +30,12 @@ const SlotMachine = ({
     ['cherry', 'lemon', 'persik', 'grape'],
     ['cherry', 'lemon', 'persik', 'grape']
   ]);
-  
   // Состояния анимации
   const [isAnimating, setIsAnimating] = useState(false);
   const [animatingReels, setAnimatingReels] = useState([false, false, false, false]);
   const [winningLines, setWinningLines] = useState([]);
   const [showingResult, setShowingResult] = useState(false);
   const [spinPhase, setSpinPhase] = useState('idle');
-  
   // Рефы для управления анимацией
   const animationFrames = useRef([]);
   const animationTimeouts = useRef([]);
@@ -48,10 +44,8 @@ const SlotMachine = ({
   const isStoppingRef = useRef(false);
   const animationCompleteRef = useRef(false);
   const frameCounters = useRef([0, 0, 0, 0]); // Счетчики кадров для каждого барабана
-  
   // ОПТИМИЗАЦИЯ: Детектор производительности устройства
   const [isLowPerformance, setIsLowPerformance] = useState(false);
-  
   useEffect(() => {
     // Проверка производительности устройства
     const checkPerformance = () => {
@@ -64,91 +58,70 @@ const SlotMachine = ({
       setIsLowPerformance(isLow);
       console.log('🎰 PERFORMANCE: Устройство', isLow ? 'слабое' : 'мощное', `(${(end - start).toFixed(2)}ms)`);
     };
-    
     checkPerformance();
   }, []);
-  
   // Получить данные символа
   const getSymbolData = useCallback((symbolName) => {
     return SLOT_SYMBOLS.find(s => s.symbol === symbolName) || SLOT_SYMBOLS[0];
   }, []);
-  
   // Генерация случайного символа для анимации
   const getRandomSymbol = useCallback(() => {
     const totalWeight = SLOT_SYMBOLS.reduce((sum, s) => sum + s.weight, 0);
     let random = Math.random() * totalWeight;
-    
     for (const symbolData of SLOT_SYMBOLS) {
       random -= symbolData.weight;
       if (random <= 0) {
         return symbolData.symbol;
       }
     }
-    
     return SLOT_SYMBOLS[0].symbol;
   }, []);
-  
   // Очистка анимаций
   const clearAnimations = useCallback(() => {
-    console.log('🎰 ANIM: Очищаем все анимации');
-    
     animationFrames.current.forEach((frameId, index) => {
       if (frameId) {
         cancelAnimationFrame(frameId);
-        console.log(`🎰 ANIM: Очищен фрейм ${index}`);
       }
     });
     animationFrames.current = [];
     frameCounters.current = [0, 0, 0, 0];
-    
     animationTimeouts.current.forEach((timeout, index) => {
       if (timeout) {
         clearTimeout(timeout);
-        console.log(`🎰 ANIM: Очищен таймаут ${index}`);
       }
     });
     animationTimeouts.current = [];
   }, []);
-  
   // Функция анимации одного барабана с requestAnimationFrame
   const animateReel = useCallback((reelIndex) => {
     if (isStoppingRef.current || animationCompleteRef.current) {
       return;
     }
-    
     const animate = () => {
       // Увеличиваем счетчик кадров
       frameCounters.current[reelIndex]++;
-      
       // ОПТИМИЗАЦИЯ: Обновляем символы не каждый кадр
       const frameSkip = isLowPerformance ? 8 : 4; // Для слабых устройств - каждый 8й кадр, для мощных - каждый 4й
-      
       if (frameCounters.current[reelIndex] % frameSkip === 0) {
         setReels(prevReels => {
           if (isStoppingRef.current || animationCompleteRef.current) {
             return prevReels;
           }
-          
           const newReels = [...prevReels];
           newReels[reelIndex] = Array(4).fill().map(() => getRandomSymbol());
           return newReels;
         });
       }
-      
       // Продолжаем анимацию, если не остановлена
       if (!isStoppingRef.current && !animationCompleteRef.current) {
         animationFrames.current[reelIndex] = requestAnimationFrame(animate);
       }
     };
-    
     // Запускаем анимацию
     animationFrames.current[reelIndex] = requestAnimationFrame(animate);
   }, [getRandomSymbol, isLowPerformance]);
-  
   // Функция для полной остановки анимации
   const stopAllAnimations = useCallback(() => {
-    console.log('🎰 ANIM: Принудительная остановка всех анимаций');
-    
     clearAnimations();
     setIsAnimating(false);
     setAnimatingReels([false, false, false, false]);
@@ -156,76 +129,59 @@ const SlotMachine = ({
     isStoppingRef.current = false;
     animationCompleteRef.current = true;
   }, [clearAnimations]);
-  
   // Функция для плавной остановки барабана на нужном символе
   const stopReelWithResult = useCallback((reelIndex, targetColumn, delay) => {
     const timeout = setTimeout(() => {
-      console.log(`🎰 ANIM: Останавливаем барабан ${reelIndex} на символах:`, targetColumn);
-      
       // Останавливаем анимацию для этого барабана
       if (animationFrames.current[reelIndex]) {
         cancelAnimationFrame(animationFrames.current[reelIndex]);
         animationFrames.current[reelIndex] = null;
       }
-      
       // Устанавливаем финальные символы для этого барабана
       setReels(prevReels => {
         const newReels = [...prevReels];
         newReels[reelIndex] = [...targetColumn];
         return newReels;
       });
-      
       // Отключаем анимацию для барабана
       setAnimatingReels(prev => {
         const newState = [...prev];
         newState[reelIndex] = false;
         return newState;
       });
-      
       // Если это последний барабан
       if (reelIndex === 3) {
-        console.log('🎰 ANIM: Все барабаны остановлены');
-        
         // Завершаем анимацию
         setIsAnimating(false);
         setSpinPhase('stopped');
         isStoppingRef.current = false;
         animationCompleteRef.current = true;
-        
         // Показываем результат через короткую задержку
         setTimeout(() => {
           setShowingResult(true);
-          
           if (finalResultRef.current && finalResultRef.current.winningLines && finalResultRef.current.winningLines.length > 0) {
             setTimeout(() => {
               setWinningLines([...finalResultRef.current.winningLines]);
-              
               // Убираем подсветку через 4 секунды
               setTimeout(() => {
                 setWinningLines([]);
               }, 4000);
             }, 300);
           }
-          
           // Уведомляем родительский компонент ПОСЛЕ визуального завершения
           setTimeout(() => {
             if (onAnimationComplete) {
-              console.log('🎰 ANIM: Вызываем onAnimationComplete после показа результата');
               onAnimationComplete();
             }
           }, 800);
         }, 200);
       }
     }, delay);
-    
     animationTimeouts.current.push(timeout);
   }, [onAnimationComplete]);
-  
   // Сброс состояния при начале нового спина
   useEffect(() => {
     if (isSpinning && !isAnimating && !animationCompleteRef.current) {
-      console.log('🎰 ANIM: Запуск новой анимации');
-      
       // Сбрасываем все состояния
       clearAnimations();
       setWinningLines([]);
@@ -238,14 +194,12 @@ const SlotMachine = ({
       lastResultRef.current = null;
       animationCompleteRef.current = false;
       frameCounters.current = [0, 0, 0, 0];
-      
       // Запускаем анимацию для каждого барабана
       for (let reelIndex = 0; reelIndex < 4; reelIndex++) {
         animateReel(reelIndex);
       }
     }
   }, [isSpinning, isAnimating, clearAnimations, animateReel]);
-  
   // Обработка результата с сервера
   useEffect(() => {
     if (lastResult && 
@@ -254,73 +208,55 @@ const SlotMachine = ({
         isAnimating && 
         !isStoppingRef.current &&
         !animationCompleteRef.current) {
-      
-      console.log('🎰 ANIM: Получен результат с сервера, начинаем остановку:', lastResult);
-      
       lastResultRef.current = lastResult;
       finalResultRef.current = lastResult;
       isStoppingRef.current = true;
-      
       setSpinPhase('stopping');
-      
       // ОПТИМИЗАЦИЯ: Адаптивные задержки между остановками барабанов
       const stopDelays = isLowPerformance ? [200, 350, 500, 650] : [300, 500, 700, 900];
-      
       lastResult.reels.forEach((targetColumn, reelIndex) => {
         stopReelWithResult(reelIndex, targetColumn, stopDelays[reelIndex]);
       });
     }
   }, [lastResult, isAnimating, stopReelWithResult, isLowPerformance]);
-  
   // Сброс состояния анимации при остановке спина
   useEffect(() => {
     if (!isSpinning && animationCompleteRef.current) {
-      console.log('🎰 ANIM: Спин завершен, сбрасываем флаг анимации');
       animationCompleteRef.current = false;
     }
   }, [isSpinning]);
-  
   // Аварийная остановка анимации
   useEffect(() => {
     if (!isSpinning && isAnimating) {
-      console.log('🎰 ANIM: Аварийная остановка анимации');
       const emergencyTimeout = setTimeout(() => {
         stopAllAnimations();
       }, 500);
-      
       return () => clearTimeout(emergencyTimeout);
     }
   }, [isSpinning, isAnimating, stopAllAnimations]);
-  
   // Очистка при размонтировании
   useEffect(() => {
     return () => {
-      console.log('🎰 ANIM: Размонтирование компонента, очищаем все');
       clearAnimations();
     };
   }, [clearAnimations]);
-  
   // Определение класса ячейки
   const getCellClass = useCallback((reelIndex, rowIndex) => {
     const baseClass = 'slot-cell';
     const position = `${reelIndex}-${rowIndex}`;
-    
     if (winningLines.length > 0) {
       const isWinning = winningLines.some(line => line.includes(position));
       if (isWinning) {
         return `${baseClass} winning`;
       }
     }
-    
     return baseClass;
   }, [winningLines]);
-  
   // ОПТИМИЗАЦИЯ: Мемоизированный компонент символа
   const SymbolComponent = React.memo(({ symbolName }) => {
     const symbolData = getSymbolData(symbolName);
     return <span className="slot-symbol">{symbolData.emoji}</span>;
   });
-  
   return (
     <div className={`slot-machine ${isLowPerformance ? 'low-performance' : ''}`}>
       {/* Игровое поле 4x4 */}
@@ -343,7 +279,6 @@ const SlotMachine = ({
             </div>
           ))}
         </div>
-        
         {/* ОПТИМИЗАЦИЯ: Упрощенные линии выплат только для мощных устройств */}
         {!isLowPerformance && winningLines.length > 0 && (
           <div className="paylines">
@@ -361,7 +296,6 @@ const SlotMachine = ({
           </div>
         )}
       </div>
-      
       {/* Информация о результате */}
       {showingResult && finalResultRef.current && !isSpinning && !isAnimating && (
         <div className="last-spin-info">
@@ -393,7 +327,6 @@ const SlotMachine = ({
                       if (line.length >= 3) {
                         const firstPos = line[0].split('-');
                         const lastPos = line[line.length - 1].split('-');
-                        
                         if (firstPos[1] === lastPos[1]) {
                           lineType = `Строка ${parseInt(firstPos[1]) + 1}`;
                         }
@@ -410,7 +343,6 @@ const SlotMachine = ({
                           lineType = 'Побочная диагональ';
                         }
                       }
-                      
                       return (
                         <div key={index} className="line-detail">
                           • {lineType}: {line.length} в ряд
@@ -431,5 +363,4 @@ const SlotMachine = ({
     </div>
   );
 };
-
-export default SlotMachine;
+export default SlotMachine;

@@ -193,7 +193,7 @@ class AuthService {
 
       const token = jwt.sign(
         payload,
-        process.env.JWT_SECRET || 'default-secret-key',
+        process.env.JWT_SECRET,
         { 
           expiresIn: '30d',
           issuer: 'greenlight-casino',
@@ -223,7 +223,7 @@ class AuthService {
 
       const decoded = jwt.verify(
         token, 
-        process.env.JWT_SECRET || 'default-secret-key',
+        process.env.JWT_SECRET,
         {
           issuer: 'greenlight-casino',
           audience: 'telegram-mini-app'

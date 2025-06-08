@@ -17,7 +17,7 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     // Логируем ошибку
     Logger.error('Error Boundary caught an error:', error, errorInfo);
-    
+
     this.setState({
       error: error,
       errorInfo: errorInfo
@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component {
           <div className="error-boundary-content">
             <h2>🚨 Что-то пошло не так</h2>
             <p>Произошла неожиданная ошибка в приложении.</p>
-            
+
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="error-details">
                 <summary>Подробности ошибки (только в разработке)</summary>
@@ -47,12 +47,12 @@ class ErrorBoundary extends React.Component {
                 <pre>{this.state.errorInfo.componentStack}</pre>
               </details>
             )}
-            
+
             <div className="error-actions">
               <button onClick={this.handleReload} className="btn btn-primary">
                 Перезагрузить страницу
               </button>
-              
+
               {window.Telegram?.WebApp && (
                 <button 
                   onClick={() => window.Telegram.WebApp.close()} 

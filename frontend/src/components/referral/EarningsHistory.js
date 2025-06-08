@@ -28,29 +28,29 @@ const EarningsHistory = () => {
   const fetchEarnings = async () => {
     try {
       setLoading(true);
-      
+
       const params = {
         limit: 50,
         skip: (page - 1) * 50
       };
-      
+
       if (filter !== 'all') {
         params.type = filter;
       }
-      
+
       const response = await referralApi.getEarningsHistory(params);
-      
+
       if (response.data.success) {
         const newEarnings = response.data.data.earnings;
-        
+
         if (page === 1) {
           setEarnings(newEarnings);
         } else {
           setEarnings(prev => [...prev, ...newEarnings]);
         }
-        
+
         setHasMore(newEarnings.length === 50);
-        
+
         // Подсчет общих сумм
         const total = newEarnings.reduce((sum, e) => sum + e.calculation.earnedAmount, 0);
         setTotals(prev => ({
@@ -59,7 +59,7 @@ const EarningsHistory = () => {
         }));
       }
     } catch (error) {
-      console.error('Ошибка загрузки начислений:', error);
+
     } finally {
       setLoading(false);
     }
@@ -68,27 +68,27 @@ const EarningsHistory = () => {
   const fetchPayouts = async () => {
     try {
       setLoading(true);
-      
+
       const params = {
         limit: 20,
         skip: (page - 1) * 20
       };
-      
+
       const response = await referralApi.getPayoutsHistory(params);
-      
+
       if (response.data.success) {
         const newPayouts = response.data.data.payouts;
-        
+
         if (page === 1) {
           setPayouts(newPayouts);
         } else {
           setPayouts(prev => [...prev, ...newPayouts]);
         }
-        
+
         setHasMore(newPayouts.length === 20);
       }
     } catch (error) {
-      console.error('Ошибка загрузки выплат:', error);
+
     } finally {
       setLoading(false);
     }
@@ -177,11 +177,11 @@ const EarningsHistory = () => {
               <span className="day-date">{date}</span>
               <span className="day-total">+{dayData.total.toFixed(2)} USDT</span>
             </div>
-            
+
             <div className="day-earnings">
               {dayData.earnings.map((earning) => {
                 const typeInfo = getEarningTypeInfo(earning.type);
-                
+
                 return (
                   <div key={earning._id} className="earning-item">
                     <div className="earning-icon">{typeInfo.icon}</div>
@@ -309,7 +309,7 @@ const EarningsHistory = () => {
       ) : (
         <>
           {activeSection === 'earnings' ? renderEarnings() : renderPayouts()}
-          
+
           {/* Кнопка загрузки еще */}
           {hasMore && (
             <div className="load-more-container">

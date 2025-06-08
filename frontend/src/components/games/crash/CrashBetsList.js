@@ -4,7 +4,7 @@ import '../../../styles/CrashBetsList.css';
 
 const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier }) => {
   const [activeTab, setActiveTab] = useState('active'); // active, cashed
-  
+
   // Получаем только реальные данные
   const getDisplayBets = () => {
     if (activeTab === 'active') {
@@ -13,11 +13,11 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier
       return (cashedOutBets || []).slice(0, 50); // Показываем максимум 50 выведенных ставок
     }
   };
-  
+
   // Форматирование имени пользователя с маскированием
   const formatUsername = (username, isCurrentUser = false) => {
     if (!username) return 'Игрок';
-    
+
     // Если это текущий пользователь, показываем полное имя
     if (isCurrentUser) {
       if (username.length > 8) {
@@ -25,7 +25,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier
       }
       return username;
     }
-    
+
     // Для других пользователей маскируем имя
     if (username.length <= 3) {
       return username.charAt(0) + '*'.repeat(username.length - 1);
@@ -35,7 +35,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier
       return username.slice(0, 2) + '*'.repeat(3) + username.slice(-1);
     }
   };
-  
+
   // Генерация цвета для пользователя
   const getUserColor = (userId) => {
     const colors = [
@@ -43,22 +43,22 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier
       '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe',
       '#fd79a8', '#e84393', '#00b894', '#00cec9'
     ];
-    
+
     if (!userId) return colors[0];
-    
+
     const hash = userId.toString().split('').reduce((a, b) => {
       a = ((a << 5) - a) + b.charCodeAt(0);
       return a & a;
     }, 0);
-    
+
     return colors[Math.abs(hash) % colors.length];
   };
-  
+
   // Только реальные данные
   const displayBets = getDisplayBets();
   const realActiveBets = activeBets || [];
   const realCashedBets = cashedOutBets || [];
-  
+
   return (
     <div className="crash-bets-list">
       <div className="bets-header">
@@ -77,7 +77,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier
           </button>
         </div>
       </div>
-      
+
       <div className="bets-content">
         {displayBets.length === 0 ? (
           <div className="no-bets">
@@ -112,12 +112,12 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier
                     {bet.isCurrentUser && <span className="you-label">(Вы)</span>}
                   </span>
                 </div>
-                
+
                 <div className="bet-details">
                   <div className="bet-amount">
                     {bet.amount ? bet.amount.toFixed(2) : '0.00'} USDT
                   </div>
-                  
+
                   {activeTab === 'active' && (
                     <>
                       <div className="bet-auto">
@@ -147,7 +147,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier
                       )}
                     </>
                   )}
-                  
+
                   {activeTab === 'cashed' && bet.cashOutMultiplier && (
                     <div className="cashout-info">
                       <div className="cashout-multiplier" title={`Вывел при множителе ${bet.cashOutMultiplier.toFixed(2)}x`}>
@@ -164,7 +164,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier
           </div>
         )}
       </div>
-      
+
       {/* Статистика только для реальных данных */}
       {(realActiveBets.length > 0 || realCashedBets.length > 0) && (
         <div className="bets-stats">
@@ -189,7 +189,7 @@ const CrashBetsList = ({ activeBets, cashedOutBets, gameState, currentMultiplier
           )}
         </div>
       )}
-      
+
       {/* Информация о состоянии игры */}
       <div className="game-status">
         <div className="status-indicator">

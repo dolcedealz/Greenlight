@@ -42,3 +42,9 @@ logs
 # Misc
 .cache
 .parcel-cache
+
+# Production sensitive files
+**/PRODUCTION_ENV_VARIABLES.md
+**/PRODUCTION_CONFIG_REPORT.md
+**/*_SECRETS.md
+**/*_TOKENS.md

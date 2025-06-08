@@ -16,9 +16,9 @@ const UserPromoCodes = () => {
     try {
       setIsLoading(true);
       setError('');
-      
+
       const result = await getUserPromoCodes();
-      
+
       if (result.success) {
         setPromocodes(result.data.promocodes);
       } else {
@@ -124,7 +124,7 @@ const UserPromoCodes = () => {
               <div className="promocode-icon">
                 {getTypeIcon(promo.type)}
               </div>
-              
+
               <div className="promocode-info">
                 <div className="promocode-code">{promo.code}</div>
                 <div className="promocode-type">{getTypeDisplayName(promo.type)}</div>
@@ -132,7 +132,7 @@ const UserPromoCodes = () => {
                   <div className="promocode-description">{promo.description}</div>
                 )}
               </div>
-              
+
               <div className="promocode-status">
                 <span className="status-badge activated">
                   ✅ Активирован

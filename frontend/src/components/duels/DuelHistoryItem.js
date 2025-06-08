@@ -7,13 +7,13 @@ const DuelHistoryItem = ({ duel, currentUserId }) => {
   // Определяем, выиграл ли текущий пользователь
   const isWinner = duel.winnerId === currentUserId;
   const isChallenger = duel.challengerId === currentUserId;
-  
+
   // Определяем оппонента
   const opponentUsername = isChallenger ? duel.opponentUsername : duel.challengerUsername;
-  
+
   // Определяем результат
   const profit = isWinner ? (duel.winAmount || 0) : -(duel.amount || 0);
-  
+
   // Игры и их эмодзи
   const gameEmojis = {
     '🎲': 'Кости',
@@ -63,34 +63,34 @@ const DuelHistoryItem = ({ duel, currentUserId }) => {
           <span className="game-emoji">{duel.gameType}</span>
           <span className="game-name">{gameEmojis[duel.gameType] || 'Дуэль'}</span>
         </div>
-        
+
         <div className="duel-opponent">
           <span className="vs-text">vs</span>
           <span className="opponent-name">@{opponentUsername}</span>
         </div>
-        
+
         <div className="duel-result">
           <span className="status-icon">{getStatusIcon()}</span>
           <span className="status-text">{getStatusText()}</span>
         </div>
       </div>
-      
+
       <div className="duel-details">
         <div className="duel-score">
           Счет: {duel.challengerScore || 0}-{duel.opponentScore || 0}
         </div>
-        
+
         <div className="duel-amount">
           <span className={`profit ${profit >= 0 ? 'positive' : 'negative'}`}>
             {profit >= 0 ? '+' : ''}{profit} USDT
           </span>
         </div>
-        
+
         <div className="duel-format">
           {duel.format?.toUpperCase() || 'Bo1'}
         </div>
       </div>
-      
+
       <div className="duel-meta">
         <span className="duel-date">{formatDate(duel.completedAt || duel.createdAt)}</span>
         <span className="duel-id">#{duel.sessionId?.slice(-6) || duel.id?.slice(-6)}</span>

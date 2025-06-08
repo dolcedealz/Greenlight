@@ -5,10 +5,10 @@ import '../../../styles/MinesGrid.css';
 
 const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver, loading }) => {
   const { gameActionFeedback } = useTactileFeedback();
-  
+
   // ОПТИМИЗАЦИЯ: Детектор производительности устройства
   const [isLowPerformance, setIsLowPerformance] = useState(false);
-  
+
   useEffect(() => {
     // Простая проверка производительности устройства
     const checkPerformance = () => {
@@ -20,7 +20,7 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
       const isLow = (end - start) > 8; // Если операция заняла больше 8ms
       setIsLowPerformance(isLow);
     };
-    
+
     checkPerformance();
   }, []);
 
@@ -40,18 +40,18 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
     // - игра завершена
     // - идет загрузка
     // - ячейка уже открыта
-    
+
     // ОПТИМИЗАЦИЯ: Используем Set для быстрой проверки
     const cellKey = `${rowIndex}-${colIndex}`;
     const alreadyClicked = clickedCellsSet.has(cellKey);
-    
+
     if (!gameActive || gameOver || loading || alreadyClicked) {
       return;
     }
-    
+
     // Вибрация при клике по ячейке
     gameActionFeedback();
-    
+
     // Вызываем обработчик из родительского компонента
     onCellClick(rowIndex, colIndex);
   }, [gameActive, gameOver, loading, clickedCellsSet, gameActionFeedback, onCellClick]);
@@ -74,26 +74,25 @@ const MinesGrid = ({ grid, clickedCells = [], onCellClick, gameActive, gameOver,
           <div className="mines-spinner"></div>
         </div>
       )}
-      
+
       {grid.map((row, rowIndex) => (
         <div key={rowIndex} className="mines-row">
           {row.map((cell, colIndex) => {
             // ОПТИМИЗАЦИЯ: Используем Set для быстрой проверки
             const cellKey = `${rowIndex}-${colIndex}`;
             const isRevealed = clickedCellsSet.has(cellKey);
-            
+
             // ИСПРАВЛЕНИЕ: При завершении игры показываем все мины
             const shouldShowMine = cell === 'mine' && (isRevealed || gameOver);
             const shouldShowGem = cell === 'gem' && isRevealed;
-            
-            
+
             const cellClass = `mines-cell 
               ${isRevealed || (gameOver && cell === 'mine') ? 'revealed' : ''} 
               ${shouldShowMine ? 'mine' : ''} 
               ${shouldShowGem ? 'gem' : ''}
               ${!gameActive && !isRevealed && !(gameOver && cell === 'mine') ? 'disabled' : ''}
             `;
-            
+
             return (
               <CellComponent
                 key={colIndex}

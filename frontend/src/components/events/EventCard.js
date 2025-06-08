@@ -1,19 +1,16 @@
 // frontend/src/components/events/EventCard.js
 import React from 'react';
 import '../../styles/EventCard.css';
-
 const EventCard = ({ event, onSelect, onOutcomeSelect, formatTimeLeft }) => {
   // Обработчик клика по карточке
   const handleCardClick = () => {
     onSelect(event);
   };
-
   // Обработчик клика по исходу (предотвращаем всплытие)
   const handleOutcomeClick = (e, outcomeId) => {
     e.stopPropagation();
     onOutcomeSelect(event, outcomeId);
   };
-
   // Получение иконки категории
   const getCategoryIcon = (category) => {
     switch (category) {
@@ -24,7 +21,6 @@ const EventCard = ({ event, onSelect, onOutcomeSelect, formatTimeLeft }) => {
       default: return '🎯';
     }
   };
-
   // Получение цвета статуса
   const getStatusColor = (status) => {
     switch (status) {
@@ -34,7 +30,6 @@ const EventCard = ({ event, onSelect, onOutcomeSelect, formatTimeLeft }) => {
       default: return '#8e8e93';
     }
   };
-
   // Получение текста статуса
   const getStatusText = (status) => {
     switch (status) {
@@ -45,7 +40,6 @@ const EventCard = ({ event, onSelect, onOutcomeSelect, formatTimeLeft }) => {
       default: return status;
     }
   };
-
   return (
     <div className="event-card" onClick={handleCardClick}>
       {/* Заголовок карточки */}
@@ -61,17 +55,14 @@ const EventCard = ({ event, onSelect, onOutcomeSelect, formatTimeLeft }) => {
           {getStatusText(event.status)}
         </div>
       </div>
-
       {/* Название события */}
       <div className="event-title">
         <h3>{event.title}</h3>
       </div>
-
       {/* Описание события */}
       <div className="event-description">
         <p>{event.description}</p>
       </div>
-
       {/* Информация о пуле */}
       <div className="event-pool-info">
         <div className="pool-total">
@@ -83,7 +74,6 @@ const EventCard = ({ event, onSelect, onOutcomeSelect, formatTimeLeft }) => {
           <span className="time-value">{formatTimeLeft(event.bettingEndsAt)}</span>
         </div>
       </div>
-
       {/* Исходы события */}
       <div className="event-outcomes">
         {event.outcomes.map((outcome) => {
@@ -91,7 +81,6 @@ const EventCard = ({ event, onSelect, onOutcomeSelect, formatTimeLeft }) => {
           const percentage = event.totalPool > 0 
             ? ((outcome.totalBets / event.totalPool) * 100).toFixed(1)
             : 0;
-
           return (
             <div 
               key={outcome.id} 
@@ -113,7 +102,6 @@ const EventCard = ({ event, onSelect, onOutcomeSelect, formatTimeLeft }) => {
           );
         })}
       </div>
-
       {/* Индикатор кликабельности */}
       <div className="event-card-footer">
         <span className="tap-hint">Нажмите для подробностей →</span>
@@ -121,5 +109,4 @@ const EventCard = ({ event, onSelect, onOutcomeSelect, formatTimeLeft }) => {
     </div>
   );
 };
-
-export default EventCard;
+export default EventCard;

@@ -18,18 +18,18 @@ const ReferralsList = () => {
   const fetchReferrals = async () => {
     try {
       setLoading(true);
-      
+
       const params = {
         limit: 20,
         skip: (page - 1) * 20,
         activeOnly: filter === 'active'
       };
-      
+
       const response = await referralApi.getReferrals(params);
-      
+
       if (response.data.success) {
         const newReferrals = response.data.data.referrals;
-        
+
         // Сортировка на клиенте
         const sorted = [...newReferrals].sort((a, b) => {
           switch (sortBy) {
@@ -41,17 +41,17 @@ const ReferralsList = () => {
               return new Date(b.createdAt) - new Date(a.createdAt);
           }
         });
-        
+
         if (page === 1) {
           setReferrals(sorted);
         } else {
           setReferrals(prev => [...prev, ...sorted]);
         }
-        
+
         setHasMore(newReferrals.length === 20);
       }
     } catch (error) {
-      console.error('Ошибка загрузки рефералов:', error);
+
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ const ReferralsList = () => {
     const now = new Date();
     const last = new Date(lastActivity);
     const days = Math.floor((now - last) / (1000 * 60 * 60 * 24));
-    
+
     if (days === 0) return 'Сегодня';
     if (days === 1) return 'Вчера';
     if (days < 7) return `${days} дней назад`;
@@ -117,7 +117,7 @@ const ReferralsList = () => {
             Неактивные
           </button>
         </div>
-        
+
         <select 
           className="sort-select"
           value={sortBy} 
@@ -147,7 +147,7 @@ const ReferralsList = () => {
             {referrals.map((referral) => {
               const isActive = referral.isActive;
               const earned = referral.totalWagered * 0.05; // Примерный расчет
-              
+
               return (
                 <div key={referral._id} className={`referral-card ${isActive ? 'active' : 'inactive'}`}>
                   <div className="referral-header">
@@ -164,7 +164,7 @@ const ReferralsList = () => {
                       {isActive ? '🟢' : '🔴'}
                     </div>
                   </div>
-                  
+
                   <div className="referral-stats">
                     <div className="stat">
                       <span className="stat-label">Зарегистрирован</span>
@@ -183,7 +183,7 @@ const ReferralsList = () => {
                       <span className="stat-value earned">+{earned.toFixed(2)} USDT</span>
                     </div>
                   </div>
-                  
+
                   <div className="referral-profit">
                     <div className="profit-indicator">
                       {referral.profitLoss >= 0 ? (
@@ -201,7 +201,7 @@ const ReferralsList = () => {
               );
             })}
           </div>
-          
+
           {/* Кнопка загрузки еще */}
           {hasMore && (
             <div className="load-more-container">
@@ -216,7 +216,7 @@ const ReferralsList = () => {
           )}
         </>
       )}
-      
+
       {/* Статистика внизу */}
       <div className="referrals-summary">
         <div className="summary-card">

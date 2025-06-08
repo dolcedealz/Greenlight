@@ -16,68 +16,68 @@ const HistoryScreen = () => {
   const [error, setError] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [currentUserId, setCurrentUserId] = useState(null);
-  
+
   // Загрузка данных при монтировании
   useEffect(() => {
     fetchData();
   }, []);
-  
+
   // Загрузка данных в зависимости от фильтров
   const fetchData = async (gameType = null, transactionType = null) => {
     try {
       setLoading(true);
-      
+
       // Загрузка баланса и профиля пользователя
       const balanceResponse = await userApi.getBalance();
       setBalance(balanceResponse.data.data.balance);
-      
+
       const profileResponse = await userApi.getUserProfile();
       setCurrentUserId(profileResponse.data.data.telegramId?.toString());
-      
+
       // Загрузка истории игр (включает дуэли)
       const gameParams = { limit: 20 };
       if (gameType && gameType !== 'all') {
         gameParams.gameType = gameType;
       }
-      
+
       const gamesResponse = await gameApi.getGameHistory(gameParams);
       const allGames = gamesResponse.data.data.games || [];
-      
+
       // Разделяем обычные игры и дуэли
       const regularGames = allGames.filter(game => game.gameType !== 'duel');
       const duelGames = allGames.filter(game => game.gameType === 'duel');
-      
+
       setGames(regularGames);
       setDuels(duelGames);
-      
+
       // Загрузка истории транзакций
       const transactionParams = { limit: 20 };
       if (transactionType && transactionType !== 'all') {
         transactionParams.type = transactionType;
       }
-      
+
       const transactionsResponse = await userApi.getTransactions(transactionParams);
       setTransactions(transactionsResponse.data.data.transactions || []);
-      
+
       setLoading(false);
     } catch (err) {
-      console.error('Ошибка загрузки истории:', err);
+
       setError('Не удалось загрузить историю. Пожалуйста, попробуйте еще раз.');
       setLoading(false);
     }
   };
-  
+
   // Обработчик изменения фильтра
   const handleFilterChange = (type) => {
     setFilterType(type);
-    
+
     if (activeSection === 'games') {
       fetchData(type, null);
     } else {
       fetchData(null, type);
     }
   };
-  
+
   // Получение иконок для игр
   const getGameIcon = (gameType) => {
     switch (gameType) {
@@ -90,7 +90,7 @@ const HistoryScreen = () => {
       default: return '🎮';
     }
   };
-  
+
   // Получение названий игр
   const getGameName = (gameType) => {
     switch (gameType) {
@@ -103,7 +103,7 @@ const HistoryScreen = () => {
       default: return gameType;
     }
   };
-  
+
   // Получение иконок для транзакций
   const getTransactionIcon = (type) => {
     switch (type) {
@@ -116,7 +116,7 @@ const HistoryScreen = () => {
       default: return '📋';
     }
   };
-  
+
   // Получение названий транзакций
   const getTransactionName = (type) => {
     switch (type) {
@@ -129,7 +129,7 @@ const HistoryScreen = () => {
       default: return type;
     }
   };
-  
+
   // Форматирование даты
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -141,7 +141,7 @@ const HistoryScreen = () => {
       minute: '2-digit'
     });
   };
-  
+
   // Рендер фильтров для игр
   const renderGameFilters = () => {
     return (
@@ -185,7 +185,7 @@ const HistoryScreen = () => {
       </div>
     );
   };
-  
+
   // Рендер фильтров для транзакций
   const renderTransactionFilters = () => {
     return (
@@ -223,12 +223,12 @@ const HistoryScreen = () => {
       </div>
     );
   };
-  
+
   // Рендер истории игр
   const renderGames = () => {
     // Объединяем игры и дуэли, если показываем все
     let allItems = [];
-    
+
     if (filterType === 'all') {
       // Добавляем обычные игры
       const gameItems = games.map(game => ({
@@ -236,14 +236,14 @@ const HistoryScreen = () => {
         type: 'game',
         sortDate: new Date(game.createdAt)
       }));
-      
+
       // Добавляем дуэли (теперь они в формате игр)
       const duelItems = duels.map(duel => ({
         ...duel,
         type: 'duel',
         sortDate: new Date(duel.createdAt)
       }));
-      
+
       allItems = [...gameItems, ...duelItems].sort((a, b) => b.sortDate - a.sortDate);
     } else if (filterType === 'duel') {
       allItems = duels.map(duel => ({
@@ -258,7 +258,7 @@ const HistoryScreen = () => {
         sortDate: new Date(game.createdAt)
       }));
     }
-    
+
     if (allItems.length === 0) {
       return (
         <div className="no-history">
@@ -266,7 +266,7 @@ const HistoryScreen = () => {
         </div>
       );
     }
-    
+
     return (
       <div className="history-list">
         {allItems.map((item) => {
@@ -317,7 +317,7 @@ const HistoryScreen = () => {
               </div>
             );
           }
-          
+
           // Рендер обычной игры
           const game = item;
           return (
@@ -373,7 +373,7 @@ const HistoryScreen = () => {
       </div>
     );
   };
-  
+
   // Рендер истории транзакций
   const renderTransactions = () => {
     if (transactions.length === 0) {
@@ -383,7 +383,7 @@ const HistoryScreen = () => {
         </div>
       );
     }
-    
+
     return (
       <div className="history-list">
         {transactions.map((transaction) => (
@@ -423,15 +423,15 @@ const HistoryScreen = () => {
       </div>
     );
   };
-  
+
   return (
     <div className="history-screen">
       <Header balance={balance} />
-      
+
       <div className="history-header">
         <h1 className="history-title">История</h1>
       </div>
-      
+
       <div className="history-sections">
         <button 
           className={`section-button ${activeSection === 'games' ? 'active' : ''}`}
@@ -454,10 +454,10 @@ const HistoryScreen = () => {
           Транзакции
         </button>
       </div>
-      
+
       {/* Фильтры */}
       {activeSection === 'games' ? renderGameFilters() : renderTransactionFilters()}
-      
+
       {loading ? (
         <div className="history-loading">
           <div className="loader"></div>

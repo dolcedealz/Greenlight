@@ -18,24 +18,24 @@ const socketService = {
       socket.connect();
     }
   },
-  
+
   // Отключение от сокета
   disconnect: () => {
     if (socket.connected) {
       socket.disconnect();
     }
   },
-  
+
   // Подписка на события
   subscribe: (event, callback) => {
     socket.on(event, callback);
   },
-  
+
   // Отписка от событий
   unsubscribe: (event, callback) => {
     socket.off(event, callback);
   },
-  
+
   // Отправка события
   emit: (event, data) => {
     socket.emit(event, data);

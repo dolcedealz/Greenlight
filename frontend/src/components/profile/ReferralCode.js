@@ -6,7 +6,7 @@ const ReferralCode = ({ userProfile }) => {
   const [copied, setCopied] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const { selectionChanged, notificationOccurred } = useTactileFeedback();
-  
+
   useEffect(() => {
     if (userProfile?.referralCode) {
       // !>7405< @5D5@0;L=CN AAK;:C 4;O Telegram 1>B0
@@ -15,7 +15,7 @@ const ReferralCode = ({ userProfile }) => {
       setShareLink(link);
     }
   }, [userProfile]);
-  
+
   const handleCopyCode = async () => {
     if (userProfile?.referralCode) {
       try {
@@ -23,14 +23,14 @@ const ReferralCode = ({ userProfile }) => {
         setCopied(true);
         selectionChanged();
         notificationOccurred('success');
-        
+
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        console.error('H81:0 :>?8@>20=8O:', err);
+
       }
     }
   };
-  
+
   const handleCopyLink = async () => {
     if (shareLink) {
       try {
@@ -38,19 +38,19 @@ const ReferralCode = ({ userProfile }) => {
         setCopied(true);
         selectionChanged();
         notificationOccurred('success');
-        
+
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        console.error('H81:0 :>?8@>20=8O AAK;:8:', err);
+
       }
     }
   };
-  
+
   const handleShare = () => {
     if (window.Telegram?.WebApp) {
       // A?>;L7C5< Telegram WebApp API 4;O H0@8=30
-      const message = `<° @8A>548=O9AO : Greenlight Casino!\n\n< A?>;L7C9 <>9 @5D5@0;L=K9 :>4: ${userProfile?.referralCode}\n\n= ;8 ?5@5E>48 ?> AAK;:5: ${shareLink}\n\n=° 3@09 8 2K83@K209 2<5AB5 A> <=>9!`;
-      
+      const message = `<ï¿½ @8A>548=O9AO : Greenlight Casino!\n\n<ï¿½ A?>;L7C9 <>9 @5D5@0;L=K9 :>4: ${userProfile?.referralCode}\n\n= ;8 ?5@5E>48 ?> AAK;:5: ${shareLink}\n\n=ï¿½ 3@09 8 2K83@K209 2<5AB5 A> <=>9!`;
+
       window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(message)}`);
     } else if (navigator.share) {
       // A?>;L7C5< =0B82=K9 Web Share API
@@ -63,10 +63,10 @@ const ReferralCode = ({ userProfile }) => {
       // Fallback - :>?8@C5< AAK;:C
       handleCopyLink();
     }
-    
+
     selectionChanged();
   };
-  
+
   const getReferralStats = () => {
     const stats = userProfile?.referralStats || {};
     return {
@@ -81,7 +81,7 @@ const ReferralCode = ({ userProfile }) => {
       totalWithdrawn: stats.totalWithdrawn || 0
     };
   };
-  
+
   const getLevelName = (level) => {
     const levels = {
       bronze: '@>=70',
@@ -92,18 +92,18 @@ const ReferralCode = ({ userProfile }) => {
     };
     return levels[level] || '@>=70';
   };
-  
+
   const getLevelIcon = (level) => {
     const icons = {
       bronze: '>I',
       silver: '>H',
       gold: '>G', 
-      platinum: '=Ž',
+      platinum: '=ï¿½',
       vip: '<'
     };
     return icons[level] || '>I';
   };
-  
+
   const getNextLevelInfo = (currentLevel, activeReferrals) => {
     const levelThresholds = {
       bronze: { next: 'silver', required: 6 },
@@ -112,15 +112,15 @@ const ReferralCode = ({ userProfile }) => {
       platinum: { next: 'vip', required: 101 },
       vip: { next: null, required: null }
     };
-    
+
     const current = levelThresholds[currentLevel];
     if (!current || !current.next) {
       return { nextLevel: null, needed: 0, progress: 100 };
     }
-    
+
     const needed = Math.max(0, current.required - activeReferrals);
     const progress = Math.min(100, (activeReferrals / current.required) * 100);
-    
+
     return {
       nextLevel: current.next,
       nextLevelName: getLevelName(current.next),
@@ -129,7 +129,7 @@ const ReferralCode = ({ userProfile }) => {
       progress
     };
   };
-  
+
   if (!userProfile) {
     return (
       <div className="referral-code-section">
@@ -140,19 +140,19 @@ const ReferralCode = ({ userProfile }) => {
       </div>
     );
   }
-  
+
   const stats = getReferralStats();
   const nextLevel = getNextLevelInfo(stats.level, stats.activeReferrals);
-  
+
   return (
     <div className="referral-code-section">
       <div className="section-header">
-        <h3><  5D5@0;L=0O ?@>3@0<<0</h3>
+        <h3><ï¿½  5D5@0;L=0O ?@>3@0<<0</h3>
         <span className="partner-level">
           {stats.levelIcon} {stats.levelName} " {stats.commissionPercent}%
         </span>
       </div>
-      
+
       {/*  5D5@0;L=K9 :>4 8 AAK;:0 */}
       <div className="referral-info">
         <div className="referral-code-block">
@@ -164,21 +164,21 @@ const ReferralCode = ({ userProfile }) => {
               onClick={handleCopyCode}
               disabled={!userProfile.referralCode}
             >
-              {copied ? ' !:>?8@>20=>' : '=Ë >?8@>20BL'}
+              {copied ? ' !:>?8@>20=>' : '=ï¿½ >?8@>20BL'}
             </button>
           </div>
         </div>
-        
+
         <div className="referral-actions">
           <button className="share-btn primary" onClick={handleShare}>
-            =ä >45;8BLAO AAK;:>9
+            =ï¿½ >45;8BLAO AAK;:>9
           </button>
           <button className="copy-link-btn secondary" onClick={handleCopyLink}>
             = >?8@>20BL AAK;:C
           </button>
         </div>
       </div>
-      
+
       {/* !B0B8AB8:0 */}
       <div className="referral-stats">
         <div className="stats-grid">
@@ -200,7 +200,7 @@ const ReferralCode = ({ userProfile }) => {
           </div>
         </div>
       </div>
-      
+
       {/* @>3@5AA : A;54CNI5<C C@>2=N */}
       {nextLevel.nextLevel && (
         <div className="level-progress">
@@ -221,30 +221,30 @@ const ReferralCode = ({ userProfile }) => {
           </div>
         </div>
       )}
-      
+
       {/* =D>@<0F8O > :><8AA8OE */}
       <div className="commission-info">
-        <h4>=° 0: MB> @01>B05B:</h4>
+        <h4>=ï¿½ 0: MB> @01>B05B:</h4>
         <ul>
-          <li>=µ >;CG09B5 {stats.commissionPercent}% A :064>3> ?@>83@KH0 20H8E @5D5@0;>2</li>
-          <li>=È @83;0H09B5 1>;LH5 4@C759 4;O ?>2KH5=8O C@>2=O 8 % :><8AA88</li>
+          <li>=ï¿½ >;CG09B5 {stats.commissionPercent}% A :064>3> ?@>83@KH0 20H8E @5D5@0;>2</li>
+          <li>=ï¿½ @83;0H09B5 1>;LH5 4@C759 4;O ?>2KH5=8O C@>2=O 8 % :><8AA88</li>
           <li>= K2>48B5 70@01>B0==>5 =0 >A=>2=>9 10;0=A 2 ;N1>5 2@5<O</li>
-          <li><¯ 8=8<0;L=0O AC<<0 2K2>40: 10 USDT</li>
+          <li><ï¿½ 8=8<0;L=0O AC<<0 2K2>40: 10 USDT</li>
         </ul>
       </div>
-      
+
       {/* =>?:0 2K2>40 */}
       {stats.referralBalance >= 10 && (
         <div className="withdrawal-section">
           <button className="withdraw-btn">
-            =¸ K25AB8 {stats.referralBalance.toFixed(2)} USDT =0 10;0=A
+            =ï¿½ K25AB8 {stats.referralBalance.toFixed(2)} USDT =0 10;0=A
           </button>
         </div>
       )}
-      
+
       {stats.referralBalance > 0 && stats.referralBalance < 10 && (
         <div className="withdrawal-notice">
-          <span>=¡ 8=8<0;L=0O AC<<0 4;O 2K2>40: 10 USDT</span>
+          <span>=ï¿½ 8=8<0;L=0O AC<<0 4;O 2K2>40: 10 USDT</span>
           <span>AB0;>AL 70@01>B0BL: {(10 - stats.referralBalance).toFixed(2)} USDT</span>
         </div>
       )}

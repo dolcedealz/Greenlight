@@ -5,10 +5,10 @@ import '../../styles/PayoutModal.css';
 const PayoutModal = ({ referralBalance, onConfirm, onClose }) => {
   const [amount, setAmount] = useState('');
   const [useFullAmount, setUseFullAmount] = useState(false);
-  
+
   const minAmount = 10;
   const maxAmount = referralBalance;
-  
+
   const presetAmounts = [10, 50, 100, 500].filter(a => a <= maxAmount);
 
   const handleAmountChange = (value) => {
@@ -31,11 +31,11 @@ const PayoutModal = ({ referralBalance, onConfirm, onClose }) => {
 
   const handleConfirm = () => {
     const finalAmount = useFullAmount ? maxAmount : parseFloat(amount);
-    
+
     if (isNaN(finalAmount) || finalAmount < minAmount || finalAmount > maxAmount) {
       return;
     }
-    
+
     onConfirm(finalAmount);
   };
 

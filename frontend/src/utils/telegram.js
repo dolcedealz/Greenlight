@@ -7,7 +7,7 @@ import WebApp from '@twa-dev/sdk';
  */
 export const initTelegram = () => {
   if (!window.Telegram || !window.Telegram.WebApp) {
-    console.error('Telegram WebApp не найден. Убедитесь, что вы запускаете приложение из Telegram.');
+
     throw new Error('Telegram WebApp not found');
   }
 
@@ -17,7 +17,7 @@ export const initTelegram = () => {
   // В версии 6.0+ не используем эти методы, так как они устарели
   // window.Telegram.WebApp.setHeaderColor('#121212');
   // window.Telegram.WebApp.setBackgroundColor('#121212');
-  
+
   // Вместо этого используем mainButton для управления внешним видом
   window.Telegram.WebApp.MainButton.setParams({
     color: '#0ba84a',
@@ -46,7 +46,7 @@ export const lightHaptic = () => {
     try {
       window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
     } catch (error) {
-      console.warn('Ошибка при выполнении легкой вибрации:', error);
+
     }
   }
 };
@@ -57,7 +57,7 @@ export const mediumHaptic = () => {
     try {
       window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
     } catch (error) {
-      console.warn('Ошибка при выполнении средней вибрации:', error);
+
     }
   }
 };
@@ -68,7 +68,7 @@ export const heavyHaptic = () => {
     try {
       window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
     } catch (error) {
-      console.warn('Ошибка при выполнении сильной вибрации:', error);
+
     }
   }
 };
@@ -79,7 +79,7 @@ export const selectionHaptic = () => {
     try {
       window.Telegram.WebApp.HapticFeedback.selectionChanged();
     } catch (error) {
-      console.warn('Ошибка при выполнении вибрации выбора:', error);
+
     }
   }
 };
@@ -90,7 +90,7 @@ export const successHaptic = () => {
     try {
       window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     } catch (error) {
-      console.warn('Ошибка при выполнении вибрации успеха:', error);
+
     }
   }
 };
@@ -100,7 +100,7 @@ export const errorHaptic = () => {
     try {
       window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
     } catch (error) {
-      console.warn('Ошибка при выполнении вибрации ошибки:', error);
+
     }
   }
 };
@@ -110,7 +110,7 @@ export const warningHaptic = () => {
     try {
       window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
     } catch (error) {
-      console.warn('Ошибка при выполнении вибрации предупреждения:', error);
+
     }
   }
 };

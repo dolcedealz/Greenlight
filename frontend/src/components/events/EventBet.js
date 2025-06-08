@@ -1,25 +1,19 @@
 // frontend/src/components/events/EventBet.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ПОДДЕРЖКОЙ ЕДИНСТВЕННОЙ СТАВКИ
 import React, { useState, useEffect } from 'react';
 import '../../styles/EventBet.css';
-
 const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
   const [betAmount, setBetAmount] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
   const [error, setError] = useState('');
   const [existingBetWarning, setExistingBetWarning] = useState(null); // Новое состояние для предупреждения
-
   // Быстрые кнопки сумм
   const quickAmounts = [1, 5, 10, 25, 50, 100];
-
   // Текущий коэффициент для выбранного исхода
   const currentOdds = event.currentOdds[outcome.id];
-
   // Потенциальный выигрыш
   const potentialWin = betAmount ? (parseFloat(betAmount) * currentOdds).toFixed(2) : '0.00';
-
   // Потенциальная прибыль
   const potentialProfit = betAmount ? (potentialWin - parseFloat(betAmount)).toFixed(2) : '0.00';
-
   // Закрытие модального окна при нажатии ESC
   useEffect(() => {
     const handleEsc = (e) => {
@@ -30,51 +24,40 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
   }, [onClose]);
-
   // Валидация суммы ставки
   const validateBetAmount = (amount) => {
     const numAmount = parseFloat(amount);
-    
     if (isNaN(numAmount) || numAmount <= 0) {
       return 'Введите корректную сумму';
     }
-    
     if (numAmount < event.minBet) {
       return `Минимальная ставка: ${event.minBet} USDT`;
     }
-    
     if (numAmount > event.maxBet) {
       return `Максимальная ставка: ${event.maxBet} USDT`;
     }
-    
     if (numAmount > balance) {
       return 'Недостаточно средств на балансе';
     }
-    
     return '';
   };
-
   // Обработчик изменения суммы
   const handleAmountChange = (e) => {
     const value = e.target.value;
-    
     // Разрешаем только числа и точку
     if (!/^\d*\.?\d*$/.test(value)) {
       return;
     }
-    
     setBetAmount(value);
     setError(validateBetAmount(value));
     setExistingBetWarning(null); // Сбрасываем предупреждение при изменении суммы
   };
-
   // Обработчик быстрых кнопок
   const handleQuickAmount = (amount) => {
     setBetAmount(amount.toString());
     setError(validateBetAmount(amount.toString()));
     setExistingBetWarning(null);
   };
-
   // Обработчик кнопки "Всё"
   const handleMaxAmount = () => {
     const maxAmount = Math.min(balance, event.maxBet).toString();
@@ -82,21 +65,17 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
     setError(validateBetAmount(maxAmount));
     setExistingBetWarning(null);
   };
-
   // ОБНОВЛЕННЫЙ обработчик размещения ставки с поддержкой ошибки единственной ставки
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     const validationError = validateBetAmount(betAmount);
     if (validationError) {
       setError(validationError);
       return;
     }
-    
     setIsPlacing(true);
     setError('');
     setExistingBetWarning(null);
-    
     try {
       await onPlaceBet({
         amount: parseFloat(betAmount),
@@ -104,19 +83,14 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
         potentialWin: parseFloat(potentialWin)
       });
     } catch (err) {
-      console.error('Ошибка размещения ставки:', err);
-      
       // НОВАЯ ЛОГИКА: Обработка ошибки существующей ставки
       const errorMessage = err.message || err.response?.data?.message || 'Ошибка размещения ставки';
-      
       // Проверяем, является ли это ошибкой о существующей ставке
       if (errorMessage.includes('уже поставили на это событие') || 
           errorMessage.includes('одну ставку на событие') ||
           errorMessage.includes('только одну ставку')) {
-        
         // Извлекаем информацию о существующей ставке из сообщения об ошибке
         const existingBetMatch = errorMessage.match(/(\d+(?:\.\d+)?)\s*USDT\s*на\s*"([^"]+)"/);
-        
         if (existingBetMatch) {
           const [, amount, outcomeName] = existingBetMatch;
           setExistingBetWarning({
@@ -129,7 +103,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
             message: errorMessage
           });
         }
-        
         setError(''); // Очищаем обычную ошибку
       } else {
         // Обычная ошибка
@@ -140,14 +113,12 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
       setIsPlacing(false);
     }
   };
-
   // Обработчик клика по фону (закрытие модального окна)
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
-
   return (
     <div className="event-bet-modal" onClick={handleBackdropClick}>
       <div className="event-bet-container">
@@ -156,7 +127,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
           <h3>Размещение ставки</h3>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
-
         {/* Информация о событии */}
         <div className="bet-event-info">
           <div className="event-name">{event.title}</div>
@@ -169,7 +139,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
             <span className="odds-value">×{currentOdds.toFixed(2)}</span>
           </div>
         </div>
-
         {/* НОВОЕ: Предупреждение о существующей ставке */}
         {existingBetWarning && (
           <div className="existing-bet-warning">
@@ -177,7 +146,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
               <span className="warning-icon">⚠️</span>
               <strong>У вас уже есть ставка на это событие</strong>
             </div>
-            
             {existingBetWarning.amount && existingBetWarning.outcomeName && (
               <div className="existing-bet-details">
                 <div className="existing-bet-info">
@@ -190,11 +158,9 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
                 </div>
               </div>
             )}
-            
             <div className="warning-message">
               <p>На каждое событие можно сделать только одну ставку. Если вы хотите изменить свою ставку, обратитесь в поддержку.</p>
             </div>
-            
             <div className="warning-actions">
               <button className="close-warning-button" onClick={onClose}>
                 Понятно
@@ -202,7 +168,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
             </div>
           </div>
         )}
-
         {/* Форма ставки - показывается только если нет предупреждения */}
         {!existingBetWarning && (
           <form onSubmit={handleSubmit} className="bet-form">
@@ -211,7 +176,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
               <span className="balance-label">Доступно:</span>
               <span className="balance-amount">{balance.toFixed(2)} USDT</span>
             </div>
-
             {/* Поле ввода суммы */}
             <div className="amount-input-group">
               <label htmlFor="betAmount">Сумма ставки:</label>
@@ -229,7 +193,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
               </div>
               {error && <div className="error-message">{error}</div>}
             </div>
-
             {/* Быстрые кнопки */}
             <div className="quick-amounts">
               <div className="quick-amounts-label">Быстрый выбор:</div>
@@ -257,7 +220,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
                 </button>
               </div>
             </div>
-
             {/* Информация о выигрыше */}
             {betAmount && !error && (
               <div className="win-info">
@@ -271,7 +233,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
                 </div>
               </div>
             )}
-
             {/* ОБНОВЛЕННЫЕ предупреждения */}
             <div className="bet-warnings">
               <div className="warning-item">
@@ -284,7 +245,6 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
                 🎯 На каждое событие можно сделать только одну ставку
               </div>
             </div>
-
             {/* Кнопки */}
             <div className="bet-actions">
               <button
@@ -309,5 +269,4 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
     </div>
   );
 };
-
-export default EventBet;
+export default EventBet;

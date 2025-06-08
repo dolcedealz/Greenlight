@@ -25,7 +25,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
     showResult: false
   });
   const [lastResults, setLastResults] = useState([]);
-  
+
   // Shared between games
   const [gameResult, setGameResult] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,19 +48,19 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       }
     }
   }, [gameType, gameResult, gameWinFeedback, gameLoseFeedback]);
-  
+
   // Fetch game history and stats on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // Load game history for the current game type
         const historyResponse = await gameApi.getGameHistory({
           gameType: gameType,
           limit: 10
         });
-        
+
         // Process game history
         if (historyResponse.data.data.games && historyResponse.data.data.games.length > 0) {
           if (gameType === 'coin') {
@@ -70,28 +70,27 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
             setLastResults(results);
           }
         }
-        
+
         // Load game stats
         const statsResponse = await gameApi.getGameStats();
         if (statsResponse.data.data.byGameType && statsResponse.data.data.byGameType[gameType]) {
           setGameStats(statsResponse.data.data.byGameType[gameType]);
         }
-        
+
         setLoading(false);
       } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
+
         setError('Не удалось загрузить данные. Пожалуйста, попробуйте еще раз.');
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [gameType]);
-  
+
   // ИСПРАВЛЕННЫЙ обработчик для монетки
   const handleCoinFlip = async (betData) => {
-    console.log('🎮 GAME SCREEN: Запрос на подбрасывание монеты:', betData);
-    
+
     try {
       // Устанавливаем состояние "игра начинается"
       setCoinGameData(prev => ({
@@ -101,25 +100,24 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         gameResult: null,
         showResult: false
       }));
-      
+
       setError(null);
-      
+
       // Вызываем API
       const response = await gameApi.playCoinFlip(
         betData.betAmount,
         betData.selectedSide
       );
-      
+
       const gameData = response.data.data;
-      console.log('🎮 GAME SCREEN: Результат с сервера:', gameData);
-      
+
       // Подготавливаем данные результата
       const newGameResult = {
         win: gameData.win,
         amount: Math.abs(gameData.profit),
         newBalance: gameData.balanceAfter
       };
-      
+
       // ИСПРАВЛЕНО: Устанавливаем результат без showResult - он будет установлен через onAnimationComplete
       setCoinGameData(prev => ({
         ...prev,
@@ -127,33 +125,33 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         gameResult: newGameResult
         // showResult остается false до завершения анимации
       }));
-      
+
       // Обновляем историю и баланс
       setLastResults(prev => [gameData.result, ...prev].slice(0, 10));
       if (gameData.balanceAfter !== undefined) {
         setBalance(gameData.balanceAfter);
       }
-      
+
       // Обновляем статистику
       if (gameStats) {
         const updatedStats = { ...gameStats };
         updatedStats.totalGames += 1;
         updatedStats.totalBet += betData.betAmount;
-        
+
         if (gameData.win) {
           updatedStats.winCount += 1;
           updatedStats.totalWin += gameData.profit;
         } else {
           updatedStats.totalLoss += betData.betAmount;
         }
-        
+
         updatedStats.winRate = updatedStats.winCount / updatedStats.totalGames;
         setGameStats(updatedStats);
       }
     } catch (err) {
-      console.error('🎮 GAME SCREEN: Ошибка игры в монетку:', err);
+
       setError(err.response?.data?.message || 'Произошла ошибка при игре');
-      
+
       // Сбрасываем состояние при ошибке
       setCoinGameData(prev => ({
         ...prev,
@@ -161,11 +159,10 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       }));
     }
   };
-  
+
   // ИСПРАВЛЕННЫЙ обработчик завершения анимации - синхронный показ результата
   const handleCoinAnimationComplete = (showResultNow) => {
-    console.log('🎮 GAME SCREEN: Анимация монетки завершена, показываем результат:', showResultNow);
-    
+
     // ИСПРАВЛЕНО: Синхронно показываем результат и останавливаем игру
     if (showResultNow && coinGameData.gameResult) {
       setCoinGameData(prev => ({
@@ -173,14 +170,14 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         showResult: true,
         isPlaying: false // Останавливаем игру сразу
       }));
-      
+
       // Вибрация синхронно с показом результата
       if (coinGameData.gameResult.win) {
         gameWinFeedback();
       } else {
         gameLoseFeedback();
       }
-      
+
       // Автоматически скрываем через 3 секунды
       setTimeout(() => {
         setCoinGameData(prev => ({
@@ -196,7 +193,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
       }));
     }
   };
-  
+
   // Render appropriate game based on type
   const renderGame = () => {
     switch (gameType) {
@@ -215,13 +212,13 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
               lastResults={lastResults}
               onAnimationComplete={handleCoinAnimationComplete}
             />
-      
+
             {error && (
               <div className="game-error">
                 <p>{error}</p>
               </div>
             )}
-      
+
             {gameStats && (
               <div className="game-stats">
                 <h3>Ваша статистика</h3>
@@ -263,7 +260,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
               setGameResult={setGameResult}
               setError={setError}
             />
-            
+
             {error && (
               <div className="game-error">
                 <p>{error}</p>
@@ -282,7 +279,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
               setGameResult={setGameResult}
               setError={setError}
             />
-            
+
             {error && (
               <div className="game-error">
                 <p>{error}</p>
@@ -302,7 +299,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
               setError={setError}
               userTelegramId={userData?.telegramId}
             />
-            
+
             {error && (
               <div className="game-error">
                 <p>{error}</p>
@@ -310,7 +307,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
             )}
           </div>
         );
-        
+
       default:
         return (
           <div className="game-not-available">
@@ -320,11 +317,11 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
         );
     }
   };
-  
+
   return (
     <div className="game-screen">
       <Header balance={balance} />
-      
+
       <div className="game-header">
         <button className="back-button" onClick={handleBackClick}>←</button>
         <h1 className="game-title">
@@ -334,7 +331,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
            gameType === 'slots' ? 'Слоты' : 'Игра'}
         </h1>
       </div>
-      
+
       {/* ИСПРАВЛЕНО: Результат для монетки - показываем ТОЛЬКО когда showResult === true И анимация завершена */}
       {gameType === 'coin' && coinGameData.showResult && coinGameData.gameResult && !coinGameData.isPlaying && (
         <div className={`game-result ${coinGameData.gameResult.win ? 'win' : 'lose'}`}>
@@ -346,7 +343,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
           </div>
         </div>
       )}
-      
+
       {/* Результат для остальных игр */}
       {gameType !== 'coin' && gameResult && (gameType !== 'crash' || gameResult.win !== null) && (
         <div className={`game-result ${gameResult.win ? 'win' : 'lose'}`}>
@@ -365,7 +362,7 @@ const GameScreen = ({ gameType, userData, onBack, onBalanceUpdate, balance, setB
           )}
         </div>
       )}
-      
+
       {loading ? (
         <div className="game-loading">
           <div className="loader"></div>

@@ -1,2 +1,2 @@
 // frontend/src/hooks/index.js
-export { default as useTactileFeedback } from './useTactileFeedback';
+export { default as useTactileFeedback } from './useTactileFeedback';

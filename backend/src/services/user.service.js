@@ -52,6 +52,16 @@ class UserService {
       referralCode: generatedReferralCode,
       referrer: referrer ? referrer._id : null,
       balance: 0, // Начальный баланс
+      lockedFunds: [], // Пустой массив заблокированных средств
+      totalWagered: 0,
+      totalWon: 0,
+      totalGames: 0,
+      freespins: {
+        slots: 0,
+        coin: 0,
+        mines: 0
+      },
+      activeDepositBonuses: [],
       createdAt: new Date(),
       lastActivity: new Date()
     });

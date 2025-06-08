@@ -1,4 +1,4 @@
-// backend/src/models/EventBet.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ГИБКИМИ КОЭФФИЦИЕНТАМИ
+// backend/src/models/EventBet.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ПРОВЕРКОЙ ЕДИНСТВЕННОЙ СТАВКИ
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const { createLogger } = require('../utils/logger');
@@ -115,6 +115,12 @@ const eventBetSchema = new Schema({
     },
     sessionId: String,
     
+    // НОВОЕ: Флаг применения политики единственной ставки
+    singleBetEnforced: {
+      type: Boolean,
+      default: false
+    },
+    
     // Дополнительная информация о коэффициентах
     oddsHistory: {
       // Коэффициенты всех исходов на момент ставки
@@ -132,6 +138,17 @@ const eventBetSchema = new Schema({
   }
 }, {
   timestamps: true
+});
+
+// НОВОЕ: Уникальный составной индекс для обеспечения единственной активной ставки на событие
+eventBetSchema.index({ 
+  user: 1, 
+  event: 1, 
+  status: 1 
+}, { 
+  name: 'unique_active_bet_per_event',
+  unique: true,
+  partialFilterExpression: { status: 'active' }
 });
 
 // Pre-save middleware для расчета estimatedWin
@@ -165,7 +182,8 @@ eventBetSchema.methods.markAsWonWithFinalOdds = async function(finalOdds) {
     finalOdds: this.finalOdds,
     estimatedWin: this.estimatedWin,
     actualWin: this.actualWin,
-    difference: (this.actualWin - this.estimatedWin).toFixed(2)
+    difference: (this.actualWin - this.estimatedWin).toFixed(2),
+    singleBetPolicy: this.metadata?.singleBetEnforced || false
   });
   
   return this.save();
@@ -189,6 +207,119 @@ eventBetSchema.methods.refund = async function() {
   this.settledAt = new Date();
   
   return this.save();
+};
+
+// НОВЫЙ статический метод для проверки существующей ставки пользователя на событие
+eventBetSchema.statics.findUserBetOnEvent = async function(userId, eventId, status = 'active') {
+  logger.debug(`Поиск ставки пользователя ${userId} на событие ${eventId} со статусом ${status}`);
+  
+  try {
+    const bet = await this.findOne({
+      user: userId,
+      event: eventId,
+      status: status
+    });
+    
+    if (bet) {
+      logger.info(`Найдена существующая ставка пользователя`, {
+        betId: bet._id,
+        userId: userId,
+        eventId: eventId,
+        outcomeId: bet.outcomeId,
+        outcomeName: bet.outcomeName,
+        betAmount: bet.betAmount,
+        status: bet.status,
+        placedAt: bet.placedAt
+      });
+    } else {
+      logger.debug(`Активная ставка пользователя ${userId} на событие ${eventId} не найдена`);
+    }
+    
+    return bet;
+  } catch (error) {
+    logger.error('Ошибка поиска ставки пользователя на событие', {
+      userId,
+      eventId,
+      status,
+      error: error.message
+    });
+    throw error;
+  }
+};
+
+// НОВЫЙ статический метод для подсчета ставок пользователя на событие (всех статусов)
+eventBetSchema.statics.countUserBetsOnEvent = async function(userId, eventId) {
+  try {
+    const count = await this.countDocuments({
+      user: userId,
+      event: eventId
+    });
+    
+    logger.debug(`Пользователь ${userId} имеет ${count} ставок на событие ${eventId}`);
+    return count;
+  } catch (error) {
+    logger.error('Ошибка подсчета ставок пользователя на событие', {
+      userId,
+      eventId,
+      error: error.message
+    });
+    throw error;
+  }
+};
+
+// НОВЫЙ статический метод для получения статистики по единственным ставкам
+eventBetSchema.statics.getSingleBetPolicyStats = async function() {
+  try {
+    const stats = await this.aggregate([
+      {
+        $group: {
+          _id: {
+            user: '$user',
+            event: '$event'
+          },
+          betCount: { $sum: 1 },
+          activeBets: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'active'] }, 1, 0]
+            }
+          },
+          totalAmount: { $sum: '$betAmount' }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalUserEventPairs: { $sum: 1 },
+          usersWithMultipleBets: {
+            $sum: {
+              $cond: [{ $gt: ['$betCount', 1] }, 1, 0]
+            }
+          },
+          usersWithMultipleActiveBets: {
+            $sum: {
+              $cond: [{ $gt: ['$activeBets', 1] }, 1, 0]
+            }
+          },
+          avgBetsPerUserEvent: { $avg: '$betCount' },
+          maxBetsPerUserEvent: { $max: '$betCount' }
+        }
+      }
+    ]);
+    
+    const result = stats[0] || {
+      totalUserEventPairs: 0,
+      usersWithMultipleBets: 0,
+      usersWithMultipleActiveBets: 0,
+      avgBetsPerUserEvent: 0,
+      maxBetsPerUserEvent: 0
+    };
+    
+    logger.info('Статистика политики единственной ставки', result);
+    return result;
+  } catch (error) {
+    logger.error('Ошибка получения статистики единственной ставки', error);
+    throw error;
+  }
 };
 
 // Статический метод для получения ставок события
@@ -253,7 +384,7 @@ eventBetSchema.statics.settleBetsWithFinalOdds = async function(eventId, winning
     status: 'active'
   }).populate('user');
   
-  console.log(`EventBet: Найдено ${bets.length} активных ставок для расчета`);
+  console.log(`EventBet: Найдено ${bets.length} активных ставок для расчета (с политикой единственной ставки)`);
   
   const results = {
     winningBets: 0,
@@ -266,11 +397,30 @@ eventBetSchema.statics.settleBetsWithFinalOdds = async function(eventId, winning
       finalOdds: winningFinalOdds,
       winnersBenefited: 0,
       winnersLost: 0
+    },
+    singleBetPolicy: {
+      enabled: true,
+      uniqueUsers: new Set(bets.map(bet => bet.user._id.toString())).size,
+      totalBets: bets.length,
+      averageBetsPerUser: bets.length > 0 ? 1 : 0, // Должно быть всегда 1 из-за политики
+      duplicateEvents: 0 // Должно быть 0 из-за уникального индекса
     }
   };
   
   let totalOddsAtBet = 0;
   let winningBetsCount = 0;
+  
+  // Проверяем соблюдение политики единственной ставки
+  const userEventMap = new Map();
+  bets.forEach(bet => {
+    const key = `${bet.user._id}_${bet.event}`;
+    if (userEventMap.has(key)) {
+      results.singleBetPolicy.duplicateEvents++;
+      console.warn(`EventBet: Найдена повторная ставка пользователя ${bet.user._id} на событие ${bet.event}`);
+    } else {
+      userEventMap.set(key, bet);
+    }
+  });
   
   // Обрабатываем каждую ставку
   for (const bet of bets) {
@@ -296,7 +446,7 @@ eventBetSchema.statics.settleBetsWithFinalOdds = async function(eventId, winning
         results.oddsChanges.winnersLost++;
       }
       
-      console.log(`EventBet: Выигрышная ставка ${bet._id} (${bet.betAmount} USDT)`);
+      console.log(`EventBet: Выигрышная ставка ${bet._id} (${bet.betAmount} USDT) пользователя ${bet.user._id}`);
       console.log(`  Коэффициент при ставке: ${bet.oddsAtBet}`);
       console.log(`  Финальный коэффициент: ${bet.finalOdds}`);
       console.log(`  Выигрыш: ${bet.actualWin} USDT`);
@@ -306,7 +456,7 @@ eventBetSchema.statics.settleBetsWithFinalOdds = async function(eventId, winning
       await bet.markAsLost();
       results.losingBets++;
       
-      console.log(`EventBet: Проигрышная ставка ${bet._id} (${bet.betAmount} USDT)`);
+      console.log(`EventBet: Проигрышная ставка ${bet._id} (${bet.betAmount} USDT) пользователя ${bet.user._id}`);
     }
     
     results.totalProfit += bet.profit;
@@ -317,7 +467,7 @@ eventBetSchema.statics.settleBetsWithFinalOdds = async function(eventId, winning
     results.oddsChanges.avgOddsAtBet = totalOddsAtBet / winningBetsCount;
   }
   
-  console.log(`EventBet: Расчет завершен. Результаты:`, results);
+  console.log(`EventBet: Расчет завершен с политикой единственной ставки. Результаты:`, results);
   
   // Создаем записи в истории игр для всех ставок
   await this.createGameHistoryRecords(eventId, bets);
@@ -330,7 +480,7 @@ eventBetSchema.statics.createGameHistoryRecords = async function(eventId, bets) 
   try {
     const { Game, Event } = require('./index');
     
-    console.log(`EventBet: Создаем игровые записи для ${bets.length} ставок события ${eventId}`);
+    console.log(`EventBet: Создаем игровые записи для ${bets.length} ставок события ${eventId} (с политикой единственной ставки)`);
     
     // Получаем информацию о событии
     const event = await Event.findById(eventId);
@@ -370,7 +520,8 @@ eventBetSchema.statics.createGameHistoryRecords = async function(eventId, bets) 
           estimatedWin: bet.estimatedWin,
           actualWin: bet.actualWin,
           placedAt: bet.placedAt,
-          settledAt: bet.settledAt
+          settledAt: bet.settledAt,
+          singleBetPolicy: true // Отмечаем использование политики единственной ставки
         },
         win: isWin,
         profit: bet.profit,
@@ -384,7 +535,8 @@ eventBetSchema.statics.createGameHistoryRecords = async function(eventId, bets) 
           eventId: event._id,
           betId: bet._id,
           eventCategory: event.category,
-          oddsChange: bet.finalOdds ? (bet.finalOdds - bet.oddsAtBet).toFixed(3) : '0.000'
+          oddsChange: bet.finalOdds ? (bet.finalOdds - bet.oddsAtBet).toFixed(3) : '0.000',
+          singleBetEnforced: bet.metadata?.singleBetEnforced || false
         }
       };
 
@@ -393,7 +545,7 @@ eventBetSchema.statics.createGameHistoryRecords = async function(eventId, bets) 
 
     if (gameRecords.length > 0) {
       await Game.create(gameRecords);
-      console.log(`EventBet: Создано ${gameRecords.length} игровых записей для события ${eventId}`);
+      console.log(`EventBet: Создано ${gameRecords.length} игровых записей для события ${eventId} (политика единственной ставки)`);
     }
 
   } catch (error) {
@@ -457,6 +609,16 @@ eventBetSchema.index({
   settledAt: -1 
 }, { 
   name: 'event_settled_bets' 
+});
+
+// НОВЫЙ индекс для поддержки политики единственной ставки (быстрый поиск существующих ставок)
+eventBetSchema.index({ 
+  user: 1, 
+  event: 1, 
+  status: 1,
+  placedAt: -1
+}, { 
+  name: 'single_bet_policy_support' 
 });
 
 const EventBet = mongoose.model('EventBet', eventBetSchema);

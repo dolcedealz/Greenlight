@@ -494,7 +494,9 @@ async function showBlockedUsers(ctx, page = 1) {
     
     if (users.length === 0) {
       const message = '🚫 *Заблокированные пользователи*\\n\\nЗаблокированных пользователей нет.';
-      const keyboard = Markup.inlineKeyboard([[\n        Markup.button.callback('◀️ Назад', 'users_menu')\n      ]]);
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('◀️ Назад', 'users_menu')]
+      ]);
       
       if (ctx.callbackQuery) {
         await ctx.editMessageText(message, {

@@ -449,6 +449,17 @@ class CrashService extends EventEmitter {
           const win = bet.cashedOut;
           const profit = win ? bet.profit : -bet.amount;
           
+          // Баланс до ставки был user.balance + bet.amount (так как ставка уже списана)
+          const balanceBefore = user.balance + bet.amount;
+          
+          // Если выиграл, нужно добавить выигрыш к текущему балансу
+          const balanceAfter = user.balance + (win ? bet.profit : 0);
+          
+          // Обновляем баланс пользователя при выигрыше
+          if (win) {
+            user.balance = balanceAfter;
+          }
+          
           // Создаем запись об игре
           const game = new Game({
             user: bet.user,
@@ -465,8 +476,8 @@ class CrashService extends EventEmitter {
             },
             win,
             profit,
-            balanceBefore: user.balance - (win ? 0 : bet.amount),
-            balanceAfter: user.balance,
+            balanceBefore,
+            balanceAfter,
             serverSeed: this.currentRound.serverSeed,
             serverSeedHashed: this.currentRound.serverSeedHashed,
             nonce: this.currentRound.nonce,
@@ -475,10 +486,13 @@ class CrashService extends EventEmitter {
           
           await game.save({ session });
           
-          // Обновляем статистику пользователя (ставка уже списана при размещении)
-          if (!win) {
-            user.totalWagered += bet.amount;
+          // Обновляем статистику пользователя
+          user.totalGames = (user.totalGames || 0) + 1;
+          user.totalWagered = (user.totalWagered || 0) + bet.amount;
+          if (win) {
+            user.totalWon = (user.totalWon || 0) + (bet.amount + bet.profit);
           }
+          user.lastActivity = new Date();
           
           await user.save({ session });
           

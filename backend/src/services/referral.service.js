@@ -118,14 +118,11 @@ class ReferralService {
       }
       
       // 4. Проверяем что пользователь достаточно активен (защита от ботов)
-      const userGameCount = await User.aggregate([
-        { $match: { _id: user._id } },
-        { $lookup: { from: 'games', localField: '_id', foreignField: 'user', as: 'games' } },
-        { $project: { gameCount: { $size: '$games' } } }
-      ]).session(session);
+      // Получаем количество игр пользователя из модели User (уже обновлено)
+      const userTotalGames = user.totalGames || 0;
       
-      if (userGameCount[0]?.gameCount < 3) {
-        console.warn(`REFERRAL SECURITY: Пользователь ${user._id} недостаточно активен для реферальной комиссии (игр: ${userGameCount[0]?.gameCount || 0})`);
+      if (userTotalGames < 2) { // Снижаем порог до 2 игр для начисления комиссии
+        console.warn(`REFERRAL SECURITY: Пользователь ${user._id} недостаточно активен для реферальной комиссии (игр: ${userTotalGames})`);
         await session.abortTransaction();
         return null;
       }

@@ -1,7 +1,7 @@
 // backend/src/routes/withdrawal.routes.js
 const express = require('express');
 const { withdrawalController } = require('../controllers');
-const { telegramAuthMiddleware } = require('../middleware');
+const { telegramAuthMiddleware, universalAuthMiddleware } = require('../middleware');
 
 const router = express.Router();
 
@@ -104,8 +104,8 @@ router.use(logWithdrawalRequest);
 // ЗАЩИЩЕННЫЕ МАРШРУТЫ (требуют аутентификации)
 // =================
 
-// Применяем middleware аутентификации ко всем маршрутам
-router.use(telegramAuthMiddleware);
+// Применяем универсальный middleware аутентификации ко всем маршрутам (поддержка WebApp + Bot)
+router.use(universalAuthMiddleware);
 
 /**
  * POST /api/withdrawals

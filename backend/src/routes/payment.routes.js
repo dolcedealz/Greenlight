@@ -1,7 +1,7 @@
 // backend/src/routes/payment.routes.js
 const express = require('express');
 const paymentController = require('../controllers/payment.controller');
-const { telegramAuthMiddleware } = require('../middleware');
+const { telegramAuthMiddleware, universalAuthMiddleware } = require('../middleware');
 
 const router = express.Router();
 
@@ -114,8 +114,8 @@ router.get('/health', (req, res) => {
 // ЗАЩИЩЕННЫЕ МАРШРУТЫ (требуют аутентификации)
 // =================
 
-// Применяем middleware аутентификации ко всем маршрутам ниже
-router.use(telegramAuthMiddleware);
+// Применяем универсальный middleware аутентификации ко всем маршрутам ниже (поддержка WebApp + Bot)
+router.use(universalAuthMiddleware);
 
 /**
  * POST /api/payments/deposits

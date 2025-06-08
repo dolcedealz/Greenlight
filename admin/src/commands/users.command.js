@@ -54,7 +54,7 @@ function escapeHtml(text) {
 }
 
 /**
- * Экранирует специальные символы для Telegram Markdown (более безопасная версия)
+ * Экранирует специальные символы для Telegram Markdown (безопасная версия)
  */
 function escapeMarkdown(text) {
   if (!text) return '';
@@ -67,23 +67,21 @@ function escapeMarkdown(text) {
     return 'Unknown';
   }
   
-  // Удаляем невидимые символы, но сохраняем нормальные Unicode символы
+  // Удаляем только действительно проблемные невидимые символы
   result = result
-    .replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u034F\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3000\uFE00-\uFE0F\uFEFF]/g, '')
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
     .trim();
   
   if (!result) {
     return 'Unknown';
   }
   
-  // Более мягкое экранирование только критических символов
+  // Минимальное экранирование только самых критических символов для Markdown V1
   result = result
-    .replace(/\\/g, '\\\\')  // Обратная косая черта
     .replace(/\*/g, '\\*')   // Звездочка
-    .replace(/_/g, '\\_')    // Подчеркивание
+    .replace(/`/g, '\\`')    // Обратная кавычка
     .replace(/\[/g, '\\[')   // Открывающая квадратная скобка
-    .replace(/\]/g, '\\]')   // Закрывающая квадратная скобка
-    .replace(/`/g, '\\`');   // Обратная кавычка
+    .replace(/\]/g, '\\]');  // Закрывающая квадратная скобка
   
   return result;
 }
@@ -137,11 +135,20 @@ async function showUsersList(ctx, page = 1) {
         const userNum = (pagination.current - 1) * 10 + index + 1;
         const statusEmoji = user.isBlocked ? '🚫' : '✅';
         
-        // Безопасная обработка username
+        // Безопасная обработка username (без экранирования подчеркиваний)
         let username = 'Нет username';
         if (user.username && typeof user.username === 'string') {
-          const cleanUsername = escapeMarkdown(user.username);
-          if (cleanUsername && cleanUsername !== 'Unknown') {
+          let cleanUsername = user.username
+            .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
+            .trim();
+          
+          if (cleanUsername) {
+            // Только экранируем критические символы для username, но НЕ подчеркивания
+            cleanUsername = cleanUsername
+              .replace(/\*/g, '\\*')
+              .replace(/`/g, '\\`')
+              .replace(/\[/g, '\\[')
+              .replace(/\]/g, '\\]');
             username = `@${cleanUsername}`;
           }
         }
@@ -312,11 +319,20 @@ async function handleUserSearch(ctx) {
       try {
         const statusEmoji = user.isBlocked ? '🚫' : '✅';
         
-        // Безопасная обработка username
+        // Безопасная обработка username (без экранирования подчеркиваний)
         let username = 'Нет username';
         if (user.username && typeof user.username === 'string') {
-          const cleanUsername = escapeMarkdown(user.username);
-          if (cleanUsername && cleanUsername !== 'Unknown') {
+          let cleanUsername = user.username
+            .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
+            .trim();
+          
+          if (cleanUsername) {
+            // Только экранируем критические символы для username, но НЕ подчеркивания
+            cleanUsername = cleanUsername
+              .replace(/\*/g, '\\*')
+              .replace(/`/g, '\\`')
+              .replace(/\[/g, '\\[')
+              .replace(/\]/g, '\\]');
             username = `@${cleanUsername}`;
           }
         }
@@ -588,11 +604,20 @@ async function showBlockedUsers(ctx, page = 1) {
       try {
         const userNum = (pagination.current - 1) * 10 + index + 1;
         
-        // Безопасная обработка username
+        // Безопасная обработка username (без экранирования подчеркиваний)
         let username = 'Нет username';
         if (user.username && typeof user.username === 'string') {
-          const cleanUsername = escapeMarkdown(user.username);
-          if (cleanUsername && cleanUsername !== 'Unknown') {
+          let cleanUsername = user.username
+            .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
+            .trim();
+          
+          if (cleanUsername) {
+            // Только экранируем критические символы для username, но НЕ подчеркивания
+            cleanUsername = cleanUsername
+              .replace(/\*/g, '\\*')
+              .replace(/`/g, '\\`')
+              .replace(/\[/g, '\\[')
+              .replace(/\]/g, '\\]');
             username = `@${cleanUsername}`;
           }
         }

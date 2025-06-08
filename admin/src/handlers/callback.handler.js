@@ -762,7 +762,7 @@ function registerCallbackHandlers(bot) {
     try {
       await ctx.answerCbQuery();
       const response = await apiClient.get('/admin/finance/history', {
-        params: { limit: 10 }
+        params: { limit: 20 }
       });
       
       if (!response.data.success) {
@@ -771,28 +771,113 @@ function registerCallbackHandlers(bot) {
       }
       
       const history = response.data.data.history;
-      let message = '📝 *История балансов*\n\n';
       
       if (history.length === 0) {
-        message += 'История пуста';
-      } else {
-        history.slice(0, 5).forEach((record, index) => {
-          message += `${index + 1}. ${record.event}\n`;
-          message += `   💰 ${record.operationalBalance.toFixed(2)} USDT\n`;
-          message += `   📅 ${new Date(record.timestamp).toLocaleString('ru-RU')}\n\n`;
+        await ctx.editMessageText('📝 *История балансов*\n\nИстория пуста', {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+          ])
         });
+        return;
       }
+
+      // Создаем CSV содержимое для Excel
+      let csvContent = 'Дата,Событие,Баланс (USDT),Детали\n';
       
+      history.forEach((record) => {
+        const date = new Date(record.timestamp).toLocaleString('ru-RU');
+        const eventNames = {
+          'full_recalculation': 'Полный пересчет',
+          'duel_commission': 'Комиссия с дуэли',
+          'game_win': 'Выигрыш в игре',
+          'game_loss': 'Проигрыш в игре',
+          'deposit': 'Депозит',
+          'user_withdrawal': 'Вывод пользователя',
+          'owner_withdrawal': 'Вывод владельца',
+          'promocode': 'Промокод'
+        };
+        
+        const eventName = eventNames[record.event] || record.event;
+        const details = record.details ? JSON.stringify(record.details).replace(/"/g, '""') : '';
+        
+        csvContent += `"${date}","${eventName}","${record.operationalBalance.toFixed(2)}","${details}"\n`;
+      });
+
+      // Создаем сообщение с последними записями
+      let message = '📝 *История балансов*\n\n';
+      message += `📊 Последние ${Math.min(history.length, 5)} записей:\n\n`;
+      
+      history.slice(0, 5).forEach((record, index) => {
+        const eventNames = {
+          'full_recalculation': 'Полный пересчет',
+          'duel_commission': 'Комиссия с дуэли',
+          'game_win': 'Выигрыш в игре',
+          'game_loss': 'Проигрыш в игре',
+          'deposit': 'Депозит',
+          'user_withdrawal': 'Вывод пользователя',
+          'owner_withdrawal': 'Вывод владельца',
+          'promocode': 'Промокод'
+        };
+        
+        const eventName = eventNames[record.event] || record.event;
+        const date = new Date(record.timestamp).toLocaleDateString('ru-RU');
+        const time = new Date(record.timestamp).toLocaleTimeString('ru-RU');
+        
+        message += `${index + 1}\\. ${eventName}\n`;
+        message += `   💰 ${record.operationalBalance.toFixed(2)} USDT\n`;
+        message += `   📅 ${date} ${time}\n\n`;
+      });
+      
+      message += `\n📄 Всего записей: ${history.length}`;
+
       await ctx.editMessageText(message, {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('🔄 Обновить', 'finance_balance_history')],
+          [
+            Markup.button.callback('📊 Экспорт в Excel', 'finance_export_history'),
+            Markup.button.callback('🔄 Обновить', 'finance_balance_history')
+          ],
           [Markup.button.callback('🔙 К финансам', 'finances_menu')]
         ])
       });
+
+      // Сохраняем CSV данные в сессию для экспорта
+      ctx.session = ctx.session || {};
+      ctx.session.historyCSV = csvContent;
+      
     } catch (error) {
       console.error('ADMIN: Ошибка получения истории:', error);
       await ctx.reply('❌ Ошибка получения истории балансов');
+    }
+  });
+
+  // Обработчик для экспорта истории в Excel
+  bot.action('finance_export_history', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      
+      if (!ctx.session || !ctx.session.historyCSV) {
+        await ctx.reply('❌ Данные для экспорта не найдены. Обновите историю.');
+        return;
+      }
+
+      // Создаем Buffer из CSV данных
+      const csvBuffer = Buffer.from(ctx.session.historyCSV, 'utf8');
+      const fileName = `finance_history_${new Date().toISOString().split('T')[0]}.csv`;
+
+      // Отправляем файл
+      await ctx.replyWithDocument({
+        source: csvBuffer,
+        filename: fileName
+      }, {
+        caption: `📊 *Экспорт истории балансов*\n\n📅 Дата: ${new Date().toLocaleDateString('ru-RU')}\n📄 Формат: CSV (можно открыть в Excel)`,
+        parse_mode: 'Markdown'
+      });
+
+    } catch (error) {
+      console.error('ADMIN: Ошибка экспорта истории:', error);
+      await ctx.reply('❌ Ошибка при экспорте данных');
     }
   });
 

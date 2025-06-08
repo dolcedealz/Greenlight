@@ -20,7 +20,41 @@ const apiClient = axios.create({
 });
 
 /**
- * Экранирует специальные символы для Telegram Markdown
+ * Экранирует специальные символы для Telegram HTML
+ */
+function escapeHtml(text) {
+  if (!text) return '';
+  
+  // Преобразуем в строку
+  let result = text.toString();
+  
+  // Если строка пустая после преобразования, возвращаем безопасную замену
+  if (!result.trim()) {
+    return 'Unknown';
+  }
+  
+  // Удаляем невидимые символы, но сохраняем нормальные Unicode символы
+  result = result
+    .replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u034F\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3000\uFE00-\uFE0F\uFEFF]/g, '')
+    .trim();
+  
+  if (!result) {
+    return 'Unknown';
+  }
+  
+  // Простое и безопасное экранирование для HTML
+  result = result
+    .replace(/&/g, '&amp;')  // Амперсанд
+    .replace(/</g, '&lt;')   // Меньше
+    .replace(/>/g, '&gt;')   // Больше
+    .replace(/"/g, '&quot;') // Кавычки
+    .replace(/'/g, '&#x27;'); // Апостроф
+  
+  return result;
+}
+
+/**
+ * Экранирует специальные символы для Telegram Markdown (более безопасная версия)
  */
 function escapeMarkdown(text) {
   if (!text) return '';
@@ -33,28 +67,23 @@ function escapeMarkdown(text) {
     return 'Unknown';
   }
   
-  // Простое экранирование только основных символов Markdown
-  // Убираем агрессивную очистку Unicode, чтобы сохранить корректные имена
+  // Удаляем невидимые символы, но сохраняем нормальные Unicode символы
+  result = result
+    .replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u034F\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3000\uFE00-\uFE0F\uFEFF]/g, '')
+    .trim();
+  
+  if (!result) {
+    return 'Unknown';
+  }
+  
+  // Более мягкое экранирование только критических символов
   result = result
     .replace(/\\/g, '\\\\')  // Обратная косая черта
     .replace(/\*/g, '\\*')   // Звездочка
     .replace(/_/g, '\\_')    // Подчеркивание
     .replace(/\[/g, '\\[')   // Открывающая квадратная скобка
     .replace(/\]/g, '\\]')   // Закрывающая квадратная скобка
-    .replace(/\(/g, '\\(')   // Открывающая круглая скобка
-    .replace(/\)/g, '\\)')   // Закрывающая круглая скобка
-    .replace(/~/g, '\\~')    // Тильда
-    .replace(/`/g, '\\`')    // Обратная кавычка
-    .replace(/>/g, '\\>')    // Больше
-    .replace(/#/g, '\\#')    // Решетка
-    .replace(/\+/g, '\\+')   // Плюс
-    .replace(/-/g, '\\-')    // Минус
-    .replace(/=/g, '\\=')    // Равно
-    .replace(/\|/g, '\\|')   // Вертикальная черта
-    .replace(/\{/g, '\\{')   // Открывающая фигурная скобка
-    .replace(/\}/g, '\\}')   // Закрывающая фигурная скобка
-    .replace(/\./g, '\\.')   // Точка
-    .replace(/!/g, '\\!');   // Восклицательный знак
+    .replace(/`/g, '\\`');   // Обратная кавычка
   
   return result;
 }

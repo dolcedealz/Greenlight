@@ -26,25 +26,28 @@ const userSchema = new Schema({
     min: 0
   },
   // Заблокированные средства для активных операций
-  lockedFunds: [{
-    amount: {
-      type: Number,
-      required: true
-    },
-    reason: {
-      type: String,
-      enum: ['duel', 'casino', 'withdrawal'],
-      required: true
-    },
-    lockedAt: {
-      type: Date,
-      default: Date.now
-    },
-    expiresAt: {
-      type: Date,
-      required: true
-    }
-  }],
+  lockedFunds: {
+    type: [{
+      amount: {
+        type: Number,
+        required: true
+      },
+      reason: {
+        type: String,
+        enum: ['duel', 'casino', 'withdrawal'],
+        required: true
+      },
+      lockedAt: {
+        type: Date,
+        default: Date.now
+      },
+      expiresAt: {
+        type: Date,
+        required: true
+      }
+    }],
+    default: []
+  },
   isBlocked: {
     type: Boolean,
     default: false
@@ -167,12 +170,13 @@ const userSchema = new Schema({
     }
   },
   // Активные бонусы к депозитам от промокодов
-  activeDepositBonuses: [{
-    promocodeId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Promocode',
-      required: true
-    },
+  activeDepositBonuses: {
+    type: [{
+      promocodeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Promocode',
+        required: true
+      },
     percentage: {
       type: Number,
       required: true,
@@ -192,6 +196,8 @@ const userSchema = new Schema({
       default: Date.now
     }
   }],
+    default: []
+  },
   // VIP статус
   isVip: {
     type: Boolean,

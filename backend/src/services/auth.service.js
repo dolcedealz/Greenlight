@@ -136,12 +136,17 @@ class AuthService {
         balance: 0,
         totalWagered: 0,
         totalWon: 0,
+        totalGames: 0,
         isBlocked: false,
         registeredAt: new Date(),
         lastActivity: new Date(),
         // Массивы и объекты по умолчанию
         lockedFunds: [],
-        freespins: {},
+        freespins: {
+          slots: 0,
+          coin: 0,
+          mines: 0
+        },
         activeDepositBonuses: [],
         // Настройки по умолчанию
         settings: {

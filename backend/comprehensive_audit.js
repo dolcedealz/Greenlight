@@ -140,24 +140,45 @@ async function comprehensiveAudit() {
       
       const stats = gameStats[0] || { totalBet: 0, totalWon: 0, totalProfit: 0 };
       
-      // Определяем начальный баланс (тестовый)
+      // Определяем начальный баланс более точно
       const hasDeposit = transactions.some(t => t.type === 'deposit');
-      const initialBalance = hasDeposit ? 0 : 100; // Если нет депозитов, предполагаем тестовый баланс 100
+      
+      // Если есть депозиты, начальный баланс 0
+      // Если есть транзакции без депозитов, значит был тестовый баланс
+      // Если нет транзакций вообще, начальный баланс 0
+      let initialBalance = 0;
+      if (!hasDeposit && transactions.length > 0) {
+        // Находим самую раннюю транзакцию и смотрим balanceBefore
+        const firstTransaction = transactions.sort((a, b) => a.createdAt - b.createdAt)[0];
+        if (firstTransaction.balanceBefore > 0) {
+          initialBalance = firstTransaction.balanceBefore + (firstTransaction.amount < 0 ? -firstTransaction.amount : 0);
+        }
+      }
       
       const expectedBalance = initialBalance + transactionBalance;
       const balanceDiff = user.balance - expectedBalance;
       
       // Выводим только проблемные случаи
-      if (Math.abs(balanceDiff) > 0.01 || (user.balance > 200 && gameCount === 0)) {
+      if (Math.abs(balanceDiff) > 0.01 || (user.balance > 50 && gameCount === 0)) {
         console.log(`\n👤 ${user.username || user.telegramId}:`);
         console.log(`   Текущий баланс: ${user.balance} USDT`);
+        console.log(`   Начальный баланс: ${initialBalance} USDT`);
+        console.log(`   Сумма транзакций: ${transactionBalance.toFixed(2)} USDT`);
         console.log(`   Ожидаемый баланс: ${expectedBalance} USDT`);
         console.log(`   Разница: ${balanceDiff.toFixed(2)} USDT`);
         console.log(`   Игр: ${gameCount}, Ставок: ${stats.totalBet}, Выигрышей: ${stats.totalWon}`);
-        console.log(`   Транзакций: ${transactions.length}`);
+        console.log(`   Транзакций: ${transactions.length} (депозиты: ${hasDeposit ? 'да' : 'нет'})`);
         
-        if (user.balance > 200 && gameCount === 0) {
-          console.log(`   ⚠️  ПОДОЗРИТЕЛЬНО: Большой баланс без игр!`);
+        // Показываем первые несколько транзакций для диагностики
+        if (transactions.length > 0) {
+          console.log(`   Первые транзакции:`);
+          transactions.slice(0, 3).forEach((t, i) => {
+            console.log(`     ${i+1}. ${t.type}: ${t.amount} USDT (${t.balanceBefore} → ${t.balanceAfter})`);
+          });
+        }
+        
+        if (user.balance > 50 && gameCount === 0) {
+          console.log(`   ⚠️  ПОДОЗРИТЕЛЬНО: Баланс без игр!`);
         }
       }
     }

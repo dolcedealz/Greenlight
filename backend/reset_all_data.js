@@ -13,25 +13,23 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // Импортируем все модели
-const {
-  User,
-  Game,
-  Transaction,
-  Deposit,
-  Withdrawal,
-  CasinoFinance,
-  ReferralEarning,
-  ReferralPayout,
-  Promocode,
-  CrashRound,
-  CrashHistory,
-  Duel,
-  DuelRound,
-  DuelInvitation,
-  Event,
-  EventBet,
-  PartnerLog
-} = require('./src/models');
+const User = require('./src/models/user.model');
+const Game = require('./src/models/game.model');
+const Transaction = require('./src/models/transaction.model');
+const Deposit = require('./src/models/deposit.model');
+const Withdrawal = require('./src/models/withdrawal.model');
+const CasinoFinance = require('./src/models/casino-finance.model');
+const ReferralEarning = require('./src/models/referral-earning.model');
+const ReferralPayout = require('./src/models/referral-payout.model');
+const Promocode = require('./src/models/promocode.model');
+const CrashRound = require('./src/models/crash-round.model');
+const CrashHistory = require('./src/models/crash-history.model');
+const Duel = require('./src/models/duel.model');
+const DuelRound = require('./src/models/duel-round.model');
+const DuelInvitation = require('./src/models/duel-invitation.model');
+const Event = require('./src/models/Event');
+const EventBet = require('./src/models/EventBet');
+const PartnerLog = require('./src/models/partner-log.model');
 
 class DataResetService {
   constructor() {

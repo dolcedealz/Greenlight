@@ -262,7 +262,21 @@ casinoFinanceSchema.statics.getInstance = async function() {
   
   if (!finance) {
     // Создаем новый, если не существует
-    finance = new this();
+    finance = new this({
+      commissionBreakdown: {
+        duels: 0,
+        events: 0
+      }
+    });
+    await finance.save();
+  }
+  
+  // Убеждаемся, что commissionBreakdown инициализирован
+  if (!finance.commissionBreakdown) {
+    finance.commissionBreakdown = {
+      duels: 0,
+      events: 0
+    };
     await finance.save();
   }
   

@@ -65,6 +65,14 @@ class CasinoFinanceService {
       });
       
       // 4. Рассчитываем комиссии
+      // Инициализируем commissionBreakdown если он не существует
+      if (!finance.commissionBreakdown) {
+        finance.commissionBreakdown = {
+          duels: 0,
+          events: 0
+        };
+      }
+      
       // Комиссии с дуэлей (PvP)
       const duelCommissions = await mongoose.model('Duel').aggregate([
         { $match: { status: 'completed' } },
@@ -491,6 +499,14 @@ class CasinoFinanceService {
   async updateAfterDuel(duelData) {
     try {
       const finance = await CasinoFinance.getInstance();
+      
+      // Инициализируем commissionBreakdown если он не существует
+      if (!finance.commissionBreakdown) {
+        finance.commissionBreakdown = {
+          duels: 0,
+          events: 0
+        };
+      }
       
       const { commission, amount } = duelData;
       

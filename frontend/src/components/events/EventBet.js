@@ -1,4 +1,4 @@
-// frontend/src/components/events/EventBet.js
+// frontend/src/components/events/EventBet.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ПОДДЕРЖКОЙ ЕДИНСТВЕННОЙ СТАВКИ
 import React, { useState, useEffect } from 'react';
 import '../../styles/EventBet.css';
 
@@ -6,6 +6,7 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
   const [betAmount, setBetAmount] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
   const [error, setError] = useState('');
+  const [existingBetWarning, setExistingBetWarning] = useState(null); // Новое состояние для предупреждения
 
   // Быстрые кнопки сумм
   const quickAmounts = [1, 5, 10, 25, 50, 100];
@@ -64,12 +65,14 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
     
     setBetAmount(value);
     setError(validateBetAmount(value));
+    setExistingBetWarning(null); // Сбрасываем предупреждение при изменении суммы
   };
 
   // Обработчик быстрых кнопок
   const handleQuickAmount = (amount) => {
     setBetAmount(amount.toString());
     setError(validateBetAmount(amount.toString()));
+    setExistingBetWarning(null);
   };
 
   // Обработчик кнопки "Всё"
@@ -77,9 +80,10 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
     const maxAmount = Math.min(balance, event.maxBet).toString();
     setBetAmount(maxAmount);
     setError(validateBetAmount(maxAmount));
+    setExistingBetWarning(null);
   };
 
-  // Обработчик размещения ставки
+  // ОБНОВЛЕННЫЙ обработчик размещения ставки с поддержкой ошибки единственной ставки
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -90,6 +94,8 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
     }
     
     setIsPlacing(true);
+    setError('');
+    setExistingBetWarning(null);
     
     try {
       await onPlaceBet({
@@ -98,7 +104,38 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
         potentialWin: parseFloat(potentialWin)
       });
     } catch (err) {
-      setError(err.message || 'Ошибка размещения ставки');
+      console.error('Ошибка размещения ставки:', err);
+      
+      // НОВАЯ ЛОГИКА: Обработка ошибки существующей ставки
+      const errorMessage = err.message || err.response?.data?.message || 'Ошибка размещения ставки';
+      
+      // Проверяем, является ли это ошибкой о существующей ставке
+      if (errorMessage.includes('уже поставили на это событие') || 
+          errorMessage.includes('одну ставку на событие') ||
+          errorMessage.includes('только одну ставку')) {
+        
+        // Извлекаем информацию о существующей ставке из сообщения об ошибке
+        const existingBetMatch = errorMessage.match(/(\d+(?:\.\d+)?)\s*USDT\s*на\s*"([^"]+)"/);
+        
+        if (existingBetMatch) {
+          const [, amount, outcomeName] = existingBetMatch;
+          setExistingBetWarning({
+            amount: parseFloat(amount),
+            outcomeName: outcomeName,
+            message: errorMessage
+          });
+        } else {
+          setExistingBetWarning({
+            message: errorMessage
+          });
+        }
+        
+        setError(''); // Очищаем обычную ошибку
+      } else {
+        // Обычная ошибка
+        setError(errorMessage);
+        setExistingBetWarning(null);
+      }
     } finally {
       setIsPlacing(false);
     }
@@ -133,103 +170,141 @@ const EventBet = ({ event, outcome, balance, onPlaceBet, onClose }) => {
           </div>
         </div>
 
-        {/* Форма ставки */}
-        <form onSubmit={handleSubmit} className="bet-form">
-          {/* Баланс */}
-          <div className="balance-info">
-            <span className="balance-label">Доступно:</span>
-            <span className="balance-amount">{balance.toFixed(2)} USDT</span>
-          </div>
-
-          {/* Поле ввода суммы */}
-          <div className="amount-input-group">
-            <label htmlFor="betAmount">Сумма ставки:</label>
-            <div className="amount-input-container">
-              <input
-                type="text"
-                id="betAmount"
-                value={betAmount}
-                onChange={handleAmountChange}
-                placeholder="0.00"
-                className={`amount-input ${error ? 'error' : ''}`}
-                disabled={isPlacing}
-              />
-              <span className="currency-label">USDT</span>
+        {/* НОВОЕ: Предупреждение о существующей ставке */}
+        {existingBetWarning && (
+          <div className="existing-bet-warning">
+            <div className="warning-header">
+              <span className="warning-icon">⚠️</span>
+              <strong>У вас уже есть ставка на это событие</strong>
             </div>
-            {error && <div className="error-message">{error}</div>}
-          </div>
-
-          {/* Быстрые кнопки */}
-          <div className="quick-amounts">
-            <div className="quick-amounts-label">Быстрый выбор:</div>
-            <div className="quick-buttons">
-              {quickAmounts
-                .filter(amount => amount <= balance && amount <= event.maxBet)
-                .map(amount => (
-                  <button
-                    key={amount}
-                    type="button"
-                    className={`quick-button ${betAmount === amount.toString() ? 'active' : ''}`}
-                    onClick={() => handleQuickAmount(amount)}
-                    disabled={isPlacing}
-                  >
-                    {amount}
-                  </button>
-                ))}
-              <button
-                type="button"
-                className={`quick-button max-button ${betAmount === Math.min(balance, event.maxBet).toString() ? 'active' : ''}`}
-                onClick={handleMaxAmount}
-                disabled={isPlacing || balance === 0}
-              >
-                Всё
+            
+            {existingBetWarning.amount && existingBetWarning.outcomeName && (
+              <div className="existing-bet-details">
+                <div className="existing-bet-info">
+                  <span className="label">Ваша ставка:</span>
+                  <span className="value">{existingBetWarning.amount} USDT</span>
+                </div>
+                <div className="existing-bet-info">
+                  <span className="label">На исход:</span>
+                  <span className="value">"{existingBetWarning.outcomeName}"</span>
+                </div>
+              </div>
+            )}
+            
+            <div className="warning-message">
+              <p>На каждое событие можно сделать только одну ставку. Если вы хотите изменить свою ставку, обратитесь в поддержку.</p>
+            </div>
+            
+            <div className="warning-actions">
+              <button className="close-warning-button" onClick={onClose}>
+                Понятно
               </button>
             </div>
           </div>
+        )}
 
-          {/* Информация о выигрыше */}
-          {betAmount && !error && (
-            <div className="win-info">
-              <div className="win-item">
-                <span className="win-label">Потенциальный выигрыш:</span>
-                <span className="win-value">{potentialWin} USDT</span>
+        {/* Форма ставки - показывается только если нет предупреждения */}
+        {!existingBetWarning && (
+          <form onSubmit={handleSubmit} className="bet-form">
+            {/* Баланс */}
+            <div className="balance-info">
+              <span className="balance-label">Доступно:</span>
+              <span className="balance-amount">{balance.toFixed(2)} USDT</span>
+            </div>
+
+            {/* Поле ввода суммы */}
+            <div className="amount-input-group">
+              <label htmlFor="betAmount">Сумма ставки:</label>
+              <div className="amount-input-container">
+                <input
+                  type="text"
+                  id="betAmount"
+                  value={betAmount}
+                  onChange={handleAmountChange}
+                  placeholder="0.00"
+                  className={`amount-input ${error ? 'error' : ''}`}
+                  disabled={isPlacing}
+                />
+                <span className="currency-label">USDT</span>
               </div>
-              <div className="win-item">
-                <span className="win-label">Чистая прибыль:</span>
-                <span className="win-value profit">{potentialProfit} USDT</span>
+              {error && <div className="error-message">{error}</div>}
+            </div>
+
+            {/* Быстрые кнопки */}
+            <div className="quick-amounts">
+              <div className="quick-amounts-label">Быстрый выбор:</div>
+              <div className="quick-buttons">
+                {quickAmounts
+                  .filter(amount => amount <= balance && amount <= event.maxBet)
+                  .map(amount => (
+                    <button
+                      key={amount}
+                      type="button"
+                      className={`quick-button ${betAmount === amount.toString() ? 'active' : ''}`}
+                      onClick={() => handleQuickAmount(amount)}
+                      disabled={isPlacing}
+                    >
+                      {amount}
+                    </button>
+                  ))}
+                <button
+                  type="button"
+                  className={`quick-button max-button ${betAmount === Math.min(balance, event.maxBet).toString() ? 'active' : ''}`}
+                  onClick={handleMaxAmount}
+                  disabled={isPlacing || balance === 0}
+                >
+                  Всё
+                </button>
               </div>
             </div>
-          )}
 
-          {/* Предупреждения */}
-          <div className="bet-warnings">
-            <div className="warning-item">
-              ⚠️ Коэффициенты могут измениться до момента размещения ставки
-            </div>
-            <div className="warning-item">
-              💡 Комиссия казино: {event.houseEdge}% уже учтена в коэффициентах
-            </div>
-          </div>
+            {/* Информация о выигрыше */}
+            {betAmount && !error && (
+              <div className="win-info">
+                <div className="win-item">
+                  <span className="win-label">Потенциальный выигрыш:</span>
+                  <span className="win-value">{potentialWin} USDT</span>
+                </div>
+                <div className="win-item">
+                  <span className="win-label">Чистая прибыль:</span>
+                  <span className="win-value profit">{potentialProfit} USDT</span>
+                </div>
+              </div>
+            )}
 
-          {/* Кнопки */}
-          <div className="bet-actions">
-            <button
-              type="button"
-              className="cancel-button"
-              onClick={onClose}
-              disabled={isPlacing}
-            >
-              Отмена
-            </button>
-            <button
-              type="submit"
-              className="place-bet-button"
-              disabled={!betAmount || error || isPlacing}
-            >
-              {isPlacing ? 'Размещение...' : `Поставить ${betAmount || '0'} USDT`}
-            </button>
-          </div>
-        </form>
+            {/* ОБНОВЛЕННЫЕ предупреждения */}
+            <div className="bet-warnings">
+              <div className="warning-item">
+                ⚠️ Коэффициенты могут измениться до момента размещения ставки
+              </div>
+              <div className="warning-item">
+                💡 Комиссия казино: {event.houseEdge}% уже учтена в коэффициентах
+              </div>
+              <div className="warning-item single-bet-warning">
+                🎯 На каждое событие можно сделать только одну ставку
+              </div>
+            </div>
+
+            {/* Кнопки */}
+            <div className="bet-actions">
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={onClose}
+                disabled={isPlacing}
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                className="place-bet-button"
+                disabled={!betAmount || error || isPlacing}
+              >
+                {isPlacing ? 'Размещение...' : `Поставить ${betAmount || '0'} USDT`}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

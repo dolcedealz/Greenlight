@@ -4,8 +4,7 @@ require('dotenv').config();
 // Базовая конфигурация админ-бота
 const config = {
   // API настройки
-  // Принудительно устанавливаем правильный URL для продакшена
-  apiUrl: 'https://greenlight-api-ghqh.onrender.com/api',
+  apiUrl: process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api',
   adminToken: process.env.ADMIN_API_TOKEN,
   
   // Telegram Bot настройки

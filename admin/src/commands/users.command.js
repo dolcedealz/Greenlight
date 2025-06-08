@@ -3,8 +3,7 @@ const { Markup } = require('telegraf');
 const axios = require('axios');
 
 // Получаем API URL и токен из переменных окружения
-// Принудительно устанавливаем правильный URL для продакшена
-const apiUrl = 'https://greenlight-api-ghqh.onrender.com/api';
+const apiUrl = process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api';
 const adminToken = process.env.ADMIN_API_TOKEN;
 
 // Логируем URL для отладки

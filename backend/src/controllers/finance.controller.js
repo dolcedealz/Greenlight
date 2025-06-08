@@ -49,7 +49,7 @@ class FinanceController {
   }
   
   /**
-   * Получить финансовый отчет
+   * Получить финансовый отчет - СОВМЕСТИМОСТЬ С АДМИН БОТОМ
    * @param {Object} req - Запрос Express
    * @param {Object} res - Ответ Express
    */
@@ -61,7 +61,7 @@ class FinanceController {
       const financeState = await casinoFinanceService.getCurrentFinanceState();
       const report = await casinoFinanceService.getFinancialReport(period);
       
-      // Формируем полный отчет с детализацией комиссий
+      // Формируем полный отчет в формате, ожидаемом админ ботом
       const fullReport = {
         current: {
           totalUserBalance: financeState.totalUserBalance,
@@ -71,8 +71,12 @@ class FinanceController {
           reservePercentage: financeState.reservePercentage,
           totalCommissions: financeState.totalCommissions,
           totalPromocodeExpenses: financeState.totalPromocodeExpenses,
-          commissionBreakdown: financeState.commissionBreakdown,
-          warnings: financeState.warnings
+          commissionBreakdown: financeState.commissionBreakdown || { duels: 0, events: 0 },
+          warnings: financeState.warnings || {
+            lowReserve: false,
+            highRiskRatio: false,
+            negativeOperational: false
+          }
         },
         allTime: {
           totalBets: financeState.totalBets,
@@ -83,7 +87,16 @@ class FinanceController {
         },
         period: {
           name: period,
-          ...report
+          games: {
+            count: report?.games?.count || 0,
+            totalBets: report?.games?.totalBets || 0,
+            totalWins: report?.games?.totalWins || 0,
+            profit: (report?.games?.totalBets || 0) - (report?.games?.totalWins || 0)
+          },
+          deposits: report?.deposits || 0,
+          withdrawals: report?.withdrawals || 0,
+          commissions: report?.commissions || 0,
+          promocodes: report?.promocodes || 0
         }
       };
       

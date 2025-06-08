@@ -122,11 +122,17 @@ const ReferralScreen = ({ balance, onBalanceUpdate }) => {
   // Форматирование уровня
   const getLevelDisplay = (level) => {
     const levels = {
+      // Автоматические реферальные уровни
       bronze: { name: 'Бронза', icon: '🥉', color: '#CD7F32' },
       silver: { name: 'Серебро', icon: '🥈', color: '#C0C0C0' },
       gold: { name: 'Золото', icon: '🥇', color: '#FFD700' },
       platinum: { name: 'Платина', icon: '💎', color: '#E5E4E2' },
-      vip: { name: 'VIP', icon: '🌟', color: '#9400D3' }
+      vip: { name: 'VIP', icon: '🌟', color: '#9400D3' },
+      
+      // Партнерские уровни (назначаются админом)
+      partner_bronze: { name: 'Партнер Бронза', icon: '🥉', color: '#CD7F32', border: '2px solid #FFD700' },
+      partner_silver: { name: 'Партнер Серебро', icon: '🥈', color: '#C0C0C0', border: '2px solid #FFD700' },
+      partner_gold: { name: 'Партнер Золото', icon: '🥇', color: '#FFD700', border: '2px solid #FFD700' }
     };
 
     return levels[level] || { name: level, icon: '🎯', color: '#0ba84a' };

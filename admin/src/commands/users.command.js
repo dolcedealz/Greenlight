@@ -115,10 +115,14 @@ async function showUsersList(ctx, page = 1) {
           fullName = `Пользователь ${user.telegramId || userNum}`;
         }
         
+        const profitLoss = (user.totalWon || 0) - (user.totalWagered || 0);
+        const profitLossEmoji = profitLoss >= 0 ? '📈' : '📉';
+        const profitLossSign = profitLoss >= 0 ? '+' : '';
+        
         message += `${userNum}\\. ${statusEmoji} *${fullName}*\n`;
         message += `   ${username}\n`;
         message += `   💰 Баланс: ${(user.balance || 0).toFixed(2)} USDT\n`;
-        message += `   📊 Прибыль: ${((user.totalWon || 0) - (user.totalWagered || 0)).toFixed(2)} USDT\n`;
+        message += `   ${profitLossEmoji} П/У: ${profitLossSign}${profitLoss.toFixed(2)} USDT\n`;
         message += `   🎮 Игр: ${user.totalGames || 0}\n`;
         
         // Партнерский статус
@@ -363,6 +367,11 @@ async function showUserDetails(ctx, userId) {
     const firstName = escapeMarkdown(user.firstName || '');
     const lastName = escapeMarkdown(user.lastName || '');
     
+    const profitLoss = user.totalWon - user.totalWagered;
+    const profitLossEmoji = profitLoss >= 0 ? '📈' : '📉';
+    const profitLossText = profitLoss >= 0 ? 'Прибыль' : 'Убыток';
+    const winRate = user.totalWagered > 0 ? ((user.totalWon / user.totalWagered) * 100).toFixed(1) : '0.0';
+
     let message = `👤 *Профиль пользователя*\n\n`;
     message += `**Основная информация:**\n`;
     message += `ФИО: ${firstName} ${lastName}\n`;
@@ -371,26 +380,46 @@ async function showUserDetails(ctx, userId) {
     message += `Роль: ${user.role === 'admin' ? '👑 Администратор' : '👤 Пользователь'}\n`;
     message += `Статус: ${user.isBlocked ? '🚫 Заблокирован' : '✅ Активен'}\n\n`;
     
-    message += `**Финансы:**\n`;
-    message += `💰 Баланс: ${user.balance.toFixed(2)} USDT\n`;
-    message += `📈 Всего поставлено: ${user.totalWagered.toFixed(2)} USDT\n`;
-    message += `📊 Всего выиграно: ${user.totalWon.toFixed(2)} USDT\n`;
-    message += `💰 Прибыль/убыток: ${(user.totalWon - user.totalWagered).toFixed(2)} USDT\n\n`;
+    message += `**Финансовая статистика:**\n`;
+    message += `💰 Текущий баланс: ${user.balance.toFixed(2)} USDT\n`;
+    message += `🎯 Всего игр: ${user.totalGames || 0}\n`;
+    message += `📊 Всего поставлено: ${user.totalWagered.toFixed(2)} USDT\n`;
+    message += `🎁 Всего выиграно: ${user.totalWon.toFixed(2)} USDT\n`;
+    message += `${profitLossEmoji} ${profitLossText}: ${Math.abs(profitLoss).toFixed(2)} USDT\n`;
+    message += `📈 Винрейт: ${winRate}%\n\n`;
     
     if (gameStats.length > 0) {
-      message += `**Статистика по играм:**\n`;
+      message += `**Детальная статистика по играм:**\n`;
       gameStats.forEach(stat => {
         const gameEmoji = {
           'coin': '🪙',
-          'crash': '🚀',
+          'crash': '🚀', 
           'slots': '🎰',
           'mines': '💣'
         }[stat._id] || '🎮';
         
-        message += `${gameEmoji} ${stat._id}: ${stat.totalGames} игр, `;
-        message += `${stat.totalBet.toFixed(2)} USDT ставок\n`;
+        const gameNames = {
+          'coin': 'Монетка',
+          'crash': 'Краш',
+          'slots': 'Слоты', 
+          'mines': 'Мины'
+        };
+        
+        const gameName = gameNames[stat._id] || stat._id;
+        const gameProfit = stat.totalWon - stat.totalBet;
+        const gameProfitEmoji = gameProfit >= 0 ? '📈' : '📉';
+        const gameWinRate = stat.totalGames > 0 ? ((stat.winCount / stat.totalGames) * 100).toFixed(1) : '0.0';
+        
+        message += `${gameEmoji} **${gameName}:**\n`;
+        message += `   🎯 Игр: ${stat.totalGames} (${stat.winCount}В/${stat.lossCount}П)\n`;
+        message += `   📊 Ставки: ${stat.totalBet.toFixed(2)} USDT\n`;
+        message += `   🎁 Выигрыши: ${stat.totalWon.toFixed(2)} USDT\n`;
+        message += `   ${gameProfitEmoji} Результат: ${gameProfit >= 0 ? '+' : ''}${gameProfit.toFixed(2)} USDT\n`;
+        message += `   📈 Винрейт: ${gameWinRate}%\n\n`;
       });
-      message += '\n';
+    } else {
+      message += `**Статистика по играм:**\n`;
+      message += `Пользователь еще не играл\n\n`;
     }
     
     // Партнерский статус (если есть)
@@ -626,25 +655,39 @@ async function showUsersStats(ctx) {
     
     const stats = response.data.data;
     
+    // Вычисляем дополнительные метрики
+    const totalProfitLoss = (stats.totalWon || 0) - (stats.totalWagered || 0);
+    const profitLossEmoji = totalProfitLoss >= 0 ? '📈' : '📉';
+    const profitLossText = totalProfitLoss >= 0 ? 'Прибыль пользователей' : 'Убыток пользователей';
+    const avgWagered = stats.totalUsers > 0 ? (stats.totalWagered || 0) / stats.totalUsers : 0;
+    const avgWon = stats.totalUsers > 0 ? (stats.totalWon || 0) / stats.totalUsers : 0;
+    const conversionRate = stats.totalUsers > 0 ? ((stats.usersWithDeposits || 0) / stats.totalUsers * 100).toFixed(1) : '0.0';
+    const activityRate = stats.totalUsers > 0 ? ((stats.activeToday || 0) / stats.totalUsers * 100).toFixed(1) : '0.0';
+
     let message = '👥 *Статистика пользователей*\n\n';
     
-    message += `**Общая информация:**\n`;
+    message += `**📊 Общая информация:**\n`;
     message += `👥 Всего пользователей: ${stats.totalUsers || 0}\n`;
-    message += `✅ Активных: ${stats.activeToday || 0}\n`;
+    message += `✅ Активных сегодня: ${stats.activeToday || 0} (${activityRate}%)\n`;
     message += `🚫 Заблокированных: ${stats.blocked || 0}\n`;
     message += `👑 Администраторов: ${stats.adminUsers || 0}\n\n`;
     
-    message += `**Активность:**\n`;
+    message += `**📈 Рост и активность:**\n`;
     message += `🆕 Новых за сутки: ${stats.newUsersToday || 0}\n`;
     message += `📅 Новых за неделю: ${stats.newUsersWeek || 0}\n`;
     message += `🎮 Играли сегодня: ${stats.playedToday || 0}\n`;
-    message += `💰 Сделали депозит: ${stats.usersWithDeposits || 0}\n\n`;
+    message += `💳 Конверсия в депозит: ${stats.usersWithDeposits || 0} (${conversionRate}%)\n\n`;
     
-    message += `**Финансы:**\n`;
-    message += `💰 Общий баланс всех пользователей: ${(stats.totalUserBalances || 0).toFixed(2)} USDT\n`;
-    message += `📊 Средний баланс: ${((stats.totalUserBalances || 0) / (stats.totalUsers || 1)).toFixed(2)} USDT\n`;
-    message += `🎰 Общий объем ставок: ${(stats.totalWagered || 0).toFixed(2)} USDT\n`;
-    message += `🎯 Общие выигрыши: ${(stats.totalWon || 0).toFixed(2)} USDT`;
+    message += `**💰 Финансовая сводка:**\n`;
+    message += `🏦 Общий баланс: ${(stats.totalUserBalances || 0).toFixed(2)} USDT\n`;
+    message += `📊 Средний баланс: ${((stats.totalUserBalances || 0) / (stats.totalUsers || 1)).toFixed(2)} USDT\n\n`;
+    
+    message += `**🎯 Игровая активность:**\n`;
+    message += `🎰 Всего поставлено: ${(stats.totalWagered || 0).toFixed(2)} USDT\n`;
+    message += `🎁 Всего выиграно: ${(stats.totalWon || 0).toFixed(2)} USDT\n`;
+    message += `${profitLossEmoji} ${profitLossText}: ${Math.abs(totalProfitLoss).toFixed(2)} USDT\n`;
+    message += `📈 Средние ставки: ${avgWagered.toFixed(2)} USDT/игрок\n`;
+    message += `🎯 Средние выигрыши: ${avgWon.toFixed(2)} USDT/игрок`;
     
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback('🔄 Обновить', 'users_stats')],

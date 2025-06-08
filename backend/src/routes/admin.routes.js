@@ -85,6 +85,15 @@ router.get('/users/:userId', adminController.getUserDetails);
 router.post('/users/:userId/block', adminController.toggleUserBlock);
 router.post('/users/:userId/balance', adminController.adjustUserBalance);
 
+// === МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ПАРТНЕРАМИ ===
+router.get('/referral/partners', adminController.getPartners);
+router.get('/referral/stats', adminController.getReferralStats);
+router.post('/referral/assign-partner', adminController.assignPartnerStatus);
+router.get('/referral/partner-logs', adminController.getPartnerLogs);
+
+// === ВРЕМЕННЫЙ МАРШРУТ ДЛЯ ИСПРАВЛЕНИЯ ДАННЫХ ===
+router.post('/fix-user-stats', adminController.fixUserStats);
+
 // === МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ВЫВОДАМИ ===
 router.get('/withdrawals/pending', withdrawalController.getPendingApprovals);
 router.post('/withdrawals/:withdrawalId/approve', withdrawalController.approveWithdrawal);

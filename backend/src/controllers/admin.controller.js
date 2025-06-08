@@ -321,6 +321,345 @@ class AdminController {
   }
 
   /**
+   * Получить список партнеров
+   */
+  async getPartners(req, res) {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const skip = (page - 1) * limit;
+
+      // Получаем партнеров (у кого partnerLevel не 'none')
+      const partners = await User.find({
+        partnerLevel: { $ne: 'none' }
+      })
+      .select('telegramId username firstName lastName partnerLevel partnerMeta referralStats')
+      .sort({ 'partnerMeta.assignedAt': -1 })
+      .limit(parseInt(limit))
+      .skip(skip);
+
+      const total = await User.countDocuments({
+        partnerLevel: { $ne: 'none' }
+      });
+
+      // Статистика по уровням
+      const summary = await User.aggregate([
+        { $match: { partnerLevel: { $ne: 'none' } } },
+        { $group: { _id: '$partnerLevel', count: { $sum: 1 } } }
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          partners,
+          summary,
+          pagination: {
+            offset: skip,
+            limit: parseInt(limit),
+            hasMore: skip + partners.length < total
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка получения партнеров:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Получить статистику реферальной программы
+   */
+  async getReferralStats(req, res) {
+    try {
+      // Статистика партнеров
+      const partnersStats = await User.aggregate([
+        { $match: { partnerLevel: { $ne: 'none' } } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            totalBalance: { $sum: '$referralStats.referralBalance' },
+            byLevel: {
+              $push: {
+                level: '$partnerLevel',
+                earned: '$referralStats.totalEarned'
+              }
+            }
+          }
+        }
+      ]);
+
+      const byLevelStats = await User.aggregate([
+        { $match: { partnerLevel: { $ne: 'none' } } },
+        {
+          $group: {
+            _id: '$partnerLevel',
+            count: { $sum: 1 },
+            totalEarned: { $sum: '$referralStats.totalEarned' }
+          }
+        }
+      ]);
+
+      // Статистика рефералов
+      const referralsStats = await User.aggregate([
+        { $match: { referrer: { $exists: true, $ne: null } } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            active: {
+              $sum: {
+                $cond: [
+                  { $gte: ['$lastActivity', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)] },
+                  1,
+                  0
+                ]
+              }
+            },
+            withDeposits: {
+              $sum: {
+                $cond: [{ $gt: ['$totalWagered', 0] }, 1, 0]
+              }
+            }
+          }
+        }
+      ]);
+
+      const stats = {
+        partners: {
+          total: partnersStats[0]?.total || 0,
+          totalBalance: partnersStats[0]?.totalBalance || 0,
+          byLevel: byLevelStats
+        },
+        referrals: {
+          total: referralsStats[0]?.total || 0,
+          active: referralsStats[0]?.active || 0,
+          withDeposits: referralsStats[0]?.withDeposits || 0,
+          conversionRate: referralsStats[0]?.total > 0 
+            ? ((referralsStats[0]?.withDeposits || 0) / referralsStats[0]?.total * 100).toFixed(1)
+            : 0
+        },
+        finance: {
+          totalReferralPayments: 0, // TODO: implement
+          pendingPayouts: 0 // TODO: implement
+        }
+      };
+
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      console.error('Ошибка получения статистики реферальной программы:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Назначить партнерский статус
+   */
+  async assignPartnerStatus(req, res) {
+    try {
+      const { userId, newLevel, reason, metadata } = req.body;
+
+      if (!userId || !newLevel || !reason) {
+        return res.status(400).json({
+          success: false,
+          message: 'Необходимо указать userId, newLevel и reason'
+        });
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Пользователь не найден'
+        });
+      }
+
+      const previousLevel = user.partnerLevel;
+      
+      // Обновляем партнерский статус
+      user.partnerLevel = newLevel;
+      user.partnerMeta = {
+        assignedBy: req.user._id,
+        assignedAt: new Date(),
+        previousLevel: previousLevel
+      };
+
+      await user.save();
+
+      // Создаем лог изменения (можно добавить модель PartnerLog позже)
+      console.log(`Партнерский статус изменен: ${user.username} (${userId}) - ${previousLevel} → ${newLevel} по причине: ${reason}`);
+
+      const action = previousLevel === 'none' ? 'assign' : 
+                    newLevel === 'none' ? 'remove' : 'change';
+
+      res.json({
+        success: true,
+        data: {
+          action,
+          user: {
+            username: user.username,
+            previousLevel,
+            newLevel,
+            commissionPercent: {
+              'partner_bronze': 20,
+              'partner_silver': 30,
+              'partner_gold': 40
+            }[newLevel] || 0
+          },
+          admin: {
+            username: req.user.username
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка назначения партнерского статуса:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * ВРЕМЕННЫЙ МЕТОД: Исправить статистику всех пользователей
+   */
+  async fixUserStats(req, res) {
+    try {
+      console.log('🔄 Начинаем исправление статистики пользователей...');
+      
+      const users = await User.find({}).select('_id username totalGames totalWagered totalWon');
+      console.log(`📊 Найдено ${users.length} пользователей`);
+      
+      let updated = 0;
+      let processed = 0;
+      
+      for (const user of users) {
+        processed++;
+        
+        // Подсчитываем реальную статистику из коллекции Game
+        const [
+          totalGamesResult,
+          totalWageredResult,
+          totalWonResult
+        ] = await Promise.all([
+          Game.countDocuments({ user: user._id }),
+          Game.aggregate([
+            { $match: { user: user._id } },
+            { $group: { _id: null, total: { $sum: '$bet' } } }
+          ]),
+          Game.aggregate([
+            { $match: { user: user._id } },
+            { 
+              $group: { 
+                _id: null, 
+                total: { 
+                  $sum: { 
+                    $cond: [
+                      '$win', 
+                      { $add: ['$bet', { $ifNull: ['$profit', 0] }] }, 
+                      0
+                    ] 
+                  } 
+                } 
+              } 
+            }
+          ])
+        ]);
+
+        const actualTotalGames = totalGamesResult;
+        const actualTotalWagered = totalWageredResult[0]?.total || 0;
+        const actualTotalWon = totalWonResult[0]?.total || 0;
+
+        // Проверяем, нужно ли обновление
+        let needsUpdate = false;
+        const updates = {};
+
+        if (user.totalGames !== actualTotalGames) {
+          updates.totalGames = actualTotalGames;
+          needsUpdate = true;
+        }
+
+        if (Math.abs(user.totalWagered - actualTotalWagered) > 0.01) {
+          updates.totalWagered = actualTotalWagered;
+          needsUpdate = true;
+        }
+
+        if (Math.abs(user.totalWon - actualTotalWon) > 0.01) {
+          updates.totalWon = actualTotalWon;
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+          await User.updateOne({ _id: user._id }, { $set: updates });
+          console.log(`✅ ${user.username || user._id}: игр ${user.totalGames}→${actualTotalGames}, ставок ${user.totalWagered.toFixed(2)}→${actualTotalWagered.toFixed(2)}, выигрышей ${user.totalWon.toFixed(2)}→${actualTotalWon.toFixed(2)}`);
+          updated++;
+        }
+
+        // Отправляем прогресс каждые 50 пользователей
+        if (processed % 50 === 0) {
+          console.log(`📈 Обработано ${processed}/${users.length} пользователей...`);
+        }
+      }
+      
+      console.log(`📊 Исправление завершено: обновлено ${updated}/${users.length} пользователей`);
+      
+      res.json({
+        success: true,
+        data: {
+          totalUsers: users.length,
+          updated,
+          skipped: users.length - updated,
+          message: `Исправлено ${updated} пользователей из ${users.length}`
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Ошибка исправления статистики:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Получить логи партнерских изменений
+   */
+  async getPartnerLogs(req, res) {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const skip = (page - 1) * limit;
+
+      // Пока возвращаем пустой список, позже можно добавить модель PartnerLog
+      res.json({
+        success: true,
+        data: {
+          logs: [],
+          pagination: {
+            offset: skip,
+            limit: parseInt(limit),
+            hasMore: false
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка получения логов партнеров:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
    * Получить детали пользователя
    */
   async getUserDetails(req, res) {
@@ -335,7 +674,7 @@ class AdminController {
         });
       }
 
-      // Получаем статистику по играм
+      // Получаем детальную статистику по играм
       const gameStats = await Game.aggregate([
         { $match: { user: user._id } },
         { 
@@ -343,17 +682,69 @@ class AdminController {
             _id: '$gameType',
             totalGames: { $sum: 1 },
             totalBet: { $sum: '$bet' },
-            totalWin: { $sum: { $cond: ['$win', { $add: ['$bet', '$profit'] }, 0] } },
-            winCount: { $sum: { $cond: ['$win', 1, 0] } }
+            totalWon: { 
+              $sum: { 
+                $cond: [
+                  '$win', 
+                  { $add: ['$bet', { $ifNull: ['$profit', 0] }] }, 
+                  0
+                ] 
+              } 
+            },
+            winCount: { $sum: { $cond: ['$win', 1, 0] } },
+            lossCount: { $sum: { $cond: [{ $not: '$win' }, 1, 0] } },
+            avgBet: { $avg: '$bet' },
+            maxBet: { $max: '$bet' },
+            minBet: { $min: '$bet' }
           }
         }
       ]);
 
-      // Обновляем totalGames пользователя если нужно
-      const actualTotalGames = await Game.countDocuments({ user: user._id });
-      if (user.totalGames !== actualTotalGames) {
-        user.totalGames = actualTotalGames;
+      // Подсчитываем общую статистику пользователя из игр
+      const totalGamesFromDB = await Game.countDocuments({ user: user._id });
+      const totalWageredFromDB = await Game.aggregate([
+        { $match: { user: user._id } },
+        { $group: { _id: null, total: { $sum: '$bet' } } }
+      ]);
+      const totalWonFromDB = await Game.aggregate([
+        { $match: { user: user._id } },
+        { 
+          $group: { 
+            _id: null, 
+            total: { 
+              $sum: { 
+                $cond: [
+                  '$win', 
+                  { $add: ['$bet', { $ifNull: ['$profit', 0] }] }, 
+                  0
+                ] 
+              } 
+            } 
+          } 
+        }
+      ]);
+
+      // Обновляем данные пользователя если они отличаются
+      const actualTotalWagered = totalWageredFromDB[0]?.total || 0;
+      const actualTotalWon = totalWonFromDB[0]?.total || 0;
+
+      let userUpdated = false;
+      if (user.totalGames !== totalGamesFromDB) {
+        user.totalGames = totalGamesFromDB;
+        userUpdated = true;
+      }
+      if (Math.abs(user.totalWagered - actualTotalWagered) > 0.01) {
+        user.totalWagered = actualTotalWagered;
+        userUpdated = true;
+      }
+      if (Math.abs(user.totalWon - actualTotalWon) > 0.01) {
+        user.totalWon = actualTotalWon;
+        userUpdated = true;
+      }
+
+      if (userUpdated) {
         await user.save();
+        console.log(`Обновлены данные пользователя ${user.username}: игр ${totalGamesFromDB}, ставок ${actualTotalWagered}, выигрышей ${actualTotalWon}`);
       }
 
       // Получаем последние транзакции

@@ -3,9 +3,9 @@ const axios = require('axios');
 
 class AdminService {
   constructor() {
-    // Принудительно устанавливаем правильный URL для продакшена
-    this.apiUrl = 'https://greenlight-api-ghqh.onrender.com/api';
-    console.log('🔧 ADMIN SERVICE: Принудительно установлен API URL:', this.apiUrl);
+    // Получаем API URL из переменных окружения или используем custom domain
+    this.apiUrl = process.env.API_URL || 'https://api.greenlight-casino.eu/api';
+    console.log('🔧 ADMIN SERVICE: API URL:', this.apiUrl);
     this.adminToken = process.env.ADMIN_API_TOKEN;
     
     if (!this.adminToken) {

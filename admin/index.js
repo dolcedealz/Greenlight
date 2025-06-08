@@ -40,7 +40,7 @@ const adminIds = process.env.ADMIN_IDS
   : [];
 
 console.log('Admin IDs:', adminIds);
-console.log('API URL:', process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api');
+console.log('API URL:', process.env.API_URL || 'https://api.greenlight-casino.eu/api');
 console.log('Admin API Token настроен:', !!process.env.ADMIN_API_TOKEN);
 
 // ВАЖНО: Подключаем поддержку сессий ДО всех остальных middleware
@@ -215,7 +215,7 @@ app.get('/', (req, res) => {
     <ul>
       <li>ADMIN_BOT_TOKEN: ✅ Настроен</li>
       <li>ADMIN_API_TOKEN: ${process.env.ADMIN_API_TOKEN ? '✅ Настроен' : '❌ Не настроен'}</li>
-      <li>API_URL: ${process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api'}</li>
+      <li>API_URL: ${process.env.API_URL || 'https://api.greenlight-casino.eu/api'}</li>
       <li>Админы: ${adminIds.length > 0 ? adminIds.join(', ') : 'Не настроены'}</li>
     </ul>
     <h2>Расширенные функции:</h2>

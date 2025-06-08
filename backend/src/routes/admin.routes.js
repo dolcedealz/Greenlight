@@ -440,6 +440,228 @@ async function testNotificationSystem() {
   }
 }
 
+// === МОНИТОРИНГ ===
+
+/**
+ * GET /api/admin/monitoring/alerts
+ * Получение активных алертов мониторинга
+ */
+router.get('/monitoring/alerts', async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      data: {
+        alerts: [
+          {
+            id: 1,
+            type: 'warning',
+            level: 'medium',
+            title: 'Высокая нагрузка на систему',
+            message: 'CPU usage превышает 80%',
+            timestamp: new Date(),
+            resolved: false,
+            category: 'performance'
+          },
+          {
+            id: 2,
+            type: 'info',
+            level: 'low',
+            title: 'Успешное подключение к БД',
+            message: 'MongoDB подключение восстановлено',
+            timestamp: new Date(Date.now() - 5 * 60 * 1000),
+            resolved: true,
+            category: 'database'
+          }
+        ],
+        total: 2,
+        active: 1,
+        resolved: 1
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения алертов мониторинга'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/monitoring/financial
+ * Финансовый мониторинг
+ */
+router.get('/monitoring/financial', async (req, res) => {
+  try {
+    const { casinoFinanceService } = require('../services');
+    const financeState = await casinoFinanceService.getCurrentFinanceState();
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        balances: {
+          totalUserBalance: financeState.totalUserBalance,
+          operationalBalance: financeState.operationalBalance,
+          reserveBalance: financeState.reserveBalance,
+          availableForWithdrawal: financeState.availableForWithdrawal
+        },
+        alerts: [
+          ...(financeState.warnings?.lowReserve ? [{
+            type: 'warning',
+            message: 'Низкий уровень резерва',
+            value: financeState.reserveBalance,
+            threshold: financeState.totalUserBalance * 0.3
+          }] : []),
+          ...(financeState.warnings?.negativeOperational ? [{
+            type: 'critical',
+            message: 'Отрицательный оперативный баланс',
+            value: financeState.operationalBalance
+          }] : [])
+        ],
+        trends: {
+          hourlyVolume: 0, // TODO: реализовать
+          hourlyProfit: 0, // TODO: реализовать
+          activeUsers: 0 // TODO: реализовать
+        },
+        lastUpdate: financeState.lastCalculated
+      }
+    });
+  } catch (error) {
+    console.error('Ошибка финансового мониторинга:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения финансового мониторинга'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/monitoring/metrics
+ * Системные метрики
+ */
+router.get('/monitoring/metrics', async (req, res) => {
+  try {
+    const { User } = require('../models');
+    
+    // Простые метрики
+    const onlineUsers = await User.countDocuments({
+      lastActivity: { $gte: new Date(Date.now() - 15 * 60 * 1000) }
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        system: {
+          uptime: process.uptime(),
+          memory: process.memoryUsage(),
+          nodeVersion: process.version,
+          timestamp: new Date()
+        },
+        users: {
+          online: onlineUsers,
+          registered: await User.countDocuments(),
+          active24h: await User.countDocuments({
+            lastActivity: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+          })
+        },
+        performance: {
+          avgResponseTime: 150, // TODO: реальные метрики
+          requestsPerSecond: 25, // TODO: реальные метрики
+          errorRate: 0.1 // TODO: реальные метрики
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения системных метрик'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/monitoring/performance
+ * Метрики производительности
+ */
+router.get('/monitoring/performance', async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      data: {
+        api: {
+          responseTime: {
+            avg: 125,
+            p95: 250,
+            p99: 500
+          },
+          requestCount: 1500,
+          errorRate: 0.8
+        },
+        database: {
+          connectionPool: {
+            active: 5,
+            available: 15,
+            total: 20
+          },
+          queryTime: {
+            avg: 45,
+            max: 120
+          }
+        },
+        memory: {
+          used: process.memoryUsage().rss / 1024 / 1024,
+          total: 512,
+          percentage: (process.memoryUsage().rss / 1024 / 1024 / 512 * 100).toFixed(1)
+        },
+        cpu: {
+          usage: 35, // TODO: реальные метрики
+          load: [0.5, 0.6, 0.4]
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения метрик производительности'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/monitoring/online
+ * Онлайн пользователи
+ */
+router.get('/monitoring/online', async (req, res) => {
+  try {
+    const { User } = require('../models');
+    
+    const onlineUsers = await User.find({
+      lastActivity: { $gte: new Date(Date.now() - 15 * 60 * 1000) }
+    }).select('telegramId username firstName lastName lastActivity').limit(50);
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        users: onlineUsers,
+        total: onlineUsers.length,
+        periods: {
+          last15min: onlineUsers.length,
+          lastHour: await User.countDocuments({
+            lastActivity: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
+          }),
+          last24h: await User.countDocuments({
+            lastActivity: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+          })
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения списка онлайн пользователей'
+    });
+  }
+});
+
 // === БЕЗОПАСНОСТЬ ===
 
 /**

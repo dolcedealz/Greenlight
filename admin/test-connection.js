@@ -8,7 +8,7 @@
 require('dotenv').config();
 const axios = require('axios');
 
-const apiUrl = process.env.API_URL || 'https://greenlight-api-ghqh.onrender.com/api';
+const apiUrl = process.env.API_URL || 'https://api.greenlight-casino.eu/api';
 const adminToken = process.env.ADMIN_API_TOKEN;
 
 console.log('🔧 ТЕСТ ПОДКЛЮЧЕНИЯ АДМИН-БОТА\n');

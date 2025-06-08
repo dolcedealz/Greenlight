@@ -55,41 +55,79 @@ class AdminController {
    */
   async getUserStats(req, res) {
     try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
       // Подсчитываем статистику пользователей
       const [
         totalUsers,
         activeToday,
         activeWeek,
-        withDeposits,
         blocked,
-        averageBalanceResult
+        adminUsers,
+        newUsersToday,
+        newUsersWeek,
+        playedToday,
+        usersWithDeposits,
+        totalUserBalancesResult,
+        totalWageredResult,
+        totalWonResult
       ] = await Promise.all([
         User.countDocuments(),
         User.countDocuments({ 
           lastActivity: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
         }),
         User.countDocuments({ 
-          lastActivity: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+          lastActivity: { $gte: weekAgo }
+        }),
+        User.countDocuments({ isBlocked: true }),
+        User.countDocuments({ role: 'admin' }),
+        User.countDocuments({ 
+          createdAt: { $gte: today }
+        }),
+        User.countDocuments({ 
+          createdAt: { $gte: weekAgo }
+        }),
+        User.countDocuments({ 
+          lastActivity: { $gte: today },
+          totalGames: { $gt: 0 }
         }),
         User.countDocuments({ 
           'deposits.0': { $exists: true }
         }),
-        User.countDocuments({ isBlocked: true }),
         User.aggregate([
-          { $match: { isBlocked: false } },
-          { $group: { _id: null, average: { $avg: '$balance' } } }
+          { $group: { _id: null, total: { $sum: '$balance' } } }
+        ]),
+        User.aggregate([
+          { $group: { _id: null, total: { $sum: '$totalWagered' } } }
+        ]),
+        User.aggregate([
+          { $group: { _id: null, total: { $sum: '$totalWon' } } }
         ])
       ]);
 
-      const averageBalance = averageBalanceResult[0]?.average || 0;
+      const totalUserBalances = totalUserBalancesResult[0]?.total || 0;
+      const totalWagered = totalWageredResult[0]?.total || 0;
+      const totalWon = totalWonResult[0]?.total || 0;
 
       const stats = {
         totalUsers,
         activeToday,
-        activeWeek,
-        withDeposits,
         blocked,
-        averageBalance
+        adminUsers,
+        newUsersToday,
+        newUsersWeek,
+        playedToday,
+        usersWithDeposits,
+        totalUserBalances,
+        totalWagered,
+        totalWon
       };
 
       res.json({

@@ -1,5 +1,20 @@
 // admin/src/handlers/callback.handler.js
 const { Markup } = require('telegraf');
+const axios = require('axios');
+
+// API настройки
+const apiUrl = 'https://greenlight-api-ghqh.onrender.com/api';
+const adminToken = process.env.ADMIN_API_TOKEN;
+
+// Создаем axios instance с предустановленными заголовками
+const apiClient = axios.create({
+  baseURL: apiUrl,
+  headers: {
+    'Authorization': `Bearer ${adminToken}`,
+    'Content-Type': 'application/json'
+  },
+  timeout: 30000
+});
 
 // Import command modules
 const statsCommands = require('../commands/stats.command');
@@ -516,14 +531,14 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery();
       
       // Сначала получаем текущее состояние финансов
-      const response = await apiService.get('/admin/finance/current-state');
+      const response = await apiClient.get('/admin/finance/current-state');
       
-      if (!response.success) {
+      if (!response.data.success) {
         await ctx.reply('❌ Ошибка при получении данных о финансах');
         return;
       }
       
-      const finance = response.data;
+      const finance = response.data.data;
       const available = finance.balances.availableForWithdrawal;
       
       if (available <= 0) {

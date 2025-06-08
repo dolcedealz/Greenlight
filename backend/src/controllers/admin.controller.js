@@ -1,6 +1,7 @@
 // backend/src/controllers/admin.controller.js
 const { userService, casinoFinanceService, oddsService } = require('../services');
 const { User, Game, Transaction, Deposit, Withdrawal } = require('../models');
+const mongoose = require('mongoose');
 
 class AdminController {
   /**
@@ -271,44 +272,71 @@ class AdminController {
         });
       }
 
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'Пользователь не найден'
-        });
-      }
-
-      const oldBalance = user.balance;
-      user.balance += amount;
+      const session = await mongoose.startSession();
       
-      if (user.balance < 0) {
-        user.balance = 0;
+      let result;
+      try {
+        result = await session.withTransaction(async () => {
+          // АТОМАРНАЯ корректировка баланса с валидацией
+          const user = await User.findOneAndUpdate(
+            { _id: userId },
+            [
+              {
+                $set: {
+                  balanceBefore: '$balance', // Сохраняем старый баланс
+                  balance: {
+                    $cond: {
+                      if: { $gte: [{ $add: ['$balance', amount] }, 0] },
+                      then: { $add: ['$balance', amount] },
+                      else: { $error: { code: 'NegativeBalance', msg: 'Админская корректировка не может создать отрицательный баланс' } }
+                    }
+                  },
+                  lastActivity: new Date()
+                }
+              }
+            ],
+            { 
+              new: true,
+              session,
+              runValidators: true
+            }
+          );
+          
+          if (!user) {
+            throw new Error('Пользователь не найден');
+          }
+          
+          // Создаем транзакцию в той же сессии
+          const transaction = await Transaction.create([{
+            user: user._id,
+            type: amount > 0 ? 'admin_credit' : 'admin_debit',
+            amount: amount,
+            description: `Административная корректировка: ${reason}`,
+            balanceBefore: user.balanceBefore,
+            balanceAfter: user.balance,
+            metadata: {
+              adminId: req.user._id,
+              adminUsername: req.user.username,
+              reason: reason,
+              ipAddress: req.ip,
+              userAgent: req.get('User-Agent')
+            }
+          }], { session });
+          
+          return { user, transaction: transaction[0] };
+        });
+      } finally {
+        await session.endSession();
       }
-
-      await user.save();
-
-      // Создаем транзакцию
-      await Transaction.create({
-        user: user._id,
-        type: amount > 0 ? 'admin_credit' : 'admin_debit',
-        amount: amount,
-        description: `Административная корректировка: ${reason}`,
-        balanceBefore: oldBalance,
-        balanceAfter: user.balance,
-        metadata: {
-          adminId: req.user._id,
-          reason: reason
-        }
-      });
 
       res.json({
         success: true,
         data: {
-          userId: user._id,
-          oldBalance,
-          newBalance: user.balance,
-          adjustment: amount
+          userId: result.user._id,
+          oldBalance: result.user.balanceBefore,
+          newBalance: result.user.balance,
+          adjustment: amount,
+          transactionId: result.transaction._id
         }
       });
     } catch (error) {

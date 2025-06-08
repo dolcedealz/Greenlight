@@ -184,6 +184,17 @@ class PaymentService {
       
       console.log(`PAYMENT: Найден пользователь: ${user._id} (${user.firstName} ${user.lastName})`);
       
+      // КРИТИЧЕСКИ ВАЖНО: Проверяем, что fallback депозит не был уже создан
+      const existingFallbackDeposit = await Deposit.findOne({
+        invoiceId: webhookPayload.invoice_id.toString(),
+        'metadata.source': 'fallback'
+      });
+      
+      if (existingFallbackDeposit) {
+        console.warn(`PAYMENT: Fallback депозит для invoice ${webhookPayload.invoice_id} уже существует`);
+        return existingFallbackDeposit;
+      }
+      
       // Создаем fallback депозит
       const deposit = new Deposit({
         user: user._id,

@@ -143,6 +143,20 @@ class ReferralService {
         commissionPercent = updatedPartner.referralStats.commissionPercent;
       }
       
+      // КРИТИЧЕСКИ ВАЖНО: Проверяем, что комиссия за эту игру не была уже начислена
+      const existingEarning = await ReferralEarning.findOne({
+        partner: partner._id,
+        referral: user._id,
+        game: gameId,
+        type: 'game_loss'
+      }).session(session);
+      
+      if (existingEarning) {
+        console.warn(`REFERRAL: Комиссия за игру ${gameId} уже начислена партнеру ${partner._id}`);
+        await session.abortTransaction();
+        return null;
+      }
+      
       // Рассчитываем комиссию с ПРОИГРЫША реферала
       const lossAmount = Math.abs(profit); // Размер проигрыша
       const earnedAmount = lossAmount * (commissionPercent / 100);

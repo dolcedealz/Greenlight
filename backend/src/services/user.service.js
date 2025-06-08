@@ -1,5 +1,6 @@
 // user.service.js
 const { User, Transaction } = require('../models');
+const mongoose = require('mongoose');
 const crypto = require('crypto');
 
 /**
@@ -103,39 +104,56 @@ class UserService {
    */
   async updateUserBalance(userData, amount, type, description) {
     const { userId, telegramId } = userData;
+    const session = await mongoose.startSession();
     
-    const user = await User.findOne(
-      userId ? { _id: userId } : { telegramId }
-    );
-    
-    if (!user) {
-      throw new Error('Пользователь не найден');
+    try {
+      return await session.withTransaction(async () => {
+        // АТОМАРНОЕ обновление баланса с проверкой достаточности средств
+        const user = await User.findOneAndUpdate(
+          userId ? { _id: userId } : { telegramId },
+          [
+            {
+              $set: {
+                balanceBefore: '$balance', // Сохраняем старый баланс
+                balance: {
+                  $cond: {
+                    if: { $gte: [{ $add: ['$balance', amount] }, 0] },
+                    then: { $add: ['$balance', amount] },
+                    else: { $error: { code: 'InsufficientFunds', msg: 'Недостаточно средств' } }
+                  }
+                },
+                lastActivity: new Date()
+              }
+            }
+          ],
+          { 
+            new: true,
+            session,
+            runValidators: true
+          }
+        );
+        
+        if (!user) {
+          throw new Error('Пользователь не найден');
+        }
+        
+        // Создаем транзакцию в той же сессии
+        const transaction = new Transaction({
+          user: user._id,
+          type,
+          amount,
+          description,
+          balanceBefore: user.balanceBefore,
+          balanceAfter: user.balance
+        });
+        
+        await transaction.save({ session });
+        
+        return { user, transaction };
+      });
+    } finally {
+      await session.endSession();
     }
-    
-    // Проверяем, что баланс не станет отрицательным
-    if (user.balance + amount < 0) {
-      throw new Error('Недостаточно средств');
-    }
-    
-    const balanceBefore = user.balance;
-    user.balance += amount;
-    user.lastActivity = new Date();
-    
-    await user.save();
-    
-    // Создаем транзакцию
-    const transaction = new Transaction({
-      user: user._id,
-      type,
-      amount,
-      description,
-      balanceBefore,
-      balanceAfter: user.balance
-    });
-    
-    await transaction.save();
-    
-    return { user, transaction };
   }
   
   /**

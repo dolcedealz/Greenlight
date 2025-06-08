@@ -188,6 +188,41 @@ class AdminController {
   }
 
   /**
+   * Получить список заблокированных пользователей
+   */
+  async getBlockedUsers(req, res) {
+    try {
+      const { page = 1, limit = 20 } = req.query;
+      
+      const users = await User.find({ isBlocked: true })
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .select('-gameSettings.coin.winChanceModifier');
+
+      const total = await User.countDocuments({ isBlocked: true });
+
+      res.json({
+        success: true,
+        data: {
+          users,
+          pagination: {
+            current: page,
+            pages: Math.ceil(total / limit),
+            total
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка получения заблокированных пользователей:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
    * Заблокировать/разблокировать пользователя
    */
   async toggleUserBlock(req, res) {
@@ -308,11 +343,18 @@ class AdminController {
             _id: '$gameType',
             totalGames: { $sum: 1 },
             totalBet: { $sum: '$bet' },
-            totalWin: { $sum: { $cond: ['$win', '$bet', 0] } },
+            totalWin: { $sum: { $cond: ['$win', { $add: ['$bet', '$profit'] }, 0] } },
             winCount: { $sum: { $cond: ['$win', 1, 0] } }
           }
         }
       ]);
+
+      // Обновляем totalGames пользователя если нужно
+      const actualTotalGames = await Game.countDocuments({ user: user._id });
+      if (user.totalGames !== actualTotalGames) {
+        user.totalGames = actualTotalGames;
+        await user.save();
+      }
 
       // Получаем последние транзакции
       const recentTransactions = await Transaction.find({ user: user._id })

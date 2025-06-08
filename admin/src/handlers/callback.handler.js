@@ -174,6 +174,20 @@ function registerCallbackHandlers(bot) {
     await usersCommands.startUserSearch(ctx);
   });
 
+  bot.action('users_blocked', async (ctx) => {
+    console.log('ADMIN: Callback users_blocked');
+    await ctx.answerCbQuery();
+    await usersCommands.showBlockedUsers(ctx, 1);
+  });
+
+  // Пагинация для заблокированных пользователей
+  bot.action(/users_blocked_(\\d+)/, async (ctx) => {
+    const page = parseInt(ctx.match[1]);
+    console.log(`ADMIN: Callback users_blocked_${page}`);
+    await ctx.answerCbQuery();
+    await usersCommands.showBlockedUsers(ctx, page);
+  });
+
   bot.action('users_search_cancel', async (ctx) => {
     console.log('ADMIN: Callback users_search_cancel');
     await ctx.answerCbQuery();
@@ -644,13 +658,21 @@ function registerCallbackHandlers(bot) {
       message += `📉 Всего выплат: ${finance.statistics.totalWins.toFixed(2)} USDT\n`;
       message += `💰 Общие комиссии: ${finance.statistics.totalCommissions.toFixed(2)} USDT`;
       
-      await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('🔄 Обновить', 'finance_current_state')],
-          [Markup.button.callback('🔙 К финансам', 'finances_menu')]
-        ])
-      });
+      try {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🔄 Обновить', 'finance_current_state')],
+            [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+          ])
+        });
+      } catch (editError) {
+        if (editError.description && editError.description.includes('message is not modified')) {
+          await ctx.answerCbQuery('📊 Данные актуальны');
+        } else {
+          throw editError;
+        }
+      }
     } catch (error) {
       console.error('ADMIN: Ошибка получения состояния финансов:', error);
       await ctx.reply('❌ Ошибка получения состояния финансов');
@@ -675,13 +697,21 @@ function registerCallbackHandlers(bot) {
       message += `💰 Комиссии: ${report.current.totalCommissions.toFixed(2)} USDT\n`;
       message += `📊 Промокоды: ${report.current.totalPromocodeExpenses.toFixed(2)} USDT`;
       
-      await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('🔄 Обновить', 'finance_report')],
-          [Markup.button.callback('🔙 К финансам', 'finances_menu')]
-        ])
-      });
+      try {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🔄 Обновить', 'finance_report')],
+            [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+          ])
+        });
+      } catch (editError) {
+        if (editError.description && editError.description.includes('message is not modified')) {
+          await ctx.answerCbQuery('📊 Данные актуальны');
+        } else {
+          throw editError;
+        }
+      }
     } catch (error) {
       console.error('ADMIN: Ошибка получения отчета:', error);
       await ctx.reply('❌ Ошибка получения финансового отчета');
@@ -744,13 +774,22 @@ function registerCallbackHandlers(bot) {
         });
       }
       
-      await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('🔄 Обновить', 'finance_game_stats')],
-          [Markup.button.callback('🔙 К финансам', 'finances_menu')]
-        ])
-      });
+      try {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🔄 Обновить', 'finance_game_stats')],
+            [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+          ])
+        });
+      } catch (editError) {
+        if (editError.description && editError.description.includes('message is not modified')) {
+          // Данные не изменились, просто отвечаем на callback
+          await ctx.answerCbQuery('📊 Данные актуальны');
+        } else {
+          throw editError;
+        }
+      }
     } catch (error) {
       console.error('ADMIN: Ошибка получения статистики игр:', error);
       await ctx.reply('❌ Ошибка получения статистики игр');
@@ -831,16 +870,25 @@ function registerCallbackHandlers(bot) {
       
       message += `\n📄 Всего записей: ${history.length}`;
 
-      await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback('📊 Экспорт в Excel', 'finance_export_history'),
-            Markup.button.callback('🔄 Обновить', 'finance_balance_history')
-          ],
-          [Markup.button.callback('🔙 К финансам', 'finances_menu')]
-        ])
-      });
+      try {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [
+              Markup.button.callback('📊 Экспорт в Excel', 'finance_export_history'),
+              Markup.button.callback('🔄 Обновить', 'finance_balance_history')
+            ],
+            [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+          ])
+        });
+      } catch (editError) {
+        if (editError.description && editError.description.includes('message is not modified')) {
+          // Данные не изменились, просто отвечаем на callback
+          await ctx.answerCbQuery('📊 Данные актуальны');
+        } else {
+          throw editError;
+        }
+      }
 
       // Сохраняем CSV данные в сессию для экспорта
       ctx.session = ctx.session || {};

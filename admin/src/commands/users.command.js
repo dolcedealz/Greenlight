@@ -121,6 +121,17 @@ async function showUsersList(ctx, page = 1) {
         message += `   📊 Прибыль: ${((user.totalWon || 0) - (user.totalWagered || 0)).toFixed(2)} USDT\n`;
         message += `   🎮 Игр: ${user.totalGames || 0}\n`;
         
+        // Партнерский статус
+        const partnerLevel = user.partnerLevel && user.partnerLevel !== 'none' ? user.partnerLevel : null;
+        if (partnerLevel) {
+          const partnerEmoji = {
+            'partner_bronze': '🥉',
+            'partner_silver': '🥈',
+            'partner_gold': '🥇'
+          }[partnerLevel] || '👔';
+          message += `   ${partnerEmoji} Партнер: ${partnerLevel}\n`;
+        }
+        
         // Безопасная обработка даты
         try {
           const regDate = new Date(user.createdAt).toLocaleDateString('ru-RU');
@@ -283,7 +294,19 @@ async function handleUserSearch(ctx) {
         message += `${index + 1}. ${statusEmoji} *${fullName}*\n`;
         message += `   ${username} | ID: \`${user.telegramId || 'unknown'}\`\n`;
         message += `   💰 ${(user.balance || 0).toFixed(2)} USDT | `;
-        message += `🎮 ${user.totalGames || 0} игр\n\n`;
+        message += `🎮 ${user.totalGames || 0} игр\n`;
+        
+        // Партнерский статус в поиске
+        const partnerLevel = user.partnerLevel && user.partnerLevel !== 'none' ? user.partnerLevel : null;
+        if (partnerLevel) {
+          const partnerEmoji = {
+            'partner_bronze': '🥉',
+            'partner_silver': '🥈',
+            'partner_gold': '🥇'
+          }[partnerLevel] || '👔';
+          message += `   ${partnerEmoji} ${partnerLevel}\n`;
+        }
+        message += `\n`;
         
         // Добавляем кнопку для просмотра деталей пользователя
         buttons.push([Markup.button.callback(
@@ -370,6 +393,31 @@ async function showUserDetails(ctx, userId) {
       message += '\n';
     }
     
+    // Партнерский статус (если есть)
+    if (user.partnerLevel && user.partnerLevel !== 'none') {
+      message += `**Партнерский статус:**\n`;
+      const partnerEmoji = {
+        'partner_bronze': '🥉',
+        'partner_silver': '🥈',
+        'partner_gold': '🥇'
+      }[user.partnerLevel] || '👔';
+      
+      const partnerCommission = {
+        'partner_bronze': '20%',
+        'partner_silver': '30%',
+        'partner_gold': '40%'
+      }[user.partnerLevel] || 'неизвестно';
+      
+      message += `${partnerEmoji} Уровень: ${user.partnerLevel}\n`;
+      message += `💰 Комиссия: ${partnerCommission}\n`;
+      
+      if (user.partnerMeta?.assignedAt) {
+        const assignedDate = new Date(user.partnerMeta.assignedAt).toLocaleDateString('ru-RU');
+        message += `📅 Назначен: ${assignedDate}\n`;
+      }
+      message += '\n';
+    }
+    
     message += `**Реферальная программа:**\n`;
     if (user.referralStats) {
       message += `🎯 Уровень: ${user.referralStats.level}\n`;
@@ -413,6 +461,144 @@ async function showUserDetails(ctx, userId) {
   } catch (error) {
     console.error('ADMIN: Ошибка получения деталей пользователя:', error);
     const errorMessage = `❌ Ошибка: ${error.message}`;
+    
+    if (ctx.callbackQuery) {
+      await ctx.answerCbQuery(errorMessage);
+    } else {
+      await ctx.reply(errorMessage);
+    }
+  }
+}
+
+/**
+ * Показать заблокированных пользователей
+ */
+async function showBlockedUsers(ctx, page = 1) {
+  console.log('ADMIN: Запрос заблокированных пользователей, страница:', page);
+  
+  try {
+    const response = await apiClient.get('/admin/users/blocked', {
+      params: { 
+        page: page,
+        limit: 10
+      }
+    });
+    
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Ошибка получения заблокированных пользователей');
+    }
+    
+    const data = response.data.data;
+    const users = data.users;
+    const pagination = data.pagination;
+    
+    if (users.length === 0) {
+      const message = '🚫 *Заблокированные пользователи*\\n\\nЗаблокированных пользователей нет.';
+      const keyboard = Markup.inlineKeyboard([[\n        Markup.button.callback('◀️ Назад', 'users_menu')\n      ]]);
+      
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      } else {
+        await ctx.reply(message, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+      return;
+    }
+    
+    let message = `🚫 *Заблокированные пользователи* (стр. ${pagination.current}/${pagination.pages})\\n\\n`;
+    
+    users.forEach((user, index) => {
+      try {
+        const userNum = (pagination.current - 1) * 10 + index + 1;
+        
+        // Безопасная обработка username
+        let username = 'Нет username';
+        if (user.username && typeof user.username === 'string') {
+          const cleanUsername = escapeMarkdown(user.username);
+          if (cleanUsername && cleanUsername !== 'Unknown') {
+            username = `@${cleanUsername}`;
+          }
+        }
+        
+        // Безопасная обработка имен
+        const firstName = escapeMarkdown(user.firstName || 'Пользователь');
+        const lastName = escapeMarkdown(user.lastName || '');
+        
+        // Создаем полное имя
+        let fullName = `${firstName} ${lastName}`.trim();
+        if (!fullName || fullName === 'Unknown Unknown' || fullName === 'Unknown') {
+          fullName = `Пользователь ${user.telegramId || userNum}`;
+        }
+        
+        message += `${userNum}\\\\. 🚫 *${fullName}*\\n`;
+        message += `   ${username}\\n`;
+        message += `   💰 Баланс: ${(user.balance || 0).toFixed(2)} USDT\\n`;
+        message += `   🎮 Игр: ${user.totalGames || 0}\\n`;
+        
+        // Партнерский статус
+        const partnerLevel = user.partnerLevel && user.partnerLevel !== 'none' ? user.partnerLevel : null;
+        if (partnerLevel) {
+          const partnerEmoji = {
+            'partner_bronze': '🥉',
+            'partner_silver': '🥈',
+            'partner_gold': '🥇'
+          }[partnerLevel] || '👔';
+          message += `   ${partnerEmoji} Партнер: ${partnerLevel}\\n`;
+        }
+        
+        // Безопасная обработка даты
+        try {
+          const regDate = new Date(user.createdAt).toLocaleDateString('ru-RU');
+          message += `   📅 Заблокирован: ${regDate}\\n\\n`;
+        } catch (dateError) {
+          message += `   📅 Заблокирован: Неизвестно\\n\\n`;
+        }
+      } catch (userError) {
+        console.error('ADMIN: Ошибка обработки заблокированного пользователя:', userError, user);
+        message += `${(pagination.current - 1) * 10 + index + 1}\\\\. ❌ *Ошибка отображения пользователя*\\n\\n`;
+      }
+    });
+    
+    // Создаем клавиатуру с кнопками навигации
+    const buttons = [];
+    
+    // Кнопки навигации
+    if (pagination.current > 1 || pagination.current < pagination.pages) {
+      const navButtons = [];
+      if (pagination.current > 1) {
+        navButtons.push(Markup.button.callback('⬅ Пред.', `users_blocked_${pagination.current - 1}`));
+      }
+      if (pagination.current < pagination.pages) {
+        navButtons.push(Markup.button.callback('След. ➡', `users_blocked_${pagination.current + 1}`));
+      }
+      buttons.push(navButtons);
+    }
+    
+    buttons.push([Markup.button.callback('🔄 Обновить', 'users_blocked')]);
+    buttons.push([Markup.button.callback('◀️ Назад', 'users_menu')]);
+    
+    const keyboard = Markup.inlineKeyboard(buttons);
+    
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    } else {
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+    }
+    
+  } catch (error) {
+    console.error('ADMIN: Ошибка получения заблокированных пользователей:', error);
+    const errorMessage = `❌ Ошибка получения заблокированных пользователей: ${error.message}`;
     
     if (ctx.callbackQuery) {
       await ctx.answerCbQuery(errorMessage);
@@ -1257,6 +1443,7 @@ async function showPartnerLevels(ctx) {
 module.exports = {
   showUsersMenu,
   showUsersList,
+  showBlockedUsers,
   startUserSearch,
   handleUserSearch,
   showUserDetails,

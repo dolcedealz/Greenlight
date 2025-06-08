@@ -79,7 +79,7 @@ async function recalculateCommissions() {
               type: 'game_loss',
               calculation: {
                 baseAmount: lossAmount,
-                partnerLevel: partner.partnerLevel,
+                partnerLevel: partner.referralStats?.level || 'bronze', // Используем реферальный уровень, а не партнерский
                 commissionPercent: commissionPercent,
                 earnedAmount: earnedAmount
               },

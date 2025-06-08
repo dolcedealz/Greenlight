@@ -531,7 +531,7 @@ function registerCallbackHandlers(bot) {
       await ctx.answerCbQuery();
       
       // Сначала получаем текущее состояние финансов
-      const response = await apiClient.get('/admin/finance/current-state');
+      const response = await apiClient.get('/admin/finance/state');
       
       if (!response.data.success) {
         await ctx.reply('❌ Ошибка при получении данных о финансах');
@@ -620,6 +620,199 @@ function registerCallbackHandlers(bot) {
     } catch (error) {
       console.error('ADMIN: Ошибка в withdraw_profit_amount:', error);
       await ctx.reply('❌ Ошибка при обработке суммы');
+    }
+  });
+
+  // Обработчик для текущего состояния финансов
+  bot.action('finance_current_state', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      const response = await apiClient.get('/admin/finance/state');
+      
+      if (!response.data.success) {
+        await ctx.reply('❌ Ошибка при получении данных о финансах');
+        return;
+      }
+      
+      const finance = response.data.data;
+      let message = '📊 *Текущее состояние финансов*\n\n';
+      message += `💰 Баланс пользователей: ${finance.balances.totalUsers.toFixed(2)} USDT\n`;
+      message += `🏦 Оперативный баланс: ${finance.balances.operational.toFixed(2)} USDT\n`;
+      message += `🔒 Резерв: ${finance.balances.reserve.toFixed(2)} USDT\n`;
+      message += `✅ Доступно для вывода: ${finance.balances.availableForWithdrawal.toFixed(2)} USDT\n\n`;
+      message += `📈 Всего ставок: ${finance.statistics.totalBets.toFixed(2)} USDT\n`;
+      message += `📉 Всего выплат: ${finance.statistics.totalWins.toFixed(2)} USDT\n`;
+      message += `💰 Общие комиссии: ${finance.statistics.totalCommissions.toFixed(2)} USDT`;
+      
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Обновить', 'finance_current_state')],
+          [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+        ])
+      });
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения состояния финансов:', error);
+      await ctx.reply('❌ Ошибка получения состояния финансов');
+    }
+  });
+
+  // Обработчик для финансового отчета
+  bot.action('finance_report', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      const response = await apiClient.get('/admin/finance/report');
+      
+      if (!response.data.success) {
+        await ctx.reply('❌ Ошибка при получении отчета');
+        return;
+      }
+      
+      const report = response.data.data;
+      let message = '📈 *Финансовый отчет*\n\n';
+      message += `💰 Общий баланс: ${report.current.totalUserBalance.toFixed(2)} USDT\n`;
+      message += `🏦 Оперативный: ${report.current.operationalBalance.toFixed(2)} USDT\n`;
+      message += `💰 Комиссии: ${report.current.totalCommissions.toFixed(2)} USDT\n`;
+      message += `📊 Промокоды: ${report.current.totalPromocodeExpenses.toFixed(2)} USDT`;
+      
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Обновить', 'finance_report')],
+          [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+        ])
+      });
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения отчета:', error);
+      await ctx.reply('❌ Ошибка получения финансового отчета');
+    }
+  });
+
+  // Обработчик для пересчета финансов
+  bot.action('finance_recalculate', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      await ctx.editMessageText('🔄 Пересчитываем финансы...', {
+        ...Markup.inlineKeyboard([])
+      });
+      
+      const response = await apiClient.post('/admin/finance/recalculate');
+      
+      if (!response.data.success) {
+        await ctx.editMessageText('❌ Ошибка при пересчете финансов');
+        return;
+      }
+      
+      await ctx.editMessageText('✅ Финансы успешно пересчитаны!', {
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('📊 Текущее состояние', 'finance_current_state')],
+          [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+        ])
+      });
+    } catch (error) {
+      console.error('ADMIN: Ошибка пересчета финансов:', error);
+      await ctx.editMessageText('❌ Ошибка пересчета финансов');
+    }
+  });
+
+  // Обработчик для статистики игр
+  bot.action('finance_game_stats', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      const response = await apiClient.get('/admin/finance/game-stats');
+      
+      if (!response.data.success) {
+        await ctx.reply('❌ Ошибка при получении статистики игр');
+        return;
+      }
+      
+      const stats = response.data.data;
+      let message = '🎮 *Статистика игр*\n\n';
+      
+      if (stats.games) {
+        Object.entries(stats.games).forEach(([game, data]) => {
+          const gameNames = {
+            coin: '🪙 Монетка',
+            crash: '🚀 Краш', 
+            slots: '🎰 Слоты',
+            mines: '💣 Мины'
+          };
+          message += `${gameNames[game] || game}:\n`;
+          message += `  Ставки: ${data.totalBets.toFixed(2)} USDT\n`;
+          message += `  Выплаты: ${data.totalWins.toFixed(2)} USDT\n`;
+          message += `  Прибыль: ${data.profit.toFixed(2)} USDT\n\n`;
+        });
+      }
+      
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Обновить', 'finance_game_stats')],
+          [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+        ])
+      });
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения статистики игр:', error);
+      await ctx.reply('❌ Ошибка получения статистики игр');
+    }
+  });
+
+  // Обработчик для истории балансов
+  bot.action('finance_balance_history', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      const response = await apiClient.get('/admin/finance/history', {
+        params: { limit: 10 }
+      });
+      
+      if (!response.data.success) {
+        await ctx.reply('❌ Ошибка при получении истории');
+        return;
+      }
+      
+      const history = response.data.data.history;
+      let message = '📝 *История балансов*\n\n';
+      
+      if (history.length === 0) {
+        message += 'История пуста';
+      } else {
+        history.slice(0, 5).forEach((record, index) => {
+          message += `${index + 1}. ${record.event}\n`;
+          message += `   💰 ${record.operationalBalance.toFixed(2)} USDT\n`;
+          message += `   📅 ${new Date(record.timestamp).toLocaleString('ru-RU')}\n\n`;
+        });
+      }
+      
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Обновить', 'finance_balance_history')],
+          [Markup.button.callback('🔙 К финансам', 'finances_menu')]
+        ])
+      });
+    } catch (error) {
+      console.error('ADMIN: Ошибка получения истории:', error);
+      await ctx.reply('❌ Ошибка получения истории балансов');
+    }
+  });
+
+  // Обработчик для настроек резерва
+  bot.action('finance_set_reserve', async (ctx) => {
+    try {
+      await ctx.answerCbQuery();
+      
+      ctx.session = ctx.session || {};
+      ctx.session.settingReserve = { step: 'percentage' };
+      
+      await ctx.editMessageText('⚙️ *Настройка резерва*\n\nВведите процент резервирования (от 0 до 100):', {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('❌ Отмена', 'finances_menu')]
+        ])
+      });
+    } catch (error) {
+      console.error('ADMIN: Ошибка настройки резерва:', error);
+      await ctx.reply('❌ Ошибка настройки резерва');
     }
   });
 

@@ -19,6 +19,7 @@ async function recalculateCommissions() {
     
     for (const partner of partners) {
       console.log(`\n🤝 Обработка партнера: ${partner.username} (${partner.partnerLevel})`);
+      console.log(`   Реферальный уровень: ${partner.referralStats?.level || 'bronze'}`);
       
       // Определяем процент комиссии
       const commissionPercent = 
@@ -79,7 +80,7 @@ async function recalculateCommissions() {
               type: 'game_loss',
               calculation: {
                 baseAmount: lossAmount,
-                partnerLevel: partner.referralStats?.level || 'bronze', // Используем реферальный уровень, а не партнерский
+                partnerLevel: partner.partnerLevel !== 'none' ? partner.partnerLevel : (partner.referralStats?.level || 'bronze'),
                 commissionPercent: commissionPercent,
                 earnedAmount: earnedAmount
               },

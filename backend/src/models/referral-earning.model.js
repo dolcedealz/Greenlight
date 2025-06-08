@@ -44,7 +44,7 @@ const referralEarningSchema = new Schema({
     // Уровень партнера на момент начисления
     partnerLevel: {
       type: String,
-      enum: ['bronze', 'silver', 'gold', 'platinum', 'vip'],
+      enum: ['bronze', 'silver', 'gold', 'platinum', 'vip', 'partner_bronze', 'partner_silver', 'partner_gold'],
       required: true
     },
     

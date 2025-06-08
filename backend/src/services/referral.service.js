@@ -155,7 +155,7 @@ class ReferralService {
         type: 'game_loss',
         calculation: {
           baseAmount: lossAmount, // Сумма проигрыша реферала
-          partnerLevel: updatedPartner.referralStats.level,
+          partnerLevel: updatedPartner.partnerLevel !== 'none' ? updatedPartner.partnerLevel : updatedPartner.referralStats.level,
           commissionPercent: commissionPercent,
           earnedAmount: earnedAmount
         },

@@ -1,4 +1,4 @@
-// backend/src/services/event.service.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// backend/src/services/event.service.js - ОБНОВЛЕННАЯ ВЕРСИЯ С ОГРАНИЧЕНИЕМ НА ОДНУ СТАВКУ
 const { Event, EventBet, User } = require('../models');
 const mongoose = require('mongoose');
 
@@ -145,13 +145,13 @@ class EventService {
   }
   
   /**
-   * Размещение ставки на событие
+   * ОБНОВЛЕННЫЙ МЕТОД: Размещение ставки на событие с проверкой единственной ставки
    */
   async placeBet(userId, eventId, outcomeId, amount, userIp) {
     const session = await mongoose.startSession();
     
     try {
-      console.log('EVENT SERVICE: Начало размещения ставки с гибкими коэффициентами');
+      console.log('EVENT SERVICE: Начало размещения ставки с проверкой единственной ставки');
       console.log(`  Пользователь: ${userId}`);
       console.log(`  Событие: ${eventId}`);
       console.log(`  Исход: ${outcomeId}`);
@@ -186,7 +186,28 @@ class EventService {
           throw new Error('Ставки на это событие больше не принимаются');
         }
         
-        // 5. Проверяем корректность исхода
+        // 5. НОВАЯ ПРОВЕРКА: Проверяем, нет ли уже ставки пользователя на это событие
+        const existingBet = await EventBet.findOne({
+          user: userId,
+          event: eventId,
+          status: 'active'
+        }).session(session);
+        
+        if (existingBet) {
+          console.log(`EVENT SERVICE: Найдена существующая ставка пользователя:`, {
+            betId: existingBet._id,
+            outcomeId: existingBet.outcomeId,
+            outcomeName: existingBet.outcomeName,
+            betAmount: existingBet.betAmount,
+            placedAt: existingBet.placedAt
+          });
+          
+          throw new Error(`Вы уже поставили на это событие. Ваша ставка: ${existingBet.betAmount} USDT на "${existingBet.outcomeName}". Можно делать только одну ставку на событие.`);
+        }
+        
+        console.log('EVENT SERVICE: Проверка единственной ставки пройдена - предыдущих ставок не найдено');
+        
+        // 6. Проверяем корректность исхода
         const outcome = event.outcomes.find(o => o.id === outcomeId);
         
         if (!outcome) {
@@ -195,7 +216,7 @@ class EventService {
         
         console.log(`EVENT SERVICE: Выбранный исход: ${outcome.name}`);
         
-        // 6. Проверяем лимиты ставок
+        // 7. Проверяем лимиты ставок
         if (amount < event.minBet) {
           throw new Error(`Минимальная ставка: ${event.minBet} USDT`);
         }
@@ -204,7 +225,7 @@ class EventService {
           throw new Error(`Максимальная ставка: ${event.maxBet} USDT`);
         }
         
-        // 7. Рассчитываем текущие коэффициенты
+        // 8. Рассчитываем текущие коэффициенты
         const currentOdds = event.calculateOdds();
         const oddsAtBet = currentOdds[outcomeId];
         
@@ -214,7 +235,7 @@ class EventService {
           throw new Error('Некорректный коэффициент для данного исхода');
         }
         
-        // 8. Списываем средства с баланса пользователя
+        // 9. Списываем средства с баланса пользователя
         const balanceBefore = user.balance;
         user.balance -= amount;
         
@@ -222,7 +243,7 @@ class EventService {
         
         await user.save({ session });
         
-        // 9. Создаем ставку
+        // 10. Создаем ставку
         const betData = {
           user: userId,
           event: eventId,
@@ -239,7 +260,8 @@ class EventService {
             oddsHistory: {
               allOddsAtBet: currentOdds,
               betPosition: await EventBet.countDocuments({ event: eventId }) + 1
-            }
+            },
+            singleBetEnforced: true // Отмечаем, что была проверена единственность ставки
           }
         };
         
@@ -247,9 +269,9 @@ class EventService {
         await bet.validate();
         await bet.save({ session });
         
-        console.log(`EVENT SERVICE: Ставка создана с ID: ${bet._id}`);
+        console.log(`EVENT SERVICE: Ставка создана с ID: ${bet._id} (единственная ставка пользователя на событие)`);
         
-        // 10. Обновляем статистику события
+        // 11. Обновляем статистику события
         outcome.totalBets += amount;
         outcome.betsCount += 1;
         event.totalPool += amount;
@@ -258,12 +280,12 @@ class EventService {
         
         console.log(`EVENT SERVICE: Статистика события обновлена. Новый пул: ${event.totalPool}`);
         
-        // 11. Пересчитываем коэффициенты ПОСЛЕ обновления
+        // 12. Пересчитываем коэффициенты ПОСЛЕ обновления
         const newOdds = event.calculateOdds();
         
         console.log(`EVENT SERVICE: Коэффициенты после ставки:`, newOdds);
         
-        // 12. Подготавливаем результат
+        // 13. Подготавливаем результат
         const result = {
           bet: {
             _id: bet._id,
@@ -275,7 +297,8 @@ class EventService {
             estimatedWin: bet.estimatedWin,
             placedAt: bet.placedAt,
             status: bet.status,
-            note: 'Финальная выплата будет рассчитана по коэффициентам на момент завершения события'
+            note: 'Финальная выплата будет рассчитана по коэффициентам на момент завершения события',
+            singleBetPolicy: 'Вы можете сделать только одну ставку на это событие'
           },
           newBalance: user.balance,
           event: {
@@ -289,10 +312,14 @@ class EventService {
             oddsChange: newOdds[outcomeId] - oddsAtBet,
             estimatedWin: bet.estimatedWin,
             message: 'Коэффициенты изменились после вашей ставки. Финальная выплата будет рассчитана по коэффициентам на момент завершения события.'
+          },
+          restrictions: {
+            singleBetPerEvent: true,
+            message: 'На каждое событие можно сделать только одну ставку'
           }
         };
         
-        console.log('EVENT SERVICE: Ставка успешно размещена');
+        console.log('EVENT SERVICE: Ставка успешно размещена (с проверкой единственности)');
         
         return result;
       });
@@ -306,7 +333,7 @@ class EventService {
   }
   
   /**
-   * ИСПРАВЛЕННЫЙ МЕТОД: Получить ставки пользователя
+   * ОБНОВЛЕННЫЙ МЕТОД: Получить ставки пользователя с информацией о событиях
    */
   async getUserBets(userId, options = {}) {
     try {
@@ -344,7 +371,7 @@ class EventService {
           .limit(parseInt(limit))
           .skip(parseInt(skip))
           .lean()
-          .hint('user_bets_optimized'); // Принудительно используем оптимизированный индекс
+          .hint('user_bets_optimized');
         
         console.log(`EVENT SERVICE: Найдено ставок в базе: ${bets.length}`);
         
@@ -417,6 +444,13 @@ class EventService {
                 oddsChanged: bet.finalOdds ? Math.abs(bet.finalOdds - (bet.oddsAtBet || 2.0)) > 0.01 : false,
                 oddsChange: bet.finalOdds ? bet.finalOdds - (bet.oddsAtBet || 2.0) : null,
                 betPosition: bet.metadata?.oddsHistory?.betPosition || 0
+              },
+              
+              // НОВОЕ: Информация об ограничении одной ставки
+              betRestrictions: {
+                singleBetPerEvent: true,
+                isSingleBetForEvent: true,
+                note: 'На каждое событие можно сделать только одну ставку'
               }
             };
             
@@ -459,7 +493,8 @@ class EventService {
               status: bet.status || 'active',
               placedAt: bet.placedAt || new Date(),
               isSettled: false,
-              flexibleOdds: { hasFlexibleOdds: true, oddsChanged: false }
+              flexibleOdds: { hasFlexibleOdds: true, oddsChanged: false },
+              betRestrictions: { singleBetPerEvent: true, isSingleBetForEvent: true }
             };
           }
         });
@@ -487,6 +522,14 @@ class EventService {
             benefitedFromOddsChange: validBets.filter(bet => 
               bet.status === 'won' && bet.finalOdds && bet.finalOdds > (bet.oddsAtBet || 2.0)
             ).length
+          },
+          
+          // НОВОЕ: Статистика ограничений
+          betRestrictions: {
+            singleBetPolicy: true,
+            totalEventsWithBets: validBets.length, // Каждая ставка = одно событие
+            averageBetPerEvent: 1, // Всегда 1 из-за ограничения
+            maxBetsPerEvent: 1
           }
         };
         
@@ -535,6 +578,12 @@ class EventService {
             betsWithChangedOdds: 0,
             avgOddsChange: 0,
             benefitedFromOddsChange: 0
+          },
+          betRestrictions: {
+            singleBetPolicy: true,
+            totalEventsWithBets: 0,
+            averageBetPerEvent: 1,
+            maxBetsPerEvent: 1
           }
         }
       };
@@ -556,6 +605,52 @@ class EventService {
     }, 0);
     
     return totalChange / betsWithChangedOdds.length;
+  }
+  
+  /**
+   * НОВЫЙ МЕТОД: Проверить, есть ли у пользователя ставка на событие
+   */
+  async checkUserBetOnEvent(userId, eventId) {
+    try {
+      console.log(`EVENT SERVICE: Проверка существующей ставки пользователя ${userId} на событие ${eventId}`);
+      
+      const existingBet = await EventBet.findOne({
+        user: userId,
+        event: eventId,
+        status: 'active'
+      });
+      
+      if (existingBet) {
+        console.log(`EVENT SERVICE: Найдена существующая ставка:`, {
+          betId: existingBet._id,
+          outcomeId: existingBet.outcomeId,
+          outcomeName: existingBet.outcomeName,
+          betAmount: existingBet.betAmount
+        });
+        
+        return {
+          hasBet: true,
+          bet: {
+            _id: existingBet._id,
+            outcomeId: existingBet.outcomeId,
+            outcomeName: existingBet.outcomeName,
+            betAmount: existingBet.betAmount,
+            oddsAtBet: existingBet.oddsAtBet,
+            placedAt: existingBet.placedAt
+          }
+        };
+      }
+      
+      console.log('EVENT SERVICE: Существующая ставка не найдена');
+      return {
+        hasBet: false,
+        bet: null
+      };
+      
+    } catch (error) {
+      console.error('EVENT SERVICE: Ошибка проверки существующей ставки:', error);
+      throw error;
+    }
   }
   
   /**
@@ -593,7 +688,12 @@ class EventService {
         totalPayout: totalVolume[0]?.totalPayout || 0,
         houseEdge: totalVolume[0] ? 
           ((totalVolume[0].totalVolume - totalVolume[0].totalPayout) / totalVolume[0].totalVolume * 100).toFixed(2) : 
-          0
+          0,
+        betRestrictions: {
+          singleBetPerEvent: true,
+          maxBetsPerEvent: 1,
+          description: 'Каждый пользователь может сделать только одну ставку на событие'
+        }
       };
       
       console.log('EVENT SERVICE: Статистика событий:', stats);
@@ -649,7 +749,7 @@ class EventService {
       
       await event.save();
       
-      console.log(`EVENT SERVICE: Событие создано с ID: ${event._id}, статус: ${event.status}`);
+      console.log(`EVENT SERVICE: Событие создано с ID: ${event._id}, статус: ${event.status}, ограничение: одна ставка на пользователя`);
       
       return event;
     } catch (error) {
@@ -711,7 +811,7 @@ class EventService {
           winningOutcomeId
         );
         
-        console.log('EVENT SERVICE: Расчет ставок завершен:', settlementResults);
+        console.log('EVENT SERVICE: Расчет ставок завершен (с ограничением одной ставки):', settlementResults);
         
         // 5. Обновляем финансовую статистику казино
         await this.updateCasinoFinancesForEvent(event, settlementResults);
@@ -758,11 +858,12 @@ class EventService {
           totalBets: totalBets,
           winningBets: settlementResults.winningBets,
           losingBets: settlementResults.losingBets,
-          totalPayout: settlementResults.totalPayout
+          totalPayout: settlementResults.totalPayout,
+          singleBetPolicy: true // Отмечаем, что использовалась политика одной ставки
         }
       });
       
-      console.log(`EVENT SERVICE: Обновлена финансовая статистика - событие: ${event.title}, ставок: ${totalBets}, сумма: ${totalBetAmount}, прибыль казино: ${casinoProfit}`);
+      console.log(`EVENT SERVICE: Обновлена финансовая статистика - событие: ${event.title}, ставок: ${totalBets}, сумма: ${totalBetAmount}, прибыль казино: ${casinoProfit}, политика: одна ставка на пользователя`);
       
     } catch (error) {
       console.error('EVENT SERVICE: Ошибка обновления финансовой статистики:', error);

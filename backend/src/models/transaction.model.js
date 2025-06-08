@@ -10,7 +10,7 @@ const transactionSchema = new Schema({
   },
   type: {
     type: String,
-    enum: ['deposit', 'withdrawal', 'bet', 'win', 'referral', 'bonus', 'promocode_balance', 'promocode_freespins', 'promocode_deposit_pending'],
+    enum: ['deposit', 'withdrawal', 'bet', 'win', 'referral', 'bonus', 'promocode_balance', 'promocode_freespins', 'promocode_deposit_pending', 'referral_commission', 'referral_payout', 'admin_credit', 'admin_debit', 'duel_win', 'duel_loss'],
     required: true
   },
   amount: {

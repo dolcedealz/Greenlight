@@ -546,6 +546,17 @@ eventBetSchema.statics.createGameHistoryRecords = async function(eventId, bets) 
     if (gameRecords.length > 0) {
       await Game.create(gameRecords);
       console.log(`EventBet: Создано ${gameRecords.length} игровых записей для события ${eventId} (политика единственной ставки)`);
+      
+      // НОВОЕ: Обновляем totalGames для каждого пользователя
+      const { User } = require('./index');
+      const userIds = [...new Set(gameRecords.map(record => record.user))]; // Уникальные ID
+      
+      await User.updateMany(
+        { _id: { $in: userIds } },
+        { $inc: { totalGames: 1 } }
+      );
+      
+      console.log(`EventBet: Обновлен счетчик totalGames для ${userIds.length} пользователей`);
     }
 
   } catch (error) {

@@ -13,6 +13,7 @@ const duelRoutes = require('./duel.routes');
 const promocodeRoutes = require('./promocode.routes');
 const adminPromocodeRoutes = require('./admin-promocode.routes');
 const adminReferralRoutes = require('./admin-referral.routes');
+const reconciliationRoutes = require('./reconciliation.routes');
 
 const router = express.Router();
 
@@ -30,6 +31,7 @@ router.use('/duels', duelRoutes);
 router.use('/promocodes', promocodeRoutes);
 router.use('/admin/promocodes', adminPromocodeRoutes);
 router.use('/admin/referral', adminReferralRoutes);
+router.use('/admin/reconciliation', reconciliationRoutes);
 
 // Health check endpoint with detailed status
 router.get('/health', async (req, res) => {

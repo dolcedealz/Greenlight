@@ -29,7 +29,7 @@ const referralEarningSchema = new Schema({
   // Тип начисления
   type: {
     type: String,
-    enum: ['game_loss', 'coin_dispute_fee', 'registration_bonus'],
+    enum: ['game_loss', 'coin_dispute_fee', 'registration_bonus', 'commission'],
     required: true
   },
   

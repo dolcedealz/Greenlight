@@ -438,21 +438,42 @@ class DuelService {
     console.log(`💰 PAYOUTS: Победитель: ${winnerId}, Проигравший: ${loserId}`);
     console.log(`💰 PAYOUTS: Сумма ставки: ${duel.amount}, Выигрыш: ${duel.winAmount}`);
     
-    // Убираем заблокированные средства проигравшего БЕЗ возврата на баланс
-    await this.removeLockedFunds(loserId, duel.amount, session);
+    // АТОМАРНАЯ операция для проигравшего: убираем блокировку (средства уже списаны при блокировке)
+    const loser = await User.findOneAndUpdate(
+      { telegramId: parseInt(loserId) },
+      { 
+        $pull: { 
+          lockedFunds: { 
+            amount: duel.amount,
+            reason: 'duel'
+          }
+        },
+        lastActivity: new Date()
+      },
+      { session, new: true }
+    );
     
-    // Убираем заблокированные средства победителя БЕЗ возврата (они уже были списаны при блокировке)
-    await this.removeLockedFunds(winnerId, duel.amount, session);
-    
-    // Начисляем победителю полный выигрыш (его ставка + выигрыш)
-    await this.creditUserFunds(winnerId, duel.winAmount, 'duel_win', duel.sessionId, session);
-    
-    // Находим пользователей для транзакций
-    const winner = await User.findOne({ telegramId: parseInt(winnerId) }).session(session);
-    const loser = await User.findOne({ telegramId: parseInt(loserId) }).session(session);
+    // АТОМАРНАЯ операция для победителя: убираем блокировку И начисляем выигрыш
+    const winner = await User.findOneAndUpdate(
+      { telegramId: parseInt(winnerId) },
+      { 
+        $inc: { 
+          balance: duel.winAmount,
+          totalWon: duel.winAmount
+        },
+        $pull: { 
+          lockedFunds: { 
+            amount: duel.amount,
+            reason: 'duel'
+          }
+        },
+        lastActivity: new Date()
+      },
+      { session, new: true }
+    );
     
     if (!winner || !loser) {
-      throw new Error('Пользователи не найдены');
+      throw new Error('Пользователи не найдены для завершения дуэли');
     }
     
     // Записываем транзакции
@@ -496,6 +517,74 @@ class DuelService {
       console.error(`❌ Ошибка обработки реферальных начислений для дуэли ${duel.sessionId}:`, referralError);
       // Не прерываем выполнение - дуэль должна завершиться даже если реферальные не обработались
     }
+    
+    // НОВОЕ: Создаем записи Game для истории игр
+    const { Game } = require('../models');
+    
+    // Запись для победителя
+    const winnerGameRecord = new Game({
+      user: winner._id,
+      gameType: 'duel',
+      bet: duel.amount,
+      multiplier: duel.winAmount / duel.amount,
+      result: {
+        duelId: duel.sessionId,
+        opponent: loserId,
+        format: duel.format || 'classic',
+        role: 'winner'
+      },
+      win: true,
+      profit: duel.winAmount - duel.amount,
+      balanceBefore: winner.balance - duel.winAmount,
+      balanceAfter: winner.balance,
+      status: 'completed'
+    });
+    
+    // Запись для проигравшего
+    const loserGameRecord = new Game({
+      user: loser._id,
+      gameType: 'duel',
+      bet: duel.amount,
+      multiplier: 0,
+      result: {
+        duelId: duel.sessionId,
+        opponent: winnerId,
+        format: duel.format || 'classic',
+        role: 'loser'
+      },
+      win: false,
+      profit: -duel.amount,
+      balanceBefore: loser.balance + duel.amount,
+      balanceAfter: loser.balance,
+      status: 'completed'
+    });
+    
+    await Game.create([winnerGameRecord, loserGameRecord], { session });
+    
+    // НОВОЕ: Обновляем статистику игр для обоих пользователей
+    await User.updateOne(
+      { _id: winner._id },
+      { 
+        $inc: { 
+          totalGames: 1,
+          totalWagered: duel.amount
+        }
+      },
+      { session }
+    );
+    
+    await User.updateOne(
+      { _id: loser._id },
+      { 
+        $inc: { 
+          totalGames: 1,
+          totalWagered: duel.amount
+        }
+      },
+      { session }
+    );
+    
+    console.log(`📊 DUEL: Созданы Game записи и обновлена статистика для дуэли ${duel.sessionId}`);
     
     // Обновляем финансы казино (добавляем комиссию в оперативный баланс)
     await casinoFinanceService.updateAfterDuel({

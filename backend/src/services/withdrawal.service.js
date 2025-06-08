@@ -153,9 +153,31 @@ class WithdrawalService {
       // Определяем, требует ли одобрения
       const requiresApproval = amount > 300;
       
-      // Баланс до и после
-      const balanceBefore = user.balance;
-      const balanceAfter = balanceBefore - amount;
+      // АТОМАРНОЕ обновление баланса и создание записи о выводе
+      const updatedUser = await User.findOneAndUpdate(
+        { 
+          _id: userId,
+          balance: { $gte: amount } // Дополнительная проверка достаточности средств
+        },
+        [
+          {
+            $set: {
+              balanceBefore: '$balance',
+              balance: { $subtract: ['$balance', amount] },
+              lastActivity: new Date()
+            }
+          }
+        ],
+        { 
+          new: true,
+          session,
+          runValidators: true
+        }
+      );
+      
+      if (!updatedUser) {
+        throw new Error('Недостаточно средств или пользователь не найден');
+      }
       
       // Создаем запись о выводе
       const withdrawal = new Withdrawal({
@@ -165,8 +187,8 @@ class WithdrawalService {
         recipientType,
         status: requiresApproval ? 'pending' : 'approved',
         requiresApproval,
-        balanceBefore,
-        balanceAfter,
+        balanceBefore: updatedUser.balanceBefore,
+        balanceAfter: updatedUser.balance,
         platformFee: 0,
         netAmount: amount,
         comment,
@@ -180,11 +202,6 @@ class WithdrawalService {
       
       await withdrawal.save({ session });
       
-      // Обновляем баланс пользователя (блокируем средства)
-      user.balance = balanceAfter;
-      user.lastActivity = new Date();
-      await user.save({ session });
-      
       // Создаем транзакцию для учета
       const transaction = new Transaction({
         user: userId,
@@ -192,8 +209,8 @@ class WithdrawalService {
         amount: -amount,
         status: 'pending',
         description: `Запрос на вывод ${amount} USDT`,
-        balanceBefore,
-        balanceAfter,
+        balanceBefore: updatedUser.balanceBefore,
+        balanceAfter: updatedUser.balance,
         payment: {
           invoiceId: withdrawal._id.toString(),
           paymentMethod: 'cryptobot',

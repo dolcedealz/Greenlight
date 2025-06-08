@@ -73,7 +73,7 @@ const userSchema = new Schema({
     },
     commissionPercent: {
       type: Number,
-      default: 2
+      default: 5
     },
     totalReferrals: {
       type: Number,

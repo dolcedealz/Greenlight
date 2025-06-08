@@ -13,13 +13,23 @@ class CasinoFinanceService {
     try {
       const finance = await CasinoFinance.getInstance();
       
-      // 1. Рассчитываем общий баланс всех пользователей
+      // 1. Рассчитываем общий баланс всех пользователей (основной + реферальный)
       const userBalanceResult = await User.aggregate([
         { $match: { isBlocked: false } },
-        { $group: { _id: null, totalBalance: { $sum: '$balance' } } }
+        { 
+          $group: { 
+            _id: null, 
+            regularBalance: { $sum: '$balance' },
+            referralBalance: { $sum: '$referralStats.referralBalance' }
+          } 
+        }
       ]);
       
-      finance.totalUserBalance = userBalanceResult[0]?.totalBalance || 0;
+      const regularBalance = userBalanceResult[0]?.regularBalance || 0;
+      const referralBalance = userBalanceResult[0]?.referralBalance || 0;
+      finance.totalUserBalance = regularBalance + referralBalance;
+      
+      console.log(`CASINO FINANCE: Баланс пользователей - основной: ${regularBalance}, реферальный: ${referralBalance}, общий: ${finance.totalUserBalance}`);
       
       // 2. Рассчитываем общие суммы депозитов и выводов
       const depositStats = await Deposit.aggregate([
@@ -580,6 +590,48 @@ class CasinoFinanceService {
       
     } catch (error) {
       console.error('FINANCE: Ошибка обновления после промокода:', error);
+    }
+  }
+
+  /**
+   * Обновляет финансы после выплаты реферального баланса
+   * @param {Object} payoutData - Данные выплаты
+   */
+  async updateAfterReferralPayout(payoutData) {
+    try {
+      const finance = await CasinoFinance.getInstance();
+      
+      const { amount, partnerId, type } = payoutData;
+      
+      // Списываем с оперативного баланса казино (реферальные комиссии - это расход казино)
+      finance.operationalBalance -= amount;
+      
+      // Увеличиваем счетчик реферальных выплат
+      if (!finance.totalReferralPayouts) {
+        finance.totalReferralPayouts = 0;
+      }
+      finance.totalReferralPayouts += amount;
+      
+      console.log(`FINANCE: Выплата реферального баланса ${amount} USDT партнеру ${partnerId}`);
+      console.log(`- Списано с оперативного баланса: ${amount} USDT`);
+      console.log(`- Новый оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
+      console.log(`- Всего реферальных выплат: ${finance.totalReferralPayouts.toFixed(2)} USDT`);
+      
+      // Пересчитываем резерв
+      finance.calculateReserve();
+      finance.checkWarnings();
+      
+      finance.addToHistory('referral_payout', {
+        amount,
+        partnerId,
+        type
+      });
+      
+      await finance.save();
+      
+    } catch (error) {
+      console.error('FINANCE: Ошибка обновления после реферальной выплаты:', error);
+      throw error;
     }
   }
 }

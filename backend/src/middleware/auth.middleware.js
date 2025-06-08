@@ -314,14 +314,12 @@ async function duelAuthMiddleware(req, res, next) {
         let user = await User.findOne({ telegramId: parseInt(userIdFromBody) });
         
         if (!user) {
-          console.log(`DUEL AUTH: Создаем временного пользователя для ${userIdFromBody}`);
-          // Создаем временного пользователя для дуэли
-          const { userService } = require('../services');
-          user = await userService.createOrUpdateUser({
-            id: parseInt(userIdFromBody),
-            username: usernameFromBody,
-            first_name: usernameFromBody
+          console.log(`DUEL AUTH: Пользователь ${userIdFromBody} не найден`);
+          return res.status(401).json({
+            success: false,
+            message: 'Пользователь не зарегистрирован в системе'
           });
+          // БЕЗОПАСНОСТЬ: Не создаем пользователей без верификации Telegram
         }
         
         // Устанавливаем req.user

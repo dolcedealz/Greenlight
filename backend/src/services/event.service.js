@@ -235,13 +235,32 @@ class EventService {
           throw new Error('Некорректный коэффициент для данного исхода');
         }
         
-        // 9. Списываем средства с баланса пользователя
+        // 9. АТОМАРНО списываем средства с баланса пользователя
+        const updatedUser = await User.findOneAndUpdate(
+          { 
+            _id: userId,
+            balance: { $gte: amount }, // Атомарная проверка достаточности средств
+            isBlocked: false
+          },
+          { 
+            $inc: { balance: -amount },
+            lastActivity: new Date()
+          },
+          { 
+            session,
+            new: true,
+            runValidators: true
+          }
+        );
+        
+        if (!updatedUser) {
+          throw new Error('Недостаточно средств или пользователь заблокирован');
+        }
+        
         const balanceBefore = user.balance;
-        user.balance -= amount;
+        const balanceAfter = updatedUser.balance;
         
-        console.log(`EVENT SERVICE: Списание средств: ${balanceBefore} -> ${user.balance}`);
-        
-        await user.save({ session });
+        console.log(`EVENT SERVICE: АТОМАРНОЕ списание средств: ${balanceBefore} -> ${balanceAfter}`);
         
         // 10. Создаем ставку
         const betData = {
@@ -252,7 +271,7 @@ class EventService {
           betAmount: amount,
           oddsAtBet: oddsAtBet,
           balanceBefore: balanceBefore,
-          balanceAfter: user.balance,
+          balanceAfter: balanceAfter,
           userIp: userIp,
           metadata: {
             source: 'web',

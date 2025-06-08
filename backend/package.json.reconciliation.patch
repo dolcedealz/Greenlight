@@ -1,0 +1,9 @@
+# Добавить в package.json scripts секцию:
+
+"scripts": {
+  "reconciliation:start": "node start_reconciliation.js",
+  "reconciliation:once": "node start_reconciliation.js --once", 
+  "reconciliation:hourly": "node start_reconciliation.js --interval=60",
+  "reconciliation:test": "node start_reconciliation.js --interval=5",
+  "reset:all": "node reset_all_data.js"
+}

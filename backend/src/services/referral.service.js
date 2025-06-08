@@ -560,6 +560,14 @@ class ReferralService {
       
       await partner.save({ session });
       
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Списываем с оперативного баланса казино
+      const casinoFinanceService = require('./casino-finance.service');
+      await casinoFinanceService.updateAfterReferralPayout({
+        partnerId: partnerId,
+        amount: payoutAmount,
+        type: 'referral_payout'
+      });
+      
       // Создаем транзакцию для учета
       const transaction = new Transaction({
         user: partnerId,
@@ -932,6 +940,20 @@ class ReferralService {
             continue;
           }
           
+          // ЗАЩИТА ОТ ДУБЛИРОВАНИЯ: Проверяем, не была ли уже обработана эта комиссия
+          const existingCommission = await ReferralEarning.findOne({
+            partner: partner._id,
+            user: user._id,
+            game: gameId,
+            type: 'commission'
+          }).session(session);
+          
+          if (existingCommission) {
+            console.warn(`REFERRAL: Комиссия за дуэль ${gameId} уже была обработана для партнера ${partner._id}`);
+            await session.abortTransaction();
+            continue;
+          }
+          
           // Создаем запись о начислении
           const earning = await ReferralEarning.create([{
             partner: partner._id,
@@ -948,9 +970,9 @@ class ReferralService {
             status: 'credited'
           }], { session });
           
-          // Начисляем баланс партнеру
-          updatedPartner.balance = Math.round((updatedPartner.balance + referralAmount) * 100) / 100;
-          updatedPartner.totalEarnings = Math.round((updatedPartner.totalEarnings + referralAmount) * 100) / 100;
+          // Начисляем на реферальный баланс партнеру
+          updatedPartner.referralStats.referralBalance = Math.round((updatedPartner.referralStats.referralBalance + referralAmount) * 100) / 100;
+          updatedPartner.referralStats.totalEarned = Math.round((updatedPartner.referralStats.totalEarned + referralAmount) * 100) / 100;
           await updatedPartner.save({ session });
           
           // Создаем транзакцию

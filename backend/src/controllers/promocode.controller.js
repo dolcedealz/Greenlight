@@ -307,9 +307,24 @@ async function executePromocodeActivation(promocode, user, userIp) {
       });
       await transaction.save();
 
-      // Обновляем баланс пользователя
-      user.balance += balanceAmount;
-      await user.save();
+      // АТОМАРНО обновляем баланс пользователя
+      const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        { 
+          $inc: { balance: balanceAmount },
+          lastActivity: new Date()
+        },
+        { 
+          new: true,
+          runValidators: true
+        }
+      );
+      
+      if (!updatedUser) {
+        throw new Error('Не удалось обновить баланс пользователя');
+      }
+      
+      user.balance = updatedUser.balance;
 
       // Обновляем финансовую статистику казино через новый сервис
       await casinoFinanceService.updateAfterPromocode({

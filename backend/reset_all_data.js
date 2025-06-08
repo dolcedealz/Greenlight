@@ -76,7 +76,7 @@ class DataResetService {
           'referralStats.commissionPercent': 5,
           freespins: {},
           activeDepositBonuses: [],
-          lockedFunds: 0,
+          lockedFunds: [],
           'gameStats.totalGames': 0,
           'gameStats.totalWagered': 0,
           'gameStats.totalWon': 0,

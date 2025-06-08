@@ -139,6 +139,10 @@ class AuthService {
         isBlocked: false,
         registeredAt: new Date(),
         lastActivity: new Date(),
+        // Массивы и объекты по умолчанию
+        lockedFunds: [],
+        freespins: {},
+        activeDepositBonuses: [],
         // Настройки по умолчанию
         settings: {
           soundEnabled: true,

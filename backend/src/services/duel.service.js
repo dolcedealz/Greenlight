@@ -461,8 +461,8 @@ class DuelService {
       type: 'win',
       amount: duel.winAmount,
       description: `Выигрыш в дуэли ${duel.sessionId}`,
-      balanceBefore: winner.balance - duel.winAmount,
-      balanceAfter: winner.balance
+      balanceBefore: winner.balance - duel.winAmount, // Баланс до начисления выигрыша
+      balanceAfter: winner.balance // Баланс после начисления
     }], { session });
     
     await Transaction.create([{

@@ -179,7 +179,7 @@ class GameService {
           amount: winAmount,
           game: game._id,
           description: 'Выигрыш в игре "Монетка"',
-          balanceBefore: balanceBefore - betAmount,
+          balanceBefore: balanceAfter - winAmount, // Баланс до начисления выигрыша
           balanceAfter
         });
         
@@ -492,7 +492,7 @@ async playSlots(userData, gameData) {
         amount: winAmount,
         game: game._id,
         description: `Выигрыш в игре "Слоты" (x${totalMultiplier.toFixed(2)})`,
-        balanceBefore: balanceBefore - betAmount,
+        balanceBefore: balanceAfter - winAmount, // Баланс до начисления выигрыша
         balanceAfter
       });
       
@@ -991,8 +991,8 @@ async playSlots(userData, gameData) {
           amount: winAmount,
           game: game._id,
           description: `Выигрыш в игре "Мины" (x${multiplier.toFixed(2)})`,
-          balanceBefore: user.balance,
-          balanceAfter: user.balance + winAmount,
+          balanceBefore: user.balance, // Баланс до начисления выигрыша
+          balanceAfter: user.balance + winAmount, // Баланс после начисления
           status: 'completed'
         });
         

@@ -1,6 +1,8 @@
 // backend/src/controllers/monitoring.controller.js
 const { balanceMonitoringService } = require('../services');
-const logger = require('../utils/logger');
+const { createLogger } = require('../utils/logger');
+
+const logger = createLogger('MONITORING');
 
 /**
  * Контроллер для мониторинга балансов

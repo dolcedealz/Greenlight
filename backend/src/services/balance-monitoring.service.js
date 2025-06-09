@@ -2,7 +2,9 @@
 const axios = require('axios');
 const cron = require('node-cron');
 const { CasinoFinance } = require('../models');
-const logger = require('../utils/logger');
+const { createLogger } = require('../utils/logger');
+
+const logger = createLogger('BALANCE_MONITORING');
 
 class BalanceMonitoringService {
   constructor() {

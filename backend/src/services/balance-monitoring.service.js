@@ -219,13 +219,19 @@ class BalanceMonitoringService {
    * Форматирует предупреждающее сообщение
    */
   formatWarningMessage(result) {
+    const cryptoBotBalance = result.cryptoBotBalance ?? 0;
+    const systemBalance = result.systemBalance ?? 0;
+    const difference = result.difference ?? 0;
+    const discrepancyPercent = result.discrepancyPercent ?? 0;
+    const possibleCauses = result.details?.possibleCauses || [];
+    
     return (
       `⚠️ *ПРЕДУПРЕЖДЕНИЕ: РАСХОЖДЕНИЕ БАЛАНСОВ*\n\n` +
-      `💰 CryptoBot: ${result.cryptoBotBalance.toFixed(2)} USDT\n` +
-      `🏦 Система: ${result.systemBalance.toFixed(2)} USDT\n` +
-      `📊 Расхождение: ${result.difference.toFixed(2)} USDT (${result.discrepancyPercent}%)\n` +
-      `🕐 Время проверки: ${result.timestamp.toLocaleString('ru-RU')}\n\n` +
-      `🔍 Возможные причины:\n${result.details.possibleCauses.map(cause => `• ${cause}`).join('\n')}\n\n` +
+      `💰 CryptoBot: ${cryptoBotBalance.toFixed(2)} USDT\n` +
+      `🏦 Система: ${systemBalance.toFixed(2)} USDT\n` +
+      `📊 Расхождение: ${difference.toFixed(2)} USDT (${discrepancyPercent}%)\n` +
+      `🕐 Время проверки: ${result.timestamp?.toLocaleString?.('ru-RU') || 'Неизвестно'}\n\n` +
+      `🔍 Возможные причины:\n${possibleCauses.map(cause => `• ${cause}`).join('\n')}\n\n` +
       `📈 Рекомендуется проверить последние транзакции и провести ручную сверку.`
     );
   }

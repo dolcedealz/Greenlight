@@ -290,7 +290,7 @@ async function createPromoCode(ctx, promoData) {
     const response = await apiClient.post('/admin/promocodes', createData);
     
     if (response.data.success) {
-      const promo = response.data.data.promo;
+      const promo = response.data.data?.promo || response.data.data;
       
       await ctx.reply(
         '✅ *Промокод создан успешно!*\n\n' +
@@ -346,8 +346,8 @@ async function showPromoList(ctx, page = 1) {
     }
     
     const data = response.data.data;
-    const promos = data.promos;
-    const pagination = data.pagination;
+    const promos = data?.promos || [];
+    const pagination = data?.pagination;
     
     if (promos.length === 0) {
       const message = '📋 *Список промокодов*\n\nПромокоды не найдены.';

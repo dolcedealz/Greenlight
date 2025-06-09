@@ -55,18 +55,19 @@ class BalanceMonitoringService {
   }
 
   /**
-   * Получает операционный баланс системы
+   * Получает ожидаемый баланс системы (оперативный + пользователи)
    */
-  async getSystemOperationalBalance() {
+  async getExpectedSystemBalance() {
     try {
       const casinoFinance = await CasinoFinance.findOne().sort({ createdAt: -1 });
       if (!casinoFinance) {
         throw new Error('Данные казино финансов не найдены');
       }
 
-      return casinoFinance.operationalBalance;
+      // Ожидаемый баланс CryptoBot = Оперативный баланс + Баланс пользователей
+      return casinoFinance.operationalBalance + casinoFinance.totalUserBalance;
     } catch (error) {
-      logger.error('Ошибка получения операционного баланса:', error);
+      logger.error('Ошибка получения ожидаемого баланса системы:', error);
       throw error;
     }
   }
@@ -78,22 +79,24 @@ class BalanceMonitoringService {
     try {
       logger.info('Начинаем сверку балансов...');
 
-      const [cryptoBotBalance, systemBalance] = await Promise.all([
+      const [cryptoBotBalanceData, expectedSystemBalance] = await Promise.all([
         this.getCryptoBotBalance(),
-        this.getSystemOperationalBalance()
+        this.getExpectedSystemBalance()
       ]);
 
-      const difference = Math.abs(cryptoBotBalance - systemBalance);
-      const discrepancyPercent = systemBalance > 0 ? (difference / systemBalance) * 100 : 100;
+      const cryptoBotBalance = cryptoBotBalanceData.total || cryptoBotBalanceData;
+
+      const difference = Math.abs(cryptoBotBalance - expectedSystemBalance);
+      const discrepancyPercent = expectedSystemBalance > 0 ? (difference / expectedSystemBalance) * 100 : 100;
 
       const reconciliationResult = {
         timestamp: new Date(),
         cryptoBotBalance,
-        systemBalance,
+        expectedSystemBalance,
         difference,
         discrepancyPercent: Math.round(discrepancyPercent * 100) / 100,
         status: this.getReconciliationStatus(difference),
-        details: this.generateReconciliationDetails(cryptoBotBalance, systemBalance, difference)
+        details: this.generateReconciliationDetails(cryptoBotBalance, expectedSystemBalance, difference)
       };
 
       this.lastCheckTime = new Date();
@@ -101,7 +104,7 @@ class BalanceMonitoringService {
       // Логируем результат
       logger.info(`Сверка балансов завершена:`, {
         cryptoBot: cryptoBotBalance,
-        system: systemBalance,
+        expectedSystem: expectedSystemBalance,
         difference: difference,
         status: reconciliationResult.status
       });
@@ -137,23 +140,25 @@ class BalanceMonitoringService {
   /**
    * Генерирует детали сверки
    */
-  generateReconciliationDetails(cryptoBotBalance, systemBalance, difference) {
+  generateReconciliationDetails(cryptoBotBalance, expectedSystemBalance, difference) {
     const details = {
       balanceComparison: {
-        higher: cryptoBotBalance > systemBalance ? 'CryptoBot' : 'System',
-        lower: cryptoBotBalance < systemBalance ? 'CryptoBot' : 'System'
+        higher: cryptoBotBalance > expectedSystemBalance ? 'CryptoBot' : 'System',
+        lower: cryptoBotBalance < expectedSystemBalance ? 'CryptoBot' : 'System'
       },
       possibleCauses: []
     };
 
     if (difference > this.alertThreshold) {
-      if (cryptoBotBalance > systemBalance) {
+      if (cryptoBotBalance > expectedSystemBalance) {
         details.possibleCauses.push('Возможны незафиксированные депозиты в системе');
         details.possibleCauses.push('Проблемы с обработкой входящих платежей');
+        details.possibleCauses.push('Комиссии CryptoBot не учтены корректно');
       } else {
         details.possibleCauses.push('Возможны проблемы с выводами средств');
-        details.possibleCauses.push('Ошибки в расчете операционного баланса');
+        details.possibleCauses.push('Ошибки в расчете балансов пользователей');
         details.possibleCauses.push('Незавершенные транзакции');
+        details.possibleCauses.push('Фантомные балансы у пользователей');
       }
     }
 

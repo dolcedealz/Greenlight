@@ -202,13 +202,22 @@ class MonitoringController {
    */
   async getSystemBalance(req, res) {
     try {
-      const balance = await balanceMonitoringService.getSystemOperationalBalance();
+      const balance = await balanceMonitoringService.getExpectedSystemBalance();
+      const casinoFinance = await require('../models').CasinoFinance.findOne();
+      
+      const detailedBalance = {
+        totalExpected: balance,
+        breakdown: {
+          userBalance: casinoFinance.totalUserBalance,
+          operationalBalance: casinoFinance.operationalBalance
+        }
+      };
       
       res.json({
         success: true,
         message: 'Системный баланс получен',
         data: {
-          balance,
+          balance: detailedBalance,
           currency: 'USDT',
           timestamp: new Date()
         }

@@ -560,7 +560,9 @@ class ReferralService {
       
       await partner.save({ session });
       
-      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Списываем с оперативного баланса казино
+      // ИСПРАВЛЕНО: НЕ списываем с оперативного баланса казино!
+      // Реферальные выплаты - это только перевод с реферального баланса на основной
+      // Деньги уже были учтены при начислении комиссий
       const casinoFinanceService = require('./casino-finance.service');
       await casinoFinanceService.updateAfterReferralPayout({
         partnerId: partnerId,

@@ -118,19 +118,24 @@ class CasinoFinanceService {
       finance.totalCryptoBotFees = cryptoBotFees[0]?.total || 0;
       
       // 6. ИСПРАВЛЕНО: Рассчитываем оперативный баланс
-      // Оперативный баланс = ТОЛЬКО прибыль казино (ставки - выигрыши + комиссии - промокоды)
-      // НЕ включаем депозиты и выводы пользователей!
-      finance.operationalBalance = (finance.totalBets - finance.totalWins) + finance.totalCommissions - finance.totalPromocodeExpenses;
+      // Формула для проверки: Баланс CryptoBot = Оперативный баланс + Баланс пользователей
+      // Оперативный баланс = Депозиты - Выводы - Баланс пользователей
+      // Это представляет реальную прибыль казино
+      finance.operationalBalance = finance.totalDeposits - finance.totalWithdrawals - finance.totalUserBalance;
       
-      console.log('FINANCE: Расчет оперативного баланса:');
+      console.log('FINANCE: Расчет балансов:');
+      console.log(`- Всего депозитов: ${finance.totalDeposits.toFixed(2)} USDT`);
+      console.log(`- Всего выводов: ${finance.totalWithdrawals.toFixed(2)} USDT`);
+      console.log(`- Баланс пользователей: ${finance.totalUserBalance.toFixed(2)} USDT`);
+      console.log(`- Оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
+      console.log(`- Ожидаемый баланс CryptoBot: ${(finance.operationalBalance + finance.totalUserBalance).toFixed(2)} USDT`);
+      console.log('');
+      console.log('FINANCE: Статистика по играм:');
       console.log(`- Всего ставок: ${finance.totalBets.toFixed(2)} USDT`);
       console.log(`- Всего выигрышей: ${finance.totalWins.toFixed(2)} USDT`);
+      console.log(`- Прибыль от игр: ${(finance.totalBets - finance.totalWins).toFixed(2)} USDT`);
       console.log(`- Комиссии: ${finance.totalCommissions.toFixed(2)} USDT`);
-      console.log(`  • Дуэли: ${finance.commissionBreakdown.duels.toFixed(2)} USDT`);
-      console.log(`  • События: ${finance.commissionBreakdown.events.toFixed(2)} USDT`);
       console.log(`- Расходы на промокоды: ${finance.totalPromocodeExpenses.toFixed(2)} USDT`);
-      console.log(`- Комиссии CryptoBot: ${finance.totalCryptoBotFees.toFixed(2)} USDT`);
-      console.log(`- Оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
       
       // 6. Рассчитываем резерв и доступную сумму
       finance.calculateReserve();
@@ -191,12 +196,9 @@ class CasinoFinanceService {
           finance.gameStats[gameType].totalWins;
       }
       
-      // Обновляем оперативный баланс
-      if (win) {
-        finance.operationalBalance -= profit; // Выигрыш уменьшает прибыль казино
-      } else {
-        finance.operationalBalance += bet; // Проигрыш увеличивает прибыль казино
-      }
+      // НЕ обновляем оперативный баланс здесь!
+      // Оперативный баланс изменяется только при депозитах/выводах
+      // Игры только перераспределяют деньги между пользователями и казино
       
       // Пересчитываем резерв
       finance.calculateReserve();

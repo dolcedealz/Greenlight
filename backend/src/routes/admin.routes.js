@@ -12,6 +12,14 @@ router.use(adminAuthMiddleware);
 const flexibleOddsRoutes = require('./admin-flexible-odds.routes');
 router.use('/', flexibleOddsRoutes); // Интегрируем маршруты гибких коэффициентов
 
+// === СИСТЕМНЫЕ МАРШРУТЫ ===
+
+/**
+ * POST /api/admin/fix-locked-funds
+ * Исправление поля lockedFunds у пользователей
+ */
+router.post('/fix-locked-funds', adminController.fixLockedFunds);
+
 // === МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ФИНАНСАМИ ===
 
 /**

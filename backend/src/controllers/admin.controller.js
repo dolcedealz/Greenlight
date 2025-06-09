@@ -5,6 +5,118 @@ const mongoose = require('mongoose');
 
 class AdminController {
   /**
+   * Исправить поле lockedFunds у пользователей
+   */
+  async fixLockedFunds(req, res) {
+    try {
+      console.log('🔧 Начинаем исправление поля lockedFunds...');
+      
+      // Находим всех пользователей, у которых lockedFunds не является массивом
+      const usersToFix = await User.find({
+        $or: [
+          { lockedFunds: { $type: "number" } },  // Если lockedFunds - число
+          { lockedFunds: { $exists: false } },   // Если lockedFunds не существует
+          { lockedFunds: null }                  // Если lockedFunds равно null
+        ]
+      });
+      
+      console.log(`📊 Найдено пользователей для исправления: ${usersToFix.length}`);
+      
+      if (usersToFix.length === 0) {
+        return res.json({
+          success: true,
+          message: 'Все пользователи уже имеют корректное поле lockedFunds',
+          data: {
+            usersFixed: 0,
+            totalUsers: await User.countDocuments()
+          }
+        });
+      }
+      
+      // Исправляем каждого пользователя
+      let fixedCount = 0;
+      const errors = [];
+      
+      for (const user of usersToFix) {
+        try {
+          console.log(`🔧 Исправляем пользователя: ${user.telegramId} (${user.firstName})`);
+          
+          // Устанавливаем корректные значения по умолчанию
+          const updates = {
+            lockedFunds: [],
+            totalWagered: user.totalWagered || 0,
+            totalWon: user.totalWon || 0,
+            totalGames: user.totalGames || 0
+          };
+          
+          // Проверяем и исправляем freespins
+          if (!user.freespins || typeof user.freespins !== 'object') {
+            updates.freespins = {
+              slots: 0,
+              coin: 0,
+              mines: 0
+            };
+          } else {
+            // Убеждаемся, что все поля freespins присутствуют
+            updates.freespins = {
+              slots: user.freespins.slots || 0,
+              coin: user.freespins.coin || 0,
+              mines: user.freespins.mines || 0
+            };
+          }
+          
+          // Проверяем activeDepositBonuses
+          if (!Array.isArray(user.activeDepositBonuses)) {
+            updates.activeDepositBonuses = [];
+          }
+          
+          await User.updateOne(
+            { _id: user._id },
+            { $set: updates }
+          );
+          
+          fixedCount++;
+          console.log(`✅ Пользователь ${user.telegramId} исправлен`);
+          
+        } catch (userError) {
+          console.error(`❌ Ошибка исправления пользователя ${user.telegramId}:`, userError);
+          errors.push({
+            userId: user.telegramId,
+            error: userError.message
+          });
+        }
+      }
+      
+      // Проверяем результат
+      const remainingBrokenUsers = await User.find({
+        $or: [
+          { lockedFunds: { $type: "number" } },
+          { lockedFunds: { $exists: false } },
+          { lockedFunds: null }
+        ]
+      });
+
+      res.json({
+        success: true,
+        message: `Исправление завершено! Исправлено пользователей: ${fixedCount}`,
+        data: {
+          usersFixed: fixedCount,
+          remainingBrokenUsers: remainingBrokenUsers.length,
+          totalUsers: await User.countDocuments(),
+          errors: errors
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Ошибка при исправлении lockedFunds:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
    * Получить статистику казино
    */
   async getCasinoStats(req, res) {

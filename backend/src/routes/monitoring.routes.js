@@ -1,6 +1,6 @@
 // backend/src/routes/monitoring.routes.js
 const express = require('express');
-const { authMiddleware } = require('../middleware');
+const { adminAuthMiddleware } = require('../middleware');
 
 const router = express.Router();
 
@@ -29,23 +29,23 @@ try {
  */
 
 // Ручная проверка балансов
-router.post('/check-balances', authMiddleware.requireAdmin, monitoringController.checkBalances);
+router.post('/check-balances', adminAuthMiddleware, monitoringController.checkBalances);
 
 // Получение статистики мониторинга
-router.get('/stats', authMiddleware.requireAdmin, monitoringController.getMonitoringStats);
+router.get('/stats', adminAuthMiddleware, monitoringController.getMonitoringStats);
 
 // Получение уведомлений
-router.get('/notifications', authMiddleware.requireAdmin, monitoringController.getNotifications);
+router.get('/notifications', adminAuthMiddleware, monitoringController.getNotifications);
 
 // Управление автоматическим мониторингом
-router.post('/start', authMiddleware.requireAdmin, monitoringController.startMonitoring);
-router.post('/stop', authMiddleware.requireAdmin, monitoringController.stopMonitoring);
+router.post('/start', adminAuthMiddleware, monitoringController.startMonitoring);
+router.post('/stop', adminAuthMiddleware, monitoringController.stopMonitoring);
 
 // Обновление настроек мониторинга
-router.put('/settings', authMiddleware.requireAdmin, monitoringController.updateSettings);
+router.put('/settings', adminAuthMiddleware, monitoringController.updateSettings);
 
 // Получение балансов
-router.get('/cryptobot-balance', authMiddleware.requireAdmin, monitoringController.getCryptoBotBalance);
-router.get('/system-balance', authMiddleware.requireAdmin, monitoringController.getSystemBalance);
+router.get('/cryptobot-balance', adminAuthMiddleware, monitoringController.getCryptoBotBalance);
+router.get('/system-balance', adminAuthMiddleware, monitoringController.getSystemBalance);
 
 module.exports = router;

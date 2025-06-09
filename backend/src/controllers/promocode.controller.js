@@ -291,22 +291,8 @@ async function executePromocodeActivation(promocode, user, userIp) {
   switch (promocode.type) {
     case 'balance':
       const balanceAmount = promocode.settings.balanceAmount || promocode.value;
+      const balanceBefore = user.balance;
       
-      // Создаем транзакцию
-      transaction = new Transaction({
-        user: user._id,
-        type: 'promocode_balance',
-        amount: balanceAmount,
-        status: 'completed',
-        description: `Бонус от промокода ${promocode.code}`,
-        metadata: {
-          promocodeId: promocode._id,
-          promocodeCode: promocode.code,
-          ipAddress: userIp
-        }
-      });
-      await transaction.save();
-
       // АТОМАРНО обновляем баланс пользователя
       const updatedUser = await User.findByIdAndUpdate(
         user._id,
@@ -325,6 +311,23 @@ async function executePromocodeActivation(promocode, user, userIp) {
       }
       
       user.balance = updatedUser.balance;
+
+      // Создаем транзакцию
+      transaction = new Transaction({
+        user: user._id,
+        type: 'promocode_balance',
+        amount: balanceAmount,
+        status: 'completed',
+        description: `Бонус от промокода ${promocode.code}`,
+        balanceBefore: balanceBefore,
+        balanceAfter: updatedUser.balance,
+        metadata: {
+          promocodeId: promocode._id,
+          promocodeCode: promocode.code,
+          ipAddress: userIp
+        }
+      });
+      await transaction.save();
 
       // Обновляем финансовую статистику казино через новый сервис
       await casinoFinanceService.updateAfterPromocode({
@@ -352,6 +355,8 @@ async function executePromocodeActivation(promocode, user, userIp) {
         amount: 0,
         status: 'completed',
         description: `${freespinsCount} фриспинов в ${game} от промокода ${promocode.code}`,
+        balanceBefore: user.balance,
+        balanceAfter: user.balance,
         metadata: {
           promocodeId: promocode._id,
           promocodeCode: promocode.code,
@@ -383,6 +388,8 @@ async function executePromocodeActivation(promocode, user, userIp) {
         amount: 0,
         status: 'pending',
         description: `Бонус к депозиту ${promocode.value}% от промокода ${promocode.code}`,
+        balanceBefore: user.balance,
+        balanceAfter: user.balance,
         metadata: {
           promocodeId: promocode._id,
           promocodeCode: promocode.code,
@@ -419,6 +426,8 @@ async function executePromocodeActivation(promocode, user, userIp) {
         amount: 0,
         status: 'completed',
         description: `VIP статус на ${vipDays} дней от промокода ${promocode.code}`,
+        balanceBefore: user.balance,
+        balanceAfter: user.balance,
         metadata: {
           promocodeId: promocode._id,
           promocodeCode: promocode.code,

@@ -153,21 +153,19 @@ class WithdrawalService {
       // Определяем, требует ли одобрения
       const requiresApproval = amount > 300;
       
-      // АТОМАРНОЕ обновление баланса и создание записи о выводе
+      // Сохраняем баланс до операции
+      const balanceBefore = user.balance;
+      
+      // АТОМАРНОЕ обновление баланса
       const updatedUser = await User.findOneAndUpdate(
         { 
           _id: userId,
           balance: { $gte: amount } // Дополнительная проверка достаточности средств
         },
-        [
-          {
-            $set: {
-              balanceBefore: '$balance',
-              balance: { $subtract: ['$balance', amount] },
-              lastActivity: new Date()
-            }
-          }
-        ],
+        {
+          $inc: { balance: -amount },
+          $set: { lastActivity: new Date() }
+        },
         { 
           new: true,
           session,
@@ -187,7 +185,7 @@ class WithdrawalService {
         recipientType,
         status: requiresApproval ? 'pending' : 'approved',
         requiresApproval,
-        balanceBefore: updatedUser.balanceBefore,
+        balanceBefore: balanceBefore,
         balanceAfter: updatedUser.balance,
         platformFee: 0,
         netAmount: amount,
@@ -209,7 +207,7 @@ class WithdrawalService {
         amount: -amount,
         status: 'pending',
         description: `Запрос на вывод ${amount} USDT`,
-        balanceBefore: updatedUser.balanceBefore,
+        balanceBefore: balanceBefore,
         balanceAfter: updatedUser.balance,
         payment: {
           invoiceId: withdrawal._id.toString(),

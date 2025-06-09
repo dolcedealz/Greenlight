@@ -244,10 +244,14 @@ function registerCallbackHandlers(bot) {
       
       await ctx.answerCbQuery('Обрабатываем вывод...');
       
+      // Определяем тип получателя (username если начинается с буквы, иначе wallet)
+      const recipientType = /^[a-zA-Z]/.test(recipient) ? 'username' : 'wallet';
+      
       // Создаем запрос на вывод через API
       const withdrawalData = await apiService.createWithdrawal(ctx.from, {
         amount: amount,
         recipient: recipient,
+        recipientType: recipientType,
         source: 'bot_button',
         description: `Вывод через бот: ${amount} USDT на ${recipient}`
       });

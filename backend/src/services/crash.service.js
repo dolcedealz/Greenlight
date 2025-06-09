@@ -452,13 +452,9 @@ class CrashService extends EventEmitter {
           // Баланс до ставки был user.balance + bet.amount (так как ставка уже списана)
           const balanceBefore = user.balance + bet.amount;
           
-          // Если выиграл, нужно добавить выигрыш к текущему балансу
-          const balanceAfter = user.balance + (win ? bet.profit : 0);
-          
-          // Обновляем баланс пользователя при выигрыше
-          if (win) {
-            user.balance = balanceAfter;
-          }
+          // ИСПРАВЛЕНО: Баланс НЕ обновляем здесь, так как выигрыш уже был начислен при кешауте
+          // Для проигравших баланс уже правильный (ставка была списана при размещении)
+          const balanceAfter = user.balance;
           
           // Создаем запись об игре
           const game = new Game({
@@ -489,9 +485,8 @@ class CrashService extends EventEmitter {
           // Обновляем статистику пользователя
           user.totalGames = (user.totalGames || 0) + 1;
           user.totalWagered = (user.totalWagered || 0) + bet.amount;
-          if (win) {
-            user.totalWon = (user.totalWon || 0) + (bet.amount + bet.profit);
-          }
+          // ИСПРАВЛЕНО: totalWon уже был обновлен при кешауте в manualCashOut/processAutoCashOuts
+          // Здесь только обновляем lastActivity
           user.lastActivity = new Date();
           
           await user.save({ session });

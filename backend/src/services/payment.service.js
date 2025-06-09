@@ -348,7 +348,7 @@ class PaymentService {
   }
 
   /**
-   * Зачисляет средства на баланс пользователя
+   * Зачисляет средства на баланс пользователя с учетом 3% комиссии CryptoBot
    * @param {Object} deposit - Объект депозита
    */
   async creditUserBalance(deposit) {
@@ -358,47 +358,60 @@ class PaymentService {
         throw new Error('Пользователь не найден');
       }
       
-      console.log(`PAYMENT: Зачисляем ${deposit.amount} USDT пользователю ${user._id}`);
+      // НОВОЕ: Рассчитываем комиссию CryptoBot (3%)
+      const cryptoBotFee = Math.round(deposit.amount * 0.03 * 100) / 100; // Округляем до 2 знаков
+      const netAmount = Math.round((deposit.amount - cryptoBotFee) * 100) / 100; // Чистая сумма к зачислению
+      
+      console.log(`PAYMENT: Депозит ${deposit.amount} USDT пользователю ${user._id}`);
+      console.log(`PAYMENT: Комиссия CryptoBot: ${cryptoBotFee} USDT (3%)`);
+      console.log(`PAYMENT: К зачислению: ${netAmount} USDT`);
       console.log(`PAYMENT: Баланс до: ${user.balance} USDT`);
       
-      // Обновляем баланс пользователя
+      // Обновляем баланс пользователя чистой суммой
       const oldBalance = user.balance;
-      const newBalance = oldBalance + deposit.amount;
+      const newBalance = oldBalance + netAmount;
       
       user.balance = newBalance;
       user.lastActivity = new Date();
       await user.save();
       
-      // Обновляем информацию о балансах в депозите
+      // Обновляем информацию о балансах и комиссии в депозите
       deposit.balanceBefore = oldBalance;
       deposit.balanceAfter = newBalance;
+      deposit.cryptoBotData.fee = cryptoBotFee; // Сохраняем комиссию
+      deposit.cryptoBotData.netAmount = netAmount; // Сохраняем чистую сумму
       await deposit.save();
       
       console.log(`PAYMENT: Баланс после: ${newBalance} USDT`);
       
-      // Создаем транзакцию для учета
+      // Создаем транзакцию для учета с чистой суммой
       const { Transaction } = require('../models');
       const transaction = new Transaction({
         user: user._id,
         type: 'deposit',
-        amount: deposit.amount,
+        amount: netAmount, // ИСПРАВЛЕНО: записываем чистую сумму
         status: 'completed',
-        description: `Депозит через CryptoBot: ${deposit.invoiceId}`,
+        description: `Депозит через CryptoBot: ${deposit.invoiceId} (комиссия: ${cryptoBotFee} USDT)`,
         balanceBefore: oldBalance,
         balanceAfter: newBalance,
         payment: {
           invoiceId: deposit.invoiceId,
           paymentMethod: 'cryptobot',
-          externalReference: deposit.cryptoBotData.hash
+          externalReference: deposit.cryptoBotData.hash,
+          grossAmount: deposit.amount, // Валовая сумма
+          fee: cryptoBotFee, // Комиссия
+          netAmount: netAmount // Чистая сумма
         }
       });
       
       await transaction.save();
       
-      // Обновляем финансовую статистику
+      // Обновляем финансовую статистику с учетом комиссии
       const financeService = require('./casino-finance.service');
       await financeService.updateAfterDeposit({
-        amount: deposit.amount,
+        amount: deposit.amount, // Валовая сумма депозита
+        netAmount: netAmount, // Чистая сумма к пользователю
+        fee: cryptoBotFee, // Комиссия CryptoBot
         user: user._id
       });
       

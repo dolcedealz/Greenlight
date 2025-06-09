@@ -296,11 +296,20 @@ class WithdrawalService {
       
       console.log(`✅ WITHDRAWAL: Перевод создан в CryptoBot:`, transferData);
       
+      // НОВОЕ: Рассчитываем комиссию CryptoBot (3% от суммы вывода)
+      const cryptoBotFee = Math.round(withdrawal.amount * 0.03 * 100) / 100;
+      const netAmount = Math.round((withdrawal.amount - cryptoBotFee) * 100) / 100; // Фактически переведено
+      
+      console.log(`💸 WITHDRAWAL: Сумма вывода: ${withdrawal.amount} USDT`);
+      console.log(`💸 WITHDRAWAL: Комиссия CryptoBot: ${cryptoBotFee} USDT (3%)`);
+      console.log(`💸 WITHDRAWAL: Фактически переведено: ${netAmount} USDT`);
+      
       // Обновляем запись с данными от CryptoBot
       withdrawal.cryptoBotData = {
         transferId: transferData.transfer_id,
-        fee: transferData.fee || 0,
-        totalAmount: transferData.amount,
+        fee: cryptoBotFee, // Наша расчетная комиссия 3%
+        netAmount: netAmount, // Чистая сумма к получению
+        totalAmount: withdrawal.amount, // Полная сумма вывода
         createdAt: new Date(),
         responseData: transferData
       };
@@ -312,7 +321,7 @@ class WithdrawalService {
         completedAt: new Date()
       });
       
-      // Обновляем транзакцию
+      // Обновляем транзакцию с учетом комиссии
       await Transaction.updateOne(
         { 
           user: withdrawal.user._id,
@@ -321,17 +330,22 @@ class WithdrawalService {
         {
           $set: {
             status: 'completed',
-            'payment.externalReference': transferData.transfer_id
+            'payment.externalReference': transferData.transfer_id,
+            'payment.fee': cryptoBotFee, // Добавляем комиссию в транзакцию
+            'payment.netAmount': netAmount,
+            'payment.grossAmount': withdrawal.amount
           }
         }
       ).session(session);
       
       await session.commitTransaction();
       
-      // Обновляем финансовую статистику
+      // Обновляем финансовую статистику с учетом комиссии
       const financeService = require('./casino-finance.service');
       await financeService.updateAfterUserWithdrawal({
-        amount: withdrawal.amount,
+        amount: withdrawal.amount, // Полная сумма списанная с пользователя
+        netAmount: netAmount, // Фактически переведено
+        fee: cryptoBotFee, // Комиссия CryptoBot
         user: withdrawal.user._id
       });
       
@@ -339,8 +353,14 @@ class WithdrawalService {
       
       // Отправляем уведомление об успешном выводе
       try {
-        const notificationService = require('../../../bot/src/services/notification.service');
-        await notificationService.notifyWithdrawalCompleted(withdrawal.user.telegramId, withdrawal);
+        await this.sendTelegramNotification(
+          withdrawal.user.telegramId,
+          `✅ Вывод успешно выполнен!\n\n` +
+          `💵 Сумма: ${withdrawal.amount} USDT\n` +
+          `📤 Получатель: @${withdrawal.recipient}\n` +
+          `🔗 ID транзакции: ${transferData.transfer_id}\n\n` +
+          `Спасибо за использование Greenlight Casino!`
+        );
       } catch (notifyError) {
         console.error('⚠️ WITHDRAWAL: Ошибка отправки уведомления:', notifyError);
       }
@@ -514,11 +534,14 @@ class WithdrawalService {
       
       // Отправляем уведомление пользователю
       try {
-        const notificationService = require('../../../bot/src/services/notification.service');
-        await notificationService.notifyWithdrawalRejected(user.telegramId, {
-          ...withdrawal.toObject(),
-          rejectionReason: 'Технические проблемы. Средства возвращены на баланс.'
-        });
+        await this.sendTelegramNotification(
+          user.telegramId,
+          `❌ Ваш запрос на вывод отклонен\n\n` +
+          `💵 Сумма: ${withdrawal.amount} USDT\n` +
+          `📤 Получатель: @${withdrawal.recipient}\n` +
+          `📝 Причина: Технические проблемы\n\n` +
+          `Средства возвращены на ваш баланс.`
+        );
       } catch (notifyError) {
         console.error('⚠️ WITHDRAWAL: Ошибка отправки уведомления о возврате:', notifyError);
       }
@@ -598,8 +621,14 @@ class WithdrawalService {
     
     // Отправляем уведомление пользователю
     try {
-      const notificationService = require('../../../bot/src/services/notification.service');
-      await notificationService.notifyWithdrawalApproved(withdrawal.user.telegramId, withdrawal);
+      await this.sendTelegramNotification(
+        withdrawal.user.telegramId,
+        `✅ Ваш запрос на вывод одобрен!\n\n` +
+        `💵 Сумма: ${withdrawal.amount} USDT\n` +
+        `📤 Получатель: @${withdrawal.recipient}\n` +
+        `⏳ Статус: Обрабатывается\n\n` +
+        `Средства будут отправлены в течение 5-15 минут.`
+      );
     } catch (notifyError) {
       console.error('⚠️ WITHDRAWAL: Ошибка отправки уведомления об одобрении:', notifyError);
     }
@@ -641,6 +670,36 @@ class WithdrawalService {
    */
   async getWithdrawalStats(userId = null) {
     return await Withdrawal.getWithdrawalStats(userId);
+  }
+
+  /**
+   * Отправляет Telegram уведомление пользователю
+   */
+  async sendTelegramNotification(telegramId, message) {
+    try {
+      if (!process.env.TELEGRAM_BOT_TOKEN) {
+        console.warn('TELEGRAM_BOT_TOKEN не настроен, пропускаем уведомление');
+        return;
+      }
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      
+      // Используем отдельный axios для Telegram API
+      const axios = require('axios');
+      const response = await axios.post(apiUrl, {
+        chat_id: telegramId,
+        text: message,
+        parse_mode: 'HTML'
+      });
+      
+      console.log(`📱 TELEGRAM: Уведомление отправлено пользователю ${telegramId}`);
+      return response.data;
+      
+    } catch (error) {
+      console.error('📱 TELEGRAM: Ошибка отправки уведомления:', error);
+      throw error;
+    }
   }
 }
 

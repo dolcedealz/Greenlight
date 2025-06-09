@@ -317,7 +317,7 @@ class CrashService extends EventEmitter {
       
       console.log(`🤖 АВТОВЫВОД: Обрабатываем ${betsToProcess.length} автовыводов на множителе ${this.currentMultiplier.toFixed(2)}x`);
       
-      // УЛУЧШЕННАЯ ОБРАБОТКА: Обрабатываем каждую ставку атомарно
+      // УЛУЧШЕННАЯ ОБРАБОТКА: Обрабатываем каждую ставку атомарно с проверкой race conditions
       for (const bet of betsToProcess) {
         try {
           // КРИТИЧЕСКИ ВАЖНО: Используем точное значение автовывода, а не текущий множитель
@@ -327,7 +327,36 @@ class CrashService extends EventEmitter {
           
           console.log(`💰 АВТОВЫВОД: Пользователь ${bet.user}, ставка ${bet.amount}, множитель ${exactCashOutMultiplier}x, выигрыш ${winAmount}`);
           
-          // Обновляем локальную копию ставки
+          // НОВОЕ: Атомарная проверка и обновление ставки в БД для предотвращения race conditions
+          const betUpdateResult = await CrashRound.findOneAndUpdate(
+            {
+              _id: this.currentRound._id,
+              'bets': {
+                $elemMatch: {
+                  user: bet.user,
+                  amount: bet.amount,
+                  cashedOut: false // КРИТИЧНО: Проверяем что еще не обналичена
+                }
+              }
+            },
+            {
+              $set: {
+                'bets.$.cashedOut': true,
+                'bets.$.cashOutMultiplier': exactCashOutMultiplier,
+                'bets.$.profit': profit,
+                'bets.$.cashedOutAt': new Date()
+              }
+            },
+            { new: true, session }
+          );
+          
+          // Если обновление не прошло - значит ставка уже была обработана (race condition)
+          if (!betUpdateResult) {
+            console.warn(`⚠️ АВТОВЫВОД: Ставка пользователя ${bet.user} уже была обработана (race condition предотвращена)`);
+            continue;
+          }
+          
+          // Обновляем локальную копию ТОЛЬКО после успешного обновления в БД
           bet.cashedOut = true;
           bet.cashOutMultiplier = exactCashOutMultiplier;
           bet.profit = profit;
@@ -381,33 +410,7 @@ class CrashService extends EventEmitter {
         }
       }
       
-      // АТОМАРНОЕ ОБНОВЛЕНИЕ: Обновляем все ставки в раунде одним запросом
-      const bulkOps = [];
-      betsToProcess.forEach((bet, index) => {
-        const betIndex = this.currentRound.bets.findIndex(b => 
-          b.user.toString() === bet.user.toString()
-        );
-        
-        if (betIndex !== -1) {
-          bulkOps.push({
-            updateOne: {
-              filter: { _id: this.currentRound._id },
-              update: {
-                $set: {
-                  [`bets.${betIndex}.cashedOut`]: true,
-                  [`bets.${betIndex}.cashOutMultiplier`]: bet.autoCashOut,
-                  [`bets.${betIndex}.profit`]: bet.profit,
-                  [`bets.${betIndex}.cashedOutAt`]: bet.cashedOutAt
-                }
-              }
-            }
-          });
-        }
-      });
-      
-      if (bulkOps.length > 0) {
-        await CrashRound.bulkWrite(bulkOps, { session });
-      }
+      // ИСПРАВЛЕНО: Убрали bulk операции, так как теперь используем атомарные обновления в цикле
       
       await session.commitTransaction();
       

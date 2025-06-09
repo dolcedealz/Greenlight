@@ -104,6 +104,19 @@ class CasinoFinanceService {
       
       finance.totalPromocodeExpenses = promocodeExpenses[0]?.total || 0;
       
+      // 5.5. НОВОЕ: Рассчитываем общие комиссии CryptoBot
+      const cryptoBotFees = await Transaction.aggregate([
+        { 
+          $match: { 
+            'payment.fee': { $exists: true, $gt: 0 },
+            status: 'completed' 
+          } 
+        },
+        { $group: { _id: null, total: { $sum: '$payment.fee' } } }
+      ]);
+      
+      finance.totalCryptoBotFees = cryptoBotFees[0]?.total || 0;
+      
       // 6. ИСПРАВЛЕНО: Рассчитываем оперативный баланс
       // Оперативный баланс = ТОЛЬКО прибыль казино (ставки - выигрыши + комиссии - промокоды)
       // НЕ включаем депозиты и выводы пользователей!
@@ -116,6 +129,7 @@ class CasinoFinanceService {
       console.log(`  • Дуэли: ${finance.commissionBreakdown.duels.toFixed(2)} USDT`);
       console.log(`  • События: ${finance.commissionBreakdown.events.toFixed(2)} USDT`);
       console.log(`- Расходы на промокоды: ${finance.totalPromocodeExpenses.toFixed(2)} USDT`);
+      console.log(`- Комиссии CryptoBot: ${finance.totalCryptoBotFees.toFixed(2)} USDT`);
       console.log(`- Оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
       
       // 6. Рассчитываем резерв и доступную сумму
@@ -196,24 +210,37 @@ class CasinoFinanceService {
   }
   
   /**
-   * Обновляет финансы после депозита
-   * ИСПРАВЛЕНО: Депозит НЕ влияет на оперативный счет!
+   * Обновляет финансы после депозита с учетом комиссий CryptoBot
    * @param {Object} depositData - Данные депозита
    */
   async updateAfterDeposit(depositData) {
     try {
       const finance = await CasinoFinance.getInstance();
       
-      // Увеличиваем общую сумму депозитов
-      finance.totalDeposits += depositData.amount;
+      const { amount, netAmount, fee } = depositData;
       
-      // Увеличиваем общий баланс пользователей
-      finance.totalUserBalance += depositData.amount;
+      // Увеличиваем общую сумму депозитов (валовую)
+      finance.totalDeposits += amount;
+      
+      // Увеличиваем общий баланс пользователей (чистую сумму)
+      finance.totalUserBalance += netAmount || amount;
+      
+      // НОВОЕ: Учитываем комиссии CryptoBot
+      if (fee && fee > 0) {
+        // Создаем поле для отслеживания комиссий если его нет
+        if (!finance.totalCryptoBotFees) {
+          finance.totalCryptoBotFees = 0;
+        }
+        finance.totalCryptoBotFees += fee;
+        
+        console.log(`FINANCE: Комиссия CryptoBot: ${fee.toFixed(2)} USDT`);
+        console.log(`- Общие комиссии CryptoBot: ${finance.totalCryptoBotFees.toFixed(2)} USDT`);
+      }
       
       // ВАЖНО: НЕ увеличиваем оперативный баланс!
       // Депозиты - это деньги пользователей, а не прибыль казино
       
-      console.log(`FINANCE: Обработка депозита ${depositData.amount} USDT`);
+      console.log(`FINANCE: Обработка депозита ${amount} USDT (чистыми: ${netAmount || amount} USDT)`);
       console.log(`- Новый баланс пользователей: ${finance.totalUserBalance.toFixed(2)} USDT`);
       console.log(`- Оперативный баланс (не изменился): ${finance.operationalBalance.toFixed(2)} USDT`);
       
@@ -222,7 +249,9 @@ class CasinoFinanceService {
       finance.checkWarnings();
       
       finance.addToHistory('deposit', {
-        amount: depositData.amount,
+        amount: amount,
+        netAmount: netAmount || amount,
+        fee: fee || 0,
         userId: depositData.user
       });
       
@@ -234,24 +263,37 @@ class CasinoFinanceService {
   }
   
   /**
-   * Обновляет финансы после вывода пользователя
-   * ИСПРАВЛЕНО: Вывод пользователя НЕ влияет на оперативный счет!
+   * Обновляет финансы после вывода пользователя с учетом комиссий CryptoBot
    * @param {Object} withdrawalData - Данные вывода
    */
   async updateAfterUserWithdrawal(withdrawalData) {
     try {
       const finance = await CasinoFinance.getInstance();
       
-      // Увеличиваем общую сумму выводов
-      finance.totalWithdrawals += withdrawalData.amount;
+      const { amount, netAmount, fee } = withdrawalData;
       
-      // Уменьшаем общий баланс пользователей
-      finance.totalUserBalance -= withdrawalData.amount;
+      // Увеличиваем общую сумму выводов (полную сумму)
+      finance.totalWithdrawals += amount;
+      
+      // Уменьшаем общий баланс пользователей (полную сумму списанную с пользователя)
+      finance.totalUserBalance -= amount;
+      
+      // НОВОЕ: Учитываем комиссии CryptoBot при выводах
+      if (fee && fee > 0) {
+        // Создаем поле для отслеживания комиссий если его нет
+        if (!finance.totalCryptoBotFees) {
+          finance.totalCryptoBotFees = 0;
+        }
+        finance.totalCryptoBotFees += fee;
+        
+        console.log(`FINANCE: Комиссия CryptoBot за вывод: ${fee.toFixed(2)} USDT`);
+        console.log(`- Общие комиссии CryptoBot: ${finance.totalCryptoBotFees.toFixed(2)} USDT`);
+      }
       
       // ВАЖНО: НЕ уменьшаем оперативный баланс!
       // Выводы пользователей - это их деньги, а не прибыль казино
       
-      console.log(`FINANCE: Обработка вывода пользователя ${withdrawalData.amount} USDT`);
+      console.log(`FINANCE: Обработка вывода ${amount} USDT (переведено: ${netAmount || amount} USDT)`);
       console.log(`- Новый баланс пользователей: ${finance.totalUserBalance.toFixed(2)} USDT`);
       console.log(`- Оперативный баланс (не изменился): ${finance.operationalBalance.toFixed(2)} USDT`);
       
@@ -260,7 +302,9 @@ class CasinoFinanceService {
       finance.checkWarnings();
       
       finance.addToHistory('user_withdrawal', {
-        amount: withdrawalData.amount,
+        amount: amount,
+        netAmount: netAmount || amount,
+        fee: fee || 0,
         userId: withdrawalData.user
       });
       
@@ -595,6 +639,7 @@ class CasinoFinanceService {
 
   /**
    * Обновляет финансы после выплаты реферального баланса
+   * ИСПРАВЛЕНО: НЕ списываем с оперативного баланса, так как обязательства уже учтены
    * @param {Object} payoutData - Данные выплаты
    */
   async updateAfterReferralPayout(payoutData) {
@@ -603,19 +648,20 @@ class CasinoFinanceService {
       
       const { amount, partnerId, type } = payoutData;
       
-      // Списываем с оперативного баланса казино (реферальные комиссии - это расход казино)
-      finance.operationalBalance -= amount;
+      // ИСПРАВЛЕНО: НЕ списываем с оперативного баланса!
+      // Реферальные выплаты - это только перевод между балансами
+      // Реферальные обязательства уже учтены при начислении комиссий
       
-      // Увеличиваем счетчик реферальных выплат
-      if (!finance.totalReferralPayouts) {
-        finance.totalReferralPayouts = 0;
+      // Увеличиваем счетчик реферальных выплат (для статистики)
+      if (!finance.totalReferralPayments) {
+        finance.totalReferralPayments = 0;
       }
-      finance.totalReferralPayouts += amount;
+      finance.totalReferralPayments += amount;
       
       console.log(`FINANCE: Выплата реферального баланса ${amount} USDT партнеру ${partnerId}`);
-      console.log(`- Списано с оперативного баланса: ${amount} USDT`);
-      console.log(`- Новый оперативный баланс: ${finance.operationalBalance.toFixed(2)} USDT`);
-      console.log(`- Всего реферальных выплат: ${finance.totalReferralPayouts.toFixed(2)} USDT`);
+      console.log(`- ИСПРАВЛЕНО: НЕ списываем с оперативного баланса (только перевод между балансами)`);
+      console.log(`- Оперативный баланс (не изменился): ${finance.operationalBalance.toFixed(2)} USDT`);
+      console.log(`- Всего реферальных выплат: ${finance.totalReferralPayments.toFixed(2)} USDT`);
       
       // Пересчитываем резерв
       finance.calculateReserve();

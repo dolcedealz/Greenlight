@@ -116,6 +116,14 @@ const casinoFinanceSchema = new Schema({
     description: 'Общая сумма реферальных выплат'
   },
   
+  // НОВОЕ: Комиссии CryptoBot
+  totalCryptoBotFees: {
+    type: Number,
+    default: 0,
+    min: 0,
+    description: 'Общая сумма комиссий CryptoBot (депозиты + выводы)'
+  },
+  
   // Детализация по играм
   gameStats: {
     coin: {

@@ -199,10 +199,28 @@ class DuelService {
       await this.validateDuelParameters(playerId, duel.amount);
       await this.lockUserFunds(playerId, duel.amount, session);
       
-      // Обновляем дуэль
+      // Обновляем дуэль и сразу активируем с созданием первого раунда
       duel.opponentId = playerId;
       duel.opponentUsername = playerUsername;
-      duel.status = 'accepted';
+      duel.status = 'active';  // Сразу делаем активной
+      duel.startedAt = new Date();
+      
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Создаем первый раунд сразу при присоединении
+      if (duel.rounds.length === 0) {
+        const firstRound = {
+          roundNumber: 1,
+          challengerResult: null,
+          opponentResult: null,
+          winnerId: null,
+          status: 'active',
+          timestamp: new Date(),
+          moves: []
+        };
+        duel.rounds.push(firstRound);
+        
+        console.log(`🎮 DUEL: Создан первый раунд для дуэли ${duel.sessionId}`);
+      }
+      
       await duel.save({ session });
       
       await session.commitTransaction();
@@ -290,6 +308,21 @@ class DuelService {
       
       if (duel.status !== 'active') {
         throw new Error(`Дуэль не активна (статус: ${duel.status})`);
+      }
+      
+      // НОВОЕ: Проверяем что у активной дуэли есть раунды (восстановление)
+      if (duel.status === 'active' && duel.rounds.length === 0) {
+        console.warn(`🔧 DUEL RECOVERY: Активная дуэль ${sessionId} без раундов - создаем первый раунд`);
+        const recoveryRound = {
+          roundNumber: 1,
+          challengerResult: null,
+          opponentResult: null,
+          winnerId: null,
+          status: 'active',
+          timestamp: new Date(),
+          moves: []
+        };
+        duel.rounds.push(recoveryRound);
       }
       
       const isChallenger = duel.challengerId === playerId;
@@ -976,7 +1009,7 @@ class DuelService {
   async cleanupExpiredData() {
     const expiredInvitations = await DuelInvitation.cleanupExpired();
     
-    // Отменяем истекшие дуэли
+    // Отменяем истекшие дуэли (pending)
     const expiredDuels = await Duel.find({
       status: 'pending',
       expiresAt: {
@@ -988,9 +1021,35 @@ class DuelService {
       await this.cancelDuel(duel.sessionId, null, 'timeout');
     }
     
+    // НОВОЕ: Отменяем зависшие активные дуэли без раундов
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const stuckActiveDuels = await Duel.find({
+      status: 'active',
+      rounds: { $size: 0 },
+      updatedAt: { $lt: thirtyMinutesAgo }
+    });
+    
+    for (const duel of stuckActiveDuels) {
+      console.warn(`🔧 CLEANUP: Отменяем зависшую активную дуэль без раундов: ${duel.sessionId}`);
+      await this.cancelDuel(duel.sessionId, null, 'stuck_active_timeout');
+    }
+    
+    // НОВОЕ: Отменяем дуэли зависшие в статусе accepted слишком долго
+    const stuckAcceptedDuels = await Duel.find({
+      status: 'accepted',
+      updatedAt: { $lt: thirtyMinutesAgo }
+    });
+    
+    for (const duel of stuckAcceptedDuels) {
+      console.warn(`🔧 CLEANUP: Отменяем зависшую принятую дуэль: ${duel.sessionId}`);
+      await this.cancelDuel(duel.sessionId, null, 'stuck_accepted_timeout');
+    }
+    
     return {
       expiredInvitations,
-      expiredDuels: expiredDuels.length
+      expiredDuels: expiredDuels.length,
+      stuckActiveDuels: stuckActiveDuels.length,
+      stuckAcceptedDuels: stuckAcceptedDuels.length
     };
   }
   

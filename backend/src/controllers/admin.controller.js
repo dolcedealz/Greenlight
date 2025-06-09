@@ -117,6 +117,40 @@ class AdminController {
   }
 
   /**
+   * Отменить зависшую дуэль (admin only)
+   */
+  async cancelStuckDuel(req, res) {
+    try {
+      const { sessionId, reason = 'admin_cancel_stuck' } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Требуется sessionId дуэли'
+        });
+      }
+
+      const duelService = require('../services/duel.service');
+      
+      // Принудительная отмена дуэли администратором
+      await duelService.cancelDuel(sessionId, null, reason);
+      
+      res.json({
+        success: true,
+        message: `Дуэль ${sessionId} успешно отменена администратором`,
+        data: { sessionId, reason }
+      });
+      
+    } catch (error) {
+      console.error('Ошибка отмены дуэли:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
    * Получить статистику казино
    */
   async getCasinoStats(req, res) {

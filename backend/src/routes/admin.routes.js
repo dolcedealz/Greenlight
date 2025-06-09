@@ -20,6 +20,12 @@ router.use('/', flexibleOddsRoutes); // Интегрируем маршруты 
  */
 router.post('/fix-locked-funds', adminController.fixLockedFunds);
 
+/**
+ * POST /api/admin/cancel-stuck-duel
+ * Отмена зависшей дуэли
+ */
+router.post('/cancel-stuck-duel', adminController.cancelStuckDuel);
+
 // === МАРШРУТЫ ДЛЯ УПРАВЛЕНИЯ ФИНАНСАМИ ===
 
 /**

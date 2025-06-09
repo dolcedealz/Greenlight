@@ -592,7 +592,7 @@ class DuelService {
       status: 'completed'
     });
     
-    await Game.create([winnerGameRecord, loserGameRecord], { session });
+    await Game.create([winnerGameRecord, loserGameRecord], { session, ordered: true });
     
     // НОВОЕ: Обновляем статистику игр для обоих пользователей
     await User.updateOne(

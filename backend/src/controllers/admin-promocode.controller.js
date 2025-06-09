@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Promocode = require('../models/promocode.model');
 const User = require('../models/user.model');
 const Transaction = require('../models/transaction.model');
@@ -8,14 +9,21 @@ const { validationResult } = require('express-validator');
  */
 exports.createPromocode = async (req, res) => {
   try {
+    console.log('PROMOCODE CREATE: Starting promocode creation');
+    console.log('PROMOCODE CREATE: Request body:', JSON.stringify(req.body, null, 2));
+    console.log('PROMOCODE CREATE: User:', req.user ? { id: req.user.id, _id: req.user._id } : 'NO USER');
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('PROMOCODE CREATE: Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Ошибка валидации',
         errors: errors.array()
       });
     }
+    
+    console.log('PROMOCODE CREATE: Validation passed');
 
     const {
       code,
@@ -29,29 +37,43 @@ exports.createPromocode = async (req, res) => {
     } = req.body;
 
     // Проверяем уникальность кода
+    console.log('PROMOCODE CREATE: Checking for existing promocode with code:', code.toUpperCase());
     const existingPromocode = await Promocode.findOne({ code: code.toUpperCase() });
     if (existingPromocode) {
+      console.log('PROMOCODE CREATE: Promocode already exists');
       return res.status(400).json({
         success: false,
         message: 'Промокод с таким кодом уже существует'
       });
     }
 
+    console.log('PROMOCODE CREATE: Creating promocode object');
+    console.log('PROMOCODE CREATE: formatPromocodeSettings called with:', { type, settings: settings || {}, value });
+    
+    const formattedSettings = formatPromocodeSettings(type, settings || {}, value);
+    console.log('PROMOCODE CREATE: Formatted settings:', formattedSettings);
+    
     // Создаем промокод
-    const promocode = new Promocode({
+    const promocodeData = {
       code: code.toUpperCase(),
       type,
       value,
       usageLimit: usageLimit || 1,
       duration: duration || 30,
       description,
-      createdBy: req.user.id,
+      createdBy: req.user?.id || req.user?._id || new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
       conditions: conditions || {},
-      settings: formatPromocodeSettings(type, settings || {}, value),
+      settings: formattedSettings,
       expiresAt: new Date(Date.now() + (duration || 30) * 24 * 60 * 60 * 1000)
-    });
-
+    };
+    
+    console.log('PROMOCODE CREATE: Promocode data to save:', JSON.stringify(promocodeData, null, 2));
+    
+    const promocode = new Promocode(promocodeData);
+    
+    console.log('PROMOCODE CREATE: Saving promocode to database');
     await promocode.save();
+    console.log('PROMOCODE CREATE: Promocode saved successfully with ID:', promocode._id);
 
     res.status(201).json({
       success: true,
@@ -74,9 +96,16 @@ exports.createPromocode = async (req, res) => {
 
   } catch (error) {
     console.error('Ошибка создания промокода:', error);
+    console.error('Request body:', req.body);
+    console.error('User object:', req.user);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Внутренняя ошибка сервера'
+      message: 'Внутренняя ошибка сервера',
+      debug: process.env.NODE_ENV === 'development' ? {
+        error: error.message,
+        stack: error.stack
+      } : undefined
     });
   }
 };

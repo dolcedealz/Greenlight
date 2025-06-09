@@ -1,8 +1,9 @@
 const express = require('express');
 const { body, param, query } = require('express-validator');
 const adminPromocodeController = require('../controllers/admin-promocode.controller');
-const { authenticateToken, isAdmin } = require('../middleware/auth.middleware');
 const router = express.Router();
+
+// NOTE: Auth middleware is applied at the parent router level (/admin)
 
 // Валидация для создания промокода
 const validatePromocodeCreation = [
@@ -38,7 +39,17 @@ const validatePromocodeCreation = [
     .isString()
     .trim()
     .isLength({ max: 500 })
-    .withMessage('Описание не должно превышать 500 символов')
+    .withMessage('Описание не должно превышать 500 символов'),
+    
+  body('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive должно быть булевым значением'),
+    
+  body('createdBy')
+    .optional()
+    .isNumeric()
+    .withMessage('createdBy должно быть числом')
 ];
 
 // Валидация для обновления промокода
@@ -104,8 +115,6 @@ const validatePromocodesList = [
  * @access Private (только админы)
  */
 router.post('/',
-  authenticateToken,
-  isAdmin,
   validatePromocodeCreation,
   adminPromocodeController.createPromocode
 );
@@ -116,8 +125,6 @@ router.post('/',
  * @access Private (только админы)
  */
 router.get('/',
-  authenticateToken,
-  isAdmin,
   validatePromocodesList,
   adminPromocodeController.getPromocodes
 );
@@ -128,8 +135,6 @@ router.get('/',
  * @access Private (только админы)
  */
 router.get('/stats',
-  authenticateToken,
-  isAdmin,
   adminPromocodeController.getPromocodesStats
 );
 
@@ -139,8 +144,6 @@ router.get('/stats',
  * @access Private (только админы)
  */
 router.get('/:id',
-  authenticateToken,
-  isAdmin,
   validatePromocodeId,
   adminPromocodeController.getPromocodeDetails
 );
@@ -151,8 +154,6 @@ router.get('/:id',
  * @access Private (только админы)
  */
 router.put('/:id',
-  authenticateToken,
-  isAdmin,
   validatePromocodeId,
   validatePromocodeUpdate,
   adminPromocodeController.updatePromocode
@@ -164,8 +165,6 @@ router.put('/:id',
  * @access Private (только админы)
  */
 router.patch('/:id/deactivate',
-  authenticateToken,
-  isAdmin,
   validatePromocodeId,
   adminPromocodeController.deactivatePromocode
 );
@@ -176,8 +175,6 @@ router.patch('/:id/deactivate',
  * @access Private (только админы)
  */
 router.delete('/:id',
-  authenticateToken,
-  isAdmin,
   validatePromocodeId,
   adminPromocodeController.deletePromocode
 );

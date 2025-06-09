@@ -154,6 +154,7 @@ function adminAuthMiddleware(req, res, next) {
       // Создаем виртуального админ-пользователя с валидным ObjectId
       req.user = {
         _id: systemAdminId,
+        id: systemAdminId.toString(), // Добавляем string версию для совместимости
         role: 'admin',
         isAdmin: true,
         firstName: 'Admin',

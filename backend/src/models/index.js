@@ -15,6 +15,7 @@ const EventBet = require('./EventBet');
 const Duel = require('./duel.model');
 const DuelRound = require('./duel-round.model');
 const DuelInvitation = require('./duel-invitation.model');
+const Promocode = require('./promocode.model');
 
 module.exports = {
   User,
@@ -32,5 +33,6 @@ module.exports = {
   EventBet,
   Duel,
   DuelRound,
-  DuelInvitation
+  DuelInvitation,
+  Promocode
 };

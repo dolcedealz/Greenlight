@@ -12,6 +12,7 @@ const authService = require('./auth.service');
 const eventService = require('./event.service');
 const duelService = require('./duel.service');
 const oddsService = require('./odds.service');
+const balanceMonitoringService = require('./balance-monitoring.service');
 
 module.exports = {
   gameService,
@@ -26,5 +27,6 @@ module.exports = {
   authService,
   eventService,
   duelService,
-  oddsService
+  oddsService,
+  balanceMonitoringService
 };

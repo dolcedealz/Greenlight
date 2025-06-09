@@ -26,9 +26,12 @@ function registerCallbackHandlers(bot) {
           description: `Пополнение через бот: ${amount} USDT`
         });
         
+        const netAmount = Math.round((amount * 0.97) * 100) / 100;
         await ctx.editMessageText(
           `💰 Счет создан успешно!\n\n` +
-          `💵 Сумма: ${amount} USDT\n` +
+          `💵 Сумма депозита: ${amount} USDT\n` +
+          `💸 Комиссия CryptoBot: ${(amount * 0.03).toFixed(2)} USDT (3%)\n` +
+          `💰 К зачислению: ${netAmount} USDT\n` +
           `🆔 ID: ${depositData.depositId}\n` +
           `⏰ Действует: 1 час\n\n` +
           `👇 Нажмите для оплаты:`,
@@ -72,7 +75,9 @@ function registerCallbackHandlers(bot) {
         `📋 Условия:\n` +
         `• Минимум: 1 USDT\n` +
         `• Максимум: 10,000 USDT\n` +
-        `• Валюта: только USDT\n\n` +
+        `• Валюта: только USDT\n` +
+        `• Комиссия CryptoBot: 3%\n\n` +
+        `ℹ️ Вы получите 97% от суммы на баланс\n\n` +
         `✍️ Напишите сумму числом (например: 25):`,
         Markup.inlineKeyboard([
           [Markup.button.callback('❌ Отмена', 'cancel_deposit')]
@@ -183,9 +188,12 @@ function registerCallbackHandlers(bot) {
         ctx.session.withdrawAmount = amount;
         ctx.session.waitingForWithdrawRecipient = true;
         
+        const netAmount = Math.round((amount * 0.97) * 100) / 100;
         await ctx.editMessageText(
           `💸 Вывод ${amount} USDT\n\n` +
-          `💰 Ваш баланс: ${balance} USDT\n\n` +
+          `💰 Ваш баланс: ${balance} USDT\n` +
+          `💸 Комиссия CryptoBot: ${(amount * 0.03).toFixed(2)} USDT (3%)\n` +
+          `💰 Вы получите: ${netAmount} USDT\n\n` +
           `👤 Укажите получателя:\n` +
           `• @username - для перевода пользователю Telegram\n` +
           `• Адрес кошелька - для внешнего перевода\n\n` +
@@ -222,7 +230,9 @@ function registerCallbackHandlers(bot) {
         `• Минимум: 1 USDT\n` +
         `• Максимум: 10,000 USDT\n` +
         `• До 300 USDT - автоматически\n` +
-        `• Свыше 300 USDT - требует одобрения\n\n` +
+        `• Свыше 300 USDT - требует одобрения\n` +
+        `• Комиссия CryptoBot: 3%\n\n` +
+        `ℹ️ Вы получите 97% от запрошенной суммы\n\n` +
         `✍️ Напишите сумму числом (например: 25):`,
         Markup.inlineKeyboard([
           [Markup.button.callback('❌ Отмена', 'cancel_withdraw')]
@@ -277,9 +287,12 @@ function registerCallbackHandlers(bot) {
           statusText = 'Принят в обработку';
       }
       
+      const netAmount = Math.round((amount * 0.97) * 100) / 100;
       await ctx.editMessageText(
         `${statusEmoji} Запрос на вывод создан\\n\\n` +
-        `💰 Сумма: ${amount} USDT\\n` +
+        `💰 Запрошено: ${amount} USDT\\n` +
+        `💸 Комиссия: ${(amount * 0.03).toFixed(2)} USDT (3%)\\n` +
+        `💰 К получению: ${netAmount} USDT\\n` +
         `👤 Получатель: ${recipient}\\n` +
         `🆔 ID: ${withdrawalData.withdrawalId}\\n` +
         `📊 Статус: ${statusText}\\n` +

@@ -277,6 +277,23 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
                       {transaction.amount >= 0 ? '+' : ''}{transaction.amount.toFixed(2)} USDT
                     </span>
                   </div>
+                  
+                  {/* НОВОЕ: Показ информации о комиссии для депозитов и выводов */}
+                  {transaction.payment && (transaction.type === 'deposit' || transaction.type === 'withdrawal') && (
+                    <div className="transaction-commission-info">
+                      {transaction.payment.grossAmount && (
+                        <span className="commission-detail">
+                          Валовая сумма: {transaction.payment.grossAmount.toFixed(2)} USDT
+                        </span>
+                      )}
+                      {transaction.payment.fee && transaction.payment.fee > 0 && (
+                        <span className="commission-detail commission-fee">
+                          Комиссия CryptoBot: {transaction.payment.fee.toFixed(2)} USDT (3%)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
                   <div className="transaction-info">
                     <span className="transaction-date">{formatDate(transaction.createdAt)}</span>
                     <span className="transaction-balance">Баланс: {transaction.balanceAfter.toFixed(2)} USDT</span>

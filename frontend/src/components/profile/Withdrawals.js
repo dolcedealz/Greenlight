@@ -76,8 +76,9 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
     }
 
     // Подтверждение операции
+    const netAmount = (amount * 0.97).toFixed(2);
     showConfirmation(
-      `Подтвердите вывод:\n\nСумма: ${amount} USDT\nПолучатель: @${recipient}\n${amount > 300 ? '⚠️ Требует одобрения администратора' : '⚡ Автоматическая обработка'}`,
+      `Подтвердите вывод:\n\nСумма к списанию: ${amount} USDT\nКомиссия CryptoBot: ${(amount * 0.03).toFixed(2)} USDT (3%)\nВы получите: ${netAmount} USDT\nПолучатель: @${recipient}\n${amount > 300 ? '⚠️ Требует одобрения администратора' : '⚡ Автоматическая обработка'}`,
       async () => {
         try {
           setLoading(true);
@@ -343,6 +344,24 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
                 />
               </div>
 
+              {/* НОВОЕ: Показ расчета комиссии */}
+              {withdrawalAmount && !isNaN(parseFloat(withdrawalAmount)) && parseFloat(withdrawalAmount) > 0 && (
+                <div className="commission-breakdown">
+                  <div className="breakdown-item">
+                    <span>Сумма к списанию:</span>
+                    <span>{parseFloat(withdrawalAmount).toFixed(2)} USDT</span>
+                  </div>
+                  <div className="breakdown-item commission">
+                    <span>Комиссия CryptoBot (3%):</span>
+                    <span>-{(parseFloat(withdrawalAmount) * 0.03).toFixed(2)} USDT</span>
+                  </div>
+                  <div className="breakdown-item total">
+                    <span><strong>Вы получите:</strong></span>
+                    <span><strong>{(parseFloat(withdrawalAmount) * 0.97).toFixed(2)} USDT</strong></span>
+                  </div>
+                </div>
+              )}
+
               <div className="preset-amounts">
                 {presetAmounts.map(amount => (
                   <button
@@ -352,6 +371,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
                     disabled={amount > balance}
                   >
                     {amount} USDT
+                    <small>получите {(amount * 0.97).toFixed(2)}</small>
                   </button>
                 ))}
               </div>
@@ -389,6 +409,7 @@ const Withdrawals = ({ balance, onBalanceUpdate }) => {
                 <p>💡 Максимальная сумма: 10,000 USDT</p>
                 <p>⚡ До 300 USDT - автоматически (5-15 мин)</p>
                 <p>⏳ Свыше 300 USDT - требует одобрения (24-48 ч)</p>
+                <p>ℹ️ Комиссия платежной системы: 3%</p>
               </div>
             </div>
 

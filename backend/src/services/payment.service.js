@@ -348,7 +348,8 @@ class PaymentService {
   }
 
   /**
-   * Зачисляет средства на баланс пользователя с учетом 3% комиссии CryptoBot
+   * Зачисляет средства на баланс пользователя с учетом прямой комиссии CryptoBot (3%)
+   * НОВАЯ МОДЕЛЬ: Пользователь получает 97% от суммы депозита
    * @param {Object} deposit - Объект депозита
    */
   async creditUserBalance(deposit) {
@@ -358,13 +359,13 @@ class PaymentService {
         throw new Error('Пользователь не найден');
       }
       
-      // НОВОЕ: Рассчитываем комиссию CryptoBot (3%)
-      const cryptoBotFee = Math.round(deposit.amount * 0.03 * 100) / 100; // Округляем до 2 знаков
-      const netAmount = Math.round((deposit.amount - cryptoBotFee) * 100) / 100; // Чистая сумма к зачислению
+      // ПРЯМАЯ МОДЕЛЬ КОМИССИЙ: Пользователь получает 97% от депозита
+      const cryptoBotFee = Math.round(deposit.amount * 0.03 * 100) / 100; // 3% комиссия
+      const netAmount = Math.round((deposit.amount - cryptoBotFee) * 100) / 100; // 97% пользователю
       
-      console.log(`PAYMENT: Депозит ${deposit.amount} USDT пользователю ${user._id}`);
-      console.log(`PAYMENT: Комиссия CryptoBot: ${cryptoBotFee} USDT (3%)`);
-      console.log(`PAYMENT: К зачислению: ${netAmount} USDT`);
+      console.log(`PAYMENT: Депозит ${deposit.amount} USDT (валовая сумма)`);
+      console.log(`PAYMENT: Комиссия CryptoBot: ${cryptoBotFee} USDT (3% - платит пользователь)`);
+      console.log(`PAYMENT: К зачислению пользователю: ${netAmount} USDT (97%)`);
       console.log(`PAYMENT: Баланс до: ${user.balance} USDT`);
       
       // Обновляем баланс пользователя чистой суммой
@@ -389,18 +390,18 @@ class PaymentService {
       const transaction = new Transaction({
         user: user._id,
         type: 'deposit',
-        amount: netAmount, // ИСПРАВЛЕНО: записываем чистую сумму
+        amount: netAmount, // Чистая сумма к пользователю (97%)
         status: 'completed',
-        description: `Депозит через CryptoBot: ${deposit.invoiceId} (комиссия: ${cryptoBotFee} USDT)`,
+        description: `Депозит через CryptoBot: ${deposit.amount} USDT (-3% комиссия = ${netAmount} USDT)`,
         balanceBefore: oldBalance,
         balanceAfter: newBalance,
         payment: {
           invoiceId: deposit.invoiceId,
           paymentMethod: 'cryptobot',
           externalReference: deposit.cryptoBotData.hash,
-          grossAmount: deposit.amount, // Валовая сумма
-          fee: cryptoBotFee, // Комиссия
-          netAmount: netAmount // Чистая сумма
+          grossAmount: deposit.amount, // Валовая сумма (100%)
+          fee: cryptoBotFee, // Комиссия CryptoBot (3%)
+          netAmount: netAmount // Чистая сумма пользователю (97%)
         }
       });
       
@@ -415,12 +416,12 @@ class PaymentService {
         user: user._id
       });
       
-      // Обрабатываем бонус за первый депозит реферала
+      // ВАЖНО: Обрабатываем бонус за первый депозит реферала с ЧИСТОЙ суммы
       try {
-        const firstDepositBonus = await referralService.processFirstDeposit(user._id, deposit.amount);
+        const firstDepositBonus = await referralService.processFirstDeposit(user._id, netAmount); // Используем netAmount, а не deposit.amount
         
         if (firstDepositBonus) {
-          console.log(`PAYMENT: Начислен бонус партнеру ${firstDepositBonus.partnerId} за первый депозит реферала`);
+          console.log(`PAYMENT: Начислен бонус партнеру ${firstDepositBonus.partnerId} за первый депозит реферала (с суммы ${netAmount} USDT)`);
         }
       } catch (refError) {
         console.error('PAYMENT: Ошибка обработки реферального бонуса:', refError);
@@ -430,8 +431,8 @@ class PaymentService {
       console.log(`PAYMENT: Баланс пользователя ${user._id} обновлен: ${oldBalance} -> ${newBalance} USDT`);
       console.log(`PAYMENT: Транзакция создана: ${transaction._id}`);
       
-      // Отправляем уведомление пользователю о депозите
-      await this.notifyUserAboutDeposit(user._id, deposit.amount);
+      // Отправляем уведомление пользователю о депозите с указанием комиссии
+      await this.notifyUserAboutDeposit(user._id, deposit.amount, netAmount, cryptoBotFee);
       
     } catch (error) {
       console.error('PAYMENT: Ошибка зачисления средств:', error);
@@ -541,9 +542,9 @@ class PaymentService {
   }
 
   /**
-   * Отправляет уведомление пользователю о успешном депозите
+   * Отправляет уведомление пользователю о успешном депозите с информацией о комиссии
    */
-  async notifyUserAboutDeposit(userId, amount) {
+  async notifyUserAboutDeposit(userId, grossAmount, netAmount, fee) {
     try {
       // Получаем пользователя
       const user = await User.findById(userId);
@@ -559,8 +560,11 @@ class PaymentService {
         const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
         
         const message = `✅ Ваш депозит успешно зачислен!\n\n` +
-          `💵 Сумма: ${amount} USDT\n` +
-          `💰 Новый баланс: ${user.balance.toFixed(2)} USDT\n\n` +
+          `💵 Сумма депозита: ${grossAmount} USDT\n` +
+          `💸 Комиссия CryptoBot: ${fee} USDT (3%)\n` +
+          `💰 Зачислено на баланс: ${netAmount} USDT\n` +
+          `🏦 Новый баланс: ${user.balance.toFixed(2)} USDT\n\n` +
+          `ℹ️ Комиссия платежной системы составляет 3%\n` +
           `🎮 Удачной игры!`;
         
         await axios.post(apiUrl, {

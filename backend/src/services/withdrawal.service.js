@@ -296,13 +296,13 @@ class WithdrawalService {
       
       console.log(`✅ WITHDRAWAL: Перевод создан в CryptoBot:`, transferData);
       
-      // НОВОЕ: Рассчитываем комиссию CryptoBot (3% от суммы вывода)
-      const cryptoBotFee = Math.round(withdrawal.amount * 0.03 * 100) / 100;
-      const netAmount = Math.round((withdrawal.amount - cryptoBotFee) * 100) / 100; // Фактически переведено
+      // ПРЯМАЯ МОДЕЛЬ КОМИССИЙ: Пользователь уже заплатил полную сумму, получит 97%
+      const cryptoBotFee = Math.round(withdrawal.amount * 0.03 * 100) / 100; // 3% комиссия
+      const netAmount = Math.round((withdrawal.amount - cryptoBotFee) * 100) / 100; // 97% к получению
       
-      console.log(`💸 WITHDRAWAL: Сумма вывода: ${withdrawal.amount} USDT`);
-      console.log(`💸 WITHDRAWAL: Комиссия CryptoBot: ${cryptoBotFee} USDT (3%)`);
-      console.log(`💸 WITHDRAWAL: Фактически переведено: ${netAmount} USDT`);
+      console.log(`💸 WITHDRAWAL: Запрошено к выводу: ${withdrawal.amount} USDT (списано с пользователя)`);
+      console.log(`💸 WITHDRAWAL: Комиссия CryptoBot: ${cryptoBotFee} USDT (3% - платит пользователь)`);
+      console.log(`💸 WITHDRAWAL: Пользователь получит: ${netAmount} USDT (97%)`);
       
       // Обновляем запись с данными от CryptoBot
       withdrawal.cryptoBotData = {
@@ -351,14 +351,17 @@ class WithdrawalService {
       
       console.log(`✅ WITHDRAWAL: Вывод ${withdrawalId} успешно обработан`);
       
-      // Отправляем уведомление об успешном выводе
+      // Отправляем уведомление об успешном выводе с информацией о комиссии
       try {
         await this.sendTelegramNotification(
           withdrawal.user.telegramId,
           `✅ Вывод успешно выполнен!\n\n` +
-          `💵 Сумма: ${withdrawal.amount} USDT\n` +
+          `💵 Запрошено: ${withdrawal.amount} USDT\n` +
+          `💸 Комиссия CryptoBot: ${cryptoBotFee} USDT (3%)\n` +
+          `💰 Получено: ${netAmount} USDT\n` +
           `📤 Получатель: @${withdrawal.recipient}\n` +
           `🔗 ID транзакции: ${transferData.transfer_id}\n\n` +
+          `ℹ️ Комиссия платежной системы составляет 3%\n` +
           `Спасибо за использование Greenlight Casino!`
         );
       } catch (notifyError) {
@@ -439,10 +442,14 @@ class WithdrawalService {
       // ВАЖНО: Используем уникальный spend_id с timestamp для избежания конфликтов
       const spendId = `${withdrawal._id}_${Date.now()}`;
       
+      // ПРЯМАЯ МОДЕЛЬ КОМИССИЙ: Переводим только чистую сумму (97%)
+      const cryptoBotFee = Math.round(withdrawal.amount * 0.03 * 100) / 100;
+      const netAmountToTransfer = Math.round((withdrawal.amount - cryptoBotFee) * 100) / 100;
+      
       const payload = {
         user_id: recipientTelegramId,
         asset: 'USDT',
-        amount: withdrawal.amount.toString(),
+        amount: netAmountToTransfer.toString(), // Переводим 97% от запрошенной суммы
         spend_id: spendId, // Уникальный ID с timestamp
         disable_send_notification: false
       };
@@ -540,7 +547,7 @@ class WithdrawalService {
           `💵 Сумма: ${withdrawal.amount} USDT\n` +
           `📤 Получатель: @${withdrawal.recipient}\n` +
           `📝 Причина: Технические проблемы\n\n` +
-          `Средства возвращены на ваш баланс.`
+          `💰 Полная сумма возвращена на ваш баланс.`
         );
       } catch (notifyError) {
         console.error('⚠️ WITHDRAWAL: Ошибка отправки уведомления о возврате:', notifyError);
@@ -621,10 +628,12 @@ class WithdrawalService {
     
     // Отправляем уведомление пользователю
     try {
+      const netAmount = Math.round((withdrawal.amount * 0.97) * 100) / 100;
       await this.sendTelegramNotification(
         withdrawal.user.telegramId,
         `✅ Ваш запрос на вывод одобрен!\n\n` +
-        `💵 Сумма: ${withdrawal.amount} USDT\n` +
+        `💵 Запрошено: ${withdrawal.amount} USDT\n` +
+        `💰 К получению: ${netAmount} USDT (после вычета 3% комиссии)\n` +
         `📤 Получатель: @${withdrawal.recipient}\n` +
         `⏳ Статус: Обрабатывается\n\n` +
         `Средства будут отправлены в течение 5-15 минут.`

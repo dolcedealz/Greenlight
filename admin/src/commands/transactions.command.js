@@ -109,11 +109,18 @@ async function showPendingWithdrawals(ctx) {
       const firstName = escapeMarkdown(user.firstName || '');
       const lastName = escapeMarkdown(user.lastName || '');
       
+      // ПРЯМАЯ МОДЕЛЬ КОМИССИЙ: Показываем детали комиссии
+      const cryptoBotFee = Math.round(withdrawal.amount * 0.03 * 100) / 100;
+      const netAmountToUser = Math.round((withdrawal.amount - cryptoBotFee) * 100) / 100;
+      
       message += `${index + 1}. ${suspiciousFlag}*${withdrawal.amount.toFixed(2)} USDT*\n`;
       message += `   👤 ${firstName} ${lastName} (${username})\n`;
       message += `   📱 ID: \`${user.telegramId}\`\n`;
       message += `   🏦 Получатель: \`${withdrawal.recipient}\`\n`;
       message += `   💰 Баланс пользователя: ${user.balance.toFixed(2)} USDT\n`;
+      message += `   💸 Списание с баланса: ${withdrawal.amount.toFixed(2)} USDT\n`;
+      message += `   📊 Комиссия CryptoBot (3%): ${cryptoBotFee.toFixed(2)} USDT\n`;
+      message += `   ✅ Пользователь получит: ${netAmountToUser.toFixed(2)} USDT\n`;
       message += `   📅 Создан: ${new Date(withdrawal.createdAt).toLocaleString('ru-RU')}\n`;
       
       if (withdrawal.comment) {
@@ -195,9 +202,15 @@ async function approveWithdrawal(ctx, withdrawalId) {
     const firstName = escapeMarkdown(withdrawal.user.firstName || '');
     const lastName = escapeMarkdown(withdrawal.user.lastName || '');
     
+    // ПРЯМАЯ МОДЕЛЬ КОМИССИЙ: Показываем детали в подтверждении
+    const cryptoBotFee = Math.round(withdrawal.amount * 0.03 * 100) / 100;
+    const netAmountToUser = Math.round((withdrawal.amount - cryptoBotFee) * 100) / 100;
+    
     await ctx.reply(
       `✅ *Вывод одобрен и обработан*\n\n` +
-      `💰 Сумма: ${withdrawal.amount.toFixed(2)} USDT\n` +
+      `💰 Списано с баланса: ${withdrawal.amount.toFixed(2)} USDT\n` +
+      `📊 Комиссия CryptoBot: ${cryptoBotFee.toFixed(2)} USDT (3%)\n` +
+      `✅ Пользователь получил: ${netAmountToUser.toFixed(2)} USDT\n` +
       `👤 Пользователь: ${firstName} ${lastName}\n` +
       `🏦 Получатель: \`${withdrawal.recipient}\`\n` +
       `📅 Время: ${new Date().toLocaleString('ru-RU')}`,
@@ -271,7 +284,7 @@ async function handleWithdrawalRejection(ctx) {
       `👤 Пользователь: ${withdrawal.user.firstName} ${withdrawal.user.lastName || ''}\n` +
       `📋 Причина: ${reason}\n` +
       `📅 Время: ${new Date().toLocaleString('ru-RU')}\n\n` +
-      `💰 Средства возвращены на баланс пользователя`,
+      `💰 Полная сумма ${withdrawal.amount.toFixed(2)} USDT возвращена на баланс пользователя`,
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([[
@@ -348,10 +361,20 @@ async function showTransactionsHistory(ctx, page = 1) {
       
       const statusEmoji = statusEmojis[withdrawal.status] || '❓';
       
+      // ПРЯМАЯ МОДЕЛЬ КОМИССИЙ: Показываем валовую и чистую суммы в истории
+      const cryptoBotFee = Math.round(withdrawal.amount * 0.03 * 100) / 100;
+      const netAmountToUser = Math.round((withdrawal.amount - cryptoBotFee) * 100) / 100;
+      
       message += `${(page - 1) * 10 + index + 1}. ${statusEmoji} *${withdrawal.amount.toFixed(2)} USDT*\n`;
       message += `   👤 ${user?.firstName || 'Неизвестно'} ${user?.lastName || ''}\n`;
       message += `   🏦 ${withdrawal.recipient}\n`;
       message += `   📊 Статус: ${withdrawal.status}\n`;
+      
+      // Показываем детали комиссии для завершенных выводов
+      if (withdrawal.status === 'completed' || withdrawal.status === 'approved') {
+        message += `   💸 Списано: ${withdrawal.amount.toFixed(2)} → Получено: ${netAmountToUser.toFixed(2)} USDT\n`;
+      }
+      
       message += `   📅 ${new Date(withdrawal.createdAt).toLocaleDateString('ru-RU')}\n`;
       
       if (withdrawal.rejectionReason) {

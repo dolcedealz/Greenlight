@@ -1166,6 +1166,115 @@ input:checked + .slider:before {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Стили для транзакций */
+.transactions-tab {
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  padding: 15px;
+  box-shadow: var(--shadow);
+}
+
+.transactions-tab h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: var(--primary-color);
+}
+
+.no-transactions {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transaction-item {
+  display: flex;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.transaction-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.transaction-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin-right: 12px;
+  font-size: 18px;
+}
+
+.transaction-details {
+  flex-grow: 1;
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.transaction-type {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.transaction-amount {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.transaction-amount.positive {
+  color: var(--primary-color);
+}
+
+.transaction-amount.negative {
+  color: #ff6b6b;
+}
+
+.transaction-commission-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.commission-detail {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.commission-detail.commission-fee {
+  color: #ff9999;
+}
+
+.transaction-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.transaction-description {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
   .referral-stats-grid {

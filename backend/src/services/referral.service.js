@@ -213,7 +213,7 @@ class ReferralService {
   /**
    * Обрабатывает первый депозит реферала и начисляет бонус партнеру
    * @param {string} userId - ID пользователя, сделавшего депозит
-   * @param {number} depositAmount - Сумма депозита
+   * @param {number} depositAmount - ЧИСТАЯ сумма депозита (97% после вычета комиссии CryptoBot)
    * @returns {Object|null} - Данные о начислении или null
    */
   async processFirstDeposit(userId, depositAmount) {
@@ -264,7 +264,7 @@ class ReferralService {
         balanceBefore: partner.referralStats.referralBalance,
         balanceAfter: partner.referralStats.referralBalance + bonusAmount,
         metadata: {
-          notes: `Бонус за первый депозит реферала ${depositAmount} USDT`
+          notes: `Бонус за первый депозит реферала ${depositAmount} USDT (чистая сумма после комиссии)`
         },
         creditedAt: new Date()
       });

@@ -1,4 +1,44 @@
 /* frontend/src/styles/Withdrawals.css */
+
+/* Новые стили для показа комиссий */
+.commission-breakdown {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 15px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.breakdown-item.commission {
+  color: #ff6b6b;
+}
+
+.breakdown-item.total {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 8px;
+  padding-top: 8px;
+  color: #4ecdc4;
+}
+
+.preset-amount-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.preset-amount-button small {
+  font-size: 10px;
+  opacity: 0.7;
+  color: #4ecdc4;
+}
 .withdrawals-section {
   margin-bottom: 20px;
 }

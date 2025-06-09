@@ -9,6 +9,7 @@ const referralController = require('./referral.controller');
 const crashController = require('./crash.controller');
 const authController = require('./auth.controller');
 const eventController = require('./event.controller'); // Добавляем события
+const monitoringController = require('./monitoring.controller');
 
 module.exports = {
   gameController,
@@ -20,5 +21,6 @@ module.exports = {
   referralController,
   crashController,
   authController,
-  eventController // Добавляем события
+  eventController, // Добавляем события
+  monitoringController
 };

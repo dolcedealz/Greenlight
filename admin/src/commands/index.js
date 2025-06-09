@@ -1192,11 +1192,13 @@ function registerCommands(bot) {
     console.warn('monitoring.command module not found');
     monitoringCommands = { 
       showMonitoringMenu: async (ctx) => await ctx.reply('❌ Модуль мониторинга временно недоступен'),
-      showSystemMetrics: async (ctx) => await ctx.reply('❌ Функция системных метрик временно недоступна'),
-      showPerformanceMetrics: async (ctx) => await ctx.reply('❌ Функция метрик производительности временно недоступна'),
-      showOnlineUsers: async (ctx) => await ctx.reply('❌ Функция онлайн пользователей временно недоступна'),
-      showFinancialMonitoring: async (ctx) => await ctx.reply('❌ Функция финансового мониторинга временно недоступна'),
-      showActiveAlerts: async (ctx) => await ctx.reply('❌ Функция активных алертов временно недоступна')
+      checkBalances: async (ctx) => await ctx.reply('❌ Функция проверки балансов временно недоступна'),
+      showMonitoringStats: async (ctx) => await ctx.reply('❌ Функция статистики мониторинга временно недоступна'),
+      showMonitoringNotifications: async (ctx) => await ctx.reply('❌ Функция уведомлений мониторинга временно недоступна'),
+      getCryptoBotBalance: async (ctx) => await ctx.reply('❌ Функция баланса CryptoBot временно недоступна'),
+      getSystemBalance: async (ctx) => await ctx.reply('❌ Функция системного баланса временно недоступна'),
+      startMonitoring: async (ctx) => await ctx.reply('❌ Функция запуска мониторинга временно недоступна'),
+      stopMonitoring: async (ctx) => await ctx.reply('❌ Функция остановки мониторинга временно недоступна')
     };
   }
   

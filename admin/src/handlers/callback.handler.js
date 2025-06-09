@@ -23,10 +23,53 @@ const eventsCommands = require('../commands/events.command');
 const transactionsCommands = require('../commands/transactions.command');
 const promoCommands = require('../commands/promo.command');
 const coefficientsCommands = require('../commands/coefficients.command');
-const monitoringCommands = require('../commands/monitoring.command');
-const notificationsCommands = require('../commands/notifications.command');
-const securityCommands = require('../commands/security.command');
-const backupCommands = require('../commands/backup.command');
+// Импортируем команды мониторинга с обработкой ошибок
+let monitoringCommands;
+try {
+  monitoringCommands = require('../commands/monitoring.command');
+} catch (e) {
+  console.warn('monitoring.command module not found, using fallback');
+  monitoringCommands = {
+    showMonitoringMenu: async (ctx) => await ctx.reply('❌ Модуль мониторинга временно недоступен'),
+    checkBalances: async (ctx) => await ctx.reply('❌ Функция проверки балансов временно недоступна'),
+    showMonitoringStats: async (ctx) => await ctx.reply('❌ Функция статистики мониторинга временно недоступна'),
+    showMonitoringNotifications: async (ctx) => await ctx.reply('❌ Функция уведомлений мониторинга временно недоступна'),
+    getCryptoBotBalance: async (ctx) => await ctx.reply('❌ Функция баланса CryptoBot временно недоступна'),
+    getSystemBalance: async (ctx) => await ctx.reply('❌ Функция системного баланса временно недоступна'),
+    startMonitoring: async (ctx) => await ctx.reply('❌ Функция запуска мониторинга временно недоступна'),
+    stopMonitoring: async (ctx) => await ctx.reply('❌ Функция остановки мониторинга временно недоступна')
+  };
+}
+
+let notificationsCommands;
+try {
+  notificationsCommands = require('../commands/notifications.command');
+} catch (e) {
+  console.warn('notifications.command module not found, using fallback');
+  notificationsCommands = {
+    showNotificationsMenu: async (ctx) => await ctx.reply('❌ Модуль уведомлений временно недоступен')
+  };
+}
+
+let securityCommands;
+try {
+  securityCommands = require('../commands/security.command');
+} catch (e) {
+  console.warn('security.command module not found, using fallback');
+  securityCommands = {
+    showSecurityMenu: async (ctx) => await ctx.reply('❌ Модуль безопасности временно недоступен')
+  };
+}
+
+let backupCommands;
+try {
+  backupCommands = require('../commands/backup.command');
+} catch (e) {
+  console.warn('backup.command module not found, using fallback');
+  backupCommands = {
+    showBackupMenu: async (ctx) => await ctx.reply('❌ Модуль бэкапов временно недоступен')
+  };
+}
 
 /**
  * Регистрирует все callback handlers для админ-бота
@@ -1219,6 +1262,56 @@ function registerCallbackHandlers(bot) {
     console.log(`ADMIN: Callback backup_list_${page}`);
     await ctx.answerCbQuery();
     await backupCommands.showBackupList(ctx, page);
+  });
+
+  // === МОНИТОРИНГ БАЛАНСОВ ===
+
+  bot.action('monitoring_menu', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_menu');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showMonitoringMenu(ctx);
+  });
+
+  bot.action('monitoring_check', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_check');
+    await ctx.answerCbQuery();
+    await monitoringCommands.checkBalances(ctx);
+  });
+
+  bot.action('monitoring_stats', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_stats');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showMonitoringStats(ctx);
+  });
+
+  bot.action('monitoring_notifications', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_notifications');
+    await ctx.answerCbQuery();
+    await monitoringCommands.showMonitoringNotifications(ctx);
+  });
+
+  bot.action('monitoring_cryptobot', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_cryptobot');
+    await ctx.answerCbQuery();
+    await monitoringCommands.getCryptoBotBalance(ctx);
+  });
+
+  bot.action('monitoring_system', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_system');
+    await ctx.answerCbQuery();
+    await monitoringCommands.getSystemBalance(ctx);
+  });
+
+  bot.action('monitoring_start', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_start');
+    await ctx.answerCbQuery();
+    await monitoringCommands.startMonitoring(ctx);
+  });
+
+  bot.action('monitoring_stop', async (ctx) => {
+    console.log('ADMIN: Callback monitoring_stop');
+    await ctx.answerCbQuery();
+    await monitoringCommands.stopMonitoring(ctx);
   });
 
   // === СТАТИСТИКА МЕНЮ ===

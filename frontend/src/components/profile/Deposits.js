@@ -235,6 +235,24 @@ const Deposits = ({ balance, onBalanceUpdate }) => {
                 />
               </div>
 
+              {/* НОВОЕ: Показ расчета комиссии */}
+              {depositAmount && !isNaN(parseFloat(depositAmount)) && parseFloat(depositAmount) > 0 && (
+                <div className="commission-breakdown">
+                  <div className="breakdown-item">
+                    <span>Сумма депозита:</span>
+                    <span>{parseFloat(depositAmount).toFixed(2)} USDT</span>
+                  </div>
+                  <div className="breakdown-item commission">
+                    <span>Комиссия CryptoBot (3%):</span>
+                    <span>-{(parseFloat(depositAmount) * 0.03).toFixed(2)} USDT</span>
+                  </div>
+                  <div className="breakdown-item total">
+                    <span><strong>К зачислению:</strong></span>
+                    <span><strong>{(parseFloat(depositAmount) * 0.97).toFixed(2)} USDT</strong></span>
+                  </div>
+                </div>
+              )}
+
               <div className="preset-amounts">
                 {presetAmounts.map(amount => (
                   <button
@@ -243,6 +261,7 @@ const Deposits = ({ balance, onBalanceUpdate }) => {
                     onClick={() => setDepositAmount(amount.toString())}
                   >
                     {amount} USDT
+                    <small>получите {(amount * 0.97).toFixed(2)}</small>
                   </button>
                 ))}
               </div>
@@ -251,6 +270,7 @@ const Deposits = ({ balance, onBalanceUpdate }) => {
                 <p>💡 Минимальная сумма: 1 USDT</p>
                 <p>💡 Максимальная сумма: 10,000 USDT</p>
                 <p>💡 Пополнение через @CryptoBot</p>
+                <p>ℹ️ Комиссия платежной системы: 3%</p>
               </div>
             </div>
 

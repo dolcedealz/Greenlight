@@ -159,4 +159,19 @@ app.use(notFoundMiddleware);
 // Global error handler
 app.use(errorMiddleware);
 
+// Запуск сервиса мониторинга балансов
+try {
+  const { balanceMonitoringService } = require('./services');
+  
+  // Запускаем мониторинг только в продакшене или при явном указании
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_BALANCE_MONITORING === 'true') {
+    balanceMonitoringService.startMonitoring();
+    logger.info('✅ Сервис мониторинга балансов запущен');
+  } else {
+    logger.info('ℹ️ Сервис мониторинга балансов отключен (не продакшен)');
+  }
+} catch (error) {
+  logger.error('❌ Ошибка запуска сервиса мониторинга балансов:', error);
+}
+
 module.exports = app;

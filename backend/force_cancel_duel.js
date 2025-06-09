@@ -13,7 +13,8 @@ const logger = createLogger('FORCE_CANCEL');
 
 async function connectDB() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/greenlight';
+    await mongoose.connect(mongoUri);
     logger.info('✅ Подключение к MongoDB установлено');
   } catch (error) {
     logger.error('❌ Ошибка подключения к MongoDB:', error);

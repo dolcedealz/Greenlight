@@ -8,7 +8,7 @@ const logger = createLogger('BALANCE_MONITORING');
 
 class BalanceMonitoringService {
   constructor() {
-    this.cryptoBotToken = process.env.CRYPTOBOT_TOKEN;
+    this.cryptoBotToken = process.env.CRYPTO_PAY_API_TOKEN;
     this.adminNotifications = [];
     this.isMonitoring = false;
     this.lastCheckTime = null;
@@ -22,7 +22,13 @@ class BalanceMonitoringService {
   async getCryptoBotBalance() {
     try {
       if (!this.cryptoBotToken) {
-        throw new Error('CryptoBot токен не настроен');
+        logger.warn('CryptoBot токен не настроен - баланс недоступен');
+        return {
+          available: 0,
+          onhold: 0,
+          total: 0,
+          warning: 'CryptoBot токен не настроен'
+        };
       }
 
       const response = await axios.get('https://pay.crypt.bot/api/getBalance', {

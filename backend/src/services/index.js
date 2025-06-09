@@ -12,7 +12,15 @@ const authService = require('./auth.service');
 const eventService = require('./event.service');
 const duelService = require('./duel.service');
 const oddsService = require('./odds.service');
-const balanceMonitoringService = require('./balance-monitoring.service');
+
+// Безопасная загрузка сервиса мониторинга
+let balanceMonitoringService;
+try {
+  balanceMonitoringService = require('./balance-monitoring.service');
+} catch (error) {
+  console.error('Ошибка загрузки balance monitoring service:', error.message);
+  balanceMonitoringService = null;
+}
 
 module.exports = {
   gameService,

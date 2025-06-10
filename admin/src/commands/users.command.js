@@ -116,19 +116,19 @@ async function showUsersList(ctx, page = 1) {
       
       if (ctx.callbackQuery) {
         await ctx.editMessageText(message, {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...keyboard
         });
       } else {
         await ctx.reply(message, {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...keyboard
         });
       }
       return;
     }
     
-    let message = `👥 *Список пользователей* (стр. ${pagination.current}/${pagination.pages})\n\n`;
+    let message = `👥 <b>Список пользователей</b> (стр. ${pagination.current}/${pagination.pages})\n\n`;
     
     users.forEach((user, index) => {
       try {
@@ -164,8 +164,8 @@ async function showUsersList(ctx, page = 1) {
           .replace(/\s+/g, ' ')
           .trim();
         
-        const firstName = escapeMarkdown(cleanFirstName || 'Пользователь');
-        const lastName = escapeMarkdown(cleanLastName);
+        const firstName = escapeHtml(cleanFirstName || 'Пользователь');
+        const lastName = escapeHtml(cleanLastName);
         
         // Создаем полное имя, убеждаемся что оно не пустое
         let fullName = `${firstName} ${lastName}`.trim();
@@ -177,7 +177,7 @@ async function showUsersList(ctx, page = 1) {
         const profitLossEmoji = profitLoss >= 0 ? '📈' : '📉';
         const profitLossSign = profitLoss >= 0 ? '+' : '';
         
-        message += `${userNum}\\. ${statusEmoji} *${fullName}*\n`;
+        message += `${userNum}. ${statusEmoji} <b>${fullName}</b>\n`;
         message += `   ${username}\n`;
         message += `   💰 Баланс: ${(user.balance || 0).toFixed(2)} USDT\n`;
         message += `   ${profitLossEmoji} П/У: ${profitLossSign}${profitLoss.toFixed(2)} USDT\n`;
@@ -203,7 +203,7 @@ async function showUsersList(ctx, page = 1) {
         }
       } catch (userError) {
         console.error('ADMIN: Ошибка обработки пользователя:', userError, user);
-        message += `${(pagination.current - 1) * 10 + index + 1}\\. ❌ *Ошибка отображения пользователя*\n\n`;
+        message += `${(pagination.current - 1) * 10 + index + 1}. ❌ <b>Ошибка отображения пользователя</b>\n\n`;
       }
     });
     
@@ -235,12 +235,12 @@ async function showUsersList(ctx, page = 1) {
     
     if (ctx.callbackQuery) {
       await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     } else {
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     }
@@ -544,12 +544,12 @@ async function showUserDetails(ctx, userId) {
     
     if (ctx.callbackQuery) {
       await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...Markup.inlineKeyboard(buttons)
       });
     } else {
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...Markup.inlineKeyboard(buttons)
       });
     }
@@ -596,12 +596,12 @@ async function showBlockedUsers(ctx, page = 1) {
       
       if (ctx.callbackQuery) {
         await ctx.editMessageText(message, {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...keyboard
         });
       } else {
         await ctx.reply(message, {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...keyboard
         });
       }
@@ -693,12 +693,12 @@ async function showBlockedUsers(ctx, page = 1) {
     
     if (ctx.callbackQuery) {
       await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     } else {
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     }
@@ -772,12 +772,12 @@ async function showUsersStats(ctx) {
     
     if (ctx.callbackQuery) {
       await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     } else {
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     }
@@ -900,7 +900,7 @@ async function handleBalanceAdjustment(ctx) {
         `💰 Изменение: ${result.adjustment > 0 ? '+' : ''}${result.adjustment.toFixed(2)} USDT\n` +
         `📝 Причина: ${reason}`,
         {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...Markup.inlineKeyboard([[
             Markup.button.callback('👤 К профилю', `user_details_${session.userId}`)
           ]])
@@ -943,12 +943,12 @@ async function showUsersMenu(ctx) {
   try {
     if (ctx.callbackQuery) {
       await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     } else {
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     }
@@ -989,12 +989,12 @@ async function showPartnersMenu(ctx) {
   try {
     if (ctx.callbackQuery) {
       await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     } else {
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     }
@@ -1039,12 +1039,12 @@ async function showPartnersList(ctx, page = 1) {
       
       if (ctx.callbackQuery) {
         await ctx.editMessageText(message, {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...keyboard
         });
       } else {
         await ctx.reply(message, {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...keyboard
         });
       }
@@ -1122,12 +1122,12 @@ async function showPartnersList(ctx, page = 1) {
     
     if (ctx.callbackQuery) {
       await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     } else {
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     }
@@ -1224,7 +1224,7 @@ async function handlePartnerAssignment(ctx) {
       ]);
       
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
       
@@ -1274,7 +1274,7 @@ async function handlePartnerAssignment(ctx) {
         `👑 Админ: ${result.admin.username}\n` +
         `📝 Причина: ${reason}`,
         {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...Markup.inlineKeyboard([[
             Markup.button.callback('📋 К списку партнеров', 'partners_list')
           ]])
@@ -1358,12 +1358,12 @@ async function showPartnersLogs(ctx, page = 1) {
       
       if (ctx.callbackQuery) {
         await ctx.editMessageText(message, {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...keyboard
         });
       } else {
         await ctx.reply(message, {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           ...keyboard
         });
       }
@@ -1420,12 +1420,12 @@ async function showPartnersLogs(ctx, page = 1) {
     
     if (ctx.callbackQuery) {
       await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     } else {
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     }
@@ -1503,12 +1503,12 @@ async function showPartnersStats(ctx) {
     
     if (ctx.callbackQuery) {
       await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     } else {
       await ctx.reply(message, {
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
         ...keyboard
       });
     }

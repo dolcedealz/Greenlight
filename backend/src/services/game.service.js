@@ -130,6 +130,8 @@ class GameService {
       if (win) {
         user.totalWon += betAmount * multiplier;
       }
+      // Обновляем прогресс отыгрыша (wagering progress)
+      user.wageringCompleted = (user.wageringCompleted || 0) + betAmount;
       user.lastActivity = new Date();
       await user.save({ session });
       
@@ -446,6 +448,8 @@ async playSlots(userData, gameData) {
     if (win) {
       user.totalWon += winAmount;
     }
+    // Обновляем прогресс отыгрыша (wagering progress)
+    user.wageringCompleted = (user.wageringCompleted || 0) + betAmount;
     user.lastActivity = new Date();
     await user.save({ session });
     
@@ -795,6 +799,8 @@ async playSlots(userData, gameData) {
       // Обновляем баланс пользователя (списываем ставку)
       user.balance = balanceAfter;
       user.totalWagered += betAmount;
+      // Обновляем прогресс отыгрыша (wagering progress)
+      user.wageringCompleted = (user.wageringCompleted || 0) + betAmount;
       user.lastActivity = new Date();
       await user.save({ session });
       

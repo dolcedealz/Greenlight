@@ -293,11 +293,14 @@ async function executePromocodeActivation(promocode, user, userIp) {
       const balanceAmount = promocode.settings.balanceAmount || promocode.value;
       const balanceBefore = user.balance;
       
-      // АТОМАРНО обновляем баланс пользователя
+      // АТОМАРНО обновляем баланс пользователя и добавляем wagering requirement
       const updatedUser = await User.findByIdAndUpdate(
         user._id,
         { 
-          $inc: { balance: balanceAmount },
+          $inc: { 
+            balance: balanceAmount,
+            wageringRequired: balanceAmount // х1 от суммы бонуса
+          },
           lastActivity: new Date()
         },
         { 

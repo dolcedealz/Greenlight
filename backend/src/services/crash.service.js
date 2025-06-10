@@ -656,6 +656,8 @@ class CrashService extends EventEmitter {
       
       // Списываем средства с баланса
       user.balance -= betAmount;
+      // Обновляем прогресс отыгрыша (wagering progress)
+      user.wageringCompleted = (user.wageringCompleted || 0) + betAmount;
       await user.save({ session });
       
       // Создаем транзакцию ставки

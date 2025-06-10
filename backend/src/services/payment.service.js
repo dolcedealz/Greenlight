@@ -374,6 +374,11 @@ class PaymentService {
       
       user.balance = newBalance;
       user.lastActivity = new Date();
+      
+      // Добавляем требование по отыгрышу (wagering requirement)
+      // х1 от суммы депозита
+      user.wageringRequired = (user.wageringRequired || 0) + netAmount;
+      
       await user.save();
       
       // Обновляем информацию о балансах и комиссии в депозите

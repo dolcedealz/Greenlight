@@ -121,6 +121,15 @@ class WithdrawalService {
         throw new Error('Недостаточно средств на балансе');
       }
       
+      // Проверяем wagering requirements (требования по отыгрышу)
+      const wageringRequired = user.wageringRequired || 0;
+      const wageringCompleted = user.wageringCompleted || 0;
+      
+      if (wageringRequired > wageringCompleted) {
+        const remaining = wageringRequired - wageringCompleted;
+        throw new Error(`Необходимо сделать ставок на сумму ${remaining.toFixed(2)} USDT перед выводом средств`);
+      }
+      
       // Проверяем наличие других активных выводов
       const activeWithdrawals = await Withdrawal.find({
         user: userId,

@@ -243,7 +243,10 @@ class EventService {
             isBlocked: false
           },
           { 
-            $inc: { balance: -amount },
+            $inc: { 
+              balance: -amount,
+              wageringCompleted: amount // Обновляем прогресс отыгрыша
+            },
             lastActivity: new Date()
           },
           { 

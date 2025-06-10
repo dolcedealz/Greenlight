@@ -207,6 +207,17 @@ const userSchema = new Schema({
     type: Date,
     default: null
   },
+  // Wagering requirements (требования по отыгрышу)
+  wageringRequired: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  wageringCompleted: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   // Уровень пользователя
   level: {
     type: Number,

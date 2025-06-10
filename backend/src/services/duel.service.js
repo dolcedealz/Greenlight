@@ -907,7 +907,10 @@ class DuelService {
         balance: { $gte: amount }  // Атомарная проверка достаточности средств
       },
       { 
-        $inc: { balance: -amount },
+        $inc: { 
+          balance: -amount,
+          wageringCompleted: amount // Обновляем прогресс отыгрыша
+        },
         $push: { 
           lockedFunds: { 
             amount, 

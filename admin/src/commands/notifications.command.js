@@ -354,22 +354,17 @@ async function confirmNotificationSend(ctx) {
       throw new Error(response.data.message || 'Ошибка отправки рассылки');
     }
     
-    const result = response.data.data.notification;
+    const result = response.data.data;
     
     let message = '✅ *Рассылка запущена успешно!*\n\n';
     message += `📊 **Статистика отправки:**\n`;
-    message += `📤 Отправлено: ${result.sent || 0}\n`;
+    message += `📤 Отправлено: ${result.success || result.sent || 0}\n`;
     message += `❌ Ошибок: ${result.failed || 0}\n`;
-    message += `⏳ В очереди: ${result.queued || 0}\n`;
-    message += `🆔 ID рассылки: \`${result._id}\`\n\n`;
+    message += `👥 Всего пользователей: ${result.total || result.totalUsers || 0}\n`;
     
-    if (notificationData.timing === 'scheduled') {
-      message += `⏰ Запланировано на: ${notificationData.scheduleTime}\n`;
-    } else {
-      message += `⚡ Время отправки: ${result.duration || 0}ms\n`;
+    if (result.message) {
+      message += `\n📝 Сообщение: "${result.message}"`;
     }
-    
-    message += `\n📊 Подробная статистика доступна в разделе "История рассылок"`;
     
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback('📋 История рассылок', 'notifications_history')],

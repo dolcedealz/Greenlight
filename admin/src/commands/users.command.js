@@ -153,13 +153,23 @@ async function showUsersList(ctx, page = 1) {
           }
         }
         
-        // Безопасная обработка имен
-        const firstName = escapeMarkdown(user.firstName || 'Пользователь');
-        const lastName = escapeMarkdown(user.lastName || '');
+        // Безопасная обработка имен - удаляем невидимые символы
+        const cleanFirstName = (user.firstName || 'Пользователь')
+          .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '') // Удаляем zero-width и soft hyphen
+          .replace(/\s+/g, ' ') // Нормализуем пробелы
+          .trim();
+        
+        const cleanLastName = (user.lastName || '')
+          .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        const firstName = escapeMarkdown(cleanFirstName || 'Пользователь');
+        const lastName = escapeMarkdown(cleanLastName);
         
         // Создаем полное имя, убеждаемся что оно не пустое
         let fullName = `${firstName} ${lastName}`.trim();
-        if (!fullName || fullName === 'Unknown Unknown' || fullName === 'Unknown') {
+        if (!fullName || fullName === 'Unknown Unknown' || fullName === 'Unknown' || fullName.length < 2) {
           fullName = `Пользователь ${user.telegramId || userNum}`;
         }
         

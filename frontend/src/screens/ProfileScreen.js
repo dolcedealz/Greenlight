@@ -713,7 +713,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           </div>
           <div className="about-links">
             <a 
-              href="https://t.me/greenlight_news" 
+              href="https://t.me/greenlightgames" 
               target="_blank" 
               rel="noopener noreferrer"
               onClick={handleLinkClick}
@@ -721,7 +721,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               Канал Telegram
             </a>
             <a 
-              href="https://t.me/greenlight_support" 
+              href="https://t.me/greenlightgamessupport" 
               target="_blank" 
               rel="noopener noreferrer"
               onClick={handleLinkClick}

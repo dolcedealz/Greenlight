@@ -522,13 +522,21 @@ const CrashGame = ({
       return;
     }
 
-    if (!betAmount || betAmount <= 0) {
+    const numericBetAmount = parseFloat(betAmount);
+    
+    if (!betAmount || betAmount === '' || isNaN(numericBetAmount) || numericBetAmount <= 0) {
 
       setError('Укажите корректную сумму ставки');
       return;
     }
 
-    if (betAmount > balance) {
+    if (numericBetAmount < 0.1) {
+
+      setError('Минимальная ставка: 0.1 USDT');
+      return;
+    }
+
+    if (numericBetAmount > balance) {
 
       setError('Недостаточно средств на балансе');
       return;
@@ -541,7 +549,7 @@ const CrashGame = ({
 
       const finalAutoCashOut = autoCashOutEnabled && autoCashOut && !isNaN(autoCashOut) ? autoCashOut : 0;
 
-      const response = await gameApi.placeCrashBet(betAmount, finalAutoCashOut);
+      const response = await gameApi.placeCrashBet(numericBetAmount, finalAutoCashOut);
 
       if (response.success) {
 
@@ -554,7 +562,7 @@ const CrashGame = ({
         setLocalAutoCashOutTriggered(false);
         setPendingAutoCashOut(false);
         setUserBet({
-          amount: betAmount,
+          amount: numericBetAmount,
           autoCashOut: finalAutoCashOut
         });
         setUserGameId(response.data.gameId);

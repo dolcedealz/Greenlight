@@ -321,20 +321,20 @@ const HistoryScreen = () => {
           // Рендер обычной игры
           const game = item;
           return (
-            <div key={game._id} className={`history-item ${game.win ? 'win' : 'lose'}`}>
+            <div key={game._id} className={`history-item ${game.profit > 0 ? 'win' : 'lose'}`}>
             <div className="history-icon">
               {getGameIcon(game.gameType)}
             </div>
             <div className="history-details">
               <div className="history-header">
                 <span className="history-title">{getGameName(game.gameType)}</span>
-                <span className={`history-amount ${game.win ? 'positive' : 'negative'}`}>
-                  {game.win ? '+' : '-'}{Math.abs(game.profit).toFixed(2)} USDT
+                <span className={`history-amount ${game.profit > 0 ? 'positive' : 'negative'}`}>
+                  {game.profit >= 0 ? '+' : ''}{game.profit.toFixed(2)} USDT
                 </span>
               </div>
               <div className="history-info">
                 <span className="history-date">{formatDate(game.createdAt)}</span>
-                <span className="history-result">{game.win ? 'Выигрыш' : 'Проигрыш'}</span>
+                <span className="history-result">{game.profit > 0 ? 'Выигрыш' : 'Проигрыш'}</span>
               </div>
               <div className="history-details-row">
                 <div className="detail-item">

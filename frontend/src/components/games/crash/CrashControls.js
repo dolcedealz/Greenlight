@@ -33,13 +33,21 @@ const CrashControls = ({
   const handleBetAmountChange = (e) => {
     const inputValue = e.target.value;
 
+    // Разрешаем пустую строку для очистки поля
     if (inputValue === '') {
       setBetAmount('');
       return;
     }
 
+    // Разрешаем ввод точки или запятой для десятичных чисел
+    if (inputValue === '.' || inputValue === '0.' || inputValue.endsWith('.')) {
+      setBetAmount(inputValue);
+      return;
+    }
+
     const value = parseFloat(inputValue);
-    if (!isNaN(value) && value >= 0 && value <= balance) {
+    // Проверяем: число валидно, больше 0, минимум 0.1, не превышает баланс
+    if (!isNaN(value) && value > 0 && value <= balance) {
       setBetAmount(value);
       buttonPressFeedback();
     }
@@ -66,8 +74,11 @@ const CrashControls = ({
     if (gameState !== 'waiting' || hasBet || loading) return;
 
     buttonPressFeedback();
-    const quickBet = Math.min(balance, Math.max(0.1, Math.floor(balance * multiplier * 100) / 100));
-    setBetAmount(quickBet);
+    // Рассчитываем ставку с учетом множителя и округляем до 2 знаков
+    const calculatedBet = Math.floor(balance * multiplier * 100) / 100;
+    // Устанавливаем минимум 0.1 и максимум баланс
+    const quickBet = Math.min(balance, Math.max(0.1, calculatedBet));
+    setBetAmount(Number(quickBet.toFixed(2)));
   };
 
   // Быстрые значения автовывода
@@ -173,7 +184,7 @@ const CrashControls = ({
               onChange={handleBetAmountChange}
               disabled={!canEditBet}
               className="amount-input"
-              placeholder="0.00"
+              placeholder="Введите ставку (мин. 0.1)"
             />
             <span className="input-suffix">USDT</span>
           </div>

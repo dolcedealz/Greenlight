@@ -299,10 +299,10 @@ const SlotMachine = ({
       {/* Информация о результате */}
       {showingResult && finalResultRef.current && !isSpinning && !isAnimating && (
         <div className="last-spin-info">
-          {finalResultRef.current.win ? (
+          {finalResultRef.current.win && finalResultRef.current.profit > 0 ? (
             <div className="win-display">
               <span className="win-text">💰 ВЫИГРЫШ! 💰</span>
-              <span className="win-amount">+{(Math.abs(finalResultRef.current.profit) || 0).toFixed(2)} USDT</span>
+              <span className="win-amount">+{(finalResultRef.current.profit || 0).toFixed(2)} USDT</span>
               {finalResultRef.current.winningSymbols && finalResultRef.current.winningSymbols.length > 0 && (
                 <div className="winning-symbols">
                   {finalResultRef.current.winningSymbols.map((symbolName, index) => {
@@ -355,7 +355,8 @@ const SlotMachine = ({
             </div>
           ) : (
             <div className="lose-display">
-              <span className="lose-text">🎯 Удача в следующий раз!</span>
+              <span className="lose-text">😔 ПРОИГРЫШ</span>
+              <span className="lose-amount">{(finalResultRef.current.profit || 0).toFixed(2)} USDT</span>
             </div>
           )}
         </div>

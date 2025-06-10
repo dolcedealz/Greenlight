@@ -1339,9 +1339,11 @@ class AdminController {
           throw new Error('INTERNAL_API_KEY не настроен');
         }
         
-        console.log(`📤 ADMIN: Отправляем запрос к боту: ${botUrl}/api/notifications/send`);
+        // Убираем лишний слеш если он есть
+        const cleanBotUrl = botUrl.replace(/\/$/, '');
         
-        const response = await axios.post(`${botUrl}/api/notifications/send`, {
+        console.log(`📤 ADMIN: Отправляем запрос к боту: ${cleanBotUrl}/api/notifications/send`);
+        const response = await axios.post(`${cleanBotUrl}/api/notifications/send`, {
           users: users.map(u => ({ telegramId: u.telegramId, username: u.username })),
           message,
           priority,

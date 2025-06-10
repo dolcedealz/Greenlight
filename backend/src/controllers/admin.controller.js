@@ -1267,4 +1267,117 @@ class AdminController {
   }
 }
 
+  /**
+   * Отправка массовых уведомлений пользователям
+   */
+  async sendNotifications(req, res) {
+    try {
+      const { audienceType, message, priority, timing, adminId } = req.body;
+      
+      console.log('📢 ADMIN: Отправка массовых уведомлений:', {
+        audienceType,
+        messageLength: message?.length,
+        priority,
+        timing,
+        adminId
+      });
+
+      // Валидация
+      if (!message || !audienceType) {
+        return res.status(400).json({
+          success: false,
+          message: 'Необходимо указать сообщение и тип аудитории'
+        });
+      }
+
+      // Получаем пользователей в зависимости от типа аудитории
+      let users;
+      switch (audienceType) {
+        case 'all':
+          users = await User.find({ isBlocked: false }).select('telegramId username');
+          break;
+        case 'active':
+          const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          users = await User.find({ 
+            isBlocked: false,
+            lastActivity: { $gte: dayAgo }
+          }).select('telegramId username');
+          break;
+        case 'premium':
+          users = await User.find({ 
+            isBlocked: false,
+            $or: [
+              { isVip: true },
+              { 'referralStats.level': { $in: ['gold', 'platinum', 'vip'] } }
+            ]
+          }).select('telegramId username');
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Неверный тип аудитории'
+          });
+      }
+
+      console.log(`📊 ADMIN: Найдено ${users.length} пользователей для рассылки`);
+
+      // Отправляем запрос к боту для рассылки
+      try {
+        const axios = require('axios');
+        const botUrl = process.env.BOT_URL || 'https://greenlight-bot.onrender.com';
+        const internalApiKey = process.env.INTERNAL_API_KEY;
+        
+        if (!internalApiKey) {
+          throw new Error('INTERNAL_API_KEY не настроен');
+        }
+        
+        console.log(`📤 ADMIN: Отправляем запрос к боту: ${botUrl}/api/notifications/send`);
+        
+        const response = await axios.post(`${botUrl}/api/notifications/send`, {
+          users: users.map(u => ({ telegramId: u.telegramId, username: u.username })),
+          message,
+          priority,
+          secretKey: internalApiKey
+        }, {
+          timeout: 300000 // 5 минут на массовую рассылку
+        });
+        
+        if (response.data.success) {
+          console.log(`✅ ADMIN: Рассылка успешно отправлена`, response.data.data);
+          
+          res.json({
+            success: true,
+            message: 'Рассылка успешно отправлена',
+            data: {
+              audienceType,
+              ...response.data.data,
+              message: message.substring(0, 50) + '...'
+            }
+          });
+        } else {
+          throw new Error(response.data.message || 'Ошибка отправки рассылки');
+        }
+        
+      } catch (botError) {
+        console.error('❌ ADMIN: Ошибка при отправке к боту:', botError.message);
+        
+        // Если не удалось отправить через бота, возвращаем ошибку
+        res.status(500).json({
+          success: false,
+          message: 'Не удалось отправить рассылку',
+          error: botError.message
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ ADMIN: Ошибка отправки уведомлений:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка при отправке уведомлений',
+        error: error.message
+      });
+    }
+  }
+}
+
 module.exports = new AdminController();

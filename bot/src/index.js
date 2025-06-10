@@ -77,6 +77,50 @@ app.get('/', (req, res) => {
   res.send('<h1>Greenlight Bot</h1><p>Бот активен и работает в режиме webhook</p>');
 });
 
+// API для массовых уведомлений от бэкенда
+app.post('/api/notifications/send', async (req, res) => {
+  try {
+    const { users, message, priority, secretKey } = req.body;
+    
+    // Проверка секретного ключа
+    if (secretKey !== process.env.INTERNAL_API_KEY) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized'
+      });
+    }
+    
+    // Валидация
+    if (!users || !Array.isArray(users) || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request data'
+      });
+    }
+    
+    console.log(`📢 BOT: Получен запрос на рассылку для ${users.length} пользователей`);
+    
+    // Используем сервис уведомлений
+    const notificationService = require('./services/notification.service');
+    const result = await notificationService.sendMassNotification(users, message, { priority });
+    
+    console.log(`✅ BOT: Рассылка завершена. Результат:`, result);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('❌ BOT: Ошибка при массовой рассылке:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+});
+
 // Получаем порт и домен из переменных окружения
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_DOMAIN = process.env.RENDER_EXTERNAL_URL || process.env.WEBHOOK_DOMAIN;

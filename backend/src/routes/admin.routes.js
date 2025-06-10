@@ -48,6 +48,12 @@ router.get('/finance/report', financeController.getFinancialReport);
 router.post('/finance/recalculate', financeController.recalculateFinances);
 
 /**
+ * POST /api/admin/notifications/send
+ * Отправка массовых уведомлений пользователям
+ */
+router.post('/notifications/send', adminController.sendNotifications);
+
+/**
  * POST /api/admin/finance/reserve-percentage
  * Установка процента резервирования
  * Body: { percentage: number }

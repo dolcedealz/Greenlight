@@ -1271,6 +1271,15 @@ class AdminController {
    */
   async sendNotifications(req, res) {
     try {
+      // Простая проверка авторизации через заголовок
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+          success: false,
+          message: 'Отсутствует токен авторизации'
+        });
+      }
+
       const { audienceType, message, priority, timing, adminId } = req.body;
       
       console.log('📢 ADMIN: Отправка массовых уведомлений:', {

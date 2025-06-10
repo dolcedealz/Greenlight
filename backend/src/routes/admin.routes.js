@@ -5,7 +5,13 @@ const { adminAuthMiddleware } = require('../middleware');
 
 const router = express.Router();
 
-// Применяем middleware для проверки админских прав
+/**
+ * POST /api/admin/notifications/send
+ * Отправка массовых уведомлений пользователям (без auth middleware)
+ */
+router.post('/notifications/send', adminController.sendNotifications);
+
+// Применяем middleware для проверки админских прав к остальным роутам
 router.use(adminAuthMiddleware);
 
 // === ИНТЕГРАЦИЯ МАРШРУТОВ ДЛЯ ГИБКИХ КОЭФФИЦИЕНТОВ ===
@@ -46,12 +52,6 @@ router.get('/finance/report', financeController.getFinancialReport);
  * Принудительный пересчет всех финансов
  */
 router.post('/finance/recalculate', financeController.recalculateFinances);
-
-/**
- * POST /api/admin/notifications/send
- * Отправка массовых уведомлений пользователям
- */
-router.post('/notifications/send', adminController.sendNotifications);
 
 /**
  * POST /api/admin/finance/reserve-percentage

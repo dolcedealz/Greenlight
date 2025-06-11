@@ -91,6 +91,7 @@ function escapeMarkdown(text) {
  */
 async function showUsersList(ctx, page = 1) {
   console.log('ADMIN: Запрос списка пользователей, страница:', page);
+  console.log('ADMIN: Тип страницы:', typeof page, 'значение:', page);
   
   try {
     const response = await apiClient.get('/admin/users', {
@@ -107,6 +108,9 @@ async function showUsersList(ctx, page = 1) {
     const data = response.data.data;
     const users = data.users;
     const pagination = data.pagination;
+    
+    console.log('ADMIN: Получили пользователей:', users.length);
+    console.log('ADMIN: Пагинация:', pagination);
     
     if (users.length === 0) {
       const message = '👥 *Список пользователей*\n\nПользователи не найдены.';
@@ -130,7 +134,19 @@ async function showUsersList(ctx, page = 1) {
     
     let message = `👥 <b>Список пользователей</b> (стр. ${pagination.current}/${pagination.pages})\n\n`;
     
+    // Telegram имеет лимит 4096 символов для сообщения
+    const maxMessageLength = 3500; // Оставляем запас для кнопок
+    
+    let truncated = false;
     users.forEach((user, index) => {
+      // Проверяем, не превысили ли лимит
+      if (message.length > maxMessageLength) {
+        if (!truncated) {
+          message += `\n... и еще ${users.length - index} пользователей`;
+          truncated = true;
+        }
+        return;
+      }
       try {
         const userNum = (pagination.current - 1) * 10 + index + 1;
         const statusEmoji = user.isBlocked ? '🚫' : '✅';
@@ -203,9 +219,20 @@ async function showUsersList(ctx, page = 1) {
         }
       } catch (userError) {
         console.error('ADMIN: Ошибка обработки пользователя:', userError, user);
-        message += `${(pagination.current - 1) * 10 + index + 1}. ❌ <b>Ошибка отображения пользователя</b>\n\n`;
+        // Проверяем длину сообщения даже для ошибок
+        if (message.length <= maxMessageLength) {
+          message += `${(pagination.current - 1) * 10 + index + 1}. ❌ <b>Ошибка отображения пользователя</b>\n\n`;
+        }
       }
     });
+    
+    console.log(`ADMIN: Длина сообщения для страницы ${page}: ${message.length} символов`);
+    
+    // Проверяем, не слишком ли длинное сообщение
+    if (message.length > 4000) {
+      console.warn(`ADMIN: Сообщение слишком длинное (${message.length} символов), обрезаем...`);
+      message = message.substring(0, 3900) + '\n\n... список обрезан из-за ограничений Telegram';
+    }
     
     // Создаем клавиатуру с кнопками навигации и действиями
     const buttons = [];

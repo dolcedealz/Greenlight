@@ -107,7 +107,11 @@ async function showUsersList(ctx, page = 1) {
     
     const data = response.data.data;
     const users = data.users;
-    const pagination = data.pagination;
+    const pagination = {
+      current: parseInt(data.pagination.current),
+      pages: parseInt(data.pagination.pages),
+      total: parseInt(data.pagination.total)
+    };
     
     console.log('ADMIN: Получили пользователей:', users.length);
     console.log('ADMIN: Пагинация:', pagination);
@@ -613,7 +617,11 @@ async function showBlockedUsers(ctx, page = 1) {
     
     const data = response.data.data;
     const users = data.users;
-    const pagination = data.pagination;
+    const pagination = {
+      current: parseInt(data.pagination.current),
+      pages: parseInt(data.pagination.pages),
+      total: parseInt(data.pagination.total)
+    };
     
     if (users.length === 0) {
       const message = '🚫 *Заблокированные пользователи*\\n\\nЗаблокированных пользователей нет.';

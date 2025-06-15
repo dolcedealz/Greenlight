@@ -19,6 +19,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
   const [activeTab, setActiveTab] = useState('profile');
   const [referralData, setReferralData] = useState(null);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [imageModal, setImageModal] = useState({ show: false, src: '', alt: '' });
   const [giveawayData, setGiveawayData] = useState({
     activeGiveaways: [],
     userParticipations: {},
@@ -176,6 +177,16 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       navigationFeedback(); // Обычная навигационная вибрация
     }
     setActiveTab(tab);
+  };
+
+  // Обработчик открытия изображения в модальном окне
+  const handleImageClick = (src, alt) => {
+    setImageModal({ show: true, src, alt });
+  };
+
+  // Обработчик закрытия модального окна
+  const handleCloseImageModal = () => {
+    setImageModal({ show: false, src: '', alt: '' });
   };
 
   // Обработчик переключателей с вибрацией
@@ -707,12 +718,19 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
 
     const formatGiveawayTime = (type, drawDate) => {
       const date = new Date(drawDate);
-      const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      const time = date.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'Europe/Moscow'
+      });
       
       if (type === 'daily') {
         return `Сегодня в ${time}`;
       } else {
-        const day = date.toLocaleDateString('ru-RU', { weekday: 'long' });
+        const day = date.toLocaleDateString('ru-RU', { 
+          weekday: 'long',
+          timeZone: 'Europe/Moscow'
+        });
         return `${day} в ${time}`;
       }
     };
@@ -737,10 +755,24 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
           </div>
           
           <div className="giveaway-prize">
-            <div className="prize-icon">
-              {giveaway.prize?.type === 'telegram_gift' ? '🎁' : 
-               giveaway.prize?.type === 'promo_code' ? '🎫' : 
-               giveaway.prize?.type === 'balance_bonus' ? '💰' : '🎁'}
+            <div className="prize-visual">
+              {giveaway.prize?.imageUrl ? (
+                <img 
+                  src={giveaway.prize.imageUrl} 
+                  alt={giveaway.prize.name}
+                  className="prize-image"
+                  onClick={() => handleImageClick(giveaway.prize.imageUrl, giveaway.prize.name)}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'block';
+                  }}
+                />
+              ) : null}
+              <div className="prize-icon" style={{ display: giveaway.prize?.imageUrl ? 'none' : 'block' }}>
+                {giveaway.prize?.type === 'telegram_gift' ? '🎁' : 
+                 giveaway.prize?.type === 'promo_code' ? '🎫' : 
+                 giveaway.prize?.type === 'balance_bonus' ? '💰' : '🎁'}
+              </div>
             </div>
             <div className="prize-info">
               <div className="prize-name">
@@ -749,6 +781,11 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               <div className="prize-description">
                 {giveaway.prize?.description || 'Приз будет объявлен'}
               </div>
+              {giveaway.prize?.value && (
+                <div className="prize-value">
+                  Ценность: {giveaway.prize.value} USDT
+                </div>
+              )}
             </div>
           </div>
 
@@ -1088,6 +1125,17 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
             />
           )}
         </>
+      )}
+
+      {/* Модальное окно изображения */}
+      {imageModal.show && (
+        <div className="image-modal" onClick={handleCloseImageModal}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="image-modal-close" onClick={handleCloseImageModal}>×</button>
+            <img src={imageModal.src} alt={imageModal.alt} className="image-modal-img" />
+            <div className="image-modal-title">{imageModal.alt}</div>
+          </div>
+        </div>
       )}
     </div>
   );

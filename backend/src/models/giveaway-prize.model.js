@@ -26,7 +26,20 @@ const giveawayPrizeSchema = new mongoose.Schema({
   },
   giftData: {
     telegramGiftId: String,
-    giftStickerId: String
+    giftStickerId: String,
+    originalUrl: String,
+    giftId: String,
+    rarity: String,
+    collection: String,
+    attributes: [{
+      trait_type: String,
+      value: String
+    }],
+    totalSupply: Number,
+    currentSupply: Number,
+    imageUrl: String, // Прямая ссылка на изображение
+    imageValid: Boolean,
+    parsedAt: Date
   },
   isActive: {
     type: Boolean,

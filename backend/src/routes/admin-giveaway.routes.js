@@ -27,4 +27,8 @@ router.get('/:giveawayId/participants', adminGiveawayController.getGiveawayParti
 // Статистика
 router.get('/stats', adminGiveawayController.getGiveawayStats);
 
+// Парсинг Telegram Gifts
+router.post('/gifts/parse', adminGiveawayController.parseGiftFromUrl);
+router.post('/gifts/create', adminGiveawayController.createPrizeFromGift);
+
 module.exports = router;

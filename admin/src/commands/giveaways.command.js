@@ -261,9 +261,57 @@ async function showPrizesManagement(ctx) {
 }
 
 /**
- * Начать создание приза
+ * Выбор способа создания приза
  */
 async function startPrizeCreation(ctx) {
+  try {
+    await ctx.reply(
+      '🎁 *Создание нового приза*\n\n' +
+      'Выберите способ создания:',
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔗 Из ссылки Telegram Gift', callback_data: 'create_prize_from_url' }],
+            [{ text: '✏️ Создать вручную', callback_data: 'create_prize_manual' }],
+            [{ text: '🔙 Назад', callback_data: 'giveaways_prizes' }]
+          ]
+        }
+      }
+    );
+  } catch (error) {
+    console.error('ADMIN: Ошибка начала создания приза:', error);
+    await ctx.reply('❌ Ошибка при создании приза');
+  }
+}
+
+/**
+ * Начать создание приза из URL
+ */
+async function startPrizeCreationFromUrl(ctx) {
+  try {
+    if (!ctx.session) ctx.session = {};
+    ctx.session.creatingPrizeFromUrl = {
+      step: 'url'
+    };
+
+    await ctx.reply(
+      '🔗 *Создание приза из Telegram Gift*\n\n' +
+      'Отправьте ссылку на подарок в формате:\n' +
+      '`https://t.me/nft/ToyBear-37305`\n\n' +
+      'Система автоматически извлечет название, описание и изображение.',
+      { parse_mode: 'Markdown' }
+    );
+  } catch (error) {
+    console.error('ADMIN: Ошибка начала создания приза из URL:', error);
+    await ctx.reply('❌ Ошибка при создании приза');
+  }
+}
+
+/**
+ * Начать создание приза вручную
+ */
+async function startPrizeCreationManual(ctx) {
   try {
     // Устанавливаем сессию создания приза
     if (!ctx.session) ctx.session = {};
@@ -272,13 +320,130 @@ async function startPrizeCreation(ctx) {
     };
 
     await ctx.reply(
-      '🎁 *Создание нового приза*\n\n' +
+      '✏️ *Создание приза вручную*\n\n' +
       'Введите название приза:',
       { parse_mode: 'Markdown' }
     );
   } catch (error) {
     console.error('ADMIN: Ошибка начала создания приза:', error);
     await ctx.reply('❌ Ошибка при создании приза');
+  }
+}
+
+/**
+ * Обработать URL подарка
+ */
+async function handleGiftUrlInput(ctx) {
+  const url = ctx.message.text.trim();
+  
+  try {
+    // Валидация URL
+    if (!url.match(/^https:\/\/t\.me\/nft\/[\w-]+$/i)) {
+      await ctx.reply(
+        '❌ Некорректная ссылка!\n\n' +
+        'Используйте формат: `https://t.me/nft/ToyBear-37305`',
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
+
+    await ctx.reply('🔄 Парсим информацию о подарке...');
+
+    // Парсим подарок
+    const response = await apiClient.post('/admin/giveaways/gifts/parse', {
+      giftUrl: url
+    });
+
+    if (response.data.success) {
+      const preview = response.data.data.preview;
+      
+      // Сохраняем данные в сессии
+      ctx.session.creatingPrizeFromUrl.giftData = preview;
+      ctx.session.creatingPrizeFromUrl.step = 'preview';
+
+      await showGiftPreview(ctx, preview);
+    } else {
+      throw new Error(response.data.message || 'Ошибка парсинга');
+    }
+
+  } catch (error) {
+    console.error('ADMIN: Ошибка парсинга URL подарка:', error);
+    await ctx.reply(
+      `❌ Ошибка парсинга подарка:\n${error.message}`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔙 Назад', callback_data: 'giveaways_add_prize' }]
+          ]
+        }
+      }
+    );
+    delete ctx.session.creatingPrizeFromUrl;
+  }
+}
+
+/**
+ * Показать предпросмотр подарка
+ */
+async function showGiftPreview(ctx, giftData) {
+  try {
+    let message = '🎁 *Предпросмотр подарка*\n\n';
+    message += `📛 **Название:** ${giftData.name}\n`;
+    
+    if (giftData.description) {
+      message += `📝 **Описание:** ${giftData.description}\n`;
+    }
+    
+    if (giftData.collection) {
+      message += `🗂 **Коллекция:** ${giftData.collection}\n`;
+    }
+    
+    if (giftData.rarity) {
+      message += `💎 **Редкость:** ${giftData.rarity}\n`;
+    }
+    
+    if (giftData.totalSupply) {
+      message += `🔢 **Всего выпущено:** ${giftData.totalSupply.toLocaleString()}\n`;
+    }
+    
+    if (giftData.currentSupply) {
+      message += `📊 **Текущее количество:** ${giftData.currentSupply.toLocaleString()}\n`;
+    }
+    
+    if (giftData.attributes && giftData.attributes.length > 0) {
+      message += `\n🎨 **Атрибуты:**\n`;
+      giftData.attributes.forEach(attr => {
+        message += `┣ ${attr.trait_type}: ${attr.value}\n`;
+      });
+    }
+    
+    message += `\n💰 **Ценность:** нужно указать вручную`;
+    
+    const keyboard = [
+      [{ text: '✅ Использовать эти данные', callback_data: 'gift_preview_accept' }],
+      [{ text: '✏️ Редактировать название', callback_data: 'gift_edit_name' }],
+      [{ text: '📝 Редактировать описание', callback_data: 'gift_edit_description' }],
+      [{ text: '❌ Отмена', callback_data: 'gift_preview_cancel' }]
+    ];
+
+    if (giftData.imageUrl && giftData.imageValid) {
+      // Отправляем с изображением
+      await ctx.replyWithPhoto(giftData.imageUrl, {
+        caption: message,
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: keyboard }
+      });
+    } else {
+      // Отправляем только текст
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: keyboard }
+      });
+    }
+
+  } catch (error) {
+    console.error('ADMIN: Ошибка показа предпросмотра:', error);
+    await ctx.reply('❌ Ошибка отображения предпросмотра');
   }
 }
 

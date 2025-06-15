@@ -6,6 +6,7 @@ const {
   User 
 } = require('../models');
 const crypto = require('crypto');
+const telegramGiftService = require('../services/telegram-gift.service');
 
 class AdminGiveawayController {
   /**
@@ -710,6 +711,123 @@ class AdminGiveawayController {
 
     } catch (error) {
       console.error('Ошибка получения статистики:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка сервера'
+      });
+    }
+  }
+
+  /**
+   * Парсинг подарка из Telegram Gift URL для предпросмотра
+   */
+  async parseGiftFromUrl(req, res) {
+    try {
+      const { giftUrl } = req.body;
+
+      if (!giftUrl) {
+        return res.status(400).json({
+          success: false,
+          message: 'URL подарка обязателен'
+        });
+      }
+
+      // Валидация URL
+      if (!telegramGiftService.isValidTelegramGiftUrl(giftUrl)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Некорректная ссылка на Telegram Gift'
+        });
+      }
+
+      // Парсим данные подарка
+      const giftData = await telegramGiftService.parseGiftFromUrl(giftUrl);
+
+      res.json({
+        success: true,
+        message: 'Подарок успешно распознан',
+        data: {
+          preview: {
+            name: giftData.name,
+            description: giftData.description,
+            imageUrl: giftData.imageUrl,
+            imageValid: giftData.imageValid,
+            rarity: giftData.rarity,
+            collection: giftData.collection,
+            attributes: giftData.attributes,
+            totalSupply: giftData.totalSupply,
+            currentSupply: giftData.currentSupply,
+            giftId: giftData.giftId,
+            originalUrl: giftUrl
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Ошибка парсинга подарка:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Ошибка парсинга подарка'
+      });
+    }
+  }
+
+  /**
+   * Создание приза из распознанного подарка
+   */
+  async createPrizeFromGift(req, res) {
+    try {
+      const { 
+        name, 
+        description, 
+        value, 
+        giftData 
+      } = req.body;
+      const adminId = req.user.id;
+
+      // Валидация обязательных полей
+      if (!name || !value || !giftData) {
+        return res.status(400).json({
+          success: false,
+          message: 'Название, ценность и данные подарка обязательны'
+        });
+      }
+
+      // Создаем приз
+      const prize = new GiveawayPrize({
+        name,
+        description,
+        image: giftData.imageUrl, // Используем изображение из Telegram
+        type: 'telegram_gift',
+        value: parseFloat(value),
+        giftData: {
+          originalUrl: giftData.originalUrl,
+          giftId: giftData.giftId,
+          rarity: giftData.rarity,
+          collection: giftData.collection,
+          attributes: giftData.attributes || [],
+          totalSupply: giftData.totalSupply,
+          currentSupply: giftData.currentSupply,
+          imageUrl: giftData.imageUrl,
+          imageValid: giftData.imageValid,
+          parsedAt: new Date()
+        },
+        createdBy: adminId
+      });
+
+      await prize.save();
+
+      const populatedPrize = await GiveawayPrize.findById(prize._id)
+        .populate('createdBy', 'firstName lastName username');
+
+      res.status(201).json({
+        success: true,
+        message: 'Приз из Telegram Gift успешно создан',
+        data: populatedPrize
+      });
+
+    } catch (error) {
+      console.error('Ошибка создания приза из подарка:', error);
       res.status(500).json({
         success: false,
         message: 'Ошибка сервера'

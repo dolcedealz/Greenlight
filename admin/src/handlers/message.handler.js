@@ -97,6 +97,12 @@ function registerMessageHandlers(bot) {
         return;
       }
       
+      // Обработка создания приза из URL
+      if (ctx.session?.creatingPrizeFromUrl) {
+        await giveawaysCommands.handleGiftUrlInput(ctx);
+        return;
+      }
+      
       // Обработка вывода прибыли владельца
       if (ctx.session?.withdrawingProfit) {
         await handleProfitWithdrawal(ctx);

@@ -602,6 +602,47 @@ function registerCallbackHandlers(bot) {
     await giveawaysCommands.startPrizeCreation(ctx);
   });
 
+  // Создание приза из URL
+  bot.action('create_prize_from_url', async (ctx) => {
+    console.log('ADMIN: Callback create_prize_from_url');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.startPrizeCreationFromUrl(ctx);
+  });
+
+  // Создание приза вручную
+  bot.action('create_prize_manual', async (ctx) => {
+    console.log('ADMIN: Callback create_prize_manual');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.startPrizeCreationManual(ctx);
+  });
+
+  // Предпросмотр подарка - принять
+  bot.action('gift_preview_accept', async (ctx) => {
+    console.log('ADMIN: Callback gift_preview_accept');
+    await ctx.answerCbQuery();
+    await ctx.reply('💰 Введите ценность приза в USDT:');
+    if (ctx.session?.creatingPrizeFromUrl) {
+      ctx.session.creatingPrizeFromUrl.step = 'value';
+    }
+  });
+
+  // Предпросмотр подарка - отмена
+  bot.action('gift_preview_cancel', async (ctx) => {
+    console.log('ADMIN: Callback gift_preview_cancel');
+    await ctx.answerCbQuery();
+    delete ctx.session.creatingPrizeFromUrl;
+    await ctx.reply(
+      '❌ Создание приза отменено',
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🎁 К призам', callback_data: 'giveaways_prizes' }]
+          ]
+        }
+      }
+    );
+  });
+
   // Выбор типа приза
   bot.action(/prize_type_(.+)/, async (ctx) => {
     const type = ctx.match[1];

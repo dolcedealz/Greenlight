@@ -331,49 +331,120 @@ async function startPrizeCreationManual(ctx) {
 }
 
 /**
- * Обработать URL подарка
+ * Обработать ввод данных для создания приза из URL
  */
 async function handleGiftUrlInput(ctx) {
-  const url = ctx.message.text.trim();
+  const text = ctx.message.text.trim();
+  const session = ctx.session.creatingPrizeFromUrl;
   
   try {
-    // Валидация URL
-    if (!url.match(/^https:\/\/t\.me\/nft\/[\w-]+$/i)) {
-      await ctx.reply(
-        '❌ Некорректная ссылка!\n\n' +
-        'Используйте формат: `https://t.me/nft/ToyBear-37305`',
-        { parse_mode: 'Markdown' }
-      );
-      return;
-    }
+    if (session.step === 'url') {
+      // Валидация URL
+      if (!text.match(/^https:\/\/t\.me\/nft\/[\w-]+$/i)) {
+        await ctx.reply(
+          '❌ Некорректная ссылка!\n\n' +
+          'Используйте формат: `https://t.me/nft/ToyBear-37305`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
 
-    await ctx.reply('🔄 Парсим информацию о подарке...');
+      await ctx.reply('🔄 Парсим информацию о подарке...');
 
-    // Парсим подарок
-    const response = await apiClient.post('/admin/giveaways/gifts/parse', {
-      giftUrl: url
-    });
+      // Парсим подарок
+      const response = await apiClient.post('/admin/giveaways/gifts/parse', {
+        giftUrl: text
+      });
 
-    if (response.data.success) {
-      const preview = response.data.data.preview;
+      if (response.data.success) {
+        const preview = response.data.data.preview;
+        
+        // Сохраняем данные в сессии
+        session.giftData = preview;
+        session.step = 'preview';
+
+        await showGiftPreview(ctx, preview);
+      } else {
+        throw new Error(response.data.message || 'Ошибка парсинга');
+      }
+
+    } else if (session.step === 'value') {
+      // Обработка ввода ценности
+      const value = parseFloat(text);
       
-      // Сохраняем данные в сессии
-      ctx.session.creatingPrizeFromUrl.giftData = preview;
-      ctx.session.creatingPrizeFromUrl.step = 'preview';
-
-      await showGiftPreview(ctx, preview);
-    } else {
-      throw new Error(response.data.message || 'Ошибка парсинга');
+      if (isNaN(value) || value <= 0) {
+        await ctx.reply('❌ Введите корректную ценность (число больше 0)');
+        return;
+      }
+      
+      session.value = value;
+      
+      // Создаем приз
+      await createPrizeFromGift(ctx, session);
     }
 
   } catch (error) {
-    console.error('ADMIN: Ошибка парсинга URL подарка:', error);
+    console.error('ADMIN: Ошибка обработки ввода подарка:', error);
     await ctx.reply(
-      `❌ Ошибка парсинга подарка:\n${error.message}`,
+      `❌ Ошибка: ${error.message}`,
       {
         reply_markup: {
           inline_keyboard: [
             [{ text: '🔙 Назад', callback_data: 'giveaways_add_prize' }]
+          ]
+        }
+      }
+    );
+    delete ctx.session.creatingPrizeFromUrl;
+  }
+}
+
+/**
+ * Создать приз из данных подарка
+ */
+async function createPrizeFromGift(ctx, session) {
+  try {
+    await ctx.reply('🔄 Создаем приз...');
+
+    const response = await apiClient.post('/admin/giveaways/gifts/create', {
+      name: session.giftData.name,
+      description: session.giftData.description,
+      value: session.value,
+      giftData: session.giftData
+    });
+
+    if (response.data.success) {
+      const prize = response.data.data;
+      
+      await ctx.reply(
+        `✅ *Приз успешно создан!*\n\n` +
+        `🎁 Название: ${prize.name}\n` +
+        `💰 Ценность: ${prize.value} USDT\n` +
+        `🗂 Коллекция: ${prize.giftData?.collection || 'Не указана'}\n` +
+        `💎 Редкость: ${prize.giftData?.rarity || 'Не указана'}`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🎁 К призам', callback_data: 'giveaways_prizes' }],
+              [{ text: '🏠 Главное меню', callback_data: 'main_menu' }]
+            ]
+          }
+        }
+      );
+    } else {
+      throw new Error(response.data.message || 'Ошибка создания приза');
+    }
+
+    delete ctx.session.creatingPrizeFromUrl;
+  } catch (error) {
+    console.error('ADMIN: Ошибка создания приза:', error);
+    await ctx.reply(
+      `❌ Ошибка создания приза: ${error.message}`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔙 Назад', callback_data: 'giveaways_prizes' }]
           ]
         }
       }
@@ -917,6 +988,11 @@ module.exports = {
   cancelGiveaway,
   conductGiveaway,
   startPrizeCreation,
+  startPrizeCreationFromUrl,
+  startPrizeCreationManual,
+  handleGiftUrlInput,
+  showGiftPreview,
+  createPrizeFromGift,
   handlePrizeCreation,
   finalizePrizeCreation,
   startGiveawayCreation,

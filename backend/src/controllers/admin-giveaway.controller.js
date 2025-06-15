@@ -188,12 +188,17 @@ class AdminGiveawayController {
    */
   async getAllGiveaways(req, res) {
     try {
+      console.log(`🔍 ОТЛАДКА getAllGiveaways: Начинаем получение списка розыгрышей`);
+      console.log(`🔍 ОТЛАДКА getAllGiveaways: Параметры запроса:`, req.query);
+      
       const { page = 1, limit = 20, status, type } = req.query;
       const skip = (page - 1) * limit;
 
       const filter = {};
       if (status) filter.status = status;
       if (type) filter.type = type;
+      
+      console.log(`🔍 ОТЛАДКА getAllGiveaways: Фильтр поиска:`, filter);
 
       const giveaways = await Giveaway.find(filter)
         .populate('prize')
@@ -206,10 +211,27 @@ class AdminGiveawayController {
       const total = await Giveaway.countDocuments(filter);
 
       // Добавляем актуальный подсчет участников для каждого розыгрыша
+      console.log(`🔍 ОТЛАДКА getAllGiveaways: Обрабатываем ${giveaways.length} розыгрышей`);
+      
       const giveawaysWithStats = await Promise.all(
         giveaways.map(async (giveaway) => {
           const actualParticipationCount = await GiveawayParticipation.countDocuments({
             giveaway: giveaway._id
+          });
+
+          console.log(`🔍 ОТЛАДКА getAllGiveaways: Розыгрыш ${giveaway._id} (${giveaway.title})`);
+          console.log(`  - Статус: ${giveaway.status}`);
+          console.log(`  - Сохраненный participationCount: ${giveaway.participationCount}`);
+          console.log(`  - Фактический подсчет участников: ${actualParticipationCount}`);
+          
+          // Дополнительная отладка: получаем актуальные записи участия
+          const participations = await GiveawayParticipation.find({
+            giveaway: giveaway._id
+          }).select('user participationNumber createdAt isWinner');
+          
+          console.log(`  - Найдены записи участия (всего ${participations.length}):`);
+          participations.forEach((p, idx) => {
+            console.log(`    ${idx + 1}. User: ${p.user}, №${p.participationNumber}, ${p.createdAt}, winner: ${p.isWinner}`);
           });
 
           return {
@@ -589,14 +611,55 @@ class AdminGiveawayController {
       }
 
       // Получаем всех участников
+      console.log(`🔍 ОТЛАДКА conductGiveaway: Поиск участников для розыгрыша ${giveawayId}`);
+      console.log(`🔍 ОТЛАДКА conductGiveaway: Текущий статус розыгрыша: ${giveaway.status}`);
+      console.log(`🔍 ОТЛАДКА conductGiveaway: Сохраненный participationCount в розыгрыше: ${giveaway.participationCount}`);
+      
+      // Сначала проверим общий подсчет без populate
+      const participantCount = await GiveawayParticipation.countDocuments({
+        giveaway: giveawayId
+      });
+      console.log(`🔍 ОТЛАДКА conductGiveaway: Подсчет документов участия: ${participantCount}`);
+      
       const participants = await GiveawayParticipation.find({
         giveaway: giveawayId
       }).populate('user', 'firstName lastName username telegramId');
 
+      console.log(`🔍 ОТЛАДКА conductGiveaway: Найдено участников после populate: ${participants.length}`);
+      console.log(`🔍 ОТЛАДКА conductGiveaway: Детали участников:`);
+      participants.forEach((p, idx) => {
+        console.log(`  ${idx + 1}. ID: ${p._id}`);
+        console.log(`     User ID: ${p.user?._id || 'NULL'}`);
+        console.log(`     User: ${p.user?.firstName || p.user?.username || 'Unknown'}`);
+        console.log(`     Participation Number: ${p.participationNumber}`);
+        console.log(`     Created: ${p.createdAt}`);
+        console.log(`     Is Winner: ${p.isWinner}`);
+        console.log(`     Status: ${p.status}`);
+      });
+      
+      // Проверим также есть ли участия с null/undefined пользователями
+      const participationsWithoutUser = await GiveawayParticipation.find({
+        giveaway: giveawayId,
+        user: { $exists: false }
+      });
+      console.log(`🔍 ОТЛАДКА conductGiveaway: Участия без пользователя: ${participationsWithoutUser.length}`);
+      
+      const participationsWithNullUser = await GiveawayParticipation.find({
+        giveaway: giveawayId,
+        user: null
+      });
+      console.log(`🔍 ОТЛАДКА conductGiveaway: Участия с null пользователем: ${participationsWithNullUser.length}`);
+
       // Обновляем счетчик участников в документе розыгрыша
+      console.log(`🔍 ОТЛАДКА conductGiveaway: Обновляем participationCount в розыгрыше с ${giveaway.participationCount} на ${participants.length}`);
+      
       await Giveaway.findByIdAndUpdate(giveawayId, {
         participationCount: participants.length
       });
+      
+      // Проверяем что обновление прошло успешно
+      const updatedGiveawayCheck = await Giveaway.findById(giveawayId);
+      console.log(`🔍 ОТЛАДКА conductGiveaway: После обновления participationCount стал: ${updatedGiveawayCheck.participationCount}`);
 
       if (participants.length === 0) {
         // Все равно завершаем розыгрыш, но без победителей

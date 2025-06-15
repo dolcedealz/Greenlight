@@ -157,9 +157,23 @@ class GiveawayController {
       await participation.save();
 
       // Обновляем счетчик участников в розыгрыше
+      const giveawayBeforeUpdate = await Giveaway.findById(giveawayId);
+      console.log(`🔍 ОТЛАДКА participateInGiveaway: Пользователь ${userId} участвует в розыгрыше ${giveawayId}`);
+      console.log(`🔍 ОТЛАДКА participateInGiveaway: participationCount до инкремента: ${giveawayBeforeUpdate.participationCount}`);
+      console.log(`🔍 ОТЛАДКА participateInGiveaway: participationNumber присвоен: ${participationNumber}`);
+      
       await Giveaway.findByIdAndUpdate(giveawayId, {
         $inc: { participationCount: 1 }
       });
+      
+      const giveawayAfterUpdate = await Giveaway.findById(giveawayId);
+      console.log(`🔍 ОТЛАДКА participateInGiveaway: participationCount после инкремента: ${giveawayAfterUpdate.participationCount}`);
+      
+      // Проверим актуальный подсчет записей участия
+      const actualParticipationCount = await GiveawayParticipation.countDocuments({
+        giveaway: giveawayId
+      });
+      console.log(`🔍 ОТЛАДКА participateInGiveaway: Фактический подсчет записей участия: ${actualParticipationCount}`);
 
       res.json({
         success: true,

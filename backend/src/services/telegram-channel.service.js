@@ -13,8 +13,17 @@ class TelegramChannelService {
    */
   async sendMessage(text, options = {}) {
     try {
+      console.log('📢 КАНАЛ: Отправка сообщения');
+      console.log('📢 КАНАЛ: BOT_TOKEN:', this.botToken ? 'Установлен' : 'НЕ УСТАНОВЛЕН');
+      console.log('📢 КАНАЛ: CHANNEL_ID:', this.channelId || 'НЕ УСТАНОВЛЕН');
+      
       if (!this.channelId) {
         console.warn('TELEGRAM_CHANNEL_ID не настроен');
+        return null;
+      }
+
+      if (!this.botToken) {
+        console.warn('BOT_TOKEN не настроен');
         return null;
       }
 
@@ -26,10 +35,14 @@ class TelegramChannelService {
         ...options
       };
 
+      console.log('📢 КАНАЛ: URL:', `${this.baseUrl}/sendMessage`);
+      console.log('📢 КАНАЛ: Payload (first 200 chars):', JSON.stringify(payload).substring(0, 200));
+
       const response = await axios.post(`${this.baseUrl}/sendMessage`, payload);
+      console.log('📢 КАНАЛ: Сообщение отправлено успешно');
       return response.data;
     } catch (error) {
-      console.error('Ошибка отправки сообщения в канал:', error.response?.data || error.message);
+      console.error('❌ КАНАЛ: Ошибка отправки сообщения:', error.response?.data || error.message);
       throw error;
     }
   }
@@ -39,8 +52,17 @@ class TelegramChannelService {
    */
   async sendPhoto(photo, caption, options = {}) {
     try {
+      console.log('📸 КАНАЛ: Отправка фото');
+      console.log('📸 КАНАЛ: BOT_TOKEN:', this.botToken ? 'Установлен' : 'НЕ УСТАНОВЛЕН');
+      console.log('📸 КАНАЛ: CHANNEL_ID:', this.channelId || 'НЕ УСТАНОВЛЕН');
+      
       if (!this.channelId) {
         console.warn('TELEGRAM_CHANNEL_ID не настроен');
+        return null;
+      }
+
+      if (!this.botToken) {
+        console.warn('BOT_TOKEN не настроен');
         return null;
       }
 
@@ -52,10 +74,14 @@ class TelegramChannelService {
         ...options
       };
 
+      console.log('📸 КАНАЛ: URL:', `${this.baseUrl}/sendPhoto`);
+      console.log('📸 КАНАЛ: Photo URL:', photo);
+
       const response = await axios.post(`${this.baseUrl}/sendPhoto`, payload);
+      console.log('📸 КАНАЛ: Фото отправлено успешно');
       return response.data;
     } catch (error) {
-      console.error('Ошибка отправки фото в канал:', error.response?.data || error.message);
+      console.error('❌ КАНАЛ: Ошибка отправки фото:', error.response?.data || error.message);
       throw error;
     }
   }

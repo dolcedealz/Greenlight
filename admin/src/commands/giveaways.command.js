@@ -92,8 +92,8 @@ async function showCurrentGiveaways(ctx) {
         const statusEmoji = giveaway.status === 'active' ? '🟢' : giveaway.status === 'pending' ? '🟡' : '🔴';
         const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
         
-        message += `${statusEmoji} *${giveaway.title}*\n`;
-        message += `┣ 🎁 Приз: ${giveaway.prize?.name || 'Не указан'}\n`;
+        message += `${statusEmoji} *${escapeMarkdown(giveaway.title)}*\n`;
+        message += `┣ 🎁 Приз: ${escapeMarkdown(giveaway.prize?.name || 'Не указан')}\n`;
         message += `┣ 📅 Тип: ${typeText}\n`;
         message += `┣ 🏆 Победителей: ${giveaway.winnersCount}\n`;
         message += `┣ 👥 Участников: ${giveaway.participationCount}\n`;
@@ -165,7 +165,7 @@ async function showGiveawaysStats(ctx) {
       if (stats.recentWinners && stats.recentWinners.length > 0) {
         message += `🏆 *Последние победители:*\n`;
         for (const winner of stats.recentWinners.slice(0, 5)) {
-          message += `┣ ${winner.user.firstName} - ${winner.giveaway.title}\n`;
+          message += `┣ ${escapeMarkdown(winner.user.firstName)} - ${escapeMarkdown(winner.giveaway.title)}\n`;
         }
       }
 
@@ -218,9 +218,9 @@ async function showPrizesManagement(ctx) {
       } else {
         for (const prize of prizes) {
           const typeEmoji = prize.type === 'telegram_gift' ? '🎁' : prize.type === 'promo_code' ? '🎫' : '💰';
-          message += `${typeEmoji} *${prize.name}*\n`;
+          message += `${typeEmoji} *${escapeMarkdown(prize.name)}*\n`;
           message += `┣ 💎 Стоимость: ${prize.value} USDT\n`;
-          message += `┣ 📝 Описание: ${prize.description}\n`;
+          message += `┣ 📝 Описание: ${escapeMarkdown(prize.description)}\n`;
           message += `┗ 🔧 Тип: ${prize.type === 'telegram_gift' ? 'Telegram Gift' : prize.type === 'promo_code' ? 'Промокод' : 'Бонус'}\n\n`;
         }
       }
@@ -420,10 +420,10 @@ async function createPrizeFromGift(ctx, session) {
       
       await ctx.reply(
         `✅ *Приз успешно создан!*\n\n` +
-        `🎁 Название: ${prize.name}\n` +
+        `🎁 Название: ${escapeMarkdown(prize.name)}\n` +
         `💰 Ценность: ${prize.value} USDT\n` +
-        `🗂 Коллекция: ${prize.giftData?.collection || 'Не указана'}\n` +
-        `💎 Редкость: ${prize.giftData?.rarity || 'Не указана'}`,
+        `🗂 Коллекция: ${escapeMarkdown(prize.giftData?.collection || 'Не указана')}\n` +
+        `💎 Редкость: ${escapeMarkdown(prize.giftData?.rarity || 'Не указана')}`,
         {
           parse_mode: 'Markdown',
           reply_markup: {
@@ -456,6 +456,20 @@ async function createPrizeFromGift(ctx, session) {
 }
 
 /**
+ * Экранирует специальные символы для Telegram Markdown
+ */
+function escapeMarkdown(text) {
+  if (!text) return '';
+  
+  // Преобразуем в строку
+  let result = text.toString();
+  
+  // Экранируем специальные символы Markdown
+  return result
+    .replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+}
+
+/**
  * Показать предпросмотр подарка
  */
 async function showGiftPreview(ctx, giftData) {
@@ -463,22 +477,22 @@ async function showGiftPreview(ctx, giftData) {
     console.log('ADMIN: Показываем предпросмотр подарка:', JSON.stringify(giftData, null, 2));
     
     let message = '🎁 *Предпросмотр подарка*\n\n';
-    message += `📛 *Название:* ${giftData.name || 'Не указано'}\n`;
+    message += `📛 *Название:* ${escapeMarkdown(giftData.name || 'Не указано')}\n`;
     
     if (giftData.description) {
       // Ограничиваем длину описания для Telegram
       const desc = giftData.description.length > 200 ? 
                    giftData.description.substring(0, 200) + '...' : 
                    giftData.description;
-      message += `📝 *Описание:* ${desc}\n`;
+      message += `📝 *Описание:* ${escapeMarkdown(desc)}\n`;
     }
     
     if (giftData.collection) {
-      message += `🗂 *Коллекция:* ${giftData.collection}\n`;
+      message += `🗂 *Коллекция:* ${escapeMarkdown(giftData.collection)}\n`;
     }
     
     if (giftData.rarity) {
-      message += `💎 *Редкость:* ${giftData.rarity}\n`;
+      message += `💎 *Редкость:* ${escapeMarkdown(giftData.rarity)}\n`;
     }
     
     if (giftData.totalSupply) {
@@ -495,7 +509,7 @@ async function showGiftPreview(ctx, giftData) {
       const limitedAttrs = giftData.attributes.slice(0, 5);
       limitedAttrs.forEach(attr => {
         if (attr.trait_type && attr.value) {
-          message += `• ${attr.trait_type}: ${attr.value}\n`;
+          message += `• ${escapeMarkdown(attr.trait_type)}: ${escapeMarkdown(attr.value)}\n`;
         }
       });
       if (giftData.attributes.length > 5) {
@@ -569,7 +583,7 @@ async function handlePrizeCreation(ctx) {
       session.step = 'description';
       
       await ctx.reply(
-        `🎁 *Создание приза: ${text}*\n\n` +
+        `🎁 *Создание приза: ${escapeMarkdown(text)}*\n\n` +
         'Введите описание приза:',
         { parse_mode: 'Markdown' }
       );
@@ -579,7 +593,7 @@ async function handlePrizeCreation(ctx) {
       session.step = 'value';
       
       await ctx.reply(
-        `🎁 *Создание приза: ${session.name}*\n\n` +
+        `🎁 *Создание приза: ${escapeMarkdown(session.name)}*\n\n` +
         'Введите стоимость приза в USDT:',
         { parse_mode: 'Markdown' }
       );
@@ -596,7 +610,7 @@ async function handlePrizeCreation(ctx) {
       session.step = 'type';
       
       await ctx.reply(
-        `🎁 *Создание приза: ${session.name}*\n\n` +
+        `🎁 *Создание приза: ${escapeMarkdown(session.name)}*\n\n` +
         'Выберите тип приза:',
         {
           parse_mode: 'Markdown',
@@ -637,8 +651,8 @@ async function finalizePrizeCreation(ctx, type) {
     if (response.data.success) {
       await ctx.reply(
         `✅ *Приз успешно создан!*\n\n` +
-        `🎁 Название: ${session.name}\n` +
-        `📝 Описание: ${session.description}\n` +
+        `🎁 Название: ${escapeMarkdown(session.name)}\n` +
+        `📝 Описание: ${escapeMarkdown(session.description)}\n` +
         `💎 Стоимость: ${session.value} USDT\n` +
         `🔧 Тип: ${type === 'telegram_gift' ? 'Telegram Gift' : type === 'promo_code' ? 'Промокод' : 'Бонус'}`,
         {
@@ -708,9 +722,9 @@ async function showGiveawayManagement(ctx) {
                            giveaway.status === 'completed' ? '✅' : '❌';
         const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
         
-        message += `${statusEmoji} *${giveaway.title}*\n`;
+        message += `${statusEmoji} *${escapeMarkdown(giveaway.title)}*\n`;
         message += `┣ 📅 ${typeText}\n`;
-        message += `┣ 🎁 ${giveaway.prize?.name || 'Приз не указан'}\n`;
+        message += `┣ 🎁 ${escapeMarkdown(giveaway.prize?.name || 'Приз не указан')}\n`;
         message += `┣ 👥 Участников: ${giveaway.participationCount}\n`;
         message += `┗ 📊 ${giveaway.status === 'active' ? 'Активный' : 
                                 giveaway.status === 'pending' ? 'Ожидает' : 
@@ -769,9 +783,9 @@ async function showGiveawayDetails(ctx, giveawayId) {
       
       const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
       
-      let message = `${statusEmoji} *${giveaway.title}*\n\n`;
+      let message = `${statusEmoji} *${escapeMarkdown(giveaway.title)}*\n\n`;
       message += `📅 *Тип:* ${typeText}\n`;
-      message += `🎁 *Приз:* ${giveaway.prize?.name || 'Не указан'}\n`;
+      message += `🎁 *Приз:* ${escapeMarkdown(giveaway.prize?.name || 'Не указан')}\n`;
       message += `💰 *Стоимость:* ${giveaway.prize?.value || 0} USDT\n`;
       message += `🏆 *Победителей:* ${giveaway.winnersCount}\n`;
       message += `👥 *Участников:* ${giveaway.participationCount}\n\n`;
@@ -788,7 +802,7 @@ async function showGiveawayDetails(ctx, giveawayId) {
       if (giveaway.winners && giveaway.winners.length > 0) {
         message += `🏆 *Победители:*\n`;
         giveaway.winners.forEach((winner, index) => {
-          message += `${index + 1}. ${winner.user?.firstName || 'Пользователь'}\n`;
+          message += `${index + 1}. ${escapeMarkdown(winner.user?.firstName || 'Пользователь')}\n`;
         });
       }
 
@@ -890,7 +904,7 @@ async function conductGiveaway(ctx, giveawayId) {
       if (winners.length > 0) {
         message += '🏆 *Победители:*\n';
         winners.forEach((winner, index) => {
-          message += `${index + 1}. ${winner.user?.firstName || 'Пользователь'}\n`;
+          message += `${index + 1}. ${escapeMarkdown(winner.user?.firstName || 'Пользователь')}\n`;
         });
       } else {
         message += '😞 Участников не было';
@@ -963,7 +977,7 @@ async function handleGiveawayCreation(ctx) {
       session.step = 'type';
       
       await ctx.reply(
-        `🎯 *Создание розыгрыша: ${text}*\n\n` +
+        `🎯 *Создание розыгрыша: ${escapeMarkdown(text)}*\n\n` +
         'Выберите тип розыгрыша:',
         {
           parse_mode: 'Markdown',
@@ -988,13 +1002,13 @@ async function handleGiveawayCreation(ctx) {
       session.winnersCount = winnersCount;
       
       // Показываем доступные призы для выбора
-      let message = `🎯 *Создание розыгрыша: ${session.title}*\n\n` +
+      let message = `🎯 *Создание розыгрыша: ${escapeMarkdown(session.title)}*\n\n` +
                    'Выберите приз для розыгрыша:\n\n';
       
       const keyboard = [];
       for (let i = 0; i < session.availablePrizes.length; i++) {
         const prize = session.availablePrizes[i];
-        message += `${i + 1}. ${prize.name} (${prize.value} USDT)\n`;
+        message += `${i + 1}. ${escapeMarkdown(prize.name)} (${prize.value} USDT)\n`;
         keyboard.push([{ 
           text: `${i + 1}. ${prize.name}`, 
           callback_data: `select_prize_${prize._id}` 

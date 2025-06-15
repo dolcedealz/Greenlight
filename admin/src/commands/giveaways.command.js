@@ -358,6 +358,7 @@ async function handleGiftUrlInput(ctx) {
 
       if (response.data.success) {
         const preview = response.data.data.preview;
+        console.log('ADMIN: Получены данные предпросмотра:', JSON.stringify(preview, null, 2));
         
         // Сохраняем данные в сессии
         session.giftData = preview;
@@ -365,6 +366,7 @@ async function handleGiftUrlInput(ctx) {
 
         await showGiftPreview(ctx, preview);
       } else {
+        console.error('ADMIN: API вернул ошибку:', response.data);
         throw new Error(response.data.message || 'Ошибка парсинга');
       }
 
@@ -458,54 +460,80 @@ async function createPrizeFromGift(ctx, session) {
  */
 async function showGiftPreview(ctx, giftData) {
   try {
+    console.log('ADMIN: Показываем предпросмотр подарка:', JSON.stringify(giftData, null, 2));
+    
     let message = '🎁 *Предпросмотр подарка*\n\n';
-    message += `📛 **Название:** ${giftData.name}\n`;
+    message += `📛 *Название:* ${giftData.name || 'Не указано'}\n`;
     
     if (giftData.description) {
-      message += `📝 **Описание:** ${giftData.description}\n`;
+      // Ограничиваем длину описания для Telegram
+      const desc = giftData.description.length > 200 ? 
+                   giftData.description.substring(0, 200) + '...' : 
+                   giftData.description;
+      message += `📝 *Описание:* ${desc}\n`;
     }
     
     if (giftData.collection) {
-      message += `🗂 **Коллекция:** ${giftData.collection}\n`;
+      message += `🗂 *Коллекция:* ${giftData.collection}\n`;
     }
     
     if (giftData.rarity) {
-      message += `💎 **Редкость:** ${giftData.rarity}\n`;
+      message += `💎 *Редкость:* ${giftData.rarity}\n`;
     }
     
     if (giftData.totalSupply) {
-      message += `🔢 **Всего выпущено:** ${giftData.totalSupply.toLocaleString()}\n`;
+      message += `🔢 *Всего выпущено:* ${giftData.totalSupply.toLocaleString()}\n`;
     }
     
     if (giftData.currentSupply) {
-      message += `📊 **Текущее количество:** ${giftData.currentSupply.toLocaleString()}\n`;
+      message += `📊 *Текущее количество:* ${giftData.currentSupply.toLocaleString()}\n`;
     }
     
     if (giftData.attributes && giftData.attributes.length > 0) {
-      message += `\n🎨 **Атрибуты:**\n`;
-      giftData.attributes.forEach(attr => {
-        message += `┣ ${attr.trait_type}: ${attr.value}\n`;
+      message += `\n🎨 *Атрибуты:*\n`;
+      // Ограничиваем количество атрибутов
+      const limitedAttrs = giftData.attributes.slice(0, 5);
+      limitedAttrs.forEach(attr => {
+        if (attr.trait_type && attr.value) {
+          message += `• ${attr.trait_type}: ${attr.value}\n`;
+        }
       });
+      if (giftData.attributes.length > 5) {
+        message += `• И еще ${giftData.attributes.length - 5} атрибутов...\n`;
+      }
     }
     
-    message += `\n💰 **Ценность:** нужно указать вручную`;
+    message += `\n💰 *Ценность:* нужно указать вручную`;
     
     const keyboard = [
       [{ text: '✅ Использовать эти данные', callback_data: 'gift_preview_accept' }],
-      [{ text: '✏️ Редактировать название', callback_data: 'gift_edit_name' }],
-      [{ text: '📝 Редактировать описание', callback_data: 'gift_edit_description' }],
       [{ text: '❌ Отмена', callback_data: 'gift_preview_cancel' }]
     ];
 
+    // Проверяем изображение
+    console.log('ADMIN: URL изображения:', giftData.imageUrl);
+    console.log('ADMIN: Изображение валидно:', giftData.imageValid);
+
     if (giftData.imageUrl && giftData.imageValid) {
-      // Отправляем с изображением
-      await ctx.replyWithPhoto(giftData.imageUrl, {
-        caption: message,
-        parse_mode: 'Markdown',
-        reply_markup: { inline_keyboard: keyboard }
-      });
+      try {
+        // Отправляем с изображением
+        console.log('ADMIN: Отправляем с изображением');
+        await ctx.replyWithPhoto(giftData.imageUrl, {
+          caption: message,
+          parse_mode: 'Markdown',
+          reply_markup: { inline_keyboard: keyboard }
+        });
+      } catch (photoError) {
+        console.error('ADMIN: Ошибка отправки фото, отправляем текст:', photoError);
+        // Если ошибка с фото, отправляем текст
+        await ctx.reply(message + '\n\n⚠️ Изображение недоступно', {
+          parse_mode: 'Markdown',
+          reply_markup: { inline_keyboard: keyboard }
+        });
+      }
     } else {
       // Отправляем только текст
+      console.log('ADMIN: Отправляем только текст');
       await ctx.reply(message, {
         parse_mode: 'Markdown',
         reply_markup: { inline_keyboard: keyboard }
@@ -514,7 +542,17 @@ async function showGiftPreview(ctx, giftData) {
 
   } catch (error) {
     console.error('ADMIN: Ошибка показа предпросмотра:', error);
-    await ctx.reply('❌ Ошибка отображения предпросмотра');
+    await ctx.reply(
+      '❌ Ошибка отображения предпросмотра\n\n' +
+      `Детали: ${error.message}`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔙 Назад', callback_data: 'giveaways_add_prize' }]
+          ]
+        }
+      }
+    );
   }
 }
 

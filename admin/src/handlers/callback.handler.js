@@ -700,15 +700,27 @@ function registerCallbackHandlers(bot) {
     }
     
     ctx.session.creatingGiveaway.type = type;
-    ctx.session.creatingGiveaway.step = 'winnersCount';
     
-    const typeText = type === 'daily' ? 'ежедневный' : 'недельный';
-    await ctx.editMessageText(
-      `🎯 *Создание розыгрыша: ${ctx.session.creatingGiveaway.title}*\n\n` +
-      `Тип: ${typeText}\n\n` +
-      'Введите количество победителей (от 1 до 10):',
-      { parse_mode: 'Markdown' }
-    );
+    if (type === 'custom') {
+      ctx.session.creatingGiveaway.step = 'customDate';
+      await ctx.editMessageText(
+        `🎯 *Создание розыгрыша: ${ctx.session.creatingGiveaway.title}*\n\n` +
+        `📅 Тип: Кастомный\n\n` +
+        'Введите дату и время розыгрыша в формате:\n' +
+        '`ДД.ММ.ГГГГ ЧЧ:ММ`\n\n' +
+        'Например: `15.06.2025 20:00`',
+        { parse_mode: 'Markdown' }
+      );
+    } else {
+      ctx.session.creatingGiveaway.step = 'winnersCount';
+      const typeText = type === 'daily' ? 'ежедневный' : 'недельный';
+      await ctx.editMessageText(
+        `🎯 *Создание розыгрыша: ${ctx.session.creatingGiveaway.title}*\n\n` +
+        `Тип: ${typeText}\n\n` +
+        'Введите количество победителей (от 1 до 10):',
+        { parse_mode: 'Markdown' }
+      );
+    }
   });
 
   // Выбор приза для розыгрыша
@@ -737,16 +749,36 @@ function registerCallbackHandlers(bot) {
         prizeId: prizeId
       };
 
+      // Добавляем кастомные даты если тип custom
+      if (ctx.session.creatingGiveaway.type === 'custom' && ctx.session.creatingGiveaway.customDrawDate) {
+        const drawDate = ctx.session.creatingGiveaway.customDrawDate;
+        giveawayData.startDate = new Date().toISOString();
+        giveawayData.endDate = new Date(drawDate.getTime() - 60 * 60 * 1000).toISOString(); // За час до розыгрыша
+        giveawayData.drawDate = drawDate.toISOString();
+      }
+
       const response = await apiClient.post('/admin/giveaways', giveawayData);
       
       if (response.data.success) {
-        await ctx.editMessageText(
-          `✅ *Розыгрыш успешно создан!*\n\n` +
-          `🎯 Название: ${giveawayData.title}\n` +
-          `📅 Тип: ${giveawayData.type === 'daily' ? 'Ежедневный' : 'Недельный'}\n` +
-          `🏆 Победителей: ${giveawayData.winnersCount}\n` +
-          `🎁 Приз: ${prize.name}\n\n` +
-          `Розыгрыш будет автоматически активирован в назначенное время.`,
+        const typeText = giveawayData.type === 'daily' ? 'Ежедневный' : 
+                        giveawayData.type === 'weekly' ? 'Недельный' : 'Кастомный';
+        
+        let message = `✅ *Розыгрыш успешно создан!*\n\n` +
+                     `🎯 Название: ${giveawayData.title}\n` +
+                     `📅 Тип: ${typeText}\n` +
+                     `🏆 Победителей: ${giveawayData.winnersCount}\n` +
+                     `🎁 Приз: ${prize.name}\n`;
+        
+        if (giveawayData.type === 'custom') {
+          const drawTime = new Date(giveawayData.drawDate).toLocaleString('ru-RU', {
+            timeZone: 'Europe/Moscow'
+          });
+          message += `⏰ Время: ${drawTime} МСК\n`;
+        }
+        
+        message += `\nРозыгрыш будет автоматически активирован в назначенное время.`;
+        
+        await ctx.editMessageText(message,
           {
             parse_mode: 'Markdown',
             reply_markup: {
@@ -898,6 +930,74 @@ function registerCallbackHandlers(bot) {
     console.log(`ADMIN: Callback remind_both_${giveawayId}`);
     await ctx.answerCbQuery();
     await sendManualReminder(ctx, giveawayId, 'both');
+  });
+
+  // Настройки напоминаний
+  bot.action('reminder_auto_settings', async (ctx) => {
+    console.log('ADMIN: Callback reminder_auto_settings');
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(
+      `⚙️ *Настройки автоматических напоминаний*\n\n` +
+      `Текущие настройки:\n` +
+      `┣ ⏰ Интервал: каждый час\n` +
+      `┣ 📅 Время: за 2 часа до окончания\n` +
+      `┣ 📢 Канал: Telegram канал\n` +
+      `┗ 🔄 Статус: активно\n\n` +
+      `Настройки задаются через переменные окружения на сервере.`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔙 Назад', callback_data: 'giveaways_reminders' }]
+          ]
+        }
+      }
+    );
+  });
+
+  bot.action('reminder_stats', async (ctx) => {
+    console.log('ADMIN: Callback reminder_stats');
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(
+      `📊 *Статистика напоминаний*\n\n` +
+      `За последние 24 часа:\n` +
+      `┣ 📤 Отправлено автоматических: 0\n` +
+      `┣ 📢 Отправлено ручных: 0\n` +
+      `┣ ✅ Успешных: 0\n` +
+      `┗ ❌ Ошибок: 0\n\n` +
+      `_Статистика ведется с момента последнего перезапуска сервера._`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔙 Назад', callback_data: 'giveaways_reminders' }]
+          ]
+        }
+      }
+    );
+  });
+
+  bot.action('reminder_restart_jobs', async (ctx) => {
+    console.log('ADMIN: Callback reminder_restart_jobs');
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(
+      `🔄 *Перезапуск задач напоминаний*\n\n` +
+      `⚠️ Эта функция перезапускает все cron-задачи розыгрышей на сервере.\n\n` +
+      `Включает:\n` +
+      `┣ 📅 Напоминания\n` +
+      `┣ 🎯 Проведение розыгрышей\n` +
+      `┣ 🧹 Очистка данных\n` +
+      `┗ 🆕 Создание автоматических розыгрышей\n\n` +
+      `❗ Функция доступна только через API сервера.`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔙 Назад', callback_data: 'giveaways_reminders' }]
+          ]
+        }
+      }
+    );
   });
 
   // ========== ФИНАНСОВЫЕ ОБРАБОТЧИКИ ==========

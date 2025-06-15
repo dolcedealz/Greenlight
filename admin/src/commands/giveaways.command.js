@@ -992,6 +992,7 @@ async function handleGiveawayCreation(ctx) {
             inline_keyboard: [
               [{ text: '📅 Ежедневный', callback_data: 'giveaway_type_daily' }],
               [{ text: '📆 Недельный', callback_data: 'giveaway_type_weekly' }],
+              [{ text: '⚙️ Кастомный', callback_data: 'giveaway_type_custom' }],
               [{ text: '❌ Отмена', callback_data: 'giveaways_menu' }]
             ]
           }
@@ -1028,6 +1029,44 @@ async function handleGiveawayCreation(ctx) {
         parse_mode: 'Markdown',
         reply_markup: { inline_keyboard: keyboard }
       });
+      
+    } else if (session.step === 'customDate') {
+      // Обработка ввода кастомной даты и времени
+      const dateRegex = /^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{1,2}):(\d{2})$/;
+      const match = text.match(dateRegex);
+
+      if (!match) {
+        await ctx.reply(
+          '❌ Неверный формат даты!\n\n' +
+          'Используйте формат: `ДД.ММ.ГГГГ ЧЧ:ММ`\n' +
+          'Например: `15.06.2025 20:00`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      const [, day, month, year, hour, minute] = match;
+      
+      // Создаем дату в московском времени и конвертируем в UTC
+      const moscowDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), 0, 0);
+      const drawDate = new Date(moscowDate.getTime() - 3 * 60 * 60 * 1000);
+      
+      // Проверяем что дата в будущем
+      if (drawDate <= new Date()) {
+        await ctx.reply('❌ Дата розыгрыша должна быть в будущем!');
+        return;
+      }
+
+      session.customDrawDate = drawDate;
+      session.step = 'winnersCount';
+      
+      await ctx.reply(
+        `🎯 *Создание розыгрыша: ${escapeMarkdown(session.title)}*\n\n` +
+        `📅 Тип: ${session.type === 'custom' ? 'Кастомный' : session.type}\n` +
+        `⏰ Время: ${moscowDate.toLocaleString('ru-RU')} МСК\n\n` +
+        'Введите количество победителей (1-10):',
+        { parse_mode: 'Markdown' }
+      );
     }
   } catch (error) {
     console.error('ADMIN: Ошибка обработки создания розыгрыша:', error);
@@ -1300,10 +1339,10 @@ async function handleTimeEdit(ctx) {
 
     const [, day, month, year, hour, minute] = match;
     
-    // Создаем дату в московском времени
-    const newDrawDate = new Date();
-    newDrawDate.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
-    newDrawDate.setHours(parseInt(hour), parseInt(minute), 0, 0);
+    // Создаем дату в московском времени и конвертируем в UTC
+    const moscowDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), 0, 0);
+    // Конвертируем MSK в UTC (MSK = UTC+3)
+    const newDrawDate = new Date(moscowDate.getTime() - 3 * 60 * 60 * 1000);
     
     // Проверяем что дата в будущем
     if (newDrawDate <= new Date()) {

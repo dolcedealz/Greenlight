@@ -9,7 +9,7 @@ const giveawaySchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['daily', 'weekly'],
+    enum: ['daily', 'weekly', 'custom'],
     required: true
   },
   prize: {

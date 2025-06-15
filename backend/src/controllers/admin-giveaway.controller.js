@@ -326,12 +326,12 @@ class AdminGiveawayController {
           start = new Date(now);
           end = new Date(now);
           
-          // Создаем время 19:59:59 в московской зоне
-          end.setUTCHours(19 - 3, 59, 59, 999); // UTC время = MSK - 3 часа
+          // Создаем время 19:59:59 в московской зоне (UTC+3)
+          end.setUTCHours(16, 59, 59, 999); // 19:59 MSK = 16:59 UTC
           
-          // Создаем время 20:00:00 в московской зоне  
+          // Создаем время 20:00:00 в московской зоне (UTC+3)
           draw = new Date(now);
-          draw.setUTCHours(20 - 3, 0, 0, 0); // UTC время = MSK - 3 часа
+          draw.setUTCHours(17, 0, 0, 0); // 20:00 MSK = 17:00 UTC
           
           // Если уже после 20:00 МСК, планируем на завтра
           if (moscowNow.getHours() >= 20) {
@@ -353,11 +353,11 @@ class AdminGiveawayController {
           // Конец в воскресенье 19:59 МСК
           end = new Date(start);
           end.setDate(end.getDate() + 6); // +6 дней до воскресенья
-          end.setUTCHours(19 - 3, 59, 59, 999); // UTC время = MSK - 3 часа
+          end.setUTCHours(16, 59, 59, 999); // 19:59 MSK = 16:59 UTC
           
           // Розыгрыш в воскресенье 20:00 МСК
           draw = new Date(end);
-          draw.setUTCHours(20 - 3, 0, 0, 0); // UTC время = MSK - 3 часа
+          draw.setUTCHours(17, 0, 0, 0); // 20:00 MSK = 17:00 UTC
         }
       }
 

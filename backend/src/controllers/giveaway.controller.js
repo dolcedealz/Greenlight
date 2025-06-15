@@ -295,7 +295,7 @@ class GiveawayController {
           }
         });
       } else {
-        // Для кастомных розыгрышей проверяем с начала даты создания розыгрыша
+        // Для кастомных розыгрышей проверяем депозиты с момента активации розыгрыша
         validDeposit = await Deposit.findOne({
           user: userId,
           status: 'paid',

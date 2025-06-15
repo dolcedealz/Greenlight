@@ -468,6 +468,12 @@ class AdminGiveawayController {
       }
 
       giveaway.status = 'active';
+      
+      // Для кастомных розыгрышей обновляем startDate на момент активации
+      if (giveaway.type === 'custom') {
+        giveaway.startDate = new Date();
+      }
+      
       await giveaway.save();
 
       const populatedGiveaway = await Giveaway.findById(giveaway._id)

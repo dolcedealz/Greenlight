@@ -103,6 +103,18 @@ function registerMessageHandlers(bot) {
         return;
       }
       
+      // Обработка редактирования времени розыгрыша
+      if (ctx.session?.editingGiveawayTime) {
+        await giveawaysCommands.handleTimeEdit(ctx);
+        return;
+      }
+      
+      // Обработка редактирования полей розыгрыша
+      if (ctx.session?.editingGiveawayField) {
+        await giveawaysCommands.handleFieldEdit(ctx);
+        return;
+      }
+      
       // Обработка вывода прибыли владельца
       if (ctx.session?.withdrawingProfit) {
         await handleProfitWithdrawal(ctx);

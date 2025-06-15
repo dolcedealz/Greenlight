@@ -38,6 +38,9 @@ async function showGiveawaysMenu(ctx) {
             ],
             [
               { text: '📈 Статистика', callback_data: 'giveaways_stats' },
+              { text: '📢 Напоминания', callback_data: 'giveaways_reminders' }
+            ],
+            [
               { text: '🏆 История', callback_data: 'giveaways_history' }
             ],
             [
@@ -830,6 +833,10 @@ async function showGiveawayDetails(ctx, giveawayId) {
         { text: '👥 Участники', callback_data: `view_participants_${giveawayId}` }
       ]);
       
+      keyboard.push([
+        { text: '📢 Напомнить о розыгрыше', callback_data: `remind_giveaway_${giveawayId}` }
+      ]);
+      
       keyboard.push([{ text: '🔙 К розыгрышам', callback_data: 'giveaways_manage' }]);
 
       await ctx.editMessageText(message, {
@@ -1029,6 +1036,494 @@ async function handleGiveawayCreation(ctx) {
   }
 }
 
+/**
+ * Редактирование времени розыгрыша
+ */
+async function editGiveawayTime(ctx, giveawayId) {
+  try {
+    // Получаем данные розыгрыша
+    const response = await apiClient.get(`/admin/giveaways`);
+    
+    if (response.data.success) {
+      const giveaway = response.data.data.giveaways.find(g => g._id === giveawayId);
+      
+      if (!giveaway) {
+        await ctx.reply('❌ Розыгрыш не найден');
+        return;
+      }
+
+      if (giveaway.status === 'completed') {
+        await ctx.reply('❌ Нельзя редактировать завершенные розыгрыши');
+        return;
+      }
+
+      const currentDrawDate = new Date(giveaway.drawDate);
+      const formattedDate = currentDrawDate.toLocaleString('ru-RU', {
+        timeZone: 'Europe/Moscow',
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      ctx.session.editingGiveawayTime = {
+        giveawayId: giveawayId,
+        step: 'waiting_date'
+      };
+
+      await ctx.reply(
+        `⏰ *Редактирование времени розыгрыша*\n\n` +
+        `🎁 Розыгрыш: ${escapeMarkdown(giveaway.title)}\n` +
+        `📅 Текущее время: ${formattedDate} МСК\n\n` +
+        `Введите новую дату и время в формате:\n` +
+        `\`ДД.ММ.ГГГГ ЧЧ:ММ\`\n\n` +
+        `Например: \`15.06.2025 20:00\``,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '❌ Отмена', callback_data: `giveaway_details_${giveawayId}` }]
+            ]
+          }
+        }
+      );
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка редактирования времени:', error);
+    await ctx.reply('❌ Ошибка при редактировании времени');
+  }
+}
+
+/**
+ * Полное редактирование розыгрыша
+ */
+async function editGiveaway(ctx, giveawayId) {
+  try {
+    // Получаем данные розыгрыша
+    const response = await apiClient.get(`/admin/giveaways`);
+    
+    if (response.data.success) {
+      const giveaway = response.data.data.giveaways.find(g => g._id === giveawayId);
+      
+      if (!giveaway) {
+        await ctx.reply('❌ Розыгрыш не найден');
+        return;
+      }
+
+      if (giveaway.status === 'completed') {
+        await ctx.reply('❌ Нельзя редактировать завершенные розыгрыши');
+        return;
+      }
+
+      const keyboard = [
+        [
+          { text: '🏆 Количество победителей', callback_data: `edit_winners_${giveawayId}` },
+          { text: '💰 Мин. депозит', callback_data: `edit_deposit_${giveawayId}` }
+        ],
+        [
+          { text: '📝 Название', callback_data: `edit_title_${giveawayId}` },
+          { text: '⏰ Время', callback_data: `edit_time_${giveawayId}` }
+        ],
+        [
+          { text: '🎁 Изменить приз', callback_data: `edit_prize_${giveawayId}` }
+        ],
+        [
+          { text: '🔙 Назад', callback_data: `giveaway_details_${giveawayId}` }
+        ]
+      ];
+
+      await ctx.editMessageText(
+        `📝 *Редактирование розыгрыша*\n\n` +
+        `🎁 ${escapeMarkdown(giveaway.title)}\n\n` +
+        `Выберите что хотите изменить:`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: { inline_keyboard: keyboard }
+        }
+      );
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка редактирования розыгрыша:', error);
+    await ctx.reply('❌ Ошибка при загрузке редактирования');
+  }
+}
+
+/**
+ * Просмотр участников розыгрыша
+ */
+async function viewParticipants(ctx, giveawayId, page = 1) {
+  try {
+    const response = await apiClient.get(`/admin/giveaways/${giveawayId}/participants?page=${page}&limit=10`);
+    
+    if (response.data.success) {
+      const { participants, pagination } = response.data.data;
+      
+      let message = `👥 *Участники розыгрыша*\n\n`;
+      
+      if (participants.length === 0) {
+        message += `📭 Пока нет участников`;
+      } else {
+        message += `👥 Всего участников: ${pagination.total}\n\n`;
+        
+        participants.forEach((participant, index) => {
+          const position = (page - 1) * 10 + index + 1;
+          const userName = participant.user?.firstName || participant.user?.username || 'Неизвестный';
+          const depositAmount = participant.depositAmount || 0;
+          const statusEmoji = participant.isWinner ? '🏆' : '👤';
+          
+          message += `${statusEmoji} \`№${participant.participationNumber}\` ${escapeMarkdown(userName)}\n`;
+          message += `   💰 Депозит: ${depositAmount} USDT\n`;
+          message += `   📅 ${new Date(participant.createdAt).toLocaleString('ru-RU')}\n\n`;
+        });
+      }
+      
+      const keyboard = [];
+      
+      // Пагинация
+      if (pagination.pages > 1) {
+        const navRow = [];
+        if (page > 1) {
+          navRow.push({ text: '⬅️ Пред', callback_data: `participants_${giveawayId}_${page - 1}` });
+        }
+        navRow.push({ text: `${page}/${pagination.pages}`, callback_data: 'noop' });
+        if (page < pagination.pages) {
+          navRow.push({ text: 'След ➡️', callback_data: `participants_${giveawayId}_${page + 1}` });
+        }
+        keyboard.push(navRow);
+      }
+      
+      keyboard.push([{ text: '🔙 К розыгрышу', callback_data: `giveaway_details_${giveawayId}` }]);
+
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: keyboard }
+      });
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка просмотра участников:', error);
+    await ctx.reply('❌ Ошибка загрузки участников');
+  }
+}
+
+/**
+ * Начать редактирование конкретного поля
+ */
+async function startEditField(ctx, giveawayId, field) {
+  try {
+    // Получаем данные розыгрыша
+    const response = await apiClient.get(`/admin/giveaways`);
+    
+    if (response.data.success) {
+      const giveaway = response.data.data.giveaways.find(g => g._id === giveawayId);
+      
+      if (!giveaway) {
+        await ctx.reply('❌ Розыгрыш не найден');
+        return;
+      }
+
+      if (giveaway.status === 'completed') {
+        await ctx.reply('❌ Нельзя редактировать завершенные розыгрыши');
+        return;
+      }
+
+      ctx.session.editingGiveawayField = {
+        giveawayId: giveawayId,
+        field: field,
+        step: 'waiting_value'
+      };
+
+      let message = '';
+      let currentValue = '';
+
+      switch (field) {
+        case 'winnersCount':
+          currentValue = giveaway.winnersCount;
+          message = `🏆 *Редактирование количества победителей*\n\n` +
+                   `🎁 Розыгрыш: ${escapeMarkdown(giveaway.title)}\n` +
+                   `📊 Текущее значение: ${currentValue}\n\n` +
+                   `Введите новое количество победителей (число от 1 до 10):`;
+          break;
+        
+        case 'minDepositAmount':
+          currentValue = giveaway.minDepositAmount || 1;
+          message = `💰 *Редактирование минимального депозита*\n\n` +
+                   `🎁 Розыгрыш: ${escapeMarkdown(giveaway.title)}\n` +
+                   `💳 Текущее значение: ${currentValue} USDT\n\n` +
+                   `Введите новую минимальную сумму депозита (например: 5):`;
+          break;
+        
+        case 'title':
+          currentValue = giveaway.title;
+          message = `📝 *Редактирование названия*\n\n` +
+                   `📊 Текущее название: ${escapeMarkdown(currentValue)}\n\n` +
+                   `Введите новое название розыгрыша:`;
+          break;
+      }
+
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '❌ Отмена', callback_data: `edit_giveaway_${giveawayId}` }]
+          ]
+        }
+      });
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка начала редактирования поля:', error);
+    await ctx.reply('❌ Ошибка при редактировании');
+  }
+}
+
+/**
+ * Обработка ввода нового времени
+ */
+async function handleTimeEdit(ctx) {
+  try {
+    const text = ctx.message.text.trim();
+    const { giveawayId } = ctx.session.editingGiveawayTime;
+
+    // Парсинг даты в формате ДД.ММ.ГГГГ ЧЧ:ММ
+    const dateRegex = /^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{1,2}):(\d{2})$/;
+    const match = text.match(dateRegex);
+
+    if (!match) {
+      await ctx.reply(
+        '❌ Неверный формат даты!\n\n' +
+        'Используйте формат: `ДД.ММ.ГГГГ ЧЧ:ММ`\n' +
+        'Например: `15.06.2025 20:00`',
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
+
+    const [, day, month, year, hour, minute] = match;
+    
+    // Создаем дату в московском времени
+    const newDrawDate = new Date();
+    newDrawDate.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
+    newDrawDate.setHours(parseInt(hour), parseInt(minute), 0, 0);
+    
+    // Проверяем что дата в будущем
+    if (newDrawDate <= new Date()) {
+      await ctx.reply('❌ Дата розыгрыша должна быть в будущем!');
+      return;
+    }
+
+    // Обновляем розыгрыш
+    const updateData = {
+      drawDate: newDrawDate.toISOString(),
+      // Также обновляем endDate (за час до розыгрыша)
+      endDate: new Date(newDrawDate.getTime() - 60 * 60 * 1000).toISOString()
+    };
+
+    const response = await apiClient.put(`/admin/giveaways/${giveawayId}`, updateData);
+
+    if (response.data.success) {
+      delete ctx.session.editingGiveawayTime;
+      
+      const formattedDate = newDrawDate.toLocaleString('ru-RU', {
+        timeZone: 'Europe/Moscow'
+      });
+      
+      await ctx.reply(
+        `✅ *Время розыгрыша обновлено!*\n\n` +
+        `⏰ Новое время: ${formattedDate} МСК`,
+        { 
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🔙 К розыгрышу', callback_data: `giveaway_details_${giveawayId}` }]
+            ]
+          }
+        }
+      );
+    } else {
+      await ctx.reply(`❌ Ошибка обновления: ${response.data.message}`);
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка обработки редактирования времени:', error);
+    await ctx.reply('❌ Ошибка при обновлении времени');
+    delete ctx.session.editingGiveawayTime;
+  }
+}
+
+/**
+ * Обработка ввода нового значения поля
+ */
+async function handleFieldEdit(ctx) {
+  try {
+    const text = ctx.message.text.trim();
+    const { giveawayId, field } = ctx.session.editingGiveawayField;
+
+    let newValue;
+    let updateData = {};
+
+    switch (field) {
+      case 'winnersCount':
+        newValue = parseInt(text);
+        if (isNaN(newValue) || newValue < 1 || newValue > 10) {
+          await ctx.reply('❌ Введите число от 1 до 10!');
+          return;
+        }
+        updateData.winnersCount = newValue;
+        break;
+      
+      case 'minDepositAmount':
+        newValue = parseFloat(text);
+        if (isNaN(newValue) || newValue < 0) {
+          await ctx.reply('❌ Введите корректную сумму (например: 5 или 10.5)!');
+          return;
+        }
+        updateData.minDepositAmount = newValue;
+        break;
+      
+      case 'title':
+        if (text.length < 3 || text.length > 100) {
+          await ctx.reply('❌ Название должно быть от 3 до 100 символов!');
+          return;
+        }
+        updateData.title = text;
+        newValue = text;
+        break;
+    }
+
+    // Обновляем розыгрыш
+    const response = await apiClient.put(`/admin/giveaways/${giveawayId}`, updateData);
+
+    if (response.data.success) {
+      delete ctx.session.editingGiveawayField;
+      
+      const fieldNames = {
+        winnersCount: 'Количество победителей',
+        minDepositAmount: 'Минимальный депозит',
+        title: 'Название'
+      };
+      
+      const valueText = field === 'minDepositAmount' ? `${newValue} USDT` : newValue;
+      
+      await ctx.reply(
+        `✅ *${fieldNames[field]} обновлено!*\n\n` +
+        `📊 Новое значение: ${valueText}`,
+        { 
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🔙 К розыгрышу', callback_data: `giveaway_details_${giveawayId}` }]
+            ]
+          }
+        }
+      );
+    } else {
+      await ctx.reply(`❌ Ошибка обновления: ${response.data.message}`);
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка обработки редактирования поля:', error);
+    await ctx.reply('❌ Ошибка при обновлении');
+    delete ctx.session.editingGiveawayField;
+  }
+}
+
+/**
+ * Отправка ручного напоминания о розыгрыше
+ */
+async function sendGiveawayReminder(ctx, giveawayId) {
+  try {
+    // Получаем данные розыгрыша
+    const response = await apiClient.get(`/admin/giveaways`);
+    
+    if (response.data.success) {
+      const giveaway = response.data.data.giveaways.find(g => g._id === giveawayId);
+      
+      if (!giveaway) {
+        await ctx.reply('❌ Розыгрыш не найден');
+        return;
+      }
+
+      if (giveaway.status !== 'active') {
+        await ctx.reply('❌ Можно напоминать только об активных розыгрышах');
+        return;
+      }
+
+      const keyboard = [
+        [
+          { text: '🤖 В боте пользователям', callback_data: `remind_bot_${giveawayId}` },
+          { text: '📢 В канале', callback_data: `remind_channel_${giveawayId}` }
+        ],
+        [
+          { text: '🌐 В боте И канале', callback_data: `remind_both_${giveawayId}` }
+        ],
+        [
+          { text: '🔙 Назад', callback_data: `giveaway_details_${giveawayId}` }
+        ]
+      ];
+
+      const drawTime = new Date(giveaway.drawDate).toLocaleString('ru-RU', {
+        timeZone: 'Europe/Moscow'
+      });
+
+      await ctx.editMessageText(
+        `📢 *Напоминание о розыгрыше*\n\n` +
+        `🎁 ${escapeMarkdown(giveaway.title)}\n` +
+        `🏆 Приз: ${escapeMarkdown(giveaway.prize?.name || 'Не указан')}\n` +
+        `⏰ Розыгрыш: ${drawTime} МСК\n` +
+        `👥 Участников: ${giveaway.participationCount}\n\n` +
+        `Куда отправить напоминание?`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: { inline_keyboard: keyboard }
+        }
+      );
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка показа напоминания:', error);
+    await ctx.reply('❌ Ошибка при загрузке напоминания');
+  }
+}
+
+/**
+ * Настройки автоматических напоминаний
+ */
+async function showReminderSettings(ctx) {
+  try {
+    const keyboard = [
+      [
+        { text: '⚙️ Настройки авто-напоминаний', callback_data: 'reminder_auto_settings' }
+      ],
+      [
+        { text: '📊 Статистика напоминаний', callback_data: 'reminder_stats' }
+      ],
+      [
+        { text: '🔄 Перезапустить задачи', callback_data: 'reminder_restart_jobs' }
+      ],
+      [
+        { text: '🔙 К розыгрышам', callback_data: 'giveaways_menu' }
+      ]
+    ];
+
+    await ctx.editMessageText(
+      `⚙️ *Управление напоминаниями*\n\n` +
+      `📋 Доступные функции:\n\n` +
+      `🤖 **Автоматические напоминания:**\n` +
+      `┣ За 2 часа до окончания\n` +
+      `┣ Отправляются в бот пользователям\n` +
+      `┗ Запускаются каждый час\n\n` +
+      `📢 **Ручные напоминания:**\n` +
+      `┣ В любое время по запросу\n` +
+      `┣ Выбор: бот, канал или оба\n` +
+      `┗ Доступны в деталях розыгрыша`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: keyboard }
+      }
+    );
+  } catch (error) {
+    console.error('ADMIN: Ошибка показа настроек напоминаний:', error);
+    await ctx.reply('❌ Ошибка загрузки настроек');
+  }
+}
+
 module.exports = {
   showGiveawaysMenu,
   showCurrentGiveaways,
@@ -1048,5 +1543,13 @@ module.exports = {
   handlePrizeCreation,
   finalizePrizeCreation,
   startGiveawayCreation,
-  handleGiveawayCreation
+  handleGiveawayCreation,
+  editGiveawayTime,
+  editGiveaway,
+  viewParticipants,
+  startEditField,
+  handleTimeEdit,
+  handleFieldEdit,
+  sendGiveawayReminder,
+  showReminderSettings
 };

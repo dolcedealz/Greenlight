@@ -16,6 +16,43 @@ const apiClient = axios.create({
   timeout: 30000
 });
 
+/**
+ * Отправка ручного напоминания
+ */
+async function sendManualReminder(ctx, giveawayId, target) {
+  try {
+    const response = await apiClient.post(`/admin/giveaways/${giveawayId}/remind`, {
+      target: target // 'bot', 'channel', 'both'
+    });
+
+    if (response.data.success) {
+      const { sentTo } = response.data.data;
+      let message = '✅ *Напоминание отправлено!*\n\n';
+      
+      if (sentTo.bot) {
+        message += `🤖 В боте: ${sentTo.bot} пользователей\n`;
+      }
+      if (sentTo.channel) {
+        message += `📢 В канале: опубликовано\n`;
+      }
+      
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔙 К розыгрышу', callback_data: `giveaway_details_${giveawayId}` }]
+          ]
+        }
+      });
+    } else {
+      await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка отправки напоминания:', error);
+    await ctx.reply('❌ Ошибка при отправке напоминания');
+  }
+}
+
 // Import command modules
 const statsCommands = require('../commands/stats.command');
 const usersCommands = require('../commands/users.command');
@@ -775,7 +812,7 @@ function registerCallbackHandlers(bot) {
     const giveawayId = ctx.match[1];
     console.log(`ADMIN: Callback edit_time_${giveawayId}`);
     await ctx.answerCbQuery();
-    await ctx.reply('⏰ Редактирование времени розыгрыша в разработке');
+    await giveawaysCommands.editGiveawayTime(ctx, giveawayId);
   });
 
   // Редактирование розыгрыша
@@ -783,7 +820,7 @@ function registerCallbackHandlers(bot) {
     const giveawayId = ctx.match[1];
     console.log(`ADMIN: Callback edit_giveaway_${giveawayId}`);
     await ctx.answerCbQuery();
-    await ctx.reply('📝 Редактирование розыгрыша в разработке');
+    await giveawaysCommands.editGiveaway(ctx, giveawayId);
   });
 
   // Просмотр участников
@@ -791,7 +828,76 @@ function registerCallbackHandlers(bot) {
     const giveawayId = ctx.match[1];
     console.log(`ADMIN: Callback view_participants_${giveawayId}`);
     await ctx.answerCbQuery();
-    await ctx.reply('👥 Просмотр участников в разработке');
+    await giveawaysCommands.viewParticipants(ctx, giveawayId);
+  });
+
+  // Пагинация участников
+  bot.action(/participants_(.+)_(\d+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    const page = parseInt(ctx.match[2]);
+    await ctx.answerCbQuery();
+    await giveawaysCommands.viewParticipants(ctx, giveawayId, page);
+  });
+
+  // Редактирование отдельных полей
+  bot.action(/edit_winners_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback edit_winners_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await giveawaysCommands.startEditField(ctx, giveawayId, 'winnersCount');
+  });
+
+  bot.action(/edit_deposit_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback edit_deposit_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await giveawaysCommands.startEditField(ctx, giveawayId, 'minDepositAmount');
+  });
+
+  bot.action(/edit_title_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback edit_title_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await giveawaysCommands.startEditField(ctx, giveawayId, 'title');
+  });
+
+  // ========== ОБРАБОТЧИКИ НАПОМИНАНИЙ ==========
+
+  // Главное меню напоминаний
+  bot.action('giveaways_reminders', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_reminders');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.showReminderSettings(ctx);
+  });
+
+  // Напоминание о розыгрыше
+  bot.action(/remind_giveaway_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback remind_giveaway_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await giveawaysCommands.sendGiveawayReminder(ctx, giveawayId);
+  });
+
+  // Отправка напоминаний
+  bot.action(/remind_bot_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback remind_bot_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await sendManualReminder(ctx, giveawayId, 'bot');
+  });
+
+  bot.action(/remind_channel_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback remind_channel_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await sendManualReminder(ctx, giveawayId, 'channel');
+  });
+
+  bot.action(/remind_both_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback remind_both_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await sendManualReminder(ctx, giveawayId, 'both');
   });
 
   // ========== ФИНАНСОВЫЕ ОБРАБОТЧИКИ ==========

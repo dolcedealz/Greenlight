@@ -828,20 +828,6 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       <div className="giveaways-tab">
         <h3>🎁 Розыгрыши</h3>
         
-        <div className="giveaway-info">
-          <div className="info-card">
-            <div className="info-icon">ℹ️</div>
-            <div className="info-content">
-              <h4>Как участвовать?</h4>
-              <ul>
-                <li>Сделайте депозит сегодня</li>
-                <li>Нажмите кнопку "Участвовать"</li>
-                <li>Размер депозита не влияет на шансы</li>
-                <li>Можно выигрывать несколько раз</li>
-              </ul>
-            </div>
-          </div>
-        </div>
 
         <div className="active-giveaways">
           {giveawayData.activeGiveaways.length === 0 ? (

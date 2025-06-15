@@ -23,6 +23,7 @@ const eventsCommands = require('../commands/events.command');
 const transactionsCommands = require('../commands/transactions.command');
 const promoCommands = require('../commands/promo.command');
 const coefficientsCommands = require('../commands/coefficients.command');
+const giveawaysCommands = require('../commands/giveaways.command');
 // Импортируем команды мониторинга с обработкой ошибок
 let monitoringCommands;
 try {
@@ -119,13 +120,14 @@ function registerCallbackHandlers(bot) {
           ],
           [
             Markup.button.callback('🎮 Коэффициенты', 'coefficients_menu'),
-            Markup.button.callback('📊 Мониторинг', 'monitoring_menu')
+            Markup.button.callback('🎁 Розыгрыши', 'giveaways_menu')
           ],
           [
-            Markup.button.callback('📢 Уведомления', 'notifications_menu'),
-            Markup.button.callback('🛡️ Безопасность', 'security_menu')
+            Markup.button.callback('📊 Мониторинг', 'monitoring_menu'),
+            Markup.button.callback('📢 Уведомления', 'notifications_menu')
           ],
           [
+            Markup.button.callback('🛡️ Безопасность', 'security_menu'),
             Markup.button.callback('💾 Бэкапы', 'backup_menu')
           ]
         ])
@@ -149,13 +151,14 @@ function registerCallbackHandlers(bot) {
           ],
           [
             Markup.button.callback('🎮 Коэффициенты', 'coefficients_menu'),
-            Markup.button.callback('📊 Мониторинг', 'monitoring_menu')
+            Markup.button.callback('🎁 Розыгрыши', 'giveaways_menu')
           ],
           [
-            Markup.button.callback('📢 Уведомления', 'notifications_menu'),
-            Markup.button.callback('🛡️ Безопасность', 'security_menu')
+            Markup.button.callback('📊 Мониторинг', 'monitoring_menu'),
+            Markup.button.callback('📢 Уведомления', 'notifications_menu')
           ],
           [
+            Markup.button.callback('🛡️ Безопасность', 'security_menu'),
             Markup.button.callback('💾 Бэкапы', 'backup_menu')
           ]
         ])
@@ -541,6 +544,154 @@ function registerCallbackHandlers(bot) {
         ])
       }
     );
+  });
+
+  // === РОЗЫГРЫШИ ===
+
+  bot.action('giveaways_menu', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_menu');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.showGiveawaysMenu(ctx);
+  });
+
+  bot.action('giveaways_current', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_current');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.showCurrentGiveaways(ctx);
+  });
+
+  bot.action('giveaways_history', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_history');
+    await ctx.answerCbQuery();
+    await ctx.reply('🏆 История розыгрышей в разработке');
+  });
+
+  bot.action('giveaways_create', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_create');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.startGiveawayCreation(ctx);
+  });
+
+  bot.action('giveaways_prizes', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_prizes');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.showPrizesManagement(ctx);
+  });
+
+  bot.action('giveaways_stats', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_stats');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.showGiveawaysStats(ctx);
+  });
+
+  bot.action('giveaways_settings', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_settings');
+    await ctx.answerCbQuery();
+    await ctx.reply('⚙️ Настройки розыгрышей в разработке');
+  });
+
+  bot.action('giveaways_add_prize', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_add_prize');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.startPrizeCreation(ctx);
+  });
+
+  // Выбор типа приза
+  bot.action(/prize_type_(.+)/, async (ctx) => {
+    const type = ctx.match[1];
+    console.log(`ADMIN: Callback prize_type_${type}`);
+    await ctx.answerCbQuery();
+    await giveawaysCommands.finalizePrizeCreation(ctx, type);
+  });
+
+  // Выбор типа розыгрыша
+  bot.action(/giveaway_type_(.+)/, async (ctx) => {
+    const type = ctx.match[1];
+    console.log(`ADMIN: Callback giveaway_type_${type}`);
+    await ctx.answerCbQuery();
+    
+    if (!ctx.session?.creatingGiveaway) {
+      await ctx.reply('❌ Сессия создания розыгрыша не найдена');
+      return;
+    }
+    
+    ctx.session.creatingGiveaway.type = type;
+    ctx.session.creatingGiveaway.step = 'winnersCount';
+    
+    const typeText = type === 'daily' ? 'ежедневный' : 'недельный';
+    await ctx.editMessageText(
+      `🎯 *Создание розыгрыша: ${ctx.session.creatingGiveaway.title}*\n\n` +
+      `Тип: ${typeText}\n\n` +
+      'Введите количество победителей (от 1 до 10):',
+      { parse_mode: 'Markdown' }
+    );
+  });
+
+  // Выбор приза для розыгрыша
+  bot.action(/select_prize_(.+)/, async (ctx) => {
+    const prizeId = ctx.match[1];
+    console.log(`ADMIN: Callback select_prize_${prizeId}`);
+    await ctx.answerCbQuery();
+    
+    if (!ctx.session?.creatingGiveaway) {
+      await ctx.reply('❌ Сессия создания розыгрыша не найдена');
+      return;
+    }
+    
+    const prize = ctx.session.creatingGiveaway.availablePrizes.find(p => p._id === prizeId);
+    if (!prize) {
+      await ctx.reply('❌ Приз не найден');
+      return;
+    }
+    
+    try {
+      // Создаем розыгрыш
+      const giveawayData = {
+        title: ctx.session.creatingGiveaway.title,
+        type: ctx.session.creatingGiveaway.type,
+        winnersCount: ctx.session.creatingGiveaway.winnersCount,
+        prizeId: prizeId
+      };
+
+      const response = await apiClient.post('/admin/giveaways/create', giveawayData);
+      
+      if (response.data.success) {
+        await ctx.editMessageText(
+          `✅ *Розыгрыш успешно создан!*\n\n` +
+          `🎯 Название: ${giveawayData.title}\n` +
+          `📅 Тип: ${giveawayData.type === 'daily' ? 'Ежедневный' : 'Недельный'}\n` +
+          `🏆 Победителей: ${giveawayData.winnersCount}\n` +
+          `🎁 Приз: ${prize.name}\n\n` +
+          `Розыгрыш будет автоматически активирован в назначенное время.`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🎁 К розыгрышам', callback_data: 'giveaways_menu' }],
+                [{ text: '🏠 Главное меню', callback_data: 'main_menu' }]
+              ]
+            }
+          }
+        );
+      } else {
+        throw new Error(response.data.message || 'Ошибка создания розыгрыша');
+      }
+
+      delete ctx.session.creatingGiveaway;
+    } catch (error) {
+      console.error('ADMIN: Ошибка создания розыгрыша:', error);
+      await ctx.reply(
+        `❌ Ошибка создания розыгрыша: ${error.message}`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🔙 Назад', callback_data: 'giveaways_menu' }]
+            ]
+          }
+        }
+      );
+      delete ctx.session.creatingGiveaway;
+    }
   });
 
   // ========== ФИНАНСОВЫЕ ОБРАБОТЧИКИ ==========

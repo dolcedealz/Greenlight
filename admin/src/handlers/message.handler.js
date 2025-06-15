@@ -10,6 +10,7 @@ const notificationsCommands = require('../commands/notifications.command');
 const monitoringCommands = require('../commands/monitoring.command');
 const securityCommands = require('../commands/security.command');
 const backupCommands = require('../commands/backup.command');
+const giveawaysCommands = require('../commands/giveaways.command');
 const apiService = require('../services/admin.service');
 
 /**
@@ -81,6 +82,18 @@ function registerMessageHandlers(bot) {
       // Обработка создания уведомления
       if (ctx.session?.creatingNotification) {
         await notificationsCommands.handleNotificationCreation(ctx);
+        return;
+      }
+      
+      // Обработка создания приза
+      if (ctx.session?.creatingPrize) {
+        await giveawaysCommands.handlePrizeCreation(ctx);
+        return;
+      }
+      
+      // Обработка создания розыгрыша
+      if (ctx.session?.creatingGiveaway) {
+        await giveawaysCommands.handleGiveawayCreation(ctx);
         return;
       }
       
@@ -189,6 +202,10 @@ function registerMessageHandlers(bot) {
 
         case '🎁 Промокоды':
           await promoCommands.showPromoMenu(ctx);
+          break;
+
+        case '🎁 Розыгрыши':
+          await giveawaysCommands.showGiveawaysMenu(ctx);
           break;
 
         case '🛡️ Безопасность':

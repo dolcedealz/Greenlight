@@ -127,15 +127,43 @@ class GiveawayController {
             $gte: startOfWeek
           }
         }).sort({ createdAt: -1 });
+      } else {
+        // Для кастомных розыгрышей проверяем депозиты с календарного дня начала до календарного дня конца
+        const startDay = new Date(giveaway.startDate);
+        startDay.setHours(0, 0, 0, 0);
+        
+        const endDay = new Date(giveaway.endDate);
+        endDay.setHours(23, 59, 59, 999);
+        
+        validDeposit = await Deposit.findOne({
+          user: userId,
+          status: 'paid',
+          amount: { $gte: giveaway.minDepositAmount || 1 },
+          createdAt: {
+            $gte: startDay,
+            $lte: endDay
+          }
+        }).sort({ createdAt: -1 });
       }
 
       if (!validDeposit) {
         const minAmount = giveaway.minDepositAmount || 1;
+        let message;
+        
+        if (giveaway.type === 'daily') {
+          message = `Для участия необходимо сделать депозит от ${minAmount} USDT сегодня`;
+        } else if (giveaway.type === 'weekly') {
+          message = `Для участия необходимо сделать депозит от ${minAmount} USDT на этой неделе`;
+        } else {
+          // Для кастомных розыгрышей
+          const startDate = new Date(giveaway.startDate).toLocaleDateString('ru-RU');
+          const endDate = new Date(giveaway.endDate).toLocaleDateString('ru-RU');
+          message = `Для участия необходимо сделать депозит от ${minAmount} USDT в период с ${startDate} по ${endDate}`;
+        }
+        
         return res.status(400).json({
           success: false,
-          message: giveaway.type === 'daily' 
-            ? `Для участия необходимо сделать депозит от ${minAmount} USDT сегодня`
-            : `Для участия необходимо сделать депозит от ${minAmount} USDT на этой неделе`
+          message
         });
       }
 

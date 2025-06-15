@@ -186,25 +186,48 @@ class TelegramGiftService {
   extractAttributes(html) {
     const attributes = [];
     
-    // Ищем атрибуты в различных форматах
-    const attributePatterns = [
-      /(\w+):\s*([^<\n]+)/g,
-      /(\w+)\s*\(([^)]+)\)/g
+    // Ищем специфичные для NFT атрибуты
+    const nftPatterns = [
+      // Model, Backdrop, Symbol и другие характеристики
+      /Model:\s*([^<\n]+)/gi,
+      /Backdrop:\s*([^<\n]+)/gi,
+      /Symbol:\s*([^<\n]+)/gi,
+      /Outfit:\s*([^<\n]+)/gi,
+      /Eyes:\s*([^<\n]+)/gi,
+      /Hair:\s*([^<\n]+)/gi,
+      /Background:\s*([^<\n]+)/gi,
+      /Accessory:\s*([^<\n]+)/gi,
+      /Color:\s*([^<\n]+)/gi,
+      /Style:\s*([^<\n]+)/gi,
+      /Type:\s*([^<\n]+)/gi,
+      /Rarity:\s*([^<\n]+)/gi,
+      /Edition:\s*([^<\n]+)/gi,
+      /Series:\s*([^<\n]+)/gi
     ];
 
-    attributePatterns.forEach(pattern => {
+    // Применяем каждый паттерн
+    nftPatterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(html)) !== null) {
-        if (match[1] && match[2]) {
+        const trait = match[0].split(':')[0].trim();
+        const value = match[1].trim();
+        
+        // Фильтруем валидные атрибуты
+        if (trait && value && value.length < 100 && !value.includes('http') && !value.includes('javascript')) {
           attributes.push({
-            trait_type: match[1],
-            value: match[2].trim()
+            trait_type: trait,
+            value: value
           });
         }
       }
     });
 
-    return attributes;
+    // Убираем дубликаты
+    const uniqueAttributes = attributes.filter((attr, index, self) => 
+      index === self.findIndex(a => a.trait_type === attr.trait_type && a.value === attr.value)
+    );
+
+    return uniqueAttributes.slice(0, 10); // Максимум 10 атрибутов
   }
 
   /**

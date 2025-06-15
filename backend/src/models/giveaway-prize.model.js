@@ -54,6 +54,16 @@ const giveawayPrizeSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Виртуальное поле для imageUrl
+giveawayPrizeSchema.virtual('imageUrl').get(function() {
+  // Приоритет: giftData.imageUrl > image
+  return this.giftData?.imageUrl || this.image;
+});
+
+// Включаем виртуальные поля в JSON
+giveawayPrizeSchema.set('toJSON', { virtuals: true });
+giveawayPrizeSchema.set('toObject', { virtuals: true });
+
 giveawayPrizeSchema.index({ type: 1 });
 giveawayPrizeSchema.index({ isActive: 1 });
 

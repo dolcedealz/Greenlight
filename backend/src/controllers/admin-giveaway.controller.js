@@ -281,22 +281,30 @@ class AdminGiveawayController {
         const now = new Date();
         
         if (type === 'daily') {
-          // Ежедневный розыгрыш: начинается сейчас, заканчивается в 19:59, розыгрыш в 20:00
+          // Ежедневный розыгрыш: начинается сейчас, заканчивается в 19:59, розыгрыш в 20:00 МСК
+          
+          // Получаем текущее время в московской зоне
+          const moscowNow = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+          
           start = new Date(now);
           end = new Date(now);
-          end.setHours(19, 59, 59, 999); // 19:59:59
-          draw = new Date(now);
-          draw.setHours(20, 0, 0, 0); // 20:00:00
           
-          // Если уже после 20:00, планируем на завтра
-          if (now.getHours() >= 20) {
+          // Создаем время 19:59:59 в московской зоне
+          end.setUTCHours(19 - 3, 59, 59, 999); // UTC время = MSK - 3 часа
+          
+          // Создаем время 20:00:00 в московской зоне  
+          draw = new Date(now);
+          draw.setUTCHours(20 - 3, 0, 0, 0); // UTC время = MSK - 3 часа
+          
+          // Если уже после 20:00 МСК, планируем на завтра
+          if (moscowNow.getHours() >= 20) {
             start.setDate(start.getDate() + 1);
             start.setHours(0, 0, 0, 0);
             end.setDate(end.getDate() + 1);
             draw.setDate(draw.getDate() + 1);
           }
         } else if (type === 'weekly') {
-          // Недельный розыгрыш: с понедельника по воскресенье в 20:00
+          // Недельный розыгрыш: с понедельника по воскресенье в 20:00 МСК
           start = new Date(now);
           const dayOfWeek = start.getDay(); // 0 = воскресенье, 1 = понедельник
           const daysToMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek); // Дни до следующего понедельника
@@ -305,14 +313,14 @@ class AdminGiveawayController {
           start.setDate(start.getDate() + daysToMonday);
           start.setHours(0, 0, 0, 0);
           
-          // Конец в воскресенье 19:59
+          // Конец в воскресенье 19:59 МСК
           end = new Date(start);
           end.setDate(end.getDate() + 6); // +6 дней до воскресенья
-          end.setHours(19, 59, 59, 999);
+          end.setUTCHours(19 - 3, 59, 59, 999); // UTC время = MSK - 3 часа
           
-          // Розыгрыш в воскресенье 20:00
+          // Розыгрыш в воскресенье 20:00 МСК
           draw = new Date(end);
-          draw.setHours(20, 0, 0, 0);
+          draw.setUTCHours(20 - 3, 0, 0, 0); // UTC время = MSK - 3 часа
         }
       }
 

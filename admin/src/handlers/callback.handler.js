@@ -584,6 +584,12 @@ function registerCallbackHandlers(bot) {
     await giveawaysCommands.showGiveawaysStats(ctx);
   });
 
+  bot.action('giveaways_manage', async (ctx) => {
+    console.log('ADMIN: Callback giveaways_manage');
+    await ctx.answerCbQuery();
+    await giveawaysCommands.showGiveawayManagement(ctx);
+  });
+
   bot.action('giveaways_settings', async (ctx) => {
     console.log('ADMIN: Callback giveaways_settings');
     await ctx.answerCbQuery();
@@ -692,6 +698,59 @@ function registerCallbackHandlers(bot) {
       );
       delete ctx.session.creatingGiveaway;
     }
+  });
+
+  // Управление конкретным розыгрышем
+  bot.action(/manage_giveaway_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback manage_giveaway_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await giveawaysCommands.showGiveawayDetails(ctx, giveawayId);
+  });
+
+  // Активация розыгрыша
+  bot.action(/activate_giveaway_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback activate_giveaway_${giveawayId}`);
+    await giveawaysCommands.activateGiveaway(ctx, giveawayId);
+  });
+
+  // Отмена розыгрыша
+  bot.action(/cancel_giveaway_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback cancel_giveaway_${giveawayId}`);
+    await giveawaysCommands.cancelGiveaway(ctx, giveawayId);
+  });
+
+  // Проведение розыгрыша
+  bot.action(/conduct_giveaway_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback conduct_giveaway_${giveawayId}`);
+    await giveawaysCommands.conductGiveaway(ctx, giveawayId);
+  });
+
+  // Редактирование времени розыгрыша
+  bot.action(/edit_time_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback edit_time_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await ctx.reply('⏰ Редактирование времени розыгрыша в разработке');
+  });
+
+  // Редактирование розыгрыша
+  bot.action(/edit_giveaway_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback edit_giveaway_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await ctx.reply('📝 Редактирование розыгрыша в разработке');
+  });
+
+  // Просмотр участников
+  bot.action(/view_participants_(.+)/, async (ctx) => {
+    const giveawayId = ctx.match[1];
+    console.log(`ADMIN: Callback view_participants_${giveawayId}`);
+    await ctx.answerCbQuery();
+    await ctx.reply('👥 Просмотр участников в разработке');
   });
 
   // ========== ФИНАНСОВЫЕ ОБРАБОТЧИКИ ==========

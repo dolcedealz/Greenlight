@@ -29,16 +29,16 @@ async function showGiveawaysMenu(ctx) {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '📊 Текущие розыгрыши', callback_data: 'giveaways_current' },
-              { text: '🏆 История розыгрышей', callback_data: 'giveaways_history' }
+              { text: '🎯 Управление розыгрышами', callback_data: 'giveaways_manage' },
+              { text: '📊 Текущие розыгрыши', callback_data: 'giveaways_current' }
             ],
             [
-              { text: '🎯 Создать розыгрыш', callback_data: 'giveaways_create' },
-              { text: '🎁 Управление призами', callback_data: 'giveaways_prizes' }
+              { text: '🎁 Управление призами', callback_data: 'giveaways_prizes' },
+              { text: '➕ Создать розыгрыш', callback_data: 'giveaways_create' }
             ],
             [
               { text: '📈 Статистика', callback_data: 'giveaways_stats' },
-              { text: '⚙️ Настройки', callback_data: 'giveaways_settings' }
+              { text: '🏆 История', callback_data: 'giveaways_history' }
             ],
             [
               { text: '🏠 Главное меню', callback_data: 'main_menu' }
@@ -399,6 +399,241 @@ async function finalizePrizeCreation(ctx, type) {
 }
 
 /**
+ * Показать управление розыгрышами
+ */
+async function showGiveawayManagement(ctx) {
+  try {
+    const response = await apiClient.get('/admin/giveaways');
+    
+    if (response.data.success) {
+      const giveaways = response.data.data.giveaways;
+      
+      if (giveaways.length === 0) {
+        await ctx.reply(
+          '📭 *Управление розыгрышами*\n\n' +
+          'Розыгрыши не найдены',
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🎯 Создать розыгрыш', callback_data: 'giveaways_create' }],
+                [{ text: '🔙 Назад', callback_data: 'giveaways_menu' }]
+              ]
+            }
+          }
+        );
+        return;
+      }
+
+      let message = '🎯 *Управление розыгрышами*\n\n';
+      const keyboard = [];
+      
+      for (const giveaway of giveaways.slice(0, 8)) { // Показываем до 8 розыгрышей
+        const statusEmoji = giveaway.status === 'active' ? '🟢' : 
+                           giveaway.status === 'pending' ? '🟡' : 
+                           giveaway.status === 'completed' ? '✅' : '❌';
+        const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
+        
+        message += `${statusEmoji} *${giveaway.title}*\n`;
+        message += `┣ 📅 ${typeText}\n`;
+        message += `┣ 🎁 ${giveaway.prize?.name || 'Приз не указан'}\n`;
+        message += `┣ 👥 Участников: ${giveaway.participationCount}\n`;
+        message += `┗ 📊 ${giveaway.status === 'active' ? 'Активный' : 
+                                giveaway.status === 'pending' ? 'Ожидает' : 
+                                giveaway.status === 'completed' ? 'Завершен' : 'Отменен'}\n\n`;
+        
+        keyboard.push([{ 
+          text: `${statusEmoji} ${giveaway.title.slice(0, 25)}`, 
+          callback_data: `manage_giveaway_${giveaway._id}` 
+        }]);
+      }
+      
+      keyboard.push([{ text: '🎯 Создать новый', callback_data: 'giveaways_create' }]);
+      keyboard.push([{ text: '🔙 Назад', callback_data: 'giveaways_menu' }]);
+
+      await ctx.reply(message, {
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: keyboard }
+      });
+
+    } else {
+      throw new Error(response.data.message || 'Ошибка API');
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка управления розыгрышами:', error);
+    await ctx.reply(
+      '❌ Ошибка загрузки розыгрышей',
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔙 Назад', callback_data: 'giveaways_menu' }]
+          ]
+        }
+      }
+    );
+  }
+}
+
+/**
+ * Показать детали конкретного розыгрыша
+ */
+async function showGiveawayDetails(ctx, giveawayId) {
+  try {
+    const response = await apiClient.get(`/admin/giveaways`);
+    
+    if (response.data.success) {
+      const giveaway = response.data.data.giveaways.find(g => g._id === giveawayId);
+      
+      if (!giveaway) {
+        await ctx.reply('❌ Розыгрыш не найден');
+        return;
+      }
+
+      const statusEmoji = giveaway.status === 'active' ? '🟢' : 
+                         giveaway.status === 'pending' ? '🟡' : 
+                         giveaway.status === 'completed' ? '✅' : '❌';
+      
+      const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
+      
+      let message = `${statusEmoji} *${giveaway.title}*\n\n`;
+      message += `📅 *Тип:* ${typeText}\n`;
+      message += `🎁 *Приз:* ${giveaway.prize?.name || 'Не указан'}\n`;
+      message += `💰 *Стоимость:* ${giveaway.prize?.value || 0} USDT\n`;
+      message += `🏆 *Победителей:* ${giveaway.winnersCount}\n`;
+      message += `👥 *Участников:* ${giveaway.participationCount}\n\n`;
+      
+      message += `📊 *Статус:* ${giveaway.status === 'active' ? 'Активный' : 
+                                   giveaway.status === 'pending' ? 'Ожидает' : 
+                                   giveaway.status === 'completed' ? 'Завершен' : 'Отменен'}\n\n`;
+      
+      message += `⏰ *Расписание:*\n`;
+      message += `┣ 🚀 Начало: ${new Date(giveaway.startDate).toLocaleString('ru-RU')}\n`;
+      message += `┣ ⏳ Конец: ${new Date(giveaway.endDate).toLocaleString('ru-RU')}\n`;
+      message += `┗ 🎯 Розыгрыш: ${new Date(giveaway.drawDate).toLocaleString('ru-RU')}\n\n`;
+      
+      if (giveaway.winners && giveaway.winners.length > 0) {
+        message += `🏆 *Победители:*\n`;
+        giveaway.winners.forEach((winner, index) => {
+          message += `${index + 1}. ${winner.user?.firstName || 'Пользователь'}\n`;
+        });
+      }
+
+      const keyboard = [];
+      
+      // Кнопки управления в зависимости от статуса
+      if (giveaway.status === 'pending') {
+        keyboard.push([
+          { text: '✅ Активировать', callback_data: `activate_giveaway_${giveawayId}` },
+          { text: '❌ Отменить', callback_data: `cancel_giveaway_${giveawayId}` }
+        ]);
+      } else if (giveaway.status === 'active') {
+        keyboard.push([
+          { text: '🎯 Провести розыгрыш', callback_data: `conduct_giveaway_${giveawayId}` },
+          { text: '❌ Отменить', callback_data: `cancel_giveaway_${giveawayId}` }
+        ]);
+      }
+      
+      keyboard.push([
+        { text: '⏰ Изменить время', callback_data: `edit_time_${giveawayId}` },
+        { text: '📝 Редактировать', callback_data: `edit_giveaway_${giveawayId}` }
+      ]);
+      
+      keyboard.push([
+        { text: '👥 Участники', callback_data: `view_participants_${giveawayId}` }
+      ]);
+      
+      keyboard.push([{ text: '🔙 К розыгрышам', callback_data: 'giveaways_manage' }]);
+
+      await ctx.editMessageText(message, {
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: keyboard }
+      });
+
+    } else {
+      throw new Error(response.data.message || 'Ошибка API');
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка получения деталей розыгрыша:', error);
+    await ctx.reply('❌ Ошибка загрузки розыгрыша');
+  }
+}
+
+/**
+ * Активировать розыгрыш
+ */
+async function activateGiveaway(ctx, giveawayId) {
+  try {
+    const response = await apiClient.post(`/admin/giveaways/${giveawayId}/activate`);
+    
+    if (response.data.success) {
+      await ctx.answerCbQuery('✅ Розыгрыш активирован!');
+      await showGiveawayDetails(ctx, giveawayId);
+    } else {
+      await ctx.answerCbQuery('❌ Ошибка активации');
+      await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка активации розыгрыша:', error);
+    await ctx.answerCbQuery('❌ Ошибка активации');
+    await ctx.reply('❌ Ошибка активации розыгрыша');
+  }
+}
+
+/**
+ * Отменить розыгрыш
+ */
+async function cancelGiveaway(ctx, giveawayId) {
+  try {
+    const response = await apiClient.post(`/admin/giveaways/${giveawayId}/cancel`);
+    
+    if (response.data.success) {
+      await ctx.answerCbQuery('❌ Розыгрыш отменен');
+      await showGiveawayDetails(ctx, giveawayId);
+    } else {
+      await ctx.answerCbQuery('❌ Ошибка отмены');
+      await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка отмены розыгрыша:', error);
+    await ctx.answerCbQuery('❌ Ошибка отмены');
+    await ctx.reply('❌ Ошибка отмены розыгрыша');
+  }
+}
+
+/**
+ * Провести розыгрыш
+ */
+async function conductGiveaway(ctx, giveawayId) {
+  try {
+    await ctx.answerCbQuery('🎯 Проводим розыгрыш...');
+    
+    const response = await apiClient.post(`/admin/giveaways/${giveawayId}/conduct`);
+    
+    if (response.data.success) {
+      const winners = response.data.data.winners || [];
+      let message = '🎉 *Розыгрыш проведен!*\n\n';
+      
+      if (winners.length > 0) {
+        message += '🏆 *Победители:*\n';
+        winners.forEach((winner, index) => {
+          message += `${index + 1}. ${winner.user?.firstName || 'Пользователь'}\n`;
+        });
+      } else {
+        message += '😞 Участников не было';
+      }
+      
+      await ctx.reply(message, { parse_mode: 'Markdown' });
+      await showGiveawayDetails(ctx, giveawayId);
+    } else {
+      await ctx.reply(`❌ Ошибка: ${response.data.message}`);
+    }
+  } catch (error) {
+    console.error('ADMIN: Ошибка проведения розыгрыша:', error);
+    await ctx.reply('❌ Ошибка проведения розыгрыша');
+  }
+}
+
+/**
  * Начать создание розыгрыша
  */
 async function startGiveawayCreation(ctx) {
@@ -511,6 +746,11 @@ module.exports = {
   showCurrentGiveaways,
   showGiveawaysStats,
   showPrizesManagement,
+  showGiveawayManagement,
+  showGiveawayDetails,
+  activateGiveaway,
+  cancelGiveaway,
+  conductGiveaway,
   startPrizeCreation,
   handlePrizeCreation,
   finalizePrizeCreation,

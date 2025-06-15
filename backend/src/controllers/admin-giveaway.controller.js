@@ -277,7 +277,8 @@ class AdminGiveawayController {
         endDate, 
         drawDate,
         requiresDeposit = true,
-        depositTimeframe = 'same_day'
+        depositTimeframe = 'same_day',
+        minDepositAmount = 1
       } = req.body;
       const adminId = req.user.id;
 
@@ -371,6 +372,7 @@ class AdminGiveawayController {
         drawDate: draw,
         requiresDeposit,
         depositTimeframe,
+        minDepositAmount: parseFloat(minDepositAmount),
         createdBy: adminId
       });
 

@@ -718,16 +718,60 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
 
     const formatGiveawayTime = (type, drawDate) => {
       const date = new Date(drawDate);
+      const now = new Date();
       
-      // Принудительно показываем 20:00 для всех розыгрышей
+      // Показываем реальное время розыгрыша в МСК
+      const timeString = date.toLocaleString('ru-RU', {
+        timeZone: 'Europe/Moscow',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
       if (type === 'daily') {
-        return `Сегодня в 20:00`;
-      } else {
+        // Проверяем, действительно ли это сегодня
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const drawDateDay = new Date(date);
+        drawDateDay.setHours(0, 0, 0, 0);
+        
+        if (drawDateDay.getTime() === today.getTime()) {
+          return `Сегодня в ${timeString}`;
+        } else if (drawDateDay.getTime() === tomorrow.getTime()) {
+          return `Завтра в ${timeString}`;
+        } else {
+          // Для других дней показываем дату
+          const dayDate = date.toLocaleDateString('ru-RU', {
+            timeZone: 'Europe/Moscow',
+            day: '2-digit',
+            month: '2-digit'
+          });
+          return `${dayDate} в ${timeString}`;
+        }
+      } else if (type === 'weekly') {
         const day = date.toLocaleDateString('ru-RU', { 
           weekday: 'long',
           timeZone: 'Europe/Moscow'
         });
-        return `${day} в 20:00`;
+        const dayDate = date.toLocaleDateString('ru-RU', {
+          timeZone: 'Europe/Moscow',
+          day: '2-digit',
+          month: '2-digit'
+        });
+        return `${day} ${dayDate} в ${timeString}`;
+      } else {
+        // Для кастомных розыгрышей показываем полную дату и время
+        const fullDate = date.toLocaleString('ru-RU', {
+          timeZone: 'Europe/Moscow',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        return fullDate;
       }
     };
 
@@ -743,7 +787,7 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
         <div key={giveaway._id} className={`giveaway-card ${giveaway.type}`}>
           <div className="giveaway-header">
             <h4>
-              {giveaway.type === 'daily' ? '🏆 Ежедневный розыгрыш' : '💎 Недельный розыгрыш'}
+              {giveaway.type === 'daily' ? '🏆 Ежедневный розыгрыш' : giveaway.type === 'weekly' ? '💎 Недельный розыгрыш' : '🎯 Кастомный розыгрыш'}
             </h4>
             <span className="giveaway-time">
               {formatGiveawayTime(giveaway.type, giveaway.drawDate)}

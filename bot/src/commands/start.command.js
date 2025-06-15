@@ -61,7 +61,10 @@ async function startCommand(ctx) {
         Markup.button.text('💸 Вывести')
       ],
       [
-        Markup.button.text('👥 Рефералы'),
+        Markup.button.text('🎁 Розыгрыши'),
+        Markup.button.text('👥 Рефералы')
+      ],
+      [
         Markup.button.text('📊 История')
       ]
     ]).resize();

@@ -713,7 +713,7 @@ function registerCallbackHandlers(bot) {
       );
     } else {
       ctx.session.creatingGiveaway.step = 'winnersCount';
-      const typeText = type === 'daily' ? 'ежедневный' : 'недельный';
+      const typeText = type === 'daily' ? 'ежедневный' : type === 'weekly' ? 'недельный' : 'кастомный';
       await ctx.editMessageText(
         `🎯 *Создание розыгрыша: ${ctx.session.creatingGiveaway.title}*\n\n` +
         `Тип: ${typeText}\n\n` +
@@ -746,7 +746,8 @@ function registerCallbackHandlers(bot) {
         title: ctx.session.creatingGiveaway.title,
         type: ctx.session.creatingGiveaway.type,
         winnersCount: ctx.session.creatingGiveaway.winnersCount,
-        prizeId: prizeId
+        prizeId: prizeId,
+        minDepositAmount: ctx.session.creatingGiveaway.minDeposit || 1
       };
 
       // Добавляем кастомные даты если тип custom
@@ -767,7 +768,8 @@ function registerCallbackHandlers(bot) {
                      `🎯 Название: ${giveawayData.title}\n` +
                      `📅 Тип: ${typeText}\n` +
                      `🏆 Победителей: ${giveawayData.winnersCount}\n` +
-                     `🎁 Приз: ${prize.name}\n`;
+                     `🎁 Приз: ${prize.name}\n` +
+                     `💰 Минимальный депозит: ${giveawayData.minDepositAmount} USDT\n`;
         
         if (giveawayData.type === 'custom') {
           const drawTime = new Date(giveawayData.drawDate).toLocaleString('ru-RU', {

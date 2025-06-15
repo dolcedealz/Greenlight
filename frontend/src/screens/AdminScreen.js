@@ -302,10 +302,10 @@ const AdminScreen = () => {
               
               <div className="giveaway-details">
                 <p><strong>Приз:</strong> {giveaway.prize?.name}</p>
-                <p><strong>Тип:</strong> {giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный'}</p>
+                <p><strong>Тип:</strong> {giveaway.type === 'daily' ? 'Ежедневный' : giveaway.type === 'weekly' ? 'Недельный' : 'Кастомный'}</p>
                 <p><strong>Победителей:</strong> {giveaway.winnersCount}</p>
                 <p><strong>Участников:</strong> {giveaway.participationCount}</p>
-                <p><strong>Розыгрыш:</strong> {new Date(giveaway.drawDate).toLocaleString('ru-RU')}</p>
+                <p><strong>Розыгрыш:</strong> {new Date(giveaway.drawDate).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК</p>
               </div>
               
               <div className="giveaway-actions">

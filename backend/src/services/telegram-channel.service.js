@@ -3,7 +3,7 @@ const axios = require('axios');
 
 class TelegramChannelService {
   constructor() {
-    this.botToken = process.env.BOT_TOKEN;
+    this.botToken = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     this.channelId = process.env.TELEGRAM_CHANNEL_ID; // например: @greenlight_casino или -1001234567890
     this.baseUrl = `https://api.telegram.org/bot${this.botToken}`;
   }
@@ -91,8 +91,8 @@ class TelegramChannelService {
    */
   async postGiveawayAnnouncement(giveaway) {
     try {
-      const emoji = giveaway.type === 'daily' ? '🏆' : '💎';
-      const typeText = giveaway.type === 'daily' ? 'ЕЖЕДНЕВНЫЙ' : 'НЕДЕЛЬНЫЙ';
+      const emoji = giveaway.type === 'daily' ? '🏆' : giveaway.type === 'weekly' ? '💎' : '🎯';
+      const typeText = giveaway.type === 'daily' ? 'ЕЖЕДНЕВНЫЙ' : giveaway.type === 'weekly' ? 'НЕДЕЛЬНЫЙ' : 'КАСТОМНЫЙ';
       
       let message = `${emoji} <b>${typeText} РОЗЫГРЫШ</b>\n\n`;
       
@@ -143,8 +143,8 @@ class TelegramChannelService {
    */
   async postGiveawayResults(giveaway, winners) {
     try {
-      const emoji = giveaway.type === 'daily' ? '🏆' : '💎';
-      const typeText = giveaway.type === 'daily' ? 'ЕЖЕДНЕВНОГО' : 'НЕДЕЛЬНОГО';
+      const emoji = giveaway.type === 'daily' ? '🏆' : giveaway.type === 'weekly' ? '💎' : '🎯';
+      const typeText = giveaway.type === 'daily' ? 'ЕЖЕДНЕВНОГО' : giveaway.type === 'weekly' ? 'НЕДЕЛЬНОГО' : 'КАСТОМНОГО';
       
       let message = `${emoji} <b>РЕЗУЛЬТАТЫ ${typeText} РОЗЫГРЫША</b>\n\n`;
       
@@ -191,8 +191,8 @@ class TelegramChannelService {
    */
   async postGiveawayReminder(giveaway, participantsCount) {
     try {
-      const emoji = giveaway.type === 'daily' ? '🏆' : '💎';
-      const typeText = giveaway.type === 'daily' ? 'ЕЖЕДНЕВНОГО' : 'НЕДЕЛЬНОГО';
+      const emoji = giveaway.type === 'daily' ? '🏆' : giveaway.type === 'weekly' ? '💎' : '🎯';
+      const typeText = giveaway.type === 'daily' ? 'ЕЖЕДНЕВНОГО' : giveaway.type === 'weekly' ? 'НЕДЕЛЬНОГО' : 'КАСТОМНОГО';
       
       let message = `⏰ <b>НАПОМИНАНИЕ О ${typeText} РОЗЫГРЫШЕ</b>\n\n`;
       

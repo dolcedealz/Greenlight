@@ -16,7 +16,7 @@ class GiveawayController {
       const now = new Date();
       
       const activeGiveaways = await Giveaway.find({
-        status: 'active',
+        status: { $in: ['active', 'pending'] },
         startDate: { $lte: now },
         endDate: { $gte: now }
       })
@@ -263,27 +263,55 @@ class GiveawayController {
         user: userId
       });
 
-      // Проверяем депозит для возможности участия
+      // Проверяем депозит для возможности участия в зависимости от типа розыгрыша
+      let validDeposit;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const todayDeposit = await Deposit.findOne({
-        user: userId,
-        status: 'paid',
-        amount: { $gte: giveaway.minDepositAmount || 1 },
-        createdAt: {
-          $gte: today,
-          $lt: tomorrow
-        }
-      });
+      if (giveaway.type === 'daily') {
+        // Для ежедневного розыгрыша нужен депозит сегодня
+        validDeposit = await Deposit.findOne({
+          user: userId,
+          status: 'paid',
+          amount: { $gte: giveaway.minDepositAmount || 1 },
+          createdAt: {
+            $gte: today,
+            $lt: tomorrow
+          }
+        });
+      } else if (giveaway.type === 'weekly') {
+        // Для недельного розыгрыша нужен депозит за текущую неделю
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        
+        validDeposit = await Deposit.findOne({
+          user: userId,
+          status: 'paid',
+          amount: { $gte: giveaway.minDepositAmount || 1 },
+          createdAt: {
+            $gte: startOfWeek
+          }
+        });
+      } else {
+        // Для кастомных розыгрышей проверяем с начала даты создания розыгрыша
+        validDeposit = await Deposit.findOne({
+          user: userId,
+          status: 'paid',
+          amount: { $gte: giveaway.minDepositAmount || 1 },
+          createdAt: {
+            $gte: giveaway.startDate
+          }
+        });
+      }
 
       res.json({
         success: true,
         data: {
           isParticipating: !!participation,
-          hasTodayDeposit: !!todayDeposit,
+          hasTodayDeposit: !!validDeposit, // Переименуем для обратной совместимости
+          hasValidDeposit: !!validDeposit,
           participation: participation || null
         }
       });

@@ -192,7 +192,7 @@ class GiveawayService {
    */
   formatResultsMessage(giveaway, winners, totalParticipants, diceResult) {
     const prizeEmoji = giveaway.prize?.type === 'telegram_gift' ? '🎁' : '🏆';
-    const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
+    const typeText = giveaway.type === 'daily' ? 'Ежедневный' : giveaway.type === 'weekly' ? 'Недельный' : 'Кастомный';
     
     let message = `${prizeEmoji} <b>${typeText} розыгрыш завершен!</b>\n\n`;
     message += `🎯 <b>Приз:</b> ${giveaway.prize?.name || 'Не указан'}\n`;

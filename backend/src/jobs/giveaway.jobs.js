@@ -170,7 +170,7 @@ class GiveawayJobs {
       endDate.setHours(19, 0, 0, 0); // До 19:00
       
       const drawDate = new Date(today);
-      drawDate.setUTCHours(20 - 3, 0, 0, 0); // Розыгрыш в 20:00 МСК (UTC = MSK - 3)
+      drawDate.setUTCHours(17, 0, 0, 0); // Розыгрыш в 20:00 МСК = 17:00 UTC
 
       // Проверяем, нет ли уже созданного розыгрыша на сегодня
       const existingGiveaway = await Giveaway.findOne({
@@ -239,7 +239,7 @@ class GiveawayJobs {
       // Розыгрыш в следующее воскресенье в 20:00
       const drawDate = new Date(today);
       drawDate.setDate(today.getDate() + 7);
-      drawDate.setUTCHours(20 - 3, 0, 0, 0); // Розыгрыш в 20:00 МСК (UTC = MSK - 3)
+      drawDate.setUTCHours(17, 0, 0, 0); // Розыгрыш в 20:00 МСК = 17:00 UTC
 
       const existingGiveaway = await Giveaway.findOne({
         type: 'weekly',

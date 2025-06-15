@@ -93,14 +93,15 @@ async function showCurrentGiveaways(ctx) {
       
       for (const giveaway of giveaways) {
         const statusEmoji = giveaway.status === 'active' ? '🟢' : giveaway.status === 'pending' ? '🟡' : '🔴';
-        const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
+        const typeText = giveaway.type === 'daily' ? 'Ежедневный' : giveaway.type === 'weekly' ? 'Недельный' : 'Кастомный';
         
         message += `${statusEmoji} *${escapeMarkdown(giveaway.title)}*\n`;
         message += `┣ 🎁 Приз: ${escapeMarkdown(giveaway.prize?.name || 'Не указан')}\n`;
         message += `┣ 📅 Тип: ${typeText}\n`;
         message += `┣ 🏆 Победителей: ${giveaway.winnersCount}\n`;
         message += `┣ 👥 Участников: ${giveaway.participationCount}\n`;
-        message += `┣ ⏰ Розыгрыш: ${new Date(giveaway.drawDate).toLocaleString('ru-RU')}\n`;
+        message += `┣ 💳 Мин. депозит: ${giveaway.minDepositAmount || 1} USDT\n`;
+        message += `┣ ⏰ Розыгрыш: ${new Date(giveaway.drawDate).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n`;
         message += `┗ 📊 Статус: ${giveaway.status === 'active' ? 'Активный' : giveaway.status === 'pending' ? 'Ожидает' : 'Завершен'}\n\n`;
       }
 
@@ -723,7 +724,7 @@ async function showGiveawayManagement(ctx) {
         const statusEmoji = giveaway.status === 'active' ? '🟢' : 
                            giveaway.status === 'pending' ? '🟡' : 
                            giveaway.status === 'completed' ? '✅' : '❌';
-        const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
+        const typeText = giveaway.type === 'daily' ? 'Ежедневный' : giveaway.type === 'weekly' ? 'Недельный' : 'Кастомный';
         
         message += `${statusEmoji} *${escapeMarkdown(giveaway.title)}*\n`;
         message += `┣ 📅 ${typeText}\n`;
@@ -784,23 +785,24 @@ async function showGiveawayDetails(ctx, giveawayId) {
                          giveaway.status === 'pending' ? '🟡' : 
                          giveaway.status === 'completed' ? '✅' : '❌';
       
-      const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
+      const typeText = giveaway.type === 'daily' ? 'Ежедневный' : giveaway.type === 'weekly' ? 'Недельный' : 'Кастомный';
       
       let message = `${statusEmoji} *${escapeMarkdown(giveaway.title)}*\n\n`;
       message += `📅 *Тип:* ${typeText}\n`;
       message += `🎁 *Приз:* ${escapeMarkdown(giveaway.prize?.name || 'Не указан')}\n`;
       message += `💰 *Стоимость:* ${giveaway.prize?.value || 0} USDT\n`;
       message += `🏆 *Победителей:* ${giveaway.winnersCount}\n`;
-      message += `👥 *Участников:* ${giveaway.participationCount}\n\n`;
+      message += `👥 *Участников:* ${giveaway.participationCount}\n`;
+      message += `💳 *Минимальный депозит:* ${giveaway.minDepositAmount || 1} USDT\n\n`;
       
       message += `📊 *Статус:* ${giveaway.status === 'active' ? 'Активный' : 
                                    giveaway.status === 'pending' ? 'Ожидает' : 
                                    giveaway.status === 'completed' ? 'Завершен' : 'Отменен'}\n\n`;
       
       message += `⏰ *Расписание:*\n`;
-      message += `┣ 🚀 Начало: ${new Date(giveaway.startDate).toLocaleString('ru-RU')}\n`;
-      message += `┣ ⏳ Конец: ${new Date(giveaway.endDate).toLocaleString('ru-RU')}\n`;
-      message += `┗ 🎯 Розыгрыш: ${new Date(giveaway.drawDate).toLocaleString('ru-RU')}\n\n`;
+      message += `┣ 🚀 Начало: ${new Date(giveaway.startDate).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n`;
+      message += `┣ ⏳ Конец: ${new Date(giveaway.endDate).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n`;
+      message += `┗ 🎯 Розыгрыш: ${new Date(giveaway.drawDate).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n`;
       
       if (giveaway.winners && giveaway.winners.length > 0) {
         message += `🏆 *Победители:*\n`;
@@ -1008,6 +1010,25 @@ async function handleGiveawayCreation(ctx) {
       }
       
       session.winnersCount = winnersCount;
+      session.step = 'minDeposit';
+      
+      await ctx.reply(
+        `🎯 *Создание розыгрыша: ${escapeMarkdown(session.title)}*\n\n` +
+        `💰 Введите минимальный депозит для участия (в USDT):\n\n` +
+        `По умолчанию: 1 USDT\n` +
+        `Введите число от 0.1 до 1000`,
+        { parse_mode: 'Markdown' }
+      );
+      
+    } else if (session.step === 'minDeposit') {
+      const minDeposit = parseFloat(text);
+      
+      if (isNaN(minDeposit) || minDeposit < 0.1 || minDeposit > 1000) {
+        await ctx.reply('❌ Некорректная сумма! Введите число от 0.1 до 1000 USDT');
+        return;
+      }
+      
+      session.minDeposit = minDeposit;
       
       // Показываем доступные призы для выбора
       let message = `🎯 *Создание розыгрыша: ${escapeMarkdown(session.title)}*\n\n` +
@@ -1047,13 +1068,20 @@ async function handleGiveawayCreation(ctx) {
 
       const [, day, month, year, hour, minute] = match;
       
-      // Создаем дату в московском времени и конвертируем в UTC
+      // Создаем дату в московском времени
       const moscowDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), 0, 0);
-      const drawDate = new Date(moscowDate.getTime() - 3 * 60 * 60 * 1000);
       
-      // Проверяем что дата в будущем
-      if (drawDate <= new Date()) {
-        await ctx.reply('❌ Дата розыгрыша должна быть в будущем!');
+      // Конвертируем МСК в UTC (МСК = UTC+3, поэтому вычитаем 3 часа)
+      const drawDate = new Date(moscowDate.getTime() - (3 * 60 * 60 * 1000));
+      
+      // Проверяем что дата в будущем (сравниваем в UTC)
+      const nowUTC = new Date();
+      if (drawDate <= nowUTC) {
+        await ctx.reply(
+          '❌ Дата розыгрыша должна быть в будущем!\n\n' +
+          `Введенное время: ${moscowDate.toLocaleString('ru-RU')} МСК\n` +
+          `Текущее время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК`
+        );
         return;
       }
 
@@ -1213,7 +1241,7 @@ async function viewParticipants(ctx, giveawayId, page = 1) {
           
           message += `${statusEmoji} \`№${participant.participationNumber}\` ${escapeMarkdown(userName)}\n`;
           message += `   💰 Депозит: ${depositAmount} USDT\n`;
-          message += `   📅 ${new Date(participant.createdAt).toLocaleString('ru-RU')}\n\n`;
+          message += `   📅 ${new Date(participant.createdAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n`;
         });
       }
       
@@ -1339,14 +1367,20 @@ async function handleTimeEdit(ctx) {
 
     const [, day, month, year, hour, minute] = match;
     
-    // Создаем дату в московском времени и конвертируем в UTC
+    // Создаем дату в московском времени
     const moscowDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), 0, 0);
-    // Конвертируем MSK в UTC (MSK = UTC+3)
-    const newDrawDate = new Date(moscowDate.getTime() - 3 * 60 * 60 * 1000);
     
-    // Проверяем что дата в будущем
-    if (newDrawDate <= new Date()) {
-      await ctx.reply('❌ Дата розыгрыша должна быть в будущем!');
+    // Конвертируем МСК в UTC (МСК = UTC+3, поэтому вычитаем 3 часа)
+    const newDrawDate = new Date(moscowDate.getTime() - (3 * 60 * 60 * 1000));
+    
+    // Проверяем что дата в будущем (сравниваем в UTC)
+    const nowUTC = new Date();
+    if (newDrawDate <= nowUTC) {
+      await ctx.reply(
+        '❌ Дата розыгрыша должна быть в будущем!\n\n' +
+        `Введенное время: ${moscowDate.toLocaleString('ru-RU')} МСК\n` +
+        `Текущее время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК`
+      );
       return;
     }
 

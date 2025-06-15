@@ -224,13 +224,13 @@ class TelegramService {
   async announceGiveawayStart(giveaway) {
     try {
       const prizeEmoji = giveaway.prize?.type === 'telegram_gift' ? '🎁' : '🏆';
-      const typeText = giveaway.type === 'daily' ? 'Ежедневный' : 'Недельный';
+      const typeText = giveaway.type === 'daily' ? 'Ежедневный' : giveaway.type === 'weekly' ? 'Недельный' : 'Кастомный';
       
       const message = `${prizeEmoji} <b>${typeText} розыгрыш начался!</b>\n\n` +
                      `🎯 <b>Приз:</b> ${giveaway.prize?.name || 'Не указан'}\n` +
                      `🏆 <b>Победителей:</b> ${giveaway.winnersCount}\n` +
-                     `⏰ <b>Окончание:</b> ${new Date(giveaway.endDate).toLocaleString('ru-RU')}\n` +
-                     `🎲 <b>Розыгрыш:</b> ${new Date(giveaway.drawDate).toLocaleString('ru-RU')}\n\n` +
+                     `⏰ <b>Окончание:</b> ${new Date(giveaway.endDate).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n` +
+                     `🎲 <b>Розыгрыш:</b> ${new Date(giveaway.drawDate).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК\n\n` +
                      `💰 Для участия необходимо сделать депозит и зарегистрироваться в боте!\n\n` +
                      `🍀 Удачи всем участникам!`;
 

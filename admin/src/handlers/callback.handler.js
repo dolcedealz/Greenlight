@@ -653,7 +653,7 @@ function registerCallbackHandlers(bot) {
         prizeId: prizeId
       };
 
-      const response = await apiClient.post('/admin/giveaways/create', giveawayData);
+      const response = await apiClient.post('/admin/giveaways', giveawayData);
       
       if (response.data.success) {
         await ctx.editMessageText(

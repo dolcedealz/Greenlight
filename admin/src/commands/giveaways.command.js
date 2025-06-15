@@ -58,10 +58,12 @@ async function showGiveawaysMenu(ctx) {
  */
 async function showCurrentGiveaways(ctx) {
   try {
-    const response = await apiClient.get('/admin/giveaways/current');
+    // Get all giveaways and filter for current ones (active + pending)
+    const response = await apiClient.get('/admin/giveaways');
     
     if (response.data.success) {
-      const giveaways = response.data.data.giveaways;
+      const allGiveaways = response.data.data.giveaways;
+      const giveaways = allGiveaways.filter(g => g.status === 'active' || g.status === 'pending');
       
       if (giveaways.length === 0) {
         await ctx.reply(

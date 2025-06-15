@@ -24,6 +24,9 @@ router.post('/:giveawayId/conduct', adminGiveawayController.conductGiveaway);
 // Участники розыгрыша
 router.get('/:giveawayId/participants', adminGiveawayController.getGiveawayParticipants);
 
+// Напоминания
+router.post('/:giveawayId/remind', adminGiveawayController.sendManualReminder);
+
 // Статистика
 router.get('/stats', adminGiveawayController.getGiveawayStats);
 

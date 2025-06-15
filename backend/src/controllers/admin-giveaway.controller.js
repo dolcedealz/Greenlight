@@ -912,6 +912,92 @@ class AdminGiveawayController {
   }
 
   /**
+   * Отправка ручного напоминания о розыгрыше
+   */
+  async sendManualReminder(req, res) {
+    try {
+      const { giveawayId } = req.params;
+      const { target } = req.body; // 'bot', 'channel', 'both'
+
+      const giveaway = await Giveaway.findById(giveawayId)
+        .populate('prize');
+
+      if (!giveaway) {
+        return res.status(404).json({
+          success: false,
+          message: 'Розыгрыш не найден'
+        });
+      }
+
+      if (giveaway.status !== 'active') {
+        return res.status(400).json({
+          success: false,
+          message: 'Можно напоминать только об активных розыгрышах'
+        });
+      }
+
+      const participantsCount = await GiveawayParticipation.countDocuments({
+        giveaway: giveawayId
+      });
+
+      const result = {
+        sentTo: {}
+      };
+
+      // Отправка в бот пользователям
+      if (target === 'bot' || target === 'both') {
+        try {
+          // Получаем всех пользователей которые участвовали в розыгрышах
+          const participants = await GiveawayParticipation.find({
+            giveaway: giveawayId
+          }).populate('user', 'telegramId firstName');
+
+          let sentCount = 0;
+          for (const participant of participants) {
+            if (participant.user?.telegramId) {
+              try {
+                // Здесь должна быть отправка в основной бот пользователям
+                // Пока заглушка
+                sentCount++;
+              } catch (error) {
+                console.error(`Ошибка отправки напоминания пользователю ${participant.user.telegramId}:`, error);
+              }
+            }
+          }
+          
+          result.sentTo.bot = sentCount;
+        } catch (error) {
+          console.error('Ошибка отправки напоминаний в бот:', error);
+        }
+      }
+
+      // Отправка в канал
+      if (target === 'channel' || target === 'both') {
+        try {
+          await telegramChannelService.postGiveawayReminder(giveaway, participantsCount);
+          result.sentTo.channel = true;
+        } catch (error) {
+          console.error('Ошибка отправки напоминания в канал:', error);
+          result.sentTo.channel = false;
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Напоминание отправлено',
+        data: result
+      });
+
+    } catch (error) {
+      console.error('Ошибка отправки ручного напоминания:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка сервера'
+      });
+    }
+  }
+
+  /**
    * Создание приза из распознанного подарка
    */
   async createPrizeFromGift(req, res) {

@@ -187,6 +187,55 @@ class TelegramChannelService {
   }
 
   /**
+   * Опубликовать напоминание о розыгрыше
+   */
+  async postGiveawayReminder(giveaway, participantsCount) {
+    try {
+      const emoji = giveaway.type === 'daily' ? '🏆' : '💎';
+      const typeText = giveaway.type === 'daily' ? 'ЕЖЕДНЕВНОГО' : 'НЕДЕЛЬНОГО';
+      
+      let message = `⏰ <b>НАПОМИНАНИЕ О ${typeText} РОЗЫГРЫШЕ</b>\n\n`;
+      
+      if (giveaway.prize) {
+        message += `🎁 <b>Приз:</b> ${giveaway.prize.name}\n`;
+        if (giveaway.prize.description) {
+          message += `📝 ${giveaway.prize.description}\n`;
+        }
+        if (giveaway.prize.value) {
+          message += `💰 <b>Ценность:</b> ${giveaway.prize.value} USDT\n`;
+        }
+      }
+      
+      message += `\n👥 <b>Победителей:</b> ${giveaway.winnersCount}\n`;
+      
+      if (giveaway.minDepositAmount) {
+        message += `💳 <b>Минимальный депозит:</b> ${giveaway.minDepositAmount} USDT\n`;
+      }
+      
+      const now = new Date();
+      const drawDate = new Date(giveaway.drawDate);
+      const timeLeft = Math.max(0, Math.floor((drawDate - now) / (1000 * 60 * 60)));
+      
+      message += `⏰ <b>До розыгрыша:</b> ${timeLeft} часов\n`;
+      message += `👥 <b>Участников:</b> ${participantsCount}\n\n`;
+      
+      message += `🚨 <b>УСПЕЙ ПРИНЯТЬ УЧАСТИЕ!</b>\n`;
+      message += `🎯 <b>Участвуйте в боте:</b> @Greenlightgames_bot\n`;
+      message += `📋 <i>Для участия сделайте депозит ${giveaway.minDepositAmount || 1} USDT и нажмите "Участвовать" в профиле</i>`;
+
+      // Если есть изображение приза, отправляем с фото
+      if (giveaway.prize?.imageUrl) {
+        return await this.sendPhoto(giveaway.prize.imageUrl, message);
+      } else {
+        return await this.sendMessage(message);
+      }
+    } catch (error) {
+      console.error('Ошибка публикации напоминания о розыгрыше:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Проверить подключение к каналу
    */
   async checkChannelAccess() {

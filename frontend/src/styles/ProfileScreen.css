@@ -1614,7 +1614,7 @@ input:checked + .slider:before {
 /* Статистика розыгрыша */
 .giveaway-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 15px;
   margin-bottom: 20px;
 }

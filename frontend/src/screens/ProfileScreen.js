@@ -718,20 +718,16 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
 
     const formatGiveawayTime = (type, drawDate) => {
       const date = new Date(drawDate);
-      const time = date.toLocaleTimeString('ru-RU', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        timeZone: 'Europe/Moscow'
-      });
       
+      // Принудительно показываем 20:00 для всех розыгрышей
       if (type === 'daily') {
-        return `Сегодня в ${time}`;
+        return `Сегодня в 20:00`;
       } else {
         const day = date.toLocaleDateString('ru-RU', { 
           weekday: 'long',
           timeZone: 'Europe/Moscow'
         });
-        return `${day} в ${time}`;
+        return `${day} в 20:00`;
       }
     };
 
@@ -798,6 +794,12 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               <span className="stat-label">Победителей:</span>
               <span className="stat-value">{giveaway.winnersCount}</span>
             </div>
+            {giveaway.minDepositAmount && (
+              <div className="stat-item">
+                <span className="stat-label">Мин. депозит:</span>
+                <span className="stat-value">{giveaway.minDepositAmount} USDT</span>
+              </div>
+            )}
           </div>
 
           <div className="giveaway-actions">

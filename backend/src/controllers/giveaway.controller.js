@@ -105,14 +105,20 @@ class GiveawayController {
 
       if (giveaway.type === 'daily') {
         // Для ежедневного розыгрыша нужен депозит сегодня
+        console.log(`🔍 Поиск депозита для пользователя ${userId} с ${today.toISOString()} до ${tomorrow.toISOString()}`);
+        console.log(`💵 Минимальная сумма депозита: ${giveaway.minDepositAmount || 1} USDT`);
+        
         validDeposit = await Deposit.findOne({
           user: userId,
           status: 'completed',
+          amount: { $gte: giveaway.minDepositAmount || 1 },
           createdAt: {
             $gte: today,
             $lt: tomorrow
           }
         }).sort({ createdAt: -1 });
+        
+        console.log(`💰 Найден депозит:`, validDeposit ? `${validDeposit.amount} USDT в ${validDeposit.createdAt}` : 'НЕТ');
       } else if (giveaway.type === 'weekly') {
         // Для недельного розыгрыша нужен депозит за текущую неделю
         const startOfWeek = new Date(today);
@@ -121,6 +127,7 @@ class GiveawayController {
         validDeposit = await Deposit.findOne({
           user: userId,
           status: 'completed',
+          amount: { $gte: giveaway.minDepositAmount || 1 },
           createdAt: {
             $gte: startOfWeek
           }
@@ -128,11 +135,12 @@ class GiveawayController {
       }
 
       if (!validDeposit) {
+        const minAmount = giveaway.minDepositAmount || 1;
         return res.status(400).json({
           success: false,
           message: giveaway.type === 'daily' 
-            ? 'Для участия необходимо сделать депозит сегодня'
-            : 'Для участия необходимо сделать депозит на этой неделе'
+            ? `Для участия необходимо сделать депозит от ${minAmount} USDT сегодня`
+            : `Для участия необходимо сделать депозит от ${minAmount} USDT на этой неделе`
         });
       }
 
@@ -233,6 +241,14 @@ class GiveawayController {
       const { giveawayId } = req.params;
       const userId = req.user.id;
 
+      const giveaway = await Giveaway.findById(giveawayId);
+      if (!giveaway) {
+        return res.status(404).json({
+          success: false,
+          message: 'Розыгрыш не найден'
+        });
+      }
+
       const participation = await GiveawayParticipation.findOne({
         giveaway: giveawayId,
         user: userId
@@ -247,11 +263,18 @@ class GiveawayController {
       const todayDeposit = await Deposit.findOne({
         user: userId,
         status: 'completed',
+        amount: { $gte: giveaway.minDepositAmount || 1 },
         createdAt: {
           $gte: today,
           $lt: tomorrow
         }
       });
+
+      console.log(`👤 Проверка участия пользователя ${userId}:`);
+      console.log(`📅 Период: с ${today.toISOString()} до ${tomorrow.toISOString()}`);
+      console.log(`💵 Минимальная сумма: ${giveaway.minDepositAmount || 1} USDT`);
+      console.log(`💰 Депозит сегодня:`, todayDeposit ? `${todayDeposit.amount} USDT в ${todayDeposit.createdAt}` : 'НЕТ');
+      console.log(`🎯 Уже участвует:`, !!participation);
 
       res.json({
         success: true,

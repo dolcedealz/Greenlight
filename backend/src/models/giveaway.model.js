@@ -48,6 +48,11 @@ const giveawaySchema = new mongoose.Schema({
     enum: ['same_day', 'same_week', 'any_time'],
     default: 'same_day'
   },
+  minDepositAmount: {
+    type: Number,
+    default: 1, // Минимальный депозит 1 USDT
+    min: 0
+  },
   participationCount: {
     type: Number,
     default: 0

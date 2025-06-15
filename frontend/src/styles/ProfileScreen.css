@@ -1883,6 +1883,28 @@ input:checked + .slider:before {
   gap: 12px;
 }
 
+.history-prize-visual {
+  position: relative;
+  min-width: 35px;
+  height: 35px;
+}
+
+.history-prize-image {
+  width: 35px;
+  height: 35px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.history-prize-image:hover {
+  transform: scale(1.15);
+  border-color: var(--primary-color);
+  box-shadow: 0 3px 8px rgba(11, 168, 74, 0.3);
+}
+
 .history-icon {
   font-size: 20px;
   width: 35px;
@@ -1905,9 +1927,36 @@ input:checked + .slider:before {
   margin-bottom: 2px;
 }
 
+.history-prize-name {
+  font-size: 13px;
+  color: var(--primary-color);
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+
 .history-date {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
+}
+
+.history-prize-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 2px 0;
+  font-style: italic;
+}
+
+.history-prize-value {
+  font-size: 12px;
+  color: var(--primary-color);
+  font-weight: 600;
+  margin: 2px 0;
+}
+
+.history-participation-info {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 2px 0;
 }
 
 .history-status {

@@ -868,13 +868,48 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               {giveawayData.participationHistory.map((participation, index) => (
                 <div key={index} className="history-item">
                   <div className="history-prize">
-                    <span className="history-icon">
-                      {participation.giveaway.prize?.type === 'telegram_gift' ? '🎁' : '🎫'}
-                    </span>
+                    <div className="history-prize-visual">
+                      {participation.giveaway.prize?.imageUrl ? (
+                        <img 
+                          src={participation.giveaway.prize.imageUrl} 
+                          alt={participation.giveaway.prize.name}
+                          className="history-prize-image"
+                          onClick={() => handleImageClick(participation.giveaway.prize.imageUrl, participation.giveaway.prize.name)}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'block';
+                          }}
+                        />
+                      ) : null}
+                      <span 
+                        className="history-icon" 
+                        style={{ display: participation.giveaway.prize?.imageUrl ? 'none' : 'block' }}
+                      >
+                        {participation.giveaway.prize?.type === 'telegram_gift' ? '🎁' : 
+                         participation.giveaway.prize?.type === 'promo_code' ? '🎫' : 
+                         participation.giveaway.prize?.type === 'balance_bonus' ? '💰' : '🎁'}
+                      </span>
+                    </div>
                     <div className="history-details">
                       <div className="history-title">{participation.giveaway.title}</div>
+                      <div className="history-prize-name">
+                        🎁 {participation.giveaway.prize?.name || 'Telegram Gift'}
+                      </div>
+                      {participation.giveaway.prize?.description && (
+                        <div className="history-prize-desc">
+                          {participation.giveaway.prize.description}
+                        </div>
+                      )}
+                      {participation.giveaway.prize?.value && (
+                        <div className="history-prize-value">
+                          💰 Ценность: {participation.giveaway.prize.value} USDT
+                        </div>
+                      )}
+                      <div className="history-participation-info">
+                        🎯 Участник #{participation.participationNumber} из {participation.giveaway.participationCount || 0}
+                      </div>
                       <div className="history-date">
-                        {new Date(participation.createdAt).toLocaleDateString('ru-RU')}
+                        📅 {new Date(participation.createdAt).toLocaleDateString('ru-RU')}
                       </div>
                     </div>
                   </div>

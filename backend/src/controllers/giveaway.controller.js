@@ -302,6 +302,14 @@ class GiveawayController {
         const endDay = new Date(giveaway.endDate);
         endDay.setHours(23, 59, 59, 999);
         
+        // Временное логирование для дебага
+        console.log('🎯 DEBUG Custom giveaway deposit check:');
+        console.log('- Giveaway:', giveaway.title, giveaway.type);
+        console.log('- User ID:', userId);
+        console.log('- Min deposit amount:', giveaway.minDepositAmount || 1);
+        console.log('- Start day:', startDay);
+        console.log('- End day:', endDay);
+        
         validDeposit = await Deposit.findOne({
           user: userId,
           status: 'paid',
@@ -310,6 +318,23 @@ class GiveawayController {
             $gte: startDay,
             $lte: endDay
           }
+        });
+        
+        console.log('- Found valid deposit:', validDeposit ? 'YES' : 'NO');
+        if (validDeposit) {
+          console.log('- Deposit amount:', validDeposit.amount);
+          console.log('- Deposit date:', validDeposit.createdAt);
+        }
+        
+        // Показать все депозиты пользователя для сравнения
+        const allUserDeposits = await Deposit.find({
+          user: userId,
+          status: 'paid'
+        }).sort({ createdAt: -1 }).limit(5);
+        
+        console.log('- Recent user deposits:');
+        allUserDeposits.forEach(dep => {
+          console.log(`  Amount: ${dep.amount}, Date: ${dep.createdAt}, Status: ${dep.status}`);
         });
       }
 

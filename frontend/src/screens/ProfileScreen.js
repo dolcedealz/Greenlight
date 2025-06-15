@@ -779,6 +779,18 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       const participation = giveawayData.userParticipations[giveaway._id] || {};
       const { isParticipating, hasTodayDeposit, hasValidDeposit } = participation;
       
+      // Временное логирование для дебага
+      if (giveaway.type === 'custom') {
+        console.log('🎯 DEBUG Frontend giveaway card:', {
+          title: giveaway.title,
+          type: giveaway.type,
+          participation,
+          isParticipating,
+          hasTodayDeposit,
+          hasValidDeposit
+        });
+      }
+      
       // Используем hasValidDeposit если доступно, иначе hasTodayDeposit для обратной совместимости
       const depositCheck = hasValidDeposit !== undefined ? hasValidDeposit : hasTodayDeposit;
       const canParticipate = !isParticipating && depositCheck;

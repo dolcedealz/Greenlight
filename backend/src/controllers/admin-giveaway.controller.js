@@ -244,7 +244,7 @@ class AdminGiveawayController {
       const adminId = req.user.id;
 
       // Валидация обязательных полей
-      if (!title || !type || !prizeId || !winnersCount || !startDate || !endDate || !drawDate) {
+      if (!title || !type || !prizeId || !winnersCount) {
         return res.status(400).json({
           success: false,
           message: 'Все обязательные поля должны быть заполнены'
@@ -260,16 +260,59 @@ class AdminGiveawayController {
         });
       }
 
-      // Валидация дат
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const draw = new Date(drawDate);
-
-      if (start >= end || end >= draw) {
-        return res.status(400).json({
-          success: false,
-          message: 'Некорректные даты: дата начала < дата окончания < дата розыгрыша'
-        });
+      // Автоматическая генерация дат, если не указаны
+      let start, end, draw;
+      
+      if (startDate && endDate && drawDate) {
+        // Используем переданные даты
+        start = new Date(startDate);
+        end = new Date(endDate);
+        draw = new Date(drawDate);
+        
+        if (start >= end || end >= draw) {
+          return res.status(400).json({
+            success: false,
+            message: 'Некорректные даты: дата начала < дата окончания < дата розыгрыша'
+          });
+        }
+      } else {
+        // Автоматическая генерация дат
+        const now = new Date();
+        
+        if (type === 'daily') {
+          // Ежедневный розыгрыш: начинается сейчас, заканчивается в 19:59, розыгрыш в 20:00
+          start = new Date(now);
+          end = new Date(now);
+          end.setHours(19, 59, 59, 999); // 19:59:59
+          draw = new Date(now);
+          draw.setHours(20, 0, 0, 0); // 20:00:00
+          
+          // Если уже после 20:00, планируем на завтра
+          if (now.getHours() >= 20) {
+            start.setDate(start.getDate() + 1);
+            start.setHours(0, 0, 0, 0);
+            end.setDate(end.getDate() + 1);
+            draw.setDate(draw.getDate() + 1);
+          }
+        } else if (type === 'weekly') {
+          // Недельный розыгрыш: с понедельника по воскресенье в 20:00
+          start = new Date(now);
+          const dayOfWeek = start.getDay(); // 0 = воскресенье, 1 = понедельник
+          const daysToMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek); // Дни до следующего понедельника
+          
+          // Начало в понедельник 00:00
+          start.setDate(start.getDate() + daysToMonday);
+          start.setHours(0, 0, 0, 0);
+          
+          // Конец в воскресенье 19:59
+          end = new Date(start);
+          end.setDate(end.getDate() + 6); // +6 дней до воскресенья
+          end.setHours(19, 59, 59, 999);
+          
+          // Розыгрыш в воскресенье 20:00
+          draw = new Date(end);
+          draw.setHours(20, 0, 0, 0);
+        }
       }
 
       const giveaway = new Giveaway({

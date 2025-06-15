@@ -16,7 +16,7 @@ class GiveawayController {
       const now = new Date();
       
       const activeGiveaways = await Giveaway.find({
-        status: { $in: ['active', 'pending'] },
+        status: 'active',
         startDate: { $lte: now },
         endDate: { $gte: now }
       })

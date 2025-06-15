@@ -777,11 +777,11 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
 
     const renderGiveawayCard = (giveaway) => {
       const participation = giveawayData.userParticipations[giveaway._id] || {};
-      const { isParticipating, hasTodayDeposit } = participation;
+      const { isParticipating, hasTodayDeposit, hasValidDeposit } = participation;
       
-      const canParticipate = !isParticipating && (
-        giveaway.type === 'daily' ? hasTodayDeposit : hasTodayDeposit
-      );
+      // Используем hasValidDeposit если доступно, иначе hasTodayDeposit для обратной совместимости
+      const depositCheck = hasValidDeposit !== undefined ? hasValidDeposit : hasTodayDeposit;
+      const canParticipate = !isParticipating && depositCheck;
 
       return (
         <div key={giveaway._id} className={`giveaway-card ${giveaway.type}`}>

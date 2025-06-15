@@ -1516,6 +1516,11 @@ input:checked + .slider:before {
   background: linear-gradient(135deg, var(--card-background) 0%, rgba(138, 43, 226, 0.05) 100%);
 }
 
+.giveaway-card.custom {
+  border-color: rgba(30, 144, 255, 0.3);
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(30, 144, 255, 0.05) 100%);
+}
+
 .giveaway-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);

@@ -49,6 +49,14 @@ class GiveawayJobs {
         if (conductedCount > 0) {
           console.log(`✅ Проведено розыгрышей: ${conductedCount}`);
         }
+
+        // Завершаем просроченные розыгрыши
+        console.log('🔍 Проверка просроченных розыгрышей...');
+        const expiredCount = await this.expireOldGiveaways();
+        
+        if (expiredCount > 0) {
+          console.log(`🕒 Завершено просроченных розыгрышей: ${expiredCount}`);
+        }
       } catch (error) {
         console.error('❌ Ошибка при проверке розыгрышей:', error);
       }
@@ -338,6 +346,38 @@ class GiveawayJobs {
       }
     } catch (error) {
       console.error('❌ Ошибка отправки напоминаний:', error);
+    }
+  }
+
+  /**
+   * Завершение просроченных розыгрышей
+   */
+  async expireOldGiveaways() {
+    try {
+      const now = new Date();
+      
+      // Находим все активные розыгрыши, у которых прошло время завершения (endDate)
+      const expiredGiveaways = await Giveaway.find({
+        status: 'active',
+        endDate: { $lt: now }
+      });
+
+      let expiredCount = 0;
+      
+      for (const giveaway of expiredGiveaways) {
+        // Обновляем статус на 'completed' если розыгрыш просрочен
+        await Giveaway.findByIdAndUpdate(giveaway._id, {
+          status: 'completed'
+        });
+        
+        expiredCount++;
+        console.log(`🕒 Розыгрыш "${giveaway.title}" (${giveaway.type}) автоматически завершен по времени`);
+      }
+      
+      return expiredCount;
+    } catch (error) {
+      console.error('❌ Ошибка завершения просроченных розыгрышей:', error);
+      return 0;
     }
   }
 

@@ -112,6 +112,7 @@ class TelegramChannelService {
         message += `💳 <b>Минимальный депозит:</b> ${giveaway.minDepositAmount} USDT\n`;
       }
       
+      
       const drawTime = new Date(giveaway.drawDate).toLocaleString('ru-RU', {
         timeZone: 'Europe/Moscow',
         day: '2-digit',

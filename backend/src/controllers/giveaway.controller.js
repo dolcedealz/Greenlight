@@ -105,32 +105,15 @@ class GiveawayController {
 
       if (giveaway.type === 'daily') {
         // Для ежедневного розыгрыша нужен депозит сегодня
-        console.log(`🔍 Поиск депозита для пользователя ${userId} с ${today.toISOString()} до ${tomorrow.toISOString()}`);
-        console.log(`💵 Минимальная сумма депозита: ${giveaway.minDepositAmount || 1} USDT`);
-        
-        // Сначала проверим все депозиты без фильтра суммы
-        const allTodayDeposits = await Deposit.find({
-          user: userId,
-          status: 'completed',
-          createdAt: {
-            $gte: today,
-            $lt: tomorrow
-          }
-        }).sort({ createdAt: -1 });
-        
-        console.log(`📅 Все депозиты сегодня:`, allTodayDeposits.map(d => `${d.amount} USDT (${d.createdAt})`));
-        
         validDeposit = await Deposit.findOne({
           user: userId,
-          status: 'completed',
+          status: 'paid',
           amount: { $gte: giveaway.minDepositAmount || 1 },
           createdAt: {
             $gte: today,
             $lt: tomorrow
           }
         }).sort({ createdAt: -1 });
-        
-        console.log(`💰 Найден подходящий депозит:`, validDeposit ? `${validDeposit.amount} USDT в ${validDeposit.createdAt}` : 'НЕТ');
       } else if (giveaway.type === 'weekly') {
         // Для недельного розыгрыша нужен депозит за текущую неделю
         const startOfWeek = new Date(today);
@@ -138,7 +121,7 @@ class GiveawayController {
         
         validDeposit = await Deposit.findOne({
           user: userId,
-          status: 'completed',
+          status: 'paid',
           amount: { $gte: giveaway.minDepositAmount || 1 },
           createdAt: {
             $gte: startOfWeek
@@ -274,26 +257,13 @@ class GiveawayController {
 
       const todayDeposit = await Deposit.findOne({
         user: userId,
-        status: 'completed',
+        status: 'paid',
         amount: { $gte: giveaway.minDepositAmount || 1 },
         createdAt: {
           $gte: today,
           $lt: tomorrow
         }
       });
-
-      // Дополнительная диагностика - все депозиты пользователя
-      const allUserDeposits = await Deposit.find({
-        user: userId,
-        status: 'completed'
-      }).sort({ createdAt: -1 }).limit(5);
-
-      console.log(`👤 Проверка участия пользователя ${userId}:`);
-      console.log(`📅 Период: с ${today.toISOString()} до ${tomorrow.toISOString()}`);
-      console.log(`💵 Минимальная сумма: ${giveaway.minDepositAmount || 1} USDT`);
-      console.log(`💰 Депозит сегодня:`, todayDeposit ? `${todayDeposit.amount} USDT в ${todayDeposit.createdAt}` : 'НЕТ');
-      console.log(`🎯 Уже участвует:`, !!participation);
-      console.log(`📊 Последние депозиты пользователя:`, allUserDeposits.map(d => `${d.amount} USDT (${d.createdAt}) [${d.status}]`));
 
       res.json({
         success: true,

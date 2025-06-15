@@ -14,15 +14,15 @@ router.put('/prizes/:prizeId', adminGiveawayController.updatePrize);
 router.delete('/prizes/:prizeId', adminGiveawayController.deletePrize);
 
 // Управление розыгрышами
-router.get('/giveaways', adminGiveawayController.getAllGiveaways);
-router.post('/giveaways', adminGiveawayController.createGiveaway);
-router.put('/giveaways/:giveawayId', adminGiveawayController.updateGiveaway);
-router.post('/giveaways/:giveawayId/activate', adminGiveawayController.activateGiveaway);
-router.post('/giveaways/:giveawayId/cancel', adminGiveawayController.cancelGiveaway);
-router.post('/giveaways/:giveawayId/conduct', adminGiveawayController.conductGiveaway);
+router.get('/', adminGiveawayController.getAllGiveaways);
+router.post('/', adminGiveawayController.createGiveaway);
+router.put('/:giveawayId', adminGiveawayController.updateGiveaway);
+router.post('/:giveawayId/activate', adminGiveawayController.activateGiveaway);
+router.post('/:giveawayId/cancel', adminGiveawayController.cancelGiveaway);
+router.post('/:giveawayId/conduct', adminGiveawayController.conductGiveaway);
 
 // Участники розыгрыша
-router.get('/giveaways/:giveawayId/participants', adminGiveawayController.getGiveawayParticipants);
+router.get('/:giveawayId/participants', adminGiveawayController.getGiveawayParticipants);
 
 // Статистика
 router.get('/stats', adminGiveawayController.getGiveawayStats);

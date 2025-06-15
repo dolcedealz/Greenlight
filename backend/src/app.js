@@ -179,4 +179,23 @@ try {
   logger.error('❌ Ошибка запуска сервиса мониторинга балансов:', error);
 }
 
+// Запуск задач розыгрышей
+try {
+  const GiveawayJobs = require('./jobs/giveaway.jobs');
+  const giveawayJobs = new GiveawayJobs();
+  
+  // Запускаем задачи розыгрышей только если включены
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_GIVEAWAY_JOBS === 'true') {
+    giveawayJobs.startAllJobs();
+    logger.info('✅ Задачи розыгрышей запущены');
+    
+    // Сохраняем ссылку для graceful shutdown
+    app.giveawayJobs = giveawayJobs;
+  } else {
+    logger.info('ℹ️ Задачи розыгрышей отключены');
+  }
+} catch (error) {
+  logger.error('❌ Ошибка запуска задач розыгрышей:', error);
+}
+
 module.exports = app;

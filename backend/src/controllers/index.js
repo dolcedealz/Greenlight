@@ -9,6 +9,7 @@ const referralController = require('./referral.controller');
 const crashController = require('./crash.controller');
 const authController = require('./auth.controller');
 const eventController = require('./event.controller'); // Добавляем события
+const giveawayController = require('./giveaway.controller');
 
 // Безопасная загрузка контроллера мониторинга
 let monitoringController;
@@ -39,5 +40,6 @@ module.exports = {
   crashController,
   authController,
   eventController, // Добавляем события
+  giveawayController,
   monitoringController
 };

@@ -14,6 +14,8 @@ const promocodeRoutes = require('./promocode.routes');
 const adminReferralRoutes = require('./admin-referral.routes');
 const reconciliationRoutes = require('./reconciliation.routes');
 const monitoringRoutes = require('./monitoring.routes');
+const giveawayRoutes = require('./giveaway.routes');
+const adminGiveawayRoutes = require('./admin-giveaway.routes');
 
 const router = express.Router();
 
@@ -32,6 +34,8 @@ router.use('/promocodes', promocodeRoutes);
 router.use('/admin/referral', adminReferralRoutes);
 router.use('/admin/reconciliation', reconciliationRoutes);
 router.use('/admin/monitoring', monitoringRoutes);
+router.use('/giveaways', giveawayRoutes);
+router.use('/admin/giveaways', adminGiveawayRoutes);
 
 // Health check endpoint with detailed status
 router.get('/health', async (req, res) => {

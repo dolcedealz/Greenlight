@@ -6,7 +6,7 @@ import Withdrawals from '../components/profile/Withdrawals';
 import { ReferralsList, EarningsHistory, PayoutModal } from '../components/referral';
 import { PromoCodeInput, UserPromoCodes } from '../components/promocodes';
 import useTactileFeedback from '../hooks/useTactileFeedback';
-import { userApi, gameApi, referralApi } from '../services';
+import { userApi, gameApi, referralApi, giveawayApi } from '../services';
 import { showNotification } from '../utils/telegram';
 import '../styles/ProfileScreen.css';
 
@@ -19,6 +19,12 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
   const [activeTab, setActiveTab] = useState('profile');
   const [referralData, setReferralData] = useState(null);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [giveawayData, setGiveawayData] = useState({
+    activeGiveaways: [],
+    userParticipations: {},
+    participationHistory: [],
+    loading: false
+  });
 
   // Добавляем тактильную обратную связь
   const { 
@@ -75,6 +81,75 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
       fetchReferralData();
     }
   }, [activeTab, referralData]);
+
+  // Загружаем данные розыгрышей при переходе на вкладку giveaways
+  useEffect(() => {
+    if (activeTab === 'giveaways') {
+      fetchGiveawayData();
+    }
+  }, [activeTab]);
+
+  const fetchGiveawayData = async () => {
+    try {
+      setGiveawayData(prev => ({ ...prev, loading: true }));
+
+      // Загружаем активные розыгрыши
+      const giveawaysResponse = await giveawayApi.getActiveGiveaways();
+      const activeGiveaways = giveawaysResponse.data.data;
+
+      // Загружаем статус участия для каждого розыгрыша
+      const participations = {};
+      for (const giveaway of activeGiveaways) {
+        try {
+          const participationResponse = await giveawayApi.checkParticipationStatus(giveaway._id);
+          participations[giveaway._id] = participationResponse.data.data;
+        } catch (err) {
+          console.error(`Ошибка загрузки статуса участия для розыгрыша ${giveaway._id}:`, err);
+          participations[giveaway._id] = { 
+            isParticipating: false, 
+            hasTodayDeposit: false, 
+            participation: null 
+          };
+        }
+      }
+
+      // Загружаем историю участия
+      const historyResponse = await giveawayApi.getUserParticipationHistory(1, 10);
+      const participationHistory = historyResponse.data.data.participations;
+
+      setGiveawayData({
+        activeGiveaways,
+        userParticipations: participations,
+        participationHistory,
+        loading: false
+      });
+
+    } catch (err) {
+      console.error('Ошибка загрузки данных розыгрышей:', err);
+      setGiveawayData(prev => ({ ...prev, loading: false }));
+      showNotification('Не удалось загрузить данные розыгрышей');
+    }
+  };
+
+  // Участие в розыгрыше
+  const handleParticipateInGiveaway = async (giveawayId) => {
+    try {
+      buttonPressFeedback();
+
+      const response = await giveawayApi.participateInGiveaway(giveawayId);
+      
+      if (response.data.success) {
+        successNotification();
+        showNotification(response.data.message);
+        
+        // Обновляем данные розыгрышей
+        await fetchGiveawayData();
+      }
+    } catch (error) {
+      console.error('Ошибка участия в розыгрыше:', error);
+      showNotification(error.response?.data?.message || 'Ошибка участия в розыгрыше');
+    }
+  };
 
   // Копирование реферального кода для вкладки рефералов
   const copyReferralCode = () => {
@@ -617,6 +692,193 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
     );
   };
 
+  // Рендер вкладки розыгрышей
+  const renderGiveawaysTab = () => {
+    if (giveawayData.loading) {
+      return (
+        <div className="giveaways-tab">
+          <div className="giveaways-loading">
+            <div className="loader"></div>
+            <p>Загрузка розыгрышей...</p>
+          </div>
+        </div>
+      );
+    }
+
+    const formatGiveawayTime = (type, drawDate) => {
+      const date = new Date(drawDate);
+      const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      
+      if (type === 'daily') {
+        return `Сегодня в ${time}`;
+      } else {
+        const day = date.toLocaleDateString('ru-RU', { weekday: 'long' });
+        return `${day} в ${time}`;
+      }
+    };
+
+    const renderGiveawayCard = (giveaway) => {
+      const participation = giveawayData.userParticipations[giveaway._id] || {};
+      const { isParticipating, hasTodayDeposit } = participation;
+      
+      const canParticipate = !isParticipating && (
+        giveaway.type === 'daily' ? hasTodayDeposit : hasTodayDeposit
+      );
+
+      return (
+        <div key={giveaway._id} className={`giveaway-card ${giveaway.type}`}>
+          <div className="giveaway-header">
+            <h4>
+              {giveaway.type === 'daily' ? '🏆 Ежедневный розыгрыш' : '💎 Недельный розыгрыш'}
+            </h4>
+            <span className="giveaway-time">
+              {formatGiveawayTime(giveaway.type, giveaway.drawDate)}
+            </span>
+          </div>
+          
+          <div className="giveaway-prize">
+            <div className="prize-icon">
+              {giveaway.prize?.type === 'telegram_gift' ? '🎁' : 
+               giveaway.prize?.type === 'promo_code' ? '🎫' : 
+               giveaway.prize?.type === 'balance_bonus' ? '💰' : '🎁'}
+            </div>
+            <div className="prize-info">
+              <div className="prize-name">
+                {giveaway.prize?.name || 'Telegram Gift'}
+              </div>
+              <div className="prize-description">
+                {giveaway.prize?.description || 'Приз будет объявлен'}
+              </div>
+            </div>
+          </div>
+
+          <div className="giveaway-stats">
+            <div className="stat-item">
+              <span className="stat-label">Участников:</span>
+              <span className="stat-value">{giveaway.participationCount || 0}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Победителей:</span>
+              <span className="stat-value">{giveaway.winnersCount}</span>
+            </div>
+          </div>
+
+          <div className="giveaway-actions">
+            {isParticipating ? (
+              <button className="participate-btn" disabled>
+                ✅ Вы участвуете (#{participation.participation?.participationNumber})
+              </button>
+            ) : canParticipate ? (
+              <button 
+                className="participate-btn" 
+                onClick={() => handleParticipateInGiveaway(giveaway._id)}
+              >
+                🎯 Участвовать
+              </button>
+            ) : (
+              <button className="participate-btn" disabled>
+                💰 Сначала сделайте депозит
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="giveaways-tab">
+        <h3>🎁 Розыгрыши</h3>
+        
+        <div className="giveaway-info">
+          <div className="info-card">
+            <div className="info-icon">ℹ️</div>
+            <div className="info-content">
+              <h4>Как участвовать?</h4>
+              <ul>
+                <li>Сделайте депозит сегодня</li>
+                <li>Нажмите кнопку "Участвовать"</li>
+                <li>Размер депозита не влияет на шансы</li>
+                <li>Можно выигрывать несколько раз</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="active-giveaways">
+          {giveawayData.activeGiveaways.length === 0 ? (
+            <div className="no-giveaways">
+              <div className="no-giveaways-icon">🎁</div>
+              <div className="no-giveaways-text">Сейчас нет активных розыгрышей</div>
+              <div className="no-giveaways-hint">Следите за обновлениями в нашем канале</div>
+            </div>
+          ) : (
+            giveawayData.activeGiveaways.map(renderGiveawayCard)
+          )}
+        </div>
+
+        <div className="giveaway-history">
+          <h4>📊 История участия</h4>
+          {giveawayData.participationHistory.length === 0 ? (
+            <div className="no-history">
+              <div className="history-icon">📋</div>
+              <div className="history-text">У вас пока нет истории участия</div>
+              <div className="history-hint">Примите участие в розыгрыше, и здесь появится история</div>
+            </div>
+          ) : (
+            <div className="history-list">
+              {giveawayData.participationHistory.map((participation, index) => (
+                <div key={index} className="history-item">
+                  <div className="history-prize">
+                    <span className="history-icon">
+                      {participation.giveaway.prize?.type === 'telegram_gift' ? '🎁' : '🎫'}
+                    </span>
+                    <div className="history-details">
+                      <div className="history-title">{participation.giveaway.title}</div>
+                      <div className="history-date">
+                        {new Date(participation.createdAt).toLocaleDateString('ru-RU')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="history-status">
+                    {participation.isWinner ? (
+                      <span className="winner-badge">🏆 Победитель</span>
+                    ) : participation.giveaway.status === 'completed' ? (
+                      <span className="not-winner-badge">Не выиграл</span>
+                    ) : (
+                      <span className="pending-badge">Ожидание</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="giveaway-rules">
+          <h4>📋 Правила</h4>
+          <div className="rules-list">
+            <div className="rule-item">
+              <span className="rule-icon">✅</span>
+              <span className="rule-text">Для участия в ежедневном розыгрыше нужен депозит в тот же день</span>
+            </div>
+            <div className="rule-item">
+              <span className="rule-icon">✅</span>
+              <span className="rule-text">Для недельного розыгрыша достаточно одного депозита за неделю</span>
+            </div>
+            <div className="rule-item">
+              <span className="rule-icon">✅</span>
+              <span className="rule-text">Результаты публикуются в нашем Telegram канале</span>
+            </div>
+            <div className="rule-item">
+              <span className="rule-icon">✅</span>
+              <span className="rule-text">Розыгрыш проводится прозрачно с помощью Telegram</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Рендер вкладки настроек с вибрацией
   const renderSettingsTab = () => {
     return (
@@ -745,6 +1007,8 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
         return renderStatsTab();
       case 'referrals':
         return renderReferralsTab();
+      case 'giveaways':
+        return renderGiveawaysTab();
       case 'settings':
         return renderSettingsTab();
       default:
@@ -796,6 +1060,12 @@ const ProfileScreen = ({ balance, onBalanceUpdate }) => {
               onClick={() => handleTabChange('referrals')}
             >
               Рефералы
+            </button>
+            <button 
+              className={`tab-button ${activeTab === 'giveaways' ? 'active' : ''}`} 
+              onClick={() => handleTabChange('giveaways')}
+            >
+              Розыгрыши
             </button>
             <button 
               className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`} 

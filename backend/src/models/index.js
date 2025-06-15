@@ -16,6 +16,9 @@ const Duel = require('./duel.model');
 const DuelRound = require('./duel-round.model');
 const DuelInvitation = require('./duel-invitation.model');
 const Promocode = require('./promocode.model');
+const GiveawayPrize = require('./giveaway-prize.model');
+const Giveaway = require('./giveaway.model');
+const GiveawayParticipation = require('./giveaway-participation.model');
 
 module.exports = {
   User,
@@ -34,5 +37,8 @@ module.exports = {
   Duel,
   DuelRound,
   DuelInvitation,
-  Promocode
+  Promocode,
+  GiveawayPrize,
+  Giveaway,
+  GiveawayParticipation
 };

@@ -1,0 +1,12 @@
+{
+  "cloudinary_cloud_name": "diagisvai",
+  "cloudinary_api_key": "739968293182139",
+  "cloudinary_api_secret": "e-L1eegoU3sDbR6ulAHYbF3cpTk",
+  "chromedriver_path": "/opt/homebrew/bin/chromedriver",
+  "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "timeout": 30,
+  "retry_count": 3,
+  "batch_size": 10,
+  "max_concurrent_downloads": 5,
+  "output_dir": "~/Downloads"
+}

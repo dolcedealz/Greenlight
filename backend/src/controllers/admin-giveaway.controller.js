@@ -7,6 +7,7 @@ const {
 } = require('../models');
 const crypto = require('crypto');
 const telegramGiftService = require('../services/telegram-gift.service');
+const telegramChannelService = require('../services/telegram-channel.service');
 
 class AdminGiveawayController {
   /**
@@ -204,10 +205,24 @@ class AdminGiveawayController {
 
       const total = await Giveaway.countDocuments(filter);
 
+      // Добавляем актуальный подсчет участников для каждого розыгрыша
+      const giveawaysWithStats = await Promise.all(
+        giveaways.map(async (giveaway) => {
+          const actualParticipationCount = await GiveawayParticipation.countDocuments({
+            giveaway: giveaway._id
+          });
+
+          return {
+            ...giveaway.toObject(),
+            participationCount: actualParticipationCount
+          };
+        })
+      );
+
       res.json({
         success: true,
         data: {
-          giveaways,
+          giveaways: giveawaysWithStats,
           pagination: {
             page: parseInt(page),
             limit: parseInt(limit),
@@ -435,6 +450,21 @@ class AdminGiveawayController {
         .populate('prize')
         .populate('createdBy', 'firstName lastName username');
 
+      // Автоматически постим анонс розыгрыша в Telegram канал
+      try {
+        const telegramResponse = await telegramChannelService.postGiveawayAnnouncement(populatedGiveaway);
+        if (telegramResponse?.result?.message_id) {
+          // Сохраняем ID сообщения в базе данных для возможного использования в будущем
+          await Giveaway.findByIdAndUpdate(giveaway._id, {
+            telegramMessageId: telegramResponse.result.message_id.toString()
+          });
+        }
+        console.log('✅ Анонс розыгрыша опубликован в Telegram канале');
+      } catch (telegramError) {
+        console.error('❌ Ошибка публикации анонса в Telegram канале:', telegramError.message);
+        // Продолжаем выполнение даже если постинг не удался
+      }
+
       res.json({
         success: true,
         message: 'Розыгрыш активирован',
@@ -563,10 +593,36 @@ class AdminGiveawayController {
         giveaway: giveawayId
       }).populate('user', 'firstName lastName username telegramId');
 
+      // Обновляем счетчик участников в документе розыгрыша
+      await Giveaway.findByIdAndUpdate(giveawayId, {
+        participationCount: participants.length
+      });
+
       if (participants.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Нет участников для розыгрыша'
+        // Все равно завершаем розыгрыш, но без победителей
+        await Giveaway.findByIdAndUpdate(giveawayId, {
+          status: 'completed',
+          participationCount: 0
+        });
+
+        const populatedGiveaway = await Giveaway.findById(giveaway._id)
+          .populate('prize');
+
+        // Постим в канал о том, что участников не было
+        try {
+          await telegramChannelService.postGiveawayResults(populatedGiveaway, []);
+          console.log('✅ Результаты розыгрыша (без участников) опубликованы в Telegram канале');
+        } catch (telegramError) {
+          console.error('❌ Ошибка публикации в Telegram канале:', telegramError.message);
+        }
+
+        return res.json({
+          success: true,
+          message: 'Розыгрыш завершен - участников не было',
+          data: {
+            giveaway: populatedGiveaway,
+            winnersInfo: []
+          }
         });
       }
 
@@ -627,6 +683,18 @@ class AdminGiveawayController {
       const populatedGiveaway = await Giveaway.findById(giveaway._id)
         .populate('prize')
         .populate('winners.user', 'firstName lastName username telegramId');
+
+      // Постим результаты в Telegram канал
+      try {
+        await telegramChannelService.postGiveawayResults(
+          populatedGiveaway,
+          populatedGiveaway.winners
+        );
+        console.log('✅ Результаты розыгрыша опубликованы в Telegram канале');
+      } catch (telegramError) {
+        console.error('❌ Ошибка публикации в Telegram канале:', telegramError.message);
+        // Продолжаем выполнение даже если постинг не удался
+      }
 
       res.json({
         success: true,

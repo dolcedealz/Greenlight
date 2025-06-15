@@ -295,13 +295,20 @@ class GiveawayController {
           }
         });
       } else {
-        // Для кастомных розыгрышей проверяем депозиты с момента активации розыгрыша
+        // Для кастомных розыгрышей проверяем депозиты с календарного дня начала до календарного дня конца
+        const startDay = new Date(giveaway.startDate);
+        startDay.setHours(0, 0, 0, 0);
+        
+        const endDay = new Date(giveaway.endDate);
+        endDay.setHours(23, 59, 59, 999);
+        
         validDeposit = await Deposit.findOne({
           user: userId,
           status: 'paid',
           amount: { $gte: giveaway.minDepositAmount || 1 },
           createdAt: {
-            $gte: giveaway.startDate
+            $gte: startDay,
+            $lte: endDay
           }
         });
       }

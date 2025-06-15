@@ -338,14 +338,21 @@ class GiveawayController {
         });
       }
 
+      const responseData = {
+        isParticipating: !!participation,
+        hasTodayDeposit: !!validDeposit, // Переименуем для обратной совместимости
+        hasValidDeposit: !!validDeposit,
+        participation: participation || null
+      };
+
+      // Временное логирование ответа
+      if (giveaway.type === 'custom') {
+        console.log('- Response data:', responseData);
+      }
+
       res.json({
         success: true,
-        data: {
-          isParticipating: !!participation,
-          hasTodayDeposit: !!validDeposit, // Переименуем для обратной совместимости
-          hasValidDeposit: !!validDeposit,
-          participation: participation || null
-        }
+        data: responseData
       });
 
     } catch (error) {
